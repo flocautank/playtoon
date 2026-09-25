@@ -126,6 +126,17 @@ const sim = await page.evaluate(() => {
 });
 log('bonk 90 s simulées :', sim);
 await page.waitForTimeout(800); await shot(page, 'bonk-play');
+log('caméra devant un obstacle :', await page.evaluate(async () => {
+  const nb = window.__nb, S = nb.S, o = S.obst.find(q => q.kind === 'box' && q.top - 1 > 1.5);
+  S.state = 'play'; S.enemies.length = 0;
+  // joueur au pied du bloc, caméra orientée pour passer au travers
+  S.p.x = o.x; S.p.z = o.z + o.hd + 1.2; S.p.y = S.p.y; S.cam.yaw = Math.PI; S.cam.pitch = 0.15;
+  document.getElementById('nb-click').classList.add('hidden');
+  await new Promise(r => setTimeout(r, 1500));   // la caméra se calcule dans la boucle de rendu
+  S.cam.yaw = Math.PI; S.cam.pitch = 0.15;
+  await new Promise(r => setTimeout(r, 800));
+  return `distance caméra ${nb.camDist.toFixed(1)} (8,5 sans obstacle) · état=${S.state}`;
+}));
 log('bestiaire/sanctuaires :', await page.evaluate(() => {
   const nb = window.__nb, S = nb.S, out = [];
   S.state = 'play'; S.stats.hp = S.p.hp = 1e6; S.enemies.length = 0;
@@ -324,6 +335,14 @@ for (const t of ['blocks', 'forge', 'bonk']) {
   }
 }
 await m.tap('#nb-start'); await m.waitForTimeout(1500); await shot(m, 'm-bonk-play');
+await m.evaluate(() => { const S = window.__nb.S; S.xp = S.need * 1.01; window.__nb.update(1 / 30); });
+await m.waitForTimeout(400); await shot(m, 'm-bonk-levelup');
+const visibleCards = await m.$$eval('.nb-choice', els => els.filter(e => { const r = e.getBoundingClientRect(); return r.bottom <= innerHeight && r.top >= 0; }).length);
+const rerollVisible = await m.$eval('#nb-reroll', e => { const r = e.getBoundingClientRect(); return r.bottom <= innerHeight; });
+await m.tap('.nb-choice'); await m.waitForTimeout(300);
+await m.tap('#nb-pausebtn'); await m.waitForTimeout(300);
+log(`mobile Neon Bonk : cartes visibles=${visibleCards}/3 · « Relancer » visible=${rerollVisible} · pause au bouton=${await m.evaluate(() => window.__nb.S.state)}`);
+await shot(m, 'm-bonk-pause');
 
 await browser.close(); srv.close();
 if (errs.length) { console.error('ERREURS :\n' + errs.join('\n')); process.exit(1); }

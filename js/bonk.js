@@ -528,7 +528,8 @@ function newRun() {
   ['nb-menu', 'nb-end', 'nb-levelup', 'nb-pause'].forEach(id => $(id).classList.add('hidden'));
   $('nb-hud').classList.remove('hidden');
   $('nb-boss').classList.add('hidden');
-  if (TOUCH) ['nb-joy', 'nb-jumpbtn', 'nb-actbtn'].forEach(id => $(id).classList.remove('hidden'));
+  if (TOUCH) ['nb-joy', 'nb-jumpbtn', 'nb-actbtn', 'nb-slidebtn'].forEach(id => $(id).classList.remove('hidden'));
+  $('nb-pausebtn').classList.remove('hidden');
   camY = S.p.y + 5;
   if (META.music) music.start(0);
   msg('Survis. Ramasse l\'XP. Ouvre les coffres.', 3.5);
@@ -627,7 +628,9 @@ function bindInput() {
   };
   root.addEventListener('pointerup', up); root.addEventListener('pointercancel', up);
   $('nb-jumpbtn').addEventListener('pointerdown', e => { e.preventDefault(); if (S && S.state === 'play') jump(); });
-  $('nb-actbtn').addEventListener('pointerdown', e => { e.preventDefault(); if (S && S.state === 'play') { interact(); slide(); } });
+  $('nb-actbtn').addEventListener('pointerdown', e => { e.preventDefault(); if (S && S.state === 'play') interact(); });
+  $('nb-slidebtn').addEventListener('pointerdown', e => { e.preventDefault(); if (S && S.state === 'play') slide(); });
+  $('nb-pausebtn').addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); pause(); });
 }
 const S_touch = { joy: { x: 0, y: 0 } };
 
@@ -810,7 +813,9 @@ function damage(e, amount, canCrit = true, kx = 0, kz = 0) {
   if (canCrit && Math.random() < S.stats.crit) { amount *= S.stats.critMul; crit = true; }
   e.hp -= amount; e.flash = 1; S.dmgDealt += amount;
   if (!e.boss) { e.kx += kx; e.kz += kz; }
-  addNum(e.x, e.y + e.size + 0.3, e.z, amount, crit);
+  const mode = META.nums || 'merge';
+  if (mode === 'merge' && e.num && e.num.t < 0.35 && S.dmgNums.includes(e.num)) { e.num.v += Math.round(amount); e.num.crit = e.num.crit || crit; e.num.t = Math.min(e.num.t, 0.15); }
+  else if (mode === 'merge' || (mode === 'crit' && crit)) { addNum(e.x, e.y + e.size + 0.3, e.z, amount, crit); e.num = S.dmgNums[S.dmgNums.length - 1]; }
   sfx('hit');
   if (e.hp <= 0) kill(e);
 }
@@ -1214,7 +1219,7 @@ function openLevelUp(mode = 'level') {
 function renderChoices() {
   const box = $('nb-choices'); box.innerHTML = '';
   curChoices.forEach((c, i) => {
-    const b = document.createElement('button'); b.className = 'nb-choice ' + RAR[c.rar].cls; b.innerHTML = choiceHTML(c) + `<p class="muted small">[${i + 1}]</p>`;
+    const b = document.createElement('button'); b.className = 'nb-choice ' + RAR[c.rar].cls; b.innerHTML = choiceHTML(c) + `<p class="muted small nb-key">[${i + 1}]</p>`;
     b.onclick = () => pick(i); box.appendChild(b);
   });
   $('nb-rerolls').textContent = S.rerolls;
@@ -1444,7 +1449,7 @@ function bolt(x0, y0, z0, x1, y1, z1, col) {
   }
 }
 function addNum(x, y, z, v, crit, col) {
-  if (S.dmgNums.length > 70) S.dmgNums.shift();
+  if (S.dmgNums.length > 40) S.dmgNums.shift();
   S.dmgNums.push({ x, y, z, v: typeof v === 'number' ? Math.round(v) : v, crit, t: 0, col, ox: rand(-0.4, 0.4) });
 }
 let msgTimer = 0;
@@ -1620,10 +1625,19 @@ function syncMeshes(dt) {
 const tmpC2 = new THREE.Color();
 function lerpAngle(a, b, k) { let d = b - a; d = Math.atan2(Math.sin(d), Math.cos(d)); return a + d * k; }
 
-let camY = 0;
+let camY = 0, camDist = 8.5;
 function updateCamera(dt) {
   const p = S.p, c = S.cam;
-  const dist = 8.5, tx = p.x, ty = p.y + 1.8, tz = p.z;
+  const tx = p.x, ty = p.y + 1.8, tz = p.z;
+  let dist = 8.5;
+  // on longe le segment joueur → caméra : au premier obstacle traversé, la caméra se place juste devant
+  const dx = Math.sin(c.yaw) * Math.cos(c.pitch), dy = Math.sin(c.pitch), dz = Math.cos(c.yaw) * Math.cos(c.pitch);
+  for (let k = 1; k <= 16; k++) {
+    const d = 8.5 * k / 16, sx = tx + dx * d, sy = ty + dy * d, sz = tz + dz * d;
+    if (S.obst.some(o => sy < o.top + 0.3 && insideObs(o, sx, sz, 0.35))) { dist = Math.max(2.2, d - 0.8); break; }
+  }
+  camDist += (dist - camDist) * Math.min(1, dt * (dist < camDist ? 14 : 3));   // rapprochement vif, recul doux
+  dist = camDist;
   let cx = tx + Math.sin(c.yaw) * Math.cos(c.pitch) * dist, cy = ty + Math.sin(c.pitch) * dist, cz = tz + Math.cos(c.yaw) * Math.cos(c.pitch) * dist;
   let gy = terrainH(cx, cz) + 0.6;
   for (const o of S.obst) if (o.top + 0.6 > gy && insideObs(o, cx, cz, 0.4)) gy = o.top + 0.6;   // la caméra ne rentre pas dans les blocs
@@ -1645,7 +1659,7 @@ function draw2D(dt) {
     const x = (v.x * 0.5 + 0.5) * W, y = (-v.y * 0.5 + 0.5) * H;
     const a = 1 - Math.max(0, d.t - 0.5) / 0.3;
     ctx.globalAlpha = a;
-    ctx.font = `900 ${d.crit ? 20 : 14}px system-ui,sans-serif`;
+    ctx.font = `900 ${d.crit ? 20 : typeof d.v === 'number' && d.v >= 100 ? 17 : 14}px system-ui,sans-serif`;
     ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.8)'; ctx.strokeText(d.v, x, y);
     ctx.fillStyle = d.col || (d.crit ? '#ffd84d' : '#ffffff'); ctx.fillText(d.v, x, y);
   }
@@ -1702,8 +1716,8 @@ function updateHUD(dt) {
 }
 function renderWeaponsHud() {
   const box = $('nb-weapons'); box.innerHTML = '';
-  S.weapons.forEach(w => { const d = document.createElement('div'); d.innerHTML = `${wIc(w)}<small>${w.lvl}</small>`; d.style.borderColor = w.evo ? '#ffc94d' : '#ff3df0'; if (w.evo) d.style.boxShadow = '0 0 8px #ffc94d'; box.appendChild(d); });
-  S.tomes.forEach(t => { const d = document.createElement('div'); d.innerHTML = `${TOMES[t.id].ic}<small>${t.lvl}</small>`; d.style.borderColor = '#27e0ff'; box.appendChild(d); });
+  S.weapons.forEach(w => { const d = document.createElement('div'); d.innerHTML = `${wIc(w)}<small>${w.lvl}</small>`; d.title = `${wName(w)} — niveau ${w.lvl}`; d.style.borderColor = w.evo ? '#ffc94d' : '#ff3df0'; if (w.evo) d.style.boxShadow = '0 0 8px #ffc94d'; box.appendChild(d); });
+  S.tomes.forEach(t => { const d = document.createElement('div'); d.innerHTML = `${TOMES[t.id].ic}<small>${t.lvl}</small>`; d.title = `${TOMES[t.id].name} — niveau ${t.lvl}`; d.style.borderColor = '#27e0ff'; box.appendChild(d); });
   Object.entries(S.items).forEach(([id, n]) => { const it = ITEMS.find(i => i.id === id); const d = document.createElement('div'); d.innerHTML = `${it.ic}<small>${n > 1 ? n : ''}</small>`; d.style.borderColor = RAR[it.r].col; box.appendChild(d); });
 }
 
@@ -1737,11 +1751,12 @@ function pause() {
   if (!S || S.state !== 'play') return;
   S.state = 'pause';
   const b = $('nb-build'); b.innerHTML = '';
-  S.weapons.forEach(w => b.insertAdjacentHTML('beforeend', `<span>${wIc(w)} ${wName(w)} Nv${w.lvl}${!w.evo ? ` <span class="muted">(⭐ Nv${EVO_LVL} + ${TOMES[EVOS[w.id].tome].ic})</span>` : ''}</span>`));
+  S.weapons.forEach(w => b.insertAdjacentHTML('beforeend', `<span>${wIc(w)} ${wName(w)} Nv${w.lvl}${!w.evo ? ` <span class="muted">— évolue au Nv ${EVO_LVL} avec ${TOMES[EVOS[w.id].tome].ic} ${TOMES[EVOS[w.id].tome].name}, puis un coffre</span>` : ' ⭐'}</span>`));
   S.tomes.forEach(t => b.insertAdjacentHTML('beforeend', `<span>${TOMES[t.id].ic} ${TOMES[t.id].name} Nv${t.lvl}</span>`));
   Object.entries(S.items).forEach(([id, n]) => { const it = ITEMS.find(i => i.id === id); b.insertAdjacentHTML('beforeend', `<span>${it.ic} ${it.name}${n > 1 ? ' ×' + n : ''}</span>`); });
   $('nb-pause').classList.remove('hidden');
   $('nb-music').checked = META.music;
+  $('nb-nums').value = META.nums || 'merge';
   music.stop(0.3);
   if (document.pointerLockElement) document.exitPointerLock();
 }
@@ -1766,7 +1781,7 @@ function endRun(win) {
     + (newly.length ? `<div style="grid-column:1/-1;color:#ffc94d;justify-content:center">🔓 Débloqué : ${newly.map(c => c.name).join(', ')}</div>` : '');
   $('nb-end').classList.remove('hidden');
   $('nb-hud').classList.add('hidden');
-  ['nb-joy', 'nb-jumpbtn', 'nb-actbtn'].forEach(id => $(id).classList.add('hidden'));
+  ['nb-joy', 'nb-jumpbtn', 'nb-actbtn', 'nb-slidebtn', 'nb-pausebtn'].forEach(id => $(id).classList.add('hidden'));
   $('nb-prompt').classList.remove('show');
 }
 function toMenu() {
@@ -1813,6 +1828,8 @@ function renderMenu() {
 
 $('nb-start').onclick = () => { S = null; newRun(); clock.getDelta(); };
 $('nb-again').onclick = toMenu;
+$('nb-replay').onclick = () => { toMenu(); $('nb-menu').classList.add('hidden'); S = null; newRun(); clock.getDelta(); };
+$('nb-nums').onchange = e => { META.nums = e.target.value; saveMeta(); };
 $('nb-resume').onclick = resume;
 $('nb-quit').onclick = () => endRun(false);
 $('nb-reroll').onclick = reroll;
@@ -1825,7 +1842,7 @@ $('nb-timer').addEventListener('click', () => pause());
 
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
 // Accès de débogage (console) à l'état de la run.
-window.__nb = { get S() { return S; }, update, pick, keys, interact, jump, damage, spawnEnemy, music, newRun, addWeapon };
+window.__nb = { get S() { return S; }, get camDist() { return camDist; }, update, pick, keys, interact, jump, damage, spawnEnemy, music, newRun, addWeapon, openLevelUp };
 
 window.GAMES.bonk = {
   show() {
