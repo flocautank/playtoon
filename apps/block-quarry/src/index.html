@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>Block Quarry</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body class="bq-app">
+<div class="pt-toasts" id="pt-toasts"></div>
+<main>
+<!--GAME-->
+</main>
+
+<div class="overlay hidden" id="bq-settings" style="position:fixed;z-index:200">
+  <div class="card">
+    <h2 data-i18n="app.settings">Settings</h2>
+    <label class="bq-row"><span data-i18n="app.sound">Sound effects</span> <input type="checkbox" id="bq-sfx"></label>
+    <label class="bq-row"><span>🌐 <span data-i18n="language">Language</span></span> <select id="bq-lang"></select></label>
+    <div class="bq-shop" id="bq-shop">
+      <button class="btn" id="bq-buy" data-i18n="app.removeAds">Remove ads</button>
+      <p class="muted small" id="bq-shopdesc" data-i18n="app.removeAdsDesc"></p>
+      <button class="btn ghost small" id="bq-restore" data-i18n="app.restore">Restore purchases</button>
+    </div>
+    <button class="btn ghost small hidden" id="bq-privacy" data-i18n="app.privacy">Privacy options</button>
+    <a class="small bq-link" id="bq-policy" href="https://flocautank.github.io/playtoon/privacy.html" target="_blank" rel="noopener" data-i18n="app.policy">Privacy policy</a>
+    <p class="muted small" id="bq-ver"></p>
+    <button class="btn ghost" id="bq-close" data-i18n="close">Close</button>
+  </div>
+</div>
+<div class="overlay hidden" id="pt-modal" style="position:fixed;z-index:300">
+  <div class="card"><div id="pt-modal-txt" style="text-align:left;line-height:1.5"></div>
+    <div class="row"><button class="btn ghost" id="pt-cancel">Cancel</button><button class="btn" id="pt-ok">Continue</button></div></div>
+</div>
+<script type="module" src="app.js"></script>
+</body>
+</html>

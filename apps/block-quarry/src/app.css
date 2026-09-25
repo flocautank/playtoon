@@ -1,0 +1,11 @@
+/* Application Android : pas de barre Playtoon, marges de sécurité (encoche, barre de gestes) */
+.bq-app main { inset: env(safe-area-inset-top, 0) 0 env(safe-area-inset-bottom, 0) 0; }
+.bq-app .tab { display: block; }
+.bq-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; width: 100%; font-size: 15px; }
+.bq-row select { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; }
+.bq-row input { width: 20px; height: 20px; }
+.bq-shop { display: flex; flex-direction: column; gap: 6px; align-items: center; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 10px 0; width: 100%; }
+.bq-shop .btn { min-width: 200px; }
+.bq-link { color: #8fb8ff; }
+#bq-gear { font-size: 18px; padding: 6px 10px; }
+.bq-app * { -webkit-user-select: none; user-select: none; }

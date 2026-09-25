@@ -273,3 +273,4 @@ main{position:fixed;inset:var(--nav-h) 0 0 0}
 @media (max-width:600px){.neon{font-size:30px}.nb-hp{width:118px}.nb-timer{font-size:19px;top:20px}.nb-msg{white-space:normal;width:92vw;font-size:15px;top:96px}.nb-boss{top:214px;width:86vw}.nb-weapons{max-width:130px}}
 #nb-start{position:sticky;bottom:0;z-index:2;box-shadow:0 -10px 20px var(--panel),0 3px 0 rgba(0,0,0,.35)}
 .pt-lang{display:flex;gap:6px;align-items:center;justify-content:center}.pt-lang select{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:3px 6px}
+.bp-vid{background:linear-gradient(135deg,#27c26a,#1a9b8f)}.bp-vid small{display:block;font-size:11px;opacity:.85}

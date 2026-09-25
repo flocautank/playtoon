@@ -38,6 +38,12 @@ const LEVELS = 40;
 // Générateur déterministe : un niveau d'aventure a toujours la même grille et les mêmes pièces.
 function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 let rnd = Math.random;
+// Monétisation : fournie par l'application Android (apps/block-quarry) ; sur le web, rien (pas de pub).
+const MON = {
+  canReward: () => !!(window.PT_MON && window.PT_MON.canReward()),
+  reward: kind => window.PT_MON ? window.PT_MON.reward(kind) : Promise.resolve(false),
+  pause: () => window.PT_MON ? window.PT_MON.pause() : Promise.resolve(),   // pause publicitaire éventuelle (plafonnée) entre deux parties
+};
 let TUTO = false;
 try { TUTO = !localStorage.getItem('blocparty.tuto'); } catch (e) {}
 const tutoDone = () => { if (!TUTO) return; TUTO = false; try { localStorage.setItem('blocparty.tuto', '1'); } catch (e) {} };
@@ -61,7 +67,7 @@ try { const c = localStorage.getItem('blocparty.coins'); if (c !== null) COINS =
 const saveCoins = () => { try { localStorage.setItem('blocparty.coins', COINS); } catch (e) {} paintBoost(); };
 function paintBoost() {
   $('bp-coins').textContent = COINS;
-  document.querySelectorAll('#bp-boost button').forEach(b => { b.classList.toggle('on', b.dataset.tool === tool); b.classList.toggle('no', COINS < TOOLS[b.dataset.tool]); });
+  document.querySelectorAll('#bp-boost button').forEach(b => { b.classList.toggle('on', b.dataset.tool === tool); b.classList.toggle('no', COINS < TOOLS[b.dataset.tool] && !(S.freeTool && b.dataset.tool === 'hammer')); });
 }
 try { ADV = Object.assign(ADV, JSON.parse(localStorage.getItem('blocparty.adv') || '{}')); } catch (e) {}
 const saveAdv = () => { try { localStorage.setItem('blocparty.adv', JSON.stringify(ADV)); } catch (e) {} };
@@ -139,7 +145,7 @@ function fillTray() {
 function newGame() {
   S.mode = 'classic'; rnd = Math.random; S.gems.clear();
   S.board = Array.from({ length: N }, () => Array(N).fill(null));
-  S.score = 0; S.shown = 0; S.combo = 0; S.over = false; S.fx = []; S.pops = []; S.clearing = [];
+  S.score = 0; S.shown = 0; S.combo = 0; S.over = false; S.fx = []; S.pops = []; S.clearing = []; S.vidCont = false;
   fillTray();
   $('bp-over').classList.add('hidden');
   save(); updateHUD();
@@ -201,6 +207,7 @@ function advResult(win) {
     $('bp-resnext').classList.toggle('hidden', !win || S.lvl >= LEVELS);
     $('bp-rescont').classList.toggle('hidden', win || S.moves <= 0 || COINS < TOOLS.hammer);
     $('bp-resmore').classList.toggle('hidden', win || S.moves > 0 || S.moreBought || COINS < MORE_COST);   // seconde chance, une fois par tentative
+    $('bp-resvid').classList.toggle('hidden', win || S.moves > 0 || S.moreBought || !MON.canReward());   // …ou contre une vidéo (application)
     $('bp-res').classList.remove('hidden');
     if (win) [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => beep(f, 0.18, 'triangle', 0.06), i * 110));
     else beep(260, 0.4, 'sawtooth', 0.04);
@@ -222,7 +229,7 @@ function startDaily() {
   const r = mulberry32(today);
   const board = Array.from({ length: N }, () => Array(N).fill(null));
   for (let k = 0; k < 7; k++) { const x = (r() * N) | 0, y = (r() * N) | 0; board[y][x] = STONE; }
-  S.mode = 'daily'; S.gems = new Set(); S.board = board; S.score = 0; S.shown = 0; S.combo = 0; S.over = false; S.fx = []; S.pops = []; S.clearing = [];
+  S.mode = 'daily'; S.vidCont = false; S.gems = new Set(); S.board = board; S.score = 0; S.shown = 0; S.combo = 0; S.over = false; S.fx = []; S.pops = []; S.clearing = [];
   rnd = mulberry32(today * 31 + 7);
   fillTray();
   ['bp-over', 'bp-map', 'bp-res'].forEach(id => $(id).classList.add('hidden'));
@@ -248,6 +255,7 @@ function openThemes() {
     };
     box.appendChild(d);
   }
+  paintVidCoins();
   $('bp-themes').classList.remove('hidden');
 }
 
@@ -308,14 +316,14 @@ function smash(cells) {
   return hit;
 }
 function useTool(name, gx, gy) {
-  const cost = TOOLS[name];
+  const cost = S.freeTool && name === 'hammer' ? 0 : TOOLS[name];
   if (COINS < cost) return false;
   if (name === 'shuffle') { S.tray = [null, null, null]; fillTray(); beep(700, 0.15, 'triangle', 0.05); }
   else {
     const cells = name === 'bomb' ? [-1, 0, 1].flatMap(dy => [-1, 0, 1].map(dx => [gx + dx, gy + dy])) : [[gx, gy]];
     if (!smash(cells)) return false;
   }
-  COINS -= cost; tool = null; saveCoins(); save();
+  COINS -= cost; tool = null; S.freeTool = false; saveCoins(); save();
   // toujours bloqué après le booster ? la partie se termine
   if (!S.over && !S.tray.some(t => t && canPlaceAnywhere(t))) {
     if (S.mode === 'adv') advResult(false); else { S.over = true; setTimeout(gameOver, 600); }
@@ -410,6 +418,7 @@ function gameOver() {
   } else if (S.mode === 'daily') $('bp-newbest').textContent = t('bp.dailyEnd', { date: todayLabel(), best: num(DAILY.best), n: DAILY.streak });
   else $('bp-newbest').textContent = S.score >= S.best && S.score > 0 ? t('bp.newRecord') : t('bp.record', { n: num(S.best) });
   $('bp-cont').classList.toggle('hidden', COINS < TOOLS.hammer || S.mode === 'chrono');
+  $('bp-vidcont').classList.toggle('hidden', S.mode === 'chrono' || S.vidCont || !MON.canReward());
   $('bp-over').classList.remove('hidden');
   beep(300, 0.3, 'sawtooth', 0.04); setTimeout(() => beep(200, 0.4, 'sawtooth', 0.04), 200);
 }
@@ -699,7 +708,7 @@ $('bp-restart').onclick = () => {
   if (S.mode === 'chrono') { if (!S.score || S.over) startChrono(); else ptConfirm(t('bp.cChrono'), t('bp.cChronoOk')).then(ok => ok && startChrono()); return; }
   if (S.score === 0) newGame(); else window.ptConfirm(t('bp.cNewGame'), t('bp.cRestart')).then(ok => ok && newGame());
 };
-$('bp-again').onclick = () => S.mode === 'daily' ? startDaily() : S.mode === 'chrono' ? startChrono() : newGame();
+$('bp-again').onclick = () => MON.pause().then(() => S.mode === 'daily' ? startDaily() : S.mode === 'chrono' ? startChrono() : newGame());
 $('bp-chrono').onclick = startChrono;
 $('bp-mapbtn').onclick = openMap;
 $('bp-themebtn').onclick = openThemes;
@@ -715,10 +724,32 @@ $('bp-resmore').onclick = () => {
   COINS -= MORE_COST; saveCoins(); S.moreBought = true; S.moves += 3; S.over = false;
   $('bp-res').classList.add('hidden'); S.pops.push({ text: t('bp.plus3'), sub: t('bp.lastChance'), t: 0 }); updateHUD();
 };
+// vidéos récompensées (application uniquement) : toujours facultatives, jamais imposées
+$('bp-resvid').onclick = () => MON.reward('moves').then(ok => {
+  if (!ok || S.moreBought) return;
+  S.moreBought = true; S.moves += 3; S.over = false;
+  $('bp-res').classList.add('hidden'); S.pops.push({ text: t('bp.plus3'), sub: t('bp.lastChance'), t: 0 }); updateHUD();
+});
+$('bp-vidcont').onclick = () => MON.reward('continue').then(ok => { if (!ok) return; S.vidCont = true; S.freeTool = true; resume('bp-over'); });
+const VID_DAY = 5, VID_COINS = 20;
+let VIDS = { day: 0, n: 0 };
+try { VIDS = Object.assign(VIDS, JSON.parse(localStorage.getItem('blocparty.vids') || '{}')); } catch (e) {}
+const vidsLeft = () => VIDS.day === dayKey() ? Math.max(0, VID_DAY - VIDS.n) : VID_DAY;
+function paintVidCoins() {
+  const b = $('bp-vidcoins'), n = vidsLeft();
+  b.classList.toggle('hidden', !MON.canReward() || n <= 0);
+  b.innerHTML = `${t('app.watchCoins', { n: VID_COINS })}<small>${t('app.videoLeft', { n })}</small>`;
+}
+$('bp-vidcoins').onclick = () => MON.reward('coins').then(ok => {
+  if (!ok) return;
+  if (VIDS.day !== dayKey()) VIDS = { day: dayKey(), n: 0 };
+  VIDS.n++; try { localStorage.setItem('blocparty.vids', JSON.stringify(VIDS)); } catch (e) {}
+  COINS += VID_COINS; saveCoins(); window.ptToast && window.ptToast(t('app.coinsGot', { n: VID_COINS })); openThemes();
+});
 $('bp-overmap').onclick = () => { $('bp-over').classList.add('hidden'); openMap(); };
 document.querySelectorAll('#bp-boost button').forEach(b => b.onclick = () => {
   const t = b.dataset.tool;
-  if (S.over || COINS < TOOLS[t]) { beep(180, 0.1, 'square', 0.03); return; }
+  if (S.over || (COINS < TOOLS[t] && !(S.freeTool && t === 'hammer'))) { beep(180, 0.1, 'square', 0.03); return; }
   if (t === 'shuffle') { useTool('shuffle'); return; }
   tool = tool === t ? null : t; paintBoost();
 });
@@ -730,7 +761,7 @@ window.addEventListener('pt-lang', () => { updateHUD(); if (!$('bp-themes').clas
 $('bp-mapclose').onclick = () => { $('bp-map').classList.add('hidden'); if (S.over && S.mode !== 'adv') $('bp-over').classList.remove('hidden'); };   // fermer la carte après une fin de partie ramène à l'écran de fin
 $('bp-daily').onclick = startDaily;
 $('bp-classic').onclick = () => { $('bp-map').classList.add('hidden'); if (S.mode === 'classic' && S.over) { newGame(); return; } if (S.mode !== 'classic') { S.mode = 'classic'; rnd = Math.random; S.gems.clear(); if (!load() || !S.tray.some(t => t && canPlaceAnywhere(t))) newGame(); S.over = false; updateHUD(); } };
-$('bp-resnext').onclick = () => startLevel(Math.min(LEVELS, S.lvl + 1));
+$('bp-resnext').onclick = () => MON.pause().then(() => startLevel(Math.min(LEVELS, S.lvl + 1)));
 $('bp-resretry').onclick = () => startLevel(S.lvl);
 $('bp-resmap').onclick = () => { $('bp-res').classList.add('hidden'); openMap(); };
 window.addEventListener('resize', () => running && resize());

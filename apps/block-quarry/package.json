@@ -1,0 +1,25 @@
+{
+  "name": "block-quarry",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Block Quarry — Android app (Capacitor) built from the Playtoon web game",
+  "scripts": {
+    "build": "node build.mjs",
+    "sync": "node build.mjs && npx cap sync android"
+  },
+  "dependencies": {
+    "@capacitor-community/admob": "^8.1.0",
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.3",
+    "@capgo/native-purchases": "^8.8.1"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.5.2",
+    "esbuild": "^0.28.2"
+  }
+}
