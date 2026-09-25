@@ -142,6 +142,23 @@ log('évolution :', await page.evaluate(() => {
   const before = S.kills; for (let i = 0; i < 150; i++) { S.state = 'play'; S.pending = 0; nb.update(1 / 30); }
   return `évoluée=${w.evo} · traits simultanés=${1 + w.count} · perforation=${w.pierce} · éliminations en 5 s=${S.kills - before}`;
 }));
+log('laser + mines :', await page.evaluate(() => {
+  const nb = window.__nb, S = nb.S, out = [];
+  S.state = 'play'; S.enemies.length = 0; S.weapons = S.weapons.filter(w => w.id === 'blaster'); S.weapons[0].t = 999;   // blaster muet
+  nb.addWeapon('beam'); nb.addWeapon('mine');
+  for (const [id, tome] of [['beam', 'wisdom'], ['mine', 'armor']]) {
+    let k0 = S.kills;
+    for (let i = 0; i < 12; i++) nb.spawnEnemy('drone', S.p.x + 4 + (i % 4) * 1.5, S.p.z + ((i / 4) | 0) * 1.5 - 1.5);
+    for (let i = 0; i < 150; i++) { S.state = 'play'; S.pending = 0; S.p.hp = S.stats.hp; nb.update(1 / 30); }
+    out.push(`${id} : ${S.kills - k0} élim., mines posées=${S.mines.length}`);
+    S.enemies.length = 0;
+    const w = S.weapons.find(x => x.id === id); w.lvl = 8; if (!S.tomes.find(t => t.id === tome)) S.tomes.push({ id: tome, lvl: 1 });
+    const c = { x: S.p.x + 0.5, y: S.p.y, z: S.p.z, open: false, free: true, mesh: { children: [null, { material: { uniforms: { uCore: { value: 0 } } } }] }, lid: { rotation: {}, position: {} } };
+    S.chests.push(c); nb.update(1 / 30); nb.interact(); out.push(`${id} évolué=${!!w.evo}`);
+  }
+  return out.join(' · ');
+}));
+await page.waitForTimeout(500); await shot(page, 'bonk-beam');
 await page.keyboard.press('Escape'); await page.evaluate(() => { const S = window.__nb.S; if (S.state === 'play') document.getElementById('nb-timer').click(); });
 await page.waitForTimeout(400); await shot(page, 'bonk-evo');
 // parcours complet : boss 1 → portail → étape 2 → boss 2 → portail final

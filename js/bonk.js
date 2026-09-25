@@ -30,6 +30,8 @@ const WEAPONS = {
   arc:     { name: 'Foudre', ic: '⚡', desc: 'La foudre frappe des ennemis au hasard et se propage.', cd: 1.5, dmg: 24, count: 2, area: 1.8, chain: 1, ups: ['dmg', 'cd', 'count', 'chain', 'area'] },
   disc:    { name: 'Disque', ic: '🥏', desc: 'Un disque boomerang qui traverse tout, aller et retour.', cd: 1.9, dmg: 18, count: 1, area: 1.3, speed: 20, ups: ['dmg', 'cd', 'count', 'area', 'speed'] },
   blade:   { name: 'Lame néon', ic: '🗡️', desc: 'Un large coup de lame devant toi.', cd: 1.0, dmg: 28, count: 1, area: 4, ups: ['dmg', 'cd', 'area', 'count'] },
+  beam:    { name: 'Laser', ic: '🔦', desc: 'Un rayon continu qui suit l\'ennemi le plus proche et traverse tout.', cd: 0.16, dmg: 6, count: 1, area: 1, ups: ['dmg', 'cd', 'area', 'count'] },
+  mine:    { name: 'Mines', ic: '🧨', desc: 'Sème des mines sous tes pas, qui explosent au contact.', cd: 1.3, dmg: 42, count: 1, area: 3, ups: ['dmg', 'cd', 'count', 'area'] },
   rocket:  { name: 'Missiles', ic: '🚀', desc: 'Des missiles à tête chercheuse qui explosent en zone.', cd: 2.6, dmg: 34, count: 1, area: 3.6, speed: 18, ups: ['dmg', 'cd', 'count', 'area'] },
 };
 // Évolutions : arme au niveau 8+ et tome associé possédé → le prochain coffre fait évoluer l'arme.
@@ -41,6 +43,8 @@ const EVOS = {
   arc:     { tome: 'crit', name: 'Tempête', ic: '🌩️', desc: 'dégâts ×1,8, +2 éclairs, +3 rebonds', fx: w => { w.dmgM *= 1.8; w.count += 2; w.chain += 3; } },
   disc:    { tome: 'agile', name: 'Scie stellaire', ic: '⚙️', desc: 'dégâts ×2, +2 disques, +50 % de vitesse', fx: w => { w.dmgM *= 2; w.count += 2; w.speedM += 0.5; } },
   blade:   { tome: 'power', name: 'Lame d\'Oméga', ic: '⚔️', desc: 'dégâts ×2,5, frappe devant et derrière, +40 % de portée', fx: w => { w.dmgM *= 2.5; w.count += 1; w.areaM += 0.4; } },
+  beam:    { tome: 'wisdom', name: 'Rayon de la mort', ic: '☄️', desc: 'dégâts ×2, +1 rayon, +50 % de portée et d\'épaisseur', fx: w => { w.dmgM *= 2; w.count += 1; w.areaM += 0.5; } },
+  mine:    { tome: 'armor', name: 'Champ de mines', ic: '💣', desc: 'dégâts ×2, +2 mines par salve, +40 % d\'explosion', fx: w => { w.dmgM *= 2; w.count += 2; w.areaM += 0.4; } },
   rocket:  { tome: 'haste', name: 'Barrage', ic: '🎆', desc: 'dégâts ×1,6, +3 missiles, +30 % d\'explosion', fx: w => { w.dmgM *= 1.6; w.count += 3; w.areaM += 0.3; } },
 };
 const wName = w => w.evo ? EVOS[w.id].name : WEAPONS[w.id].name;
@@ -309,6 +313,18 @@ function init() {
   mk('orb', G.ball, 0xb98bff, 24, 1.0);
   mk('disc', G.disc, 0x7cff8a, 40, 0.9);
   mk('rocket', G.rocket, 0xff8a4d, 60, 1.0);
+  mk('mine', new THREE.CylinderGeometry(0.35, 0.45, 0.18, 8), 0xff3050, 40, 0.8);
+  // rayons du laser : un cœur blanc-rouge et un halo, en mélange additif
+  scene.userData.beams = [];
+  const beamGeo = new THREE.BoxGeometry(1, 1, 1).translate(0.5, 0, 0);
+  for (let i = 0; i < 4; i++) {
+    const g = new THREE.Group();
+    g.add(new THREE.Mesh(beamGeo, new THREE.MeshBasicMaterial({ color: 0xffd0c8, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false })));
+    const halo = new THREE.Mesh(beamGeo, new THREE.MeshBasicMaterial({ color: 0xff3040, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false }));
+    halo.scale.set(1, 3.5, 3.5); g.add(halo);
+    g.visible = false; g.frustumCulled = false; g.children.forEach(m => m.frustumCulled = false);
+    scene.add(g); scene.userData.beams.push(g);
+  }
   mk('bullet', G.bullet, 0xff3050, 400, 1.0);
 
   // particules
@@ -492,7 +508,7 @@ function newRun() {
   const ch = CHARS.find(c => c.id === META.sel && unlocked(c)) || CHARS[0];
   S = {
     state: 'play', stage: 0, stageT: 0, ch, t: 0, time: RUN_TIME, kills: 0, gold: 0, level: 1, xp: 0, need: xpNeed(1), pending: 0, rerolls: 2,
-    stats: null, weapons: [], tomes: [], items: {}, enemies: [], pickups: [], bolts: [], bullets: [], discs: [], rockets: [], rings: [], dmgNums: [],
+    stats: null, weapons: [], tomes: [], items: {}, enemies: [], pickups: [], bolts: [], bullets: [], discs: [], rockets: [], mines: [], rings: [], dmgNums: [],
     spawnAcc: 0, nextSwarm: 90, eliteAt: [420, 240], boss: null, portal: null, won: false, dmgDealt: 0, chestsOpened: 0,
     iframe: 0, shieldT: 0, hurtFlash: 0, msgT: 0, chestCost: 12, orbPos: [], orbCount: 0, magnetAll: 0, bossDead: false,
     p: { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, onGround: true, jumps: 1, slide: 0, slideCd: 0, face: Math.PI, hp: 100 },
@@ -874,6 +890,7 @@ function facing() {
 }
 
 function updateWeapons(dt) {
+  S.beamVis = [];
   const p = S.p, px = p.x, py = p.y + 1, pz = p.z;
   let orbIdx = 0;
   for (const w of S.weapons) {
@@ -990,9 +1007,52 @@ function updateWeapons(dt) {
           }
         }
         break;
+      case 'beam': {
+        // rayon continu : l'angle suit l'ennemi le plus proche, dégâts par impulsion à tout ce qui est sur la ligne
+        const len = 13 * st.area, width = 0.55 * st.area;
+        const tg = nearestEnemies(1, len + 2)[0];
+        const want = tg ? Math.atan2(tg.z - pz, tg.x - px) : facing();
+        w.ang = w.ang === undefined ? want : lerpAngle(w.ang, want, Math.min(1, dt * 6));
+        const tick = w.t <= 0; if (tick) w.t = st.cd;
+        for (let k = 0; k < st.count; k++) {
+          const a = w.ang + (k - (st.count - 1) / 2) * 0.5, cx = Math.cos(a), cz = Math.sin(a);
+          const ex = px + cx * len, ez = pz + cz * len;
+          S.beamVis.push({ x: px, y: py, z: pz, a, len, w: width });
+          if (Math.random() < 0.5) spawnPart(px + cx * len * Math.random(), py, pz + cz * len * Math.random(), rand(-1, 1), rand(0, 2), rand(-1, 1), [1, 0.4, 0.3], 0.25, 0.3);
+          if (!tick) continue;
+          near(px + cx * len / 2, pz + cz * len / 2, len / 2 + 2, e => {
+            const rx = e.x - px, rz = e.z - pz, along = rx * cx + rz * cz;
+            if (along < 0 || along > len) return;
+            if (Math.abs(rx * cz - rz * cx) < width + e.r) damage(e, st.dmg, true, cx * 1.5, cz * 1.5);
+          });
+          const B = S.boss;
+          if (B && B.hp > 0) { const rx = B.x - px, rz = B.z - pz, al = rx * cx + rz * cz; if (al > 0 && al < len && Math.abs(rx * cz - rz * cx) < width + B.r) damage(B, st.dmg); }
+        }
+        break;
+      }
+      case 'mine':
+        if (w.t <= 0) {
+          w.t = st.cd;
+          for (let i = 0; i < st.count; i++) {
+            if (S.mines.length >= 30) S.mines.shift();
+            const a = rand(0, TAU), d = i ? rand(1, 2.5) : 0;
+            const mx = px + Math.cos(a) * d, mz = pz + Math.sin(a) * d;
+            S.mines.push({ x: mx, z: mz, y: groundAt(mx, mz, p.y + 0.5), arm: 0.5, dmg: st.dmg, r: st.area, t: 0 });
+          }
+        }
+        break;
     }
   }
   S.orbCount = orbIdx;
+  // mines : armement puis explosion au contact
+  for (let i = S.mines.length - 1; i >= 0; i--) {
+    const m = S.mines[i]; m.arm -= dt; m.t += dt;
+    if (m.arm > 0) continue;
+    let boom = false;
+    near(m.x, m.z, 2.5, e => { if (Math.hypot(e.x - m.x, e.z - m.z) < 1.1 + e.r && Math.abs(e.y - m.y) < 2.5) { boom = true; return false; } });
+    if (!boom && S.boss && Math.hypot(S.boss.x - m.x, S.boss.z - m.z) < S.boss.r + 1.2) boom = true;
+    if (boom) { explode(m.x, m.y, m.z, m.r, m.dmg, [1, 0.3, 0.3]); S.mines.splice(i, 1); }
+  }
 }
 
 function updateProjectiles(dt) {
@@ -1281,7 +1341,7 @@ function nextStage() {
   // Le portail absorbe l'XP qui traîne, puis on reconstruit l'arène suivante en gardant tout le build.
   for (const k of S.pickups) if (k.type === 'gem') S.xp += k.v * S.stats.xp;
   S.rings.forEach(r => { if (r.mesh) { scene.remove(r.mesh); r.mesh.material.dispose(); } });
-  S.enemies = []; S.pickups = []; S.bolts = []; S.bullets = []; S.discs = []; S.rockets = []; S.rings = []; S.dmgNums = [];
+  S.enemies = []; S.pickups = []; S.bolts = []; S.bullets = []; S.discs = []; S.rockets = []; S.mines = []; S.rings = []; S.dmgNums = [];
   partSys.list.length = 0; scene.userData.lines.segs.length = 0;
   S.stage++; S.stageT = S.t; S.time = ST().time; S.boss = null; S.bossDead = false; S.portal = null;
   S.eliteAt = [ST().time - 120, ST().time - 300]; S.nextSwarm = S.t + 50; S.spawnAcc = 0;
@@ -1510,6 +1570,14 @@ function syncMeshes(dt) {
   put('bolt', S.bolts, b => { dummy.position.set(b.x, b.y, b.z); dummy.lookAt(b.x + b.vx, b.y + b.vy, b.z + b.vz); dummy.scale.setScalar(1); });
   put('bullet', S.bullets, b => { dummy.position.set(b.x, b.y, b.z); dummy.rotation.set(t * 5, t * 3, 0); dummy.scale.setScalar(1); });
   put('disc', S.discs, d => { dummy.position.set(d.x, d.y, d.z); dummy.rotation.set(0, d.t * 20, 0); dummy.scale.setScalar(d.r / 0.9 * 1.2); });
+  scene.userData.beams.forEach((g, i) => {
+    const b = S.beamVis && S.beamVis[i];
+    g.visible = !!b && S.state === 'play';
+    if (!b) return;
+    const th = 0.12 * (1 + 0.15 * Math.sin(t * 40 + i)) * b.w / 0.55;
+    g.position.set(b.x, b.y, b.z); g.rotation.set(0, -b.a, 0); g.scale.set(b.len, th, th);
+  });
+  put('mine', S.mines, m => { dummy.position.set(m.x, m.y + 0.1, m.z); dummy.rotation.set(0, m.t, 0); dummy.scale.setScalar(m.arm > 0 ? 0.6 : 1 + 0.15 * Math.sin(m.t * 12)); });
   put('rocket', S.rockets, r => { dummy.position.set(r.x, r.y, r.z); dummy.lookAt(r.x + r.vx, r.y + r.vy, r.z + r.vz); dummy.scale.setScalar(1); });
   const om = meshes.orb; for (let i = 0; i < S.orbCount; i++) { const o = S.orbPos[i]; dummy.position.set(o[0], o[1], o[2]); dummy.rotation.set(t * 4, t * 3, 0); dummy.scale.setScalar(o[3]); dummy.updateMatrix(); om.setMatrixAt(i, dummy.matrix); }
   om.count = S.orbCount; om.instanceMatrix.needsUpdate = true;
@@ -1706,6 +1774,7 @@ function toMenu() {
   if (S) {
     S.rings.forEach(r => { if (r.mesh) { scene.remove(r.mesh); r.mesh.material.dispose(); } });
     for (const k in meshes) meshes[k].count = 0;
+    scene.userData.beams.forEach(g => g.visible = false);
     partSys.list.length = 0; scene.userData.lines.segs.length = 0;
     player.visible = false;
     S.state = 'menu';
@@ -1756,7 +1825,7 @@ $('nb-timer').addEventListener('click', () => pause());
 
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
 // Accès de débogage (console) à l'état de la run.
-window.__nb = { get S() { return S; }, update, pick, keys, interact, jump, damage, spawnEnemy, music, newRun };
+window.__nb = { get S() { return S; }, update, pick, keys, interact, jump, damage, spawnEnemy, music, newRun, addWeapon };
 
 window.GAMES.bonk = {
   show() {
