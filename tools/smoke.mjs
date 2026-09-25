@@ -51,6 +51,19 @@ await page.waitForTimeout(300); await shot(page, 'forge');
 for (const t of ['upg', 'meta', 'ach', 'opt', 'gen']) { await page.click(`[data-sf=${t}]`); await page.waitForTimeout(150); }
 await page.goto(base + '#bonk'); await page.waitForTimeout(1200); await shot(page, 'bonk-menu');
 await page.click('#nb-start'); await page.waitForTimeout(1500);
+log('musique :', await page.evaluate(async () => {
+  const m = window.__nb.music; if (!m.ctx) return 'pas de contexte audio';
+  const S = window.__nb.S, prev = S.state; S.state = 'levelup';   // gèle la boucle, qui sinon recalcule l'intensité
+  const an = m.ctx.createAnalyser(); an.fftSize = 2048; m.master.connect(an);
+  const buf = new Float32Array(an.fftSize), res = [];
+  for (const L of [0, 1, 2, 3]) {
+    m.setLevel(L); await new Promise(r => setTimeout(r, 1200));
+    let peak = 0, sum = 0; for (let k = 0; k < 10; k++) { an.getFloatTimeDomainData(buf); for (const v of buf) { sum += v * v; peak = Math.max(peak, Math.abs(v)); } await new Promise(r => setTimeout(r, 40)); }
+    res.push(`N${L} rms=${Math.sqrt(sum / (buf.length * 10)).toFixed(3)} crête=${peak.toFixed(2)}`);
+  }
+  S.state = prev;
+  return `état=${m.ctx.state} pas=${m.step} ` + res.join(' | ');
+}));
 const sim = await page.evaluate(() => {
   const nb = window.__nb, out = [];
   for (let step = 0; step < 30 * 90; step++) {

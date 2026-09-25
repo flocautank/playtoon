@@ -2,6 +2,8 @@
 // courir/sauter/glisser, armes automatiques, XP → choix d'upgrades à rareté, coffres payés en or,
 // sanctuaires, timer de 10 min, boss, portail), dans une esthétique synthwave néon.
 import * as THREE from '../vendor/three.module.min.js';
+import { Synthwave } from './synthwave.js';
+const music = new Synthwave();
 window.GAMES = window.GAMES || {};
 
 const $ = id => document.getElementById(id);
@@ -112,7 +114,7 @@ const diffMin = () => ST().m0 + (S.t - (S.stageT || 0)) / 60 * ST().mRate;
 
 // ============================================================ méta (sauvegarde)
 const META_KEY = 'neonbonk.meta.v1';
-let META = { totalKills: 0, bossKills: 0, maxLevel: 0, bestTime: 0, bestKills: 0, runs: 0, wins: 0, sel: 'glitch', sens: 1, credits: 0, shop: {} };
+let META = { totalKills: 0, bossKills: 0, maxLevel: 0, bestTime: 0, bestKills: 0, runs: 0, wins: 0, sel: 'glitch', sens: 1, credits: 0, shop: {}, music: true };
 try { Object.assign(META, JSON.parse(localStorage.getItem(META_KEY) || '{}')); } catch (e) {}
 // Boutique permanente : crédits gagnés à chaque run, améliorations conservées d'une run à l'autre.
 const SHOP = [
@@ -495,6 +497,7 @@ function newRun() {
   $('nb-boss').classList.add('hidden');
   if (TOUCH) ['nb-joy', 'nb-jumpbtn', 'nb-actbtn'].forEach(id => $(id).classList.remove('hidden'));
   camY = S.p.y + 5;
+  if (META.music) music.start(0);
   msg('Survis. Ramasse l\'XP. Ouvre les coffres.', 3.5);
   lockPointer();
   renderWeaponsHud();
@@ -1253,6 +1256,7 @@ function nextStage() {
   applyStage(S.stage); buildLevel();
   S.p.x = 0; S.p.z = 0; S.p.y = terrainH(0, 0) + 1; S.p.vx = S.p.vy = S.p.vz = 0; S.p.hp = S.stats.hp; S.iframe = 2;
   camY = S.p.y + 5;
+  if (META.music) music.start(S.stage);
   msg(`ÉTAPE ${S.stage + 1} — ${ST().name}`, 4, '#' + new THREE.Color(...ST().lineB).getHexString());
   sfx('boss');
 }
@@ -1592,6 +1596,9 @@ function updateHUD(dt) {
   const tt = Math.abs(S.time), mm = Math.floor(tt / 60), ss = Math.floor(tt % 60);
   tm.textContent = (S.time < 0 ? '+' : '') + mm + ':' + String(ss).padStart(2, '0');
   tm.classList.toggle('boss', S.time < 0);
+  // intensité musicale : monte avec la minute de difficulté, la foule proche et le boss
+  let close = 0; for (const e of S.enemies) if (Math.abs(e.x - S.p.x) < 12 && Math.abs(e.z - S.p.z) < 12) close++;
+  music.setLevel(S.boss || S.time < 0 ? 3 : Math.min(3, Math.floor(diffMin() / 2.5) + (close > 18 ? 1 : 0) + (S.t > 15 ? 1 : 0)));
 }
 function renderWeaponsHud() {
   const box = $('nb-weapons'); box.innerHTML = '';
@@ -1634,12 +1641,15 @@ function pause() {
   S.tomes.forEach(t => b.insertAdjacentHTML('beforeend', `<span>${TOMES[t.id].ic} ${TOMES[t.id].name} Nv${t.lvl}</span>`));
   Object.entries(S.items).forEach(([id, n]) => { const it = ITEMS.find(i => i.id === id); b.insertAdjacentHTML('beforeend', `<span>${it.ic} ${it.name}${n > 1 ? ' ×' + n : ''}</span>`); });
   $('nb-pause').classList.remove('hidden');
+  $('nb-music').checked = META.music;
+  music.stop(0.3);
   if (document.pointerLockElement) document.exitPointerLock();
 }
-function resume() { if (!S || S.state !== 'pause') return; $('nb-pause').classList.add('hidden'); S.state = 'play'; clock.getDelta(); lockPointer(); }
+function resume() { if (!S || S.state !== 'pause') return; $('nb-pause').classList.add('hidden'); S.state = 'play'; clock.getDelta(); lockPointer(); if (META.music) music.start(S.stage); }
 function endRun(win) {
   if (S.state === 'end') return;
   S.state = 'end'; S.won = win;
+  music.stop(1.5);
   if (document.pointerLockElement) document.exitPointerLock();
   const surv = Math.floor(S.t);
   const before = CHARS.filter(unlocked).map(c => c.id);
@@ -1660,6 +1670,7 @@ function endRun(win) {
   $('nb-prompt').classList.remove('show');
 }
 function toMenu() {
+  music.stop(0.3);
   if (S) {
     S.rings.forEach(r => { if (r.mesh) { scene.remove(r.mesh); r.mesh.material.dispose(); } });
     for (const k in meshes) meshes[k].count = 0;
@@ -1705,6 +1716,7 @@ $('nb-resume').onclick = resume;
 $('nb-quit').onclick = () => endRun(false);
 $('nb-reroll').onclick = reroll;
 $('nb-sens').oninput = e => { META.sens = +e.target.value; saveMeta(); };
+$('nb-music').onchange = e => { META.music = e.target.checked; saveMeta(); };
 
 // Boutons tactiles : pause via le timer
 $('nb-timer').style.pointerEvents = 'auto';
@@ -1712,7 +1724,7 @@ $('nb-timer').addEventListener('click', () => pause());
 
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
 // Accès de débogage (console) à l'état de la run.
-window.__nb = { get S() { return S; }, update, pick, keys, interact, jump, damage, spawnEnemy };
+window.__nb = { get S() { return S; }, update, pick, keys, interact, jump, damage, spawnEnemy, music };
 
 window.GAMES.bonk = {
   show() {
@@ -1725,7 +1737,7 @@ window.GAMES.bonk = {
     requestAnimationFrame(() => { onResize(); clock.getDelta(); frame(); });
   },
   hide() {
-    active = false; cancelAnimationFrame(rafId);
+    active = false; cancelAnimationFrame(rafId); music.stop(0.2);
     if (S && S.state === 'play') pause();
     for (const k in keys) keys[k] = false;
   },
