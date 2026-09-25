@@ -6,14 +6,14 @@ headless (`node tools/smoke.mjs`, zéro erreur console, captures relues), pouss�
 
 ## À faire (ordre de priorité)
 
-{n}. **[Bloc Party] Mode Aventure** — niveaux à objectifs (gemmes à récupérer sur la grille, score cible en N coups), 3 étoiles par niveau, carte de progression.
-{n}. **[Bloc Party] Boosters** — bombe (efface 3×3), marteau (une case), mélange du plateau de pièces ; gagnés en jouant.
-{n}. **[Star Forge] Défis** — runs contraintes (sans clic, forges plus chères…) débloquées après la 1re Supernova, récompense permanente chacune.
-{n}. **[Neon Bonk] Bestiaire et sanctuaires** — chargeur (fonce en ligne droite), diviseur (se scinde à la mort) ; sanctuaire de défi (fait venir une élite contre un coffre gratuit), sanctuaire d'avarice (+or, +ennemis) ; jarres destructibles.
-{n}. **[Neon Bonk] Musique** — boucle synthwave procédurale (basse arpégée, batterie), intensité selon le danger.
-{n}. **[Star Forge] Équilibrage** — simulation d'un joueur optimal : 1re Supernova visée à ~15–20 min ; option de notation scientifique.
-{n}. **[Bloc Party] Défi du jour** — graine quotidienne identique pour tout le monde, meilleur score du jour.
-{n}. **[Transverse] PWA** — manifest + icône pour installer Playtoon sur l'écran d'accueil mobile.
+1. **[Bloc Party] Mode Aventure** — niveaux à objectifs (gemmes à récupérer sur la grille, score cible en N coups), 3 étoiles par niveau, carte de progression.
+2. **[Bloc Party] Boosters** — bombe (efface 3×3), marteau (une case), mélange du plateau de pièces ; gagnés en jouant.
+3. **[Star Forge] Défis** — runs contraintes (sans clic, forges plus chères…) débloquées après la 1re Supernova, récompense permanente chacune.
+4. **[Neon Bonk] Bestiaire et sanctuaires** — chargeur (fonce en ligne droite), diviseur (se scinde à la mort) ; sanctuaire de défi (fait venir une élite contre un coffre gratuit), sanctuaire d'avarice (+or, +ennemis) ; jarres destructibles.
+5. **[Neon Bonk] Musique** — boucle synthwave procédurale (basse arpégée, batterie), intensité selon le danger.
+6. **[Star Forge] Équilibrage** — simulation d'un joueur optimal : 1re Supernova visée à ~15–20 min ; option de notation scientifique.
+7. **[Bloc Party] Défi du jour** — graine quotidienne identique pour tout le monde, meilleur score du jour.
+8. **[Transverse] PWA** — manifest + icône pour installer Playtoon sur l'écran d'accueil mobile.
 
 ## Fait
 
