@@ -131,7 +131,7 @@ const STAGES = [
   { name: 'LE VIDE', fog: 0x05061a, lineA: [0.55, 0.4, 1], lineB: [0.85, 0.95, 1], wall: [0.6, 0.5, 1],
     sky: { top: [0, 0, 0.03], mid: [0.06, 0.04, 0.2], hor: [0.45, 0.35, 0.95], low: [0.02, 0.01, 0.08], sunA: [0.6, 0.4, 1], sunB: [0.9, 0.95, 1] },
     boxes: [0x4a3ad0, 0x2a5ad0, 0x6a3ab0], block: 0x3a2a90, pillar: 0xb98bff, edge: 0xe0e8ff, amp: 0.7, time: 420, m0: 16, mRate: 1.3, grav: 0.5, float: true,
-    boss: { name: 'ARCHONTE DU VIDE', core: 0xb98bff, ring: 0xffffff, ring2: 0x27e0ff, hp: 4, speed: 1.2 } },
+    boss: { name: 'ARCHONTE DU VIDE', core: 0xb98bff, ring: 0xc8b8ff, ring2: 0x27e0ff, hp: 4, speed: 1.2, glow: 0.45 } },
 ];
 const ST = () => STAGES[S.stage || 0];
 // minute de difficulté : l'étape 2 démarre comme la 8e minute et s'intensifie plus vite
@@ -413,7 +413,7 @@ function buildLevel() {
     const geo = new THREE.BoxGeometry(hw * 2, h, hd * 2);
     const m = new THREE.Mesh(geo, neonMat(col, 0.45)); m.position.set(x, bottom + h / 2, z); levelGroup.add(m);
     const e = new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat); e.position.copy(m.position); levelGroup.add(e);
-    const o = { kind: 'box', x, z, hw, hd, top }; if (bot !== undefined) o.bot = bot;   // bot : dessous d'une plateforme flottante
+    const o = { kind: 'box', x, z, hw, hd, top }; if (bot !== undefined) { o.bot = bot; o.mesh = m; }   // bot : dessous d'une plateforme flottante
     S.obst.push(o);
   };
   // le Vide : grappes de plateformes flottantes qui montent en escalier, un coffre au sommet
@@ -556,7 +556,7 @@ function newRun() {
   lockPointer();
   renderWeaponsHud();
 }
-const xpNeed = l => Math.floor(3 + (l - 1) * 2.4 + Math.pow(l - 1, 1.55) * 0.7);
+const xpNeed = l => Math.floor(3 + (l - 1) * 2.4 + Math.pow(l - 1, 1.55) * 0.7 + Math.max(0, l - 25) ** 2 * 0.6);   // plus raide après 25 : pas de rafales de niveaux en fin de run
 
 function addWeapon(id) {
   const b = WEAPONS[id];
@@ -726,7 +726,7 @@ function spawnEnemy(type, x, z, elite = false) {
   const e = {
     type, T, x, z, y: terrainH(x, z) + (T.fly ? 1.6 : 0), hp: T.hp * hpMul, max: T.hp * hpMul,
     r: T.size * 0.6 * (elite ? 2 : 1), size: T.size * (elite ? 2 : 1), speed: T.speed * (elite ? 0.85 : 1) * (1 + m * 0.02),
-    dmg: T.dmg * (1 + m * 0.08) * (elite ? 1.8 : 1), xp: Math.round(T.xp * (1 + m * 0.12) * (elite ? 25 : 1)), elite, flash: 0, kx: 0, kz: 0, rot: rand(0, TAU), shootT: rand(1, 3), spin: rand(1, 3),
+    dmg: T.dmg * (1 + m * 0.08) * (elite ? 1.8 : 1), xp: Math.round(T.xp * (1 + Math.min(m, 9) * 0.12) * (elite ? 25 : 1)), elite, flash: 0, kx: 0, kz: 0, rot: rand(0, TAU), shootT: rand(1, 3), spin: rand(1, 3),
   };
   S.enemies.push(e); return e;
 }
@@ -753,7 +753,8 @@ function pickType() {
 function spawning(dt) {
   const m = diffMin();
   let rate = 0.8 + m * 0.42 + m * m * 0.05 + (S.time <= 0 ? 4 + (-S.time / 60) * 4 : 0);
-  const cap = 70 + m * 36;
+  const cap = Math.min(300, 70 + m * 36);   // au-delà, la foule devient illisible (et lourde sur mobile)
+  rate = Math.min(rate, 22);
   if (S.boss) rate *= 0.5;
   rate *= 1 + 0.25 * (S.greed || 0);
   S.spawnAcc += rate * dt;
@@ -1225,7 +1226,18 @@ function choiceHTML(c) {
   else { ic = '💗'; title = 'Soin'; lines = ['Restaure 50 % des PV']; }
   return `<div class="ic">${ic}</div><span class="tag">${R.name}</span><b>${title}</b>${lines.map(l => `<p>${l}</p>`).join('')}`;
 }
+function bestChoice() {
+  let bi = 0, bs = -1;
+  curChoices.forEach((c, i) => { const s = c.rar * 10 + ({ wup: 3, wnew: 2.5, tnew: 2.5, tup: 2 }[c.kind] || 0); if (s > bs) { bs = s; bi = i; } });
+  return bi;
+}
 function openLevelUp(mode = 'level') {
+  if (mode === 'level' && META.autoLvl) {   // choix automatique (réglage de la pause) : pas de fenêtre, un message
+    choiceMode = 'level'; curChoices = buildChoices('level');
+    const i = bestChoice(), c = curChoices[i], t = (choiceHTML(c).match(/<b>(.*?)<\/b>/) || [])[1] || '';
+    msg(`▲ NIV ${S.level - S.pending + 1} : ${t}`, 1.6, RAR[c.rar].col);
+    sfx('level'); pick(i); return;
+  }
   choiceMode = mode;
   S.state = 'levelup';
   if (document.pointerLockElement) document.exitPointerLock();
@@ -1386,7 +1398,7 @@ function spawnBoss() {
   const B = ST().boss;
   const geo = [new THREE.DodecahedronGeometry(3), new THREE.IcosahedronGeometry(3.4, 0), new THREE.OctahedronGeometry(3.8, 0)][S.stage];
   const core = new THREE.Mesh(geo, neonMat(B.core, 0.25)); g.add(core);
-  const ring = new THREE.Mesh(new THREE.TorusGeometry(4.6, 0.18, 6, 48), neonMat(B.ring, 1)); g.add(ring);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(4.6, 0.18, 6, 48), neonMat(B.ring, B.glow || 1)); g.add(ring);
   const ring2 = new THREE.Mesh(new THREE.TorusGeometry(5.4, 0.1, 6, 48), neonMat(B.ring2, 1)); g.add(ring2);
   const eye = new THREE.Mesh(new THREE.SphereGeometry(0.8, 12, 8), neonMat(0xffffff, 1.4)); eye.position.z = 2.7; core.add(eye);
   levelGroup.add(g);
@@ -1435,7 +1447,9 @@ function bossDeath() {
   const b = S.boss;
   burst(b.x, b.y, b.z, 250, [1, 0.3, 0.5], 18, 1.2);
   for (let i = 0; i < 40; i++) addPickup('coin', b.x + rand(-3, 3), b.y, b.z + rand(-3, 3), 5);
-  dropXp(b.x, b.y, b.z, 300);
+  // l'XP du boss vaut ~3 niveaux, semée en anneau : on la ramasse en quelques pas au lieu d'enchaîner 8 fenêtres
+  const bxp = Math.round(xpNeed(S.level) * 3 / S.stats.xp);
+  for (let i = 0; i < 12; i++) { const a = i / 12 * TAU, r = rand(5, 10); addPickup('gem', b.x + Math.cos(a) * r, b.y, b.z + Math.sin(a) * r, Math.ceil(bxp / 12)); }
   explode(b.x, b.y - 3, b.z, 12, 99999, [1, 0.3, 0.5]);
   levelGroup.remove(b.g); S.boss = null; S.bossDead = true;
   META.bossKills++;
@@ -1668,13 +1682,19 @@ function updateCamera(dt) {
   const dx = Math.sin(c.yaw) * Math.cos(c.pitch), dy = Math.sin(c.pitch), dz = Math.cos(c.yaw) * Math.cos(c.pitch);
   for (let k = 1; k <= 16; k++) {
     const d = 8.5 * k / 16, sx = tx + dx * d, sy = ty + dy * d, sz = tz + dz * d;
-    if (S.obst.some(o => sy < o.top + 0.3 && (o.bot === undefined || sy > o.bot - 0.3) && insideObs(o, sx, sz, 0.35))) { dist = Math.max(2.2, d - 0.8); break; }
+    if (S.obst.some(o => o.bot === undefined && sy < o.top + 0.3 && insideObs(o, sx, sz, 0.35))) { dist = Math.max(2.2, d - 0.8); break; }
   }
   camDist += (dist - camDist) * Math.min(1, dt * (dist < camDist ? 14 : 3));   // rapprochement vif, recul doux
   dist = camDist;
   let cx = tx + Math.sin(c.yaw) * Math.cos(c.pitch) * dist, cy = ty + Math.sin(c.pitch) * dist, cz = tz + Math.cos(c.yaw) * Math.cos(c.pitch) * dist;
   let gy = terrainH(cx, cz) + 0.6;
-  for (const o of S.obst) if (o.top + 0.6 > gy && (o.bot === undefined || cy > o.bot) && insideObs(o, cx, cz, 0.4)) gy = o.top + 0.6;   // la caméra ne rentre pas dans les blocs
+  for (const o of S.obst) if (o.bot === undefined && o.top + 0.6 > gy && insideObs(o, cx, cz, 0.4)) gy = o.top + 0.6;
+  // plateformes flottantes entre la caméra et le joueur : seules leurs arêtes restent (vue « rayons X »)
+  for (const o of S.obst) if (o.mesh) {
+    let hide = false;
+    for (let k = 0; k <= 10 && !hide; k++) { const f = k / 10, sx = tx + (cx - tx) * f, sy = ty + (cy - ty) * f, sz = tz + (cz - tz) * f; const m = 0.3 + f * f * 2.4; hide = sy > o.bot - 0.1 - m && sy < o.top + 0.1 + m && insideObs(o, sx, sz, m); }   // marge croissante vers la caméra : pas de dalle collée à l'objectif
+    o.mesh.visible = !hide;
+  }   // la caméra ne rentre pas dans les blocs
   camY += ((cy < gy ? gy : cy) - camY) * Math.min(1, dt * 10); cy = Math.max(camY, terrainH(cx, cz) + 0.4);
   camera.position.set(cx, cy, cz);
   camera.lookAt(tx, ty, tz);
@@ -1791,6 +1811,7 @@ function pause() {
   $('nb-pause').classList.remove('hidden');
   $('nb-music').checked = window.PT_MUSIC !== false;
   $('nb-nums').value = META.nums || 'merge';
+  $('nb-autolvl').value = META.autoLvl ? '1' : '';
   music.stop(0.3);
   if (document.pointerLockElement) document.exitPointerLock();
 }
@@ -1837,6 +1858,7 @@ function toMenu() {
   $('nb-menu').querySelector('.card').scrollTop = 0;
 }
 function renderMenu() {
+  if (TOUCH) document.querySelector('#nb-menu .nb-keys').innerHTML = '<b>Joystick</b> à gauche pour courir · <b>glisse</b> à droite pour la caméra · <b>SAUT</b> (x2) · <b>GLISSE</b> · <b>E</b> interagir · <b>❚❚</b> pause';
   const box = $('nb-chars'); box.innerHTML = '';
   if (!CHARS.find(c => c.id === META.sel && unlocked(c))) META.sel = 'glitch';
   CHARS.forEach(c => {
@@ -1865,6 +1887,7 @@ $('nb-start').onclick = () => { S = null; newRun(); clock.getDelta(); };
 $('nb-again').onclick = toMenu;
 $('nb-replay').onclick = () => { toMenu(); $('nb-menu').classList.add('hidden'); S = null; newRun(); clock.getDelta(); };
 $('nb-nums').onchange = e => { META.nums = e.target.value; saveMeta(); };
+$('nb-autolvl').onchange = e => { META.autoLvl = !!e.target.value; saveMeta(); };
 $('nb-resume').onclick = resume;
 $('nb-quit').onclick = () => endRun(false);
 $('nb-reroll').onclick = reroll;

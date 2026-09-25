@@ -13,12 +13,15 @@ headless (`node tools/smoke.mjs`, zéro erreur console, captures relues), pouss�
 
 ## À faire (ordre de priorité)
 
-*Évaluation n° 1 (sous-agent joueur, 2026-09-25, desktop + iPhone 13) — versée en tête.*
+*Évaluation n° 2 (sous-agent joueur, 2026-09-25, desktop + iPhone 13) — aucun bloquant, zéro erreur console ; corrections de l'évaluation n° 1 confirmées.*
 
+1. **[Star Forge] E6** — améliorations en tuiles sans prix : prix visible (abordable / non), bouton « Tout acheter (n) » ; mobile : notifications qui recouvrent l'étoile et le bandeau d'effets, étoile trop petite au milieu de partie ; Novae non formatées (`fmt()`).
+2. **[Bloc Party] E7** — écran « Plus de place ! » sans sortie vers les modes ; « +3 coups contre 🪙 25 » après un échec en Aventure ; « RECORD 0 » masqué tant qu'il n'y a pas de record ; emoji 📅 (« July 17 ») remplacé.
+3. **[Transverse] E8** — accès à l'accueil et aux objectifs sur mobile (logo masqué sous 520 px) ; bouton « Jouer » de l'accueil visible sans défiler sur mobile.
 
 *Feuille de route (après les retours d'évaluation).*
 
-*(vide — prochaine étape : évaluation n° 2)*
+*(vide)*
 
 ## Fait
 
@@ -47,6 +50,7 @@ headless (`node tools/smoke.mjs`, zéro erreur console, captures relues), pouss�
 - **Itération E4** (2026-09-25, retours d'évaluation) — Transverse : accueil (1er passage, puis « PLAYTOON » dans la nav — la barre garde ses trois onglets) qui présente les trois jeux ; objectifs du jour, un par jeu, tirés de la date, avec récompense dans le jeu (+30 pièces, +1 Nova, +40 crédits), suivis par `ptEvent` et visibles dans l'accueil et le profil ; menu son unique à deux réglages (effets, musique) respecté par les trois jeux ; zoom réautorisé ; textes secondaires plus contrastés. Test : le script de fumée n'attendait pas `addInitScript` (course à l'ouverture des pages), corrigé.
 - **Itération 18** (2026-09-25) — Star Forge : événements — météore violet rare (8 % des passages × Chance) qui donne ×77 pendant 7 s ; éclipse toutes les 8 à 16 min (plus souvent avec la Chance) : production ×2 mais clics nuls pendant 45 s, étoile assombrie ; bandeau des effets en cours avec leur durée ; au plus 3 notifications à la fois.
 - **Itération 19** (2026-09-25) — Neon Bonk : 3e étape « Le Vide » après la Fournaise — gravité divisée par deux, relief doux, palette nuit violette, 11 grappes de plateformes flottantes en escalier (on tient dessus, on passe dessous, coffre au sommet), drones qui montent chercher le joueur ; boss final « Archonte du Vide » (×4 PV, 5 attaques dont un puits de gravité qui attire le joueur) ; musique en sol mineur à 100 BPM ; personnage Orbite (laser, +1 saut) débloqué par l'Hydre ; correctif : les personnages débloqués par un boss en cours de run s'affichent à l'écran de fin.
+- **Itération E5** (2026-09-25, évaluation n° 2) — Neon Bonk : fin des rafales de montées de niveau — XP des ennemis plafonnée en fin de run, courbe plus raide après le niveau 25, XP du boss (~3 niveaux) semée en anneau (1 fenêtre au lieu de 8 après la Sentinelle ; 4–5 fenêtres par minute dans le Vide au niveau 33 au lieu de ~17) ; option « choix automatique » dans la pause ; foule plafonnée (300, apparitions ≤ 22/s) ; plateformes flottantes entre la caméra et le joueur réduites à leurs arêtes ; anneaux de l'Archonte adoucis ; mobile : barre du boss sous les icônes, aide tactile au menu ; desktop : ❚❚ sous le radar ; « NIV · ÉTAPE » lisible.
 
 ## À surveiller
 
