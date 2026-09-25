@@ -65,12 +65,16 @@ log('défi du jour :', await page.evaluate(() => {
 }));
 await page.click('#bp-mapbtn'); await page.waitForTimeout(200); await shot(page, 'blocks-map2'); await page.click('#bp-classic'); await page.waitForTimeout(300);
 // chrono : le temps s'écoule, une ligne rend du temps, fin → top 10
-await page.click('#bp-mapbtn'); await page.waitForTimeout(200); await page.click('#bp-chrono'); await page.waitForTimeout(1500);
+await page.click('#bp-mapbtn'); await page.waitForTimeout(200); await page.click('#bp-chrono'); await page.waitForTimeout(1500); await shot(page, 'blocks-chrono');
 log('chrono :', await page.evaluate(async () => {
   const { S, place, fits, N } = window.__bp; const t0 = S.clock;
   for (let k = 0; k < 10 && !S.over; k++) { let done = false; S.tray.forEach((pc, i) => { if (done || !pc) return; for (let y = 0; y < N && !done; y++) for (let x = 0; x < N && !done; x++) if (fits(pc, x, y)) { place(i, x, y); done = true; } }); }
-  const t1 = S.clock; S.clock = 0.05; await new Promise(r => setTimeout(r, 900));
-  return `temps ${t0.toFixed(1)} → ${t1.toFixed(1)} s · fini=${S.over} · score=${S.score} · top10=${JSON.parse(localStorage.getItem('blocparty.chrono')).length}`;
+  const t1 = S.clock;
+  document.getElementById('bp-themebtn').click(); await new Promise(r => setTimeout(r, 1500));
+  const t2 = S.clock; document.getElementById('bp-themeclose').click();
+  window.__pauseOk = Math.abs(t2 - t1) < 0.05;
+  S.clock = 0.05; await new Promise(r => setTimeout(r, 900));
+  return `temps ${t0.toFixed(1)} → ${t1.toFixed(1)} s · en pause sous les thèmes=${window.__pauseOk} · fini=${S.over} · score=${S.score} · top10=${JSON.parse(localStorage.getItem('blocparty.chrono')).length}`;
 }));
 await page.waitForTimeout(600); await shot(page, 'blocks-chrono-end');
 await page.click('#bp-again'); await page.waitForTimeout(300);

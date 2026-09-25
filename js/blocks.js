@@ -38,6 +38,9 @@ const LEVELS = 40;
 // Générateur déterministe : un niveau d'aventure a toujours la même grille et les mêmes pièces.
 function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 let rnd = Math.random;
+let TUTO = false;
+try { TUTO = !localStorage.getItem('blocparty.tuto'); } catch (e) {}
+const tutoDone = () => { if (!TUTO) return; TUTO = false; try { localStorage.setItem('blocparty.tuto', '1'); } catch (e) {} };
 
 const $ = id => document.getElementById(id);
 const canvas = $('bp-canvas');
@@ -325,6 +328,7 @@ function linesToClear(board) {
 }
 
 function place(idx, gx, gy) {
+  tutoDone();
   const p = S.tray[idx];
   for (const [x, y] of p.cells) { S.board[gy + y][gx + x] = p.color; S.placedAnim.push({ x: gx + x, y: gy + y, t: 0 }); }
   S.tray[idx] = null;
@@ -339,7 +343,7 @@ function place(idx, gx, gy) {
     cols.forEach(x => { for (let y = 0; y < N; y++) cells.set(y * N + x, [x, y]); });
     const lineScore = 10 * n * (n + 1) / 2 * N / 8;
     const bonus = Math.round(lineScore * (1 + (S.combo - 1) * 0.5) * (S.mode === 'chrono' ? 1 + S.chronoT / 60 : 1));
-    if (S.mode === 'chrono') S.clock += 1.5 * n;
+    if (S.mode === 'chrono') { S.clock += 1.5 * n; updateHUD(); }
     gained += bonus;
     for (const [x, y] of cells.values()) {
       const color = S.board[y][x];
@@ -417,9 +421,11 @@ function updateHUD() {
   if (daily) { $('bp-best').textContent = DAILY.best.toLocaleString('fr-FR'); return; }
   if (S.mode === 'chrono') {
     const c = Math.max(0, Math.ceil(S.clock));
-    $('bp-l1').textContent = `⏱ ${Math.floor(c / 60)}:${String(c % 60).padStart(2, '0')} · SCORE`;
-    $('bp-l2').textContent = 'MEILLEUR CHRONO';
-    $('bp-best').textContent = (TOP[0] ? TOP[0].s : 0).toLocaleString('fr-FR'); return;
+    $('bp-l1').textContent = '⏱ TEMPS';
+    $('bp-score').textContent = `${Math.floor(c / 60)}:${String(c % 60).padStart(2, '0')}`;
+    $('bp-score').classList.toggle('urgent', c <= 10 && !S.over);
+    $('bp-l2').textContent = `SCORE · RECORD ${(TOP[0] ? TOP[0].s : 0).toLocaleString('fr-FR')}`;
+    $('bp-best').textContent = S.score.toLocaleString('fr-FR'); return;
   }
   if (adv) {
     $('bp-score').textContent = S.moves;
@@ -510,17 +516,20 @@ function frame(t) {
   requestAnimationFrame(frame);
 }
 
+// une fenêtre ouverte (carte, thèmes, profil, confirmation…) met le Chrono en pause
+const overlayOpen = () => !!document.querySelector('#tab-blocks .overlay:not(.hidden), #pt-profile:not(.hidden), #pt-modal:not(.hidden)');
 function draw(dt) {
-  if (S.mode === 'chrono' && !S.over) {
+  if (S.mode === 'chrono' && !S.over && !overlayOpen()) {
     S.clock -= dt; S.chronoT += dt;
-    if ((S.clock | 0) !== (S.lastSec | 0)) { S.lastSec = S.clock; updateHUD(); if (S.clock < 10 && S.clock > 0) beep(900, 0.04, 'square', 0.02); }
+    if (Math.ceil(S.clock) !== S.lastSec) { S.lastSec = Math.ceil(S.clock); updateHUD(); if (S.clock < 10 && S.clock > 0) beep(900, 0.04, 'square', 0.02); }
     if (S.clock <= 0) chronoEnd();
   }
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   ctx.clearRect(0, 0, W, H);
   S.shown += (S.score - S.shown) * Math.min(1, dt * 10);
   if (Math.abs(S.score - S.shown) < 0.5) S.shown = S.score;
-  if (S.mode !== 'adv') $('bp-score').textContent = Math.round(S.shown).toLocaleString('fr-FR');
+  if (S.mode !== 'adv' && S.mode !== 'chrono') $('bp-score').textContent = Math.round(S.shown).toLocaleString('fr-FR');
+  if (S.mode !== 'chrono') $('bp-score').classList.remove('urgent');
 
   let sx = 0, sy = 0;
   if (S.shake > 0) { sx = (Math.random() - 0.5) * S.shake; sy = (Math.random() - 0.5) * S.shake; S.shake = Math.max(0, S.shake - dt * 40); }
@@ -581,11 +590,37 @@ function draw(dt) {
 
   // plateau de pièces
   for (let i = 0; i < 3; i++) {
-    const p = S.tray[i]; if (!p || (S.drag && S.drag.idx === i)) continue;
+    const p = S.tray[i]; if (!p || (S.drag && S.drag.idx === i) || (S.back && S.back.idx === i)) continue;
     const r = slotRect(i), s = L.mini;
     const ok = canPlaceAnywhere(p);
     const px = r.x + (r.w - p.w * s) / 2, py = r.y + (r.h - p.h * s) / 2;
     for (const [x, y] of p.cells) cell(px + x * s, py + y * s, s, ok ? p.color : '#555a72', ok ? 1 : 0.6);
+  }
+
+  // pièce qui revient à sa place (animation de 0,18 s, de la taille de la grille à celle du plateau)
+  if (S.back) {
+    const b = S.back, p = S.tray[b.idx]; b.t += dt;
+    const k = Math.min(1, b.t / 0.18), e = 1 - (1 - k) * (1 - k);
+    if (!p || k >= 1) S.back = null;
+    else {
+      const r = slotRect(b.idx), s2 = L.mini, sz = L.cs + (s2 - L.cs) * e;
+      const tx = r.x + (r.w - p.w * s2) / 2, ty = r.y + (r.h - p.h * s2) / 2;
+      const x0 = b.x + (tx - b.x) * e, y0 = b.y + (ty - b.y) * e;
+      for (const [x, y] of p.cells) cell(x0 + x * sz, y0 + y * sz, sz, p.color, 0.9);
+    }
+  }
+
+  // tutoriel : une main montre le glisser tant que le joueur n'a jamais posé de pièce
+  if (TUTO && !S.drag && S.tray[0]) {
+    const T = (performance.now() / 1000) % 2.2, k = Math.min(1, Math.max(0, (T - 0.3) / 1.2)), e = k * k * (3 - 2 * k);
+    const r = slotRect(0), sx = r.x + r.w / 2, sy = r.y + r.h / 2, tx = L.bx + L.bs / 2, ty = L.by + L.bs * 0.55;
+    const hx = sx + (tx - sx) * e, hy = sy + (ty - sy) * e;
+    ctx.globalAlpha = T > 1.9 ? Math.max(0, 1 - (T - 1.9) / 0.3) : 1;
+    const p = S.tray[0]; for (const [x, y] of p.cells) cell(hx - p.w * L.cs / 2 + x * L.cs, hy - p.h * L.cs / 2 + y * L.cs, L.cs, p.color, 0.45 * ctx.globalAlpha);
+    ctx.font = `${Math.round(L.cs * 0.9)}px system-ui`; ctx.textAlign = 'center'; ctx.fillText('👆', hx + L.cs * 0.3, hy + L.cs * 0.9);
+    ctx.globalAlpha = 1;
+    ctx.font = `800 ${Math.round(L.cs * 0.34)}px system-ui,sans-serif`; ctx.fillStyle = '#fff';
+    ctx.fillText('Glisse une pièce sur la grille', L.bx + L.bs / 2, L.by - 14 + (L.by < 30 ? 30 : 0));
   }
 
   // pièce en main
@@ -643,15 +678,19 @@ let hover = null;
 canvas.addEventListener('pointermove', e => { const p = pos(e); hover = p; if (S.drag) { S.drag.x = p.x; S.drag.y = p.y; } });
 function drop() {
   if (!S.drag) return;
-  const g = ghostTarget(); const idx = S.drag.idx; S.drag = null;
-  if (g) place(idx, g.gx, g.gy);
+  const g = ghostTarget(); const idx = S.drag.idx, d = S.drag; S.drag = null;
+  if (g) { place(idx, g.gx, g.gy); return; }
+  // lâchée hors de la grille : la pièce revient dans son emplacement, avec un petit son
+  const p = S.tray[idx]; if (!p) return;
+  S.back = { idx, x: d.x - d.ox, y: d.y - d.oy, t: 0 };
+  beep(180, 0.08, 'triangle', 0.03);
 }
 canvas.addEventListener('pointerup', drop);
 canvas.addEventListener('pointercancel', () => S.drag = null);
 
 $('bp-restart').onclick = () => {
-  if (S.mode === 'adv') { startLevel(S.lvl); return; }
-  if (S.mode === 'chrono') { startChrono(); return; }
+  if (S.mode === 'adv') { if (S.moves === S.goal.moves) startLevel(S.lvl); else ptConfirm(`Recommencer le niveau ${S.lvl} ?`, 'Recommencer').then(ok => ok && startLevel(S.lvl)); return; }
+  if (S.mode === 'chrono') { if (!S.score || S.over) startChrono(); else ptConfirm('Relancer le Chrono ? Le score en cours sera perdu.', 'Relancer').then(ok => ok && startChrono()); return; }
   if (S.score === 0) newGame(); else window.ptConfirm('Recommencer une nouvelle partie ? Le score en cours sera perdu.', 'Recommencer').then(ok => ok && newGame());
 };
 $('bp-again').onclick = () => S.mode === 'daily' ? startDaily() : S.mode === 'chrono' ? startChrono() : newGame();
