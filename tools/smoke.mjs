@@ -207,6 +207,26 @@ log('boss 1 :', await killBossAndEnter());
 await page.evaluate(() => { const nb = window.__nb; for (let i = 0; i < 30 * 20; i++) { if (nb.S.state === 'levelup') nb.pick(0); nb.S.state = 'play'; nb.update(1 / 30); } });
 await page.waitForTimeout(900); await shot(page, 'bonk-stage2');
 log('boss 2 :', await killBossAndEnter());
+await page.evaluate(() => { const nb = window.__nb; for (let i = 0; i < 30 * 20; i++) { if (nb.S.state === 'levelup') nb.pick(0); nb.S.state = 'play'; nb.update(1 / 30); } });
+await page.waitForTimeout(900); await shot(page, 'bonk-stage3');
+// le Vide : gravité réduite, plateformes flottantes sur lesquelles on tient et sous lesquelles on passe
+log('le Vide :', await page.evaluate(() => {
+  const nb = window.__nb, S = nb.S, p = S.p, fl = S.obst.filter(o => o.bot !== undefined);
+  if (!fl.length) return 'aucune plateforme flottante';
+  S.enemies.length = 0; S.state = 'play'; S.pending = 0; S.stats.hp = p.hp = 1e6;
+  // saut : hauteur atteinte
+  p.x = 0; p.z = 0; p.y = 0; p.vx = p.vz = 0; for (let i = 0; i < 10; i++) nb.update(1 / 30);
+  const y0 = p.y; nb.jump(); let top = y0; for (let i = 0; i < 90; i++) { nb.update(1 / 30); top = Math.max(top, p.y); }
+  const o = fl.sort((a, b) => b.top - a.top)[0];
+  p.x = o.x; p.z = o.z; p.y = o.top + 0.3; p.vx = p.vz = p.vy = 0;
+  for (let i = 0; i < 30; i++) { S.enemies.length = 0; nb.update(1 / 30); }
+  const on = Math.abs(p.y - o.top) < 0.05 && p.onGround;
+  const low = fl.find(q => q.bot - q.top > -1 && q.bot > 2.2 + 0) || fl[0];
+  p.x = low.x; p.z = low.z; p.y = 0; p.vy = 0; nb.update(1 / 30);
+  const g = p.y; const under = Math.hypot(p.x - low.x, p.z - low.z) < 0.01 && g < low.bot;
+  return `${fl.length} plateformes flottantes, saut ${(top - y0).toFixed(1)} u, tient au sommet (${o.top.toFixed(1)}) : ${on}, passe dessous : ${under}`;
+}));
+log('boss 3 :', await killBossAndEnter());
 await page.waitForTimeout(400); await shot(page, 'bonk-win');
 await page.click('#nb-again').catch(() => {}); await page.waitForTimeout(300);
 await page.click('#nb-start'); await page.waitForTimeout(800);

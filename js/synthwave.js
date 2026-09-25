@@ -25,8 +25,8 @@ export class Synthwave {
   start(stage = 0) {
     this._init();
     if (this.ctx.state === 'suspended') this.ctx.resume();
-    this.root = stage ? 62 : 57;            // La mineur, puis Ré mineur pour la Fournaise
-    this.bpm = stage ? 118 : 108;
+    this.root = [57, 62, 55][stage] || 57;   // La mineur, Ré mineur pour la Fournaise, Sol mineur pour le Vide
+    this.bpm = [108, 118, 100][stage] || 108;
     this.delay.delayTime.value = 60 / this.bpm * 0.75;
     if (!this.on) { this.on = true; this.step = 0; this.next = this.ctx.currentTime + 0.1; clearInterval(this.timer); this.timer = setInterval(() => this._tick(), 25); }
     this._fade(0.5, 0.8);

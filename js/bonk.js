@@ -99,6 +99,7 @@ const CHARS = [
   { id: 'volt', name: 'Volt', col: '#ffe04d', weapon: 'arc', desc: 'Foudre, +15 chance.', bonus: s => s.luck += 15, unlock: { txt: 'Atteindre le niveau 15', test: m => m.maxLevel >= 15 } },
   { id: 'bastion', name: 'Bastion', col: '#7cff8a', weapon: 'pulse', desc: 'Onde de choc, +40 PV, +5 % armure.', bonus: s => { s.hp += 40; s.armor += 0.05; }, unlock: { txt: 'Survivre 5 minutes', test: m => m.bestTime >= 300 } },
   { id: 'nova', name: 'Nova', col: '#ff8a4d', weapon: 'rocket', desc: 'Missiles, +15 % zone.', bonus: s => s.area += 0.15, unlock: { txt: 'Vaincre la Sentinelle', test: m => m.bossKills >= 1 } },
+  { id: 'orbit', name: 'Orbite', col: '#b98bff', weapon: 'beam', desc: 'Laser, +1 saut, +20 % aimant.', bonus: s => { s.jumps += 1; s.magnet += 0.2; }, unlock: { txt: "Vaincre l'Hydre de magma", test: m => (m.hydraKills || 0) >= 1 } },
 ];
 
 const ETYPES = {
@@ -116,7 +117,7 @@ const SHRINES = {
   greed: { col: 0xffc94d, css: '#ffc94d', n: 2 },
 };
 
-// Étapes : la run enchaîne la Grille puis la Fournaise ; la victoire vient après le 2e boss.
+// Étapes : la run enchaîne la Grille, la Fournaise puis le Vide ; la victoire vient après le 3e boss.
 const STAGES = [
   { name: 'LA GRILLE', fog: 0x1a0630, lineA: [1, 0.18, 0.85], lineB: [0.15, 0.85, 1], wall: [1, 0.2, 0.85],
     sky: { top: [0.03, 0.01, 0.12], mid: [0.35, 0.05, 0.45], hor: [1, 0.25, 0.55], low: [0.1, 0.02, 0.19], sunA: [1, 0.15, 0.55], sunB: [1, 0.9, 0.3] },
@@ -126,6 +127,11 @@ const STAGES = [
     sky: { top: [0.07, 0.01, 0.02], mid: [0.45, 0.07, 0.04], hor: [1, 0.45, 0.12], low: [0.18, 0.03, 0.02], sunA: [1, 0.2, 0.05], sunB: [1, 0.95, 0.55] },
     boxes: [0xc0381a, 0xd06a1a, 0xa02a4a], block: 0xb03a2a, pillar: 0xffb020, edge: 0xffe0a0, amp: 1.45, time: 480, m0: 8, mRate: 1.2,
     boss: { name: 'HYDRE DE MAGMA', core: 0xffa020, ring: 0xff3050, ring2: 0xfff0a0, hp: 2.6, speed: 1.35 } },
+  // le Vide : gravité réduite, relief doux, plateformes flottantes (float) où grimper de saut en saut
+  { name: 'LE VIDE', fog: 0x05061a, lineA: [0.55, 0.4, 1], lineB: [0.85, 0.95, 1], wall: [0.6, 0.5, 1],
+    sky: { top: [0, 0, 0.03], mid: [0.06, 0.04, 0.2], hor: [0.45, 0.35, 0.95], low: [0.02, 0.01, 0.08], sunA: [0.6, 0.4, 1], sunB: [0.9, 0.95, 1] },
+    boxes: [0x4a3ad0, 0x2a5ad0, 0x6a3ab0], block: 0x3a2a90, pillar: 0xb98bff, edge: 0xe0e8ff, amp: 0.7, time: 420, m0: 16, mRate: 1.3, grav: 0.5, float: true,
+    boss: { name: 'ARCHONTE DU VIDE', core: 0xb98bff, ring: 0xffffff, ring2: 0x27e0ff, hp: 4, speed: 1.2 } },
 ];
 const ST = () => STAGES[S.stage || 0];
 // minute de difficulté : l'étape 2 démarre comme la 8e minute et s'intensifie plus vite
@@ -401,16 +407,29 @@ function buildLevel() {
   S.obst = []; S.chests = []; S.shrines = [];
   const edgeMat = new THREE.LineBasicMaterial({ color: P.edge });
   const free = (x, z, r) => Math.hypot(x, z) > 14 && S.obst.every(o => Math.hypot(o.x - x, o.z - z) > (o.r || Math.max(o.hw, o.hd) * 1.42) + r);
-  const addBox = (x, z, hw, hd, top, col) => {
-    const bottom = Math.min(terrainH(x - hw, z - hd), terrainH(x + hw, z + hd), terrainH(x - hw, z + hd), terrainH(x + hw, z - hd)) - 2;
+  const addBox = (x, z, hw, hd, top, col, bot) => {
+    const bottom = bot !== undefined ? bot : Math.min(terrainH(x - hw, z - hd), terrainH(x + hw, z + hd), terrainH(x - hw, z + hd), terrainH(x + hw, z - hd)) - 2;
     const h = top - bottom;
     const geo = new THREE.BoxGeometry(hw * 2, h, hd * 2);
     const m = new THREE.Mesh(geo, neonMat(col, 0.45)); m.position.set(x, bottom + h / 2, z); levelGroup.add(m);
     const e = new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat); e.position.copy(m.position); levelGroup.add(e);
-    S.obst.push({ kind: 'box', x, z, hw, hd, top });
+    const o = { kind: 'box', x, z, hw, hd, top }; if (bot !== undefined) o.bot = bot;   // bot : dessous d'une plateforme flottante
+    S.obst.push(o);
   };
+  // le Vide : grappes de plateformes flottantes qui montent en escalier, un coffre au sommet
+  if (P.float) for (let i = 0; i < 11; i++) {
+    let x, z, t = 0; do { x = rand(-HALF + 18, HALF - 18); z = rand(-HALF + 18, HALF - 18); } while (!free(x, z, 12) && ++t < 40);
+    const a = rand(0, TAU), n = 3 + (Math.random() * 2 | 0);
+    let top = terrainH(x, z) + 2.6;
+    for (let k = 0; k < n; k++) {
+      const px = x + Math.cos(a + k * 0.9) * k * 4.5, pz = z + Math.sin(a + k * 0.9) * k * 4.5, s = rand(2, 3.2);
+      top = Math.max(top, terrainH(px, pz) + 2.6 + k * 2.4);
+      addBox(px, pz, s, s, top, P.boxes[k % 3], top - 0.8);
+      if (k === n - 1 && Math.random() < 0.8) S.chests.push(mkChestData(px, pz, top));
+    }
+  }
   // pyramides à étages (plateformes où grimper)
-  for (let i = 0; i < 9; i++) {
+  for (let i = 0; i < (P.float ? 4 : 9); i++) {
     let x, z, t = 0; do { x = rand(-HALF + 15, HALF - 15); z = rand(-HALF + 15, HALF - 15); } while (!free(x, z, 9) && ++t < 40);
     const base = terrainH(x, z), steps = 2 + (Math.random() * 2 | 0), s0 = rand(5, 7);
     for (let k = 0; k < steps; k++) addBox(x, z, s0 - k * 1.7, s0 - k * 1.7, base + 1.6 + k * 1.6, P.boxes[k % 3]);
@@ -424,7 +443,7 @@ function buildLevel() {
   }
   // piliers
   const pillarMat = neonMat(P.pillar, 0.15);
-  for (let i = 0; i < 26; i++) {
+  for (let i = 0; i < (P.float ? 14 : 26); i++) {
     let x, z, t = 0; do { x = rand(-HALF + 5, HALF - 5); z = rand(-HALF + 5, HALF - 5); } while (!free(x, z, 3) && ++t < 40);
     const r = rand(0.8, 1.8), top = terrainH(x, z) + rand(5, 14);
     const geo = new THREE.CylinderGeometry(r, r * 1.15, top - terrainH(x, z) + 3, 6);
@@ -515,6 +534,7 @@ function newRun() {
     cam: { yaw: 0, pitch: 0.42 },
   };
   S.stats = baseStats(ch);
+  S.unl0 = CHARS.filter(unlocked).map(c => c.id);   // personnages débloqués au départ (les boss tués mettent META à jour en cours de run)
   applyStage(0);
   for (const it of SHOP) if (shopLvl(it.id)) it.fx(S.stats, shopLvl(it.id));
   S.rerolls += shopLvl('reroll'); S.revives = shopLvl('revive');
@@ -775,9 +795,9 @@ function updateEnemies(dt) {
     });
     e.x = clamp(e.x, -HALF + 1, HALF - 1); e.z = clamp(e.z, -HALF + 1, HALF - 1);
     let gy = terrainH(e.x, e.z);
-    if (e.T.fly) gy += 1.6 + Math.sin(S.t * 3 + e.rot) * 0.3;
+    if (e.T.fly) { gy += 1.6 + Math.sin(S.t * 3 + e.rot) * 0.3; if (ST().float && d < 18) gy = Math.max(gy, p.y + 1); }   // dans le Vide, les drones montent te chercher
     else for (const o of S.obst) {
-      if (!insideObs(o, e.x, e.z, e.r * 0.5)) continue;
+      if (o.bot !== undefined || !insideObs(o, e.x, e.z, e.r * 0.5)) continue;   // on passe sous les plateformes flottantes
       if (o.top > e.y + 2.2 && o.kind === 'cyl' || o.top > e.y + 3.5) pushOut(o, e, e.r * 0.5);
       else if (o.top > gy) gy = o.top;
     }
@@ -1354,7 +1374,7 @@ function nextStage() {
   S.p.x = 0; S.p.z = 0; S.p.y = terrainH(0, 0) + 1; S.p.vx = S.p.vy = S.p.vz = 0; S.p.hp = S.stats.hp; S.iframe = 2;
   camY = S.p.y + 5;
   if (window.PT_MUSIC !== false) music.start(S.stage);
-  msg(`ÉTAPE ${S.stage + 1} — ${ST().name}`, 4, '#' + new THREE.Color(...ST().lineB).getHexString());
+  msg(`ÉTAPE ${S.stage + 1} — ${ST().name}` + (ST().float ? ' · gravité réduite, grimpe sur les plateformes' : ''), 4, '#' + new THREE.Color(...ST().lineB).getHexString());
   sfx('boss');
 }
 
@@ -1364,13 +1384,14 @@ function spawnBoss() {
   const x = clamp(p.x + Math.cos(a) * 30, -HALF + 10, HALF - 10), z = clamp(p.z + Math.sin(a) * 30, -HALF + 10, HALF - 10);
   const g = new THREE.Group();
   const B = ST().boss;
-  const core = new THREE.Mesh(S.stage ? new THREE.IcosahedronGeometry(3.4, 0) : new THREE.DodecahedronGeometry(3), neonMat(B.core, 0.25)); g.add(core);
+  const geo = [new THREE.DodecahedronGeometry(3), new THREE.IcosahedronGeometry(3.4, 0), new THREE.OctahedronGeometry(3.8, 0)][S.stage];
+  const core = new THREE.Mesh(geo, neonMat(B.core, 0.25)); g.add(core);
   const ring = new THREE.Mesh(new THREE.TorusGeometry(4.6, 0.18, 6, 48), neonMat(B.ring, 1)); g.add(ring);
   const ring2 = new THREE.Mesh(new THREE.TorusGeometry(5.4, 0.1, 6, 48), neonMat(B.ring2, 1)); g.add(ring2);
   const eye = new THREE.Mesh(new THREE.SphereGeometry(0.8, 12, 8), neonMat(0xffffff, 1.4)); eye.position.z = 2.7; core.add(eye);
   levelGroup.add(g);
   const hp = (9000 + S.dmgDealt / Math.max(60, S.t) * 12) * B.hp;   // s'adapte à ta puissance de feu
-  S.boss = { boss: true, x, z, y: terrainH(x, z) + 4, hp, max: hp, r: 3.2, size: 3, g, core, ring, ring2, atkT: 3, phase: 0, dash: 0, dvx: 0, dvz: 0, flash: 0 };
+  S.boss = { boss: true, x, z, y: terrainH(x, z) + 4, hp, max: hp, r: 3.2, size: 3, g, core, ring, ring2, atkT: 3, phase: 0, dash: 0, dvx: 0, dvz: 0, flash: 0, pull: 0 };
   $('nb-boss').classList.remove('hidden'); $('nb-boss').querySelector('span').textContent = B.name;
   msg(`☠ ${B.name} ARRIVE`, 3, '#ff4d6a'); sfx('boss');
 }
@@ -1378,6 +1399,11 @@ function updateBoss(dt) {
   const b = S.boss; if (!b || b.hp <= 0) return;
   const p = S.p;
   let dx = p.x - b.x, dz = p.z - b.z; const d = Math.hypot(dx, dz) || 1; dx /= d; dz /= d;
+  if (b.pull > 0) {   // puits de gravité de l'Archonte : attire le joueur, qu'il faut fuir en courant ou en sautant
+    b.pull -= dt; const k = 11 * Math.min(1, 40 / Math.max(8, d));
+    p.vx -= dx * k * dt * 6; p.vz -= dz * k * dt * 6;
+    if (Math.random() < 0.9) { const a = rand(0, TAU), r = rand(6, 14); spawnPart(b.x + Math.cos(a) * r, b.y - 2, b.z + Math.sin(a) * r, -Math.cos(a) * r * 1.5, 0, -Math.sin(a) * r * 1.5, [0.7, 0.5, 1], 0.5, 0.6); }
+  }
   if (b.dash > 0) { b.dash -= dt; b.x += b.dvx * dt; b.z += b.dvz * dt; if (Math.random() < 0.8) burst(b.x, b.y, b.z, 3, [1, 0.2, 0.3], 3, 0.4); }
   else if (d > 6) { const sp = 3.8 * ST().boss.speed; b.x += dx * sp * dt; b.z += dz * sp * dt; }
   b.x = clamp(b.x, -HALF + 5, HALF - 5); b.z = clamp(b.z, -HALF + 5, HALF - 5);
@@ -1390,11 +1416,16 @@ function updateBoss(dt) {
   const enraged = b.hp < b.max * 0.4;
   b.atkT -= dt * (enraged ? 1.5 : 1) * ST().boss.speed;
   if (b.atkT <= 0) {
-    b.atkT = 2.6; b.phase = (b.phase + 1) % (S.stage ? 4 : 3);
+    b.atkT = 2.6; b.phase = (b.phase + 1) % (3 + S.stage);
     if (b.phase === 0) { const n = enraged ? 28 : 20, off = rand(0, TAU); for (let i = 0; i < n; i++) fireBullet(b.x, b.y - 1, b.z, off + i * TAU / n, 10, 14); }
     else if (b.phase === 1) { S.rings.push({ x: b.x, z: b.z, y: terrainH(b.x, b.z), r: 1, max: 45, sp: 16, dmg: 26, hostile: true, t: 0, col: [1, 0.2, 0.35], hitDone: false }); msg('SAUTE !', 1, '#ff4d6a'); }
     else if (b.phase === 2) { b.dash = 0.75; b.dvx = dx * 30; b.dvz = dz * 30; }
-    else { for (let i = 0; i < 10; i++) { const a = i / 10 * TAU; spawnEnemy('spike', clamp(b.x + Math.cos(a) * 5, -HALF + 2, HALF - 2), clamp(b.z + Math.sin(a) * 5, -HALF + 2, HALF - 2)); } msg('LA HYDRE ENGENDRE…', 1, '#ffb020'); }
+    else if (b.phase === 3) {
+      const type = S.stage === 2 ? 'drone' : 'spike';
+      for (let i = 0; i < 10; i++) { const a = i / 10 * TAU; spawnEnemy(type, clamp(b.x + Math.cos(a) * 5, -HALF + 2, HALF - 2), clamp(b.z + Math.sin(a) * 5, -HALF + 2, HALF - 2)); }
+      msg(S.stage === 2 ? "L'ARCHONTE APPELLE LE VIDE…" : 'LA HYDRE ENGENDRE…', 1, S.stage === 2 ? '#b98bff' : '#ffb020');
+    }
+    else { b.pull = enraged ? 3 : 2.2; b.atkT = 3.4; msg('PUITS DE GRAVITÉ — COURS !', 1.5, '#b98bff'); }
     sfx('boom');
   }
   if (d < b.r + 0.8 && Math.abs(p.y + 1 - b.y) < 4) hurt(26, 'boss');
@@ -1407,7 +1438,10 @@ function bossDeath() {
   dropXp(b.x, b.y, b.z, 300);
   explode(b.x, b.y - 3, b.z, 12, 99999, [1, 0.3, 0.5]);
   levelGroup.remove(b.g); S.boss = null; S.bossDead = true;
-  META.bossKills++; if (S.stage) META.hydraKills = (META.hydraKills || 0) + 1; saveMeta();
+  META.bossKills++;
+  if (S.stage === 1) META.hydraKills = (META.hydraKills || 0) + 1;
+  if (S.stage === 2) META.archonKills = (META.archonKills || 0) + 1;
+  saveMeta();
   $('nb-boss').classList.add('hidden');
   // portail
   const x = b.x, z = b.z, y = terrainH(x, z);
@@ -1487,10 +1521,10 @@ function update(dt) {
     const n = Math.hypot(p.vx, p.vz), lim = Math.max(maxSp, hs);
     if (n > lim) { p.vx *= lim / n; p.vz *= lim / n; }
   }
-  p.vy -= 30 * dt;
+  p.vy -= 30 * (ST().grav || 1) * dt;
   p.x += p.vx * dt; p.z += p.vz * dt; p.y += p.vy * dt;
   p.x = clamp(p.x, -HALF + 1, HALF - 1); p.z = clamp(p.z, -HALF + 1, HALF - 1);
-  for (const o of S.obst) if (p.y < o.top - 0.7 && insideObs(o, p.x, p.z, 0.5)) pushOut(o, p, 0.5);
+  for (const o of S.obst) if (p.y < o.top - 0.7 && (o.bot === undefined || p.y + 1.7 > o.bot) && insideObs(o, p.x, p.z, 0.5)) pushOut(o, p, 0.5);
   const g = groundAt(p.x, p.z, p.y);
   if (p.y <= g) {
     if (!p.onGround && p.vy < -18) burst(p.x, g + 0.1, p.z, 14, [1, 0.3, 0.9], 5, 0.35);
@@ -1634,13 +1668,13 @@ function updateCamera(dt) {
   const dx = Math.sin(c.yaw) * Math.cos(c.pitch), dy = Math.sin(c.pitch), dz = Math.cos(c.yaw) * Math.cos(c.pitch);
   for (let k = 1; k <= 16; k++) {
     const d = 8.5 * k / 16, sx = tx + dx * d, sy = ty + dy * d, sz = tz + dz * d;
-    if (S.obst.some(o => sy < o.top + 0.3 && insideObs(o, sx, sz, 0.35))) { dist = Math.max(2.2, d - 0.8); break; }
+    if (S.obst.some(o => sy < o.top + 0.3 && (o.bot === undefined || sy > o.bot - 0.3) && insideObs(o, sx, sz, 0.35))) { dist = Math.max(2.2, d - 0.8); break; }
   }
   camDist += (dist - camDist) * Math.min(1, dt * (dist < camDist ? 14 : 3));   // rapprochement vif, recul doux
   dist = camDist;
   let cx = tx + Math.sin(c.yaw) * Math.cos(c.pitch) * dist, cy = ty + Math.sin(c.pitch) * dist, cz = tz + Math.cos(c.yaw) * Math.cos(c.pitch) * dist;
   let gy = terrainH(cx, cz) + 0.6;
-  for (const o of S.obst) if (o.top + 0.6 > gy && insideObs(o, cx, cz, 0.4)) gy = o.top + 0.6;   // la caméra ne rentre pas dans les blocs
+  for (const o of S.obst) if (o.top + 0.6 > gy && (o.bot === undefined || cy > o.bot) && insideObs(o, cx, cz, 0.4)) gy = o.top + 0.6;   // la caméra ne rentre pas dans les blocs
   camY += ((cy < gy ? gy : cy) - camY) * Math.min(1, dt * 10); cy = Math.max(camY, terrainH(cx, cz) + 0.4);
   camera.position.set(cx, cy, cz);
   camera.lookAt(tx, ty, tz);
@@ -1767,7 +1801,7 @@ function endRun(win) {
   music.stop(1.5);
   if (document.pointerLockElement) document.exitPointerLock();
   const surv = Math.floor(S.t);
-  const before = CHARS.filter(unlocked).map(c => c.id);
+  const before = S.unl0 || CHARS.filter(unlocked).map(c => c.id);
   META.totalKills += S.kills; META.maxLevel = Math.max(META.maxLevel, S.level); META.bestTime = Math.max(META.bestTime, surv); META.bestKills = Math.max(META.bestKills, S.kills);
   if (win) META.wins++;
   const cr = runCredits(S); META.credits = (META.credits || 0) + cr;
