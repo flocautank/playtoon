@@ -25,3 +25,8 @@ window.addEventListener('hashchange', () => show(location.hash.slice(1)));
 let start = location.hash.slice(1);
 if (!tabs.includes(start)) { try { start = localStorage.getItem('arcade.tab') || 'blocks'; } catch (e) { start = 'blocks'; } }
 show(start);
+
+// PWA : installable sur l'écran d'accueil et jouable hors-ligne (voir sw.js).
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}

@@ -6,8 +6,12 @@ headless (`node tools/smoke.mjs`, zéro erreur console, captures relues), pouss�
 
 ## À faire (ordre de priorité)
 
-1. **[Transverse] PWA** — manifest + icône pour installer Playtoon sur l'écran d'accueil mobile.
-2. **[Neon Bonk] Équilibrage minutes 2–5** — le bot « humain » (fuite + ramassage, choix au hasard) meurt entre 2:30 et 9:00 selon les runs, v1 comme aujourd'hui : mesurer sur 20 runs et adoucir la montée (brutes, taux d'apparition) sans rendre la fin triviale.
+1. **[Neon Bonk] Équilibrage minutes 2–5** — le bot « humain » (fuite + ramassage, choix au hasard) meurt entre 2:30 et 9:00 selon les runs, v1 comme aujourd'hui : mesurer sur 20 runs et adoucir la montée (brutes, taux d'apparition) sans rendre la fin triviale.
+2. **[Neon Bonk] Évolutions d'armes** — une arme au niveau max + un tome précis se fondent en arme évoluée (ex. Blaster + Multiplicité → Canon à rafales), proposée dans un coffre.
+3. **[Neon Bonk] Deux armes de plus** — laser continu (rayon qui balaie) et mines de proximité.
+4. **[Bloc Party] Thèmes** — jeux de couleurs et formes de blocs à débloquer avec les pièces.
+5. **[Star Forge] Big Bang** — 2e couche de prestige : réinitialise Novae et Constellation contre des « Singularités » qui multiplient le gain de Novae.
+6. **[Transverse] Profil** — page de statistiques commune aux trois jeux (records, temps joué, succès).
 
 ## Fait
 
@@ -21,6 +25,7 @@ headless (`node tools/smoke.mjs`, zéro erreur console, captures relues), pouss�
 - **Itération 7** (2026-09-25) — Neon Bonk : musique synthwave procédurale (`js/synthwave.js`, WebAudio) — nappe, basse, arpège avec écho, batterie ; intensité 0–3 selon la minute, la foule proche et le boss ; transposée et accélérée dans la Fournaise ; coupée par le bouton son, réglable dans la pause.
 - **Itération 8** (2026-09-25) — Star Forge : équilibrage mesuré par `tools/sf-balance.mjs` (joueur appliqué, 3 clics/s, meilleur rendement) — 1re Supernova rentable vers 12–15 min au lieu de 25, 20 Novae en 45 min, run 2 deux fois plus rapide (Novae : √(produit/2e5), +5 % chacune, 8 % avec le nœud ; palier ×2 dès 10 forges) ; option de notation scientifique ; correctif d'un plantage au chargement introduit en cours d'itération et attrapé par le test.
 - **Itération 9** (2026-09-25) — Bloc Party : défi du jour (grille et suite de pièces tirées de la date, identiques pour tous et à chaque essai), meilleur du jour, série de jours consécutifs, pièces gagnées ; bornage défensif de deux boucles (placement des coffres de Neon Bonk, rattrapage de la musique) ; test de fumée avec délais par action, étapes horodatées et chien de garde qui imprime la pile en cas de gel.
+- **Itération 10** (2026-09-25) — PWA : manifeste, icônes PNG (générées par `tools/make-icons.mjs`), service worker « réseau d'abord » (jamais de version périmée en ligne, jeu complet hors-ligne), raccourcis vers chaque jeu ; testé hors-ligne dans le test de fumée.
 
 ## À surveiller
 

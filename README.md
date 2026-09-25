@@ -24,6 +24,18 @@ Une barre de navigation fine en haut permet de passer de l'un à l'autre ; le je
 - Graphismes 100 % procéduraux (shaders néon, grille, ciel synthwave), sons synthétisés en WebAudio.
 - Progression sauvegardée dans le `localStorage` du navigateur.
 
+## Installer Playtoon
+
+Playtoon est une PWA : depuis le site, « Ajouter à l'écran d'accueil » (mobile) ou l'icône d'installation de la
+barre d'adresse (Chrome, Edge) l'installe comme une application. Une fois chargé, il reste jouable hors-ligne.
+
+## Outils de développement
+
+- `node tools/smoke.mjs` — test de fumée Chromium headless (les trois jeux, desktop + mobile, PWA hors-ligne)
+- `node tools/bp-levels.mjs` — solveur glouton qui calibre les 40 niveaux d'Aventure de Bloc Party
+- `node tools/sf-balance.mjs` — joueur simulé qui mesure la progression de Star Forge
+- `node tools/make-icons.mjs` — régénère les icônes de la PWA
+
 ## Publication
 
 Le site est servi par GitHub Pages depuis la branche `gh-pages`, que le workflow `.github/workflows/publier.yml`

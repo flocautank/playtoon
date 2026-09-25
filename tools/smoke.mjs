@@ -181,6 +181,22 @@ await page.close();
   await f.close();
 }
 
+// ---------- PWA : manifeste, icônes, service worker, fonctionnement hors-ligne
+{
+  const ctxP = await browser.newContext({ viewport: { width: 1000, height: 700 } });
+  const w = guard(await ctxP.newPage()); watch(w, 'pwa');
+  await w.goto(base + '#blocks'); await w.waitForTimeout(500);
+  const man = await w.evaluate(async () => { const m = await (await fetch(document.querySelector('link[rel=manifest]').href)).json(); const ok = await Promise.all(m.icons.map(i => fetch(i.src).then(r => r.ok))); return `${m.name} · ${m.icons.length} icônes chargées=${ok.every(Boolean)} · start_url=${m.start_url}`; });
+  const sw = await w.evaluate(async () => { const reg = await navigator.serviceWorker.ready; return reg.active ? reg.active.state : 'aucun'; });
+  await w.reload(); await w.waitForTimeout(500);   // la page est désormais contrôlée par le service worker
+  await ctxP.setOffline(true);
+  await w.reload(); await w.waitForTimeout(800);
+  const off = await w.evaluate(() => `${document.title} · jeux chargés=${!!(window.__bp && window.__sf && window.__nb)}`);
+  await shot(w, 'pwa-offline');
+  log(`PWA : ${man} · service worker=${sw} · hors-ligne : ${off}`);
+  await ctxP.close();
+}
+
 // ---------- mobile
 log('étape : mobile');
 const ctx = await browser.newContext({ ...devices['iPhone 13'] });
