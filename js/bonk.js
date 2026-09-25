@@ -30,7 +30,7 @@ const WEAPONS = {
   arc:     { name: 'Foudre', ic: '⚡', desc: 'La foudre frappe des ennemis au hasard et se propage.', cd: 1.5, dmg: 24, count: 2, area: 1.8, chain: 1, ups: ['dmg', 'cd', 'count', 'chain', 'area'] },
   disc:    { name: 'Disque', ic: '🥏', desc: 'Un disque boomerang qui traverse tout, aller et retour.', cd: 1.9, dmg: 18, count: 1, area: 1.3, speed: 20, ups: ['dmg', 'cd', 'count', 'area', 'speed'] },
   blade:   { name: 'Lame néon', ic: '🗡️', desc: 'Un large coup de lame devant toi.', cd: 1.0, dmg: 28, count: 1, area: 4, ups: ['dmg', 'cd', 'area', 'count'] },
-  beam:    { name: 'Laser', ic: '🔦', desc: 'Un rayon continu qui suit l\'ennemi le plus proche et traverse tout.', cd: 0.16, dmg: 6, count: 1, area: 1, ups: ['dmg', 'cd', 'area', 'count'] },
+  beam:    { name: 'Laser', ic: '🔦', desc: 'Un rayon continu qui suit l\'ennemi le plus proche et traverse tout.', cd: 0.18, dmg: 4.5, count: 1, area: 1, ups: ['dmg', 'cd', 'area', 'count'] },
   mine:    { name: 'Mines', ic: '🧨', desc: 'Sème des mines sous tes pas, qui explosent au contact.', cd: 1.3, dmg: 42, count: 1, area: 3, ups: ['dmg', 'cd', 'count', 'area'] },
   rocket:  { name: 'Missiles', ic: '🚀', desc: 'Des missiles à tête chercheuse qui explosent en zone.', cd: 2.6, dmg: 34, count: 1, area: 3.6, speed: 18, ups: ['dmg', 'cd', 'count', 'area'] },
 };
