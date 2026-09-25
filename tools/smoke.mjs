@@ -34,6 +34,17 @@ log('aventure niv 1 :', await page.evaluate(() => {
 }));
 await page.waitForTimeout(1000); await shot(page, 'blocks-res');
 await page.click('#bp-resmap'); await page.click('#bp-classic'); await page.waitForTimeout(300);
+// boosters : on remplit un peu la grille, puis bombe au centre
+await page.evaluate(() => { const { S, place, fits, N } = window.__bp; for (let k = 0; k < 4; k++) S.tray.forEach((pc, i) => { if (!pc) return; for (let y = 2; y < N; y++) for (let x = 2; x < N; x++) if (S.tray[i] && fits(pc, x, y)) { place(i, x, y); return; } }); });
+const filledBefore = await page.evaluate(() => window.__bp.S.board.flat().filter(Boolean).length);
+const coinsBefore = +(await page.$eval('#bp-coins', e => e.textContent));
+await page.click('[data-tool=bomb]');
+const bb = await page.$eval('#bp-canvas', c => { const r = c.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; });
+await page.mouse.move(bb.x + bb.w / 2, bb.y + 113 - bb.y + 4.5 * 56.6); await page.waitForTimeout(200); await shot(page, 'blocks-bomb-aim');
+await page.mouse.click(bb.x + bb.w / 2, bb.y + 113 - bb.y + 4.5 * 56.6); await page.waitForTimeout(500);
+const filledAfter = await page.evaluate(() => window.__bp.S.board.flat().filter(Boolean).length);
+log(`bombe : cases ${filledBefore} → ${filledAfter}, pièces ${coinsBefore} → ${await page.$eval('#bp-coins', e => e.textContent)}`);
+await page.click('[data-tool=shuffle]'); await page.waitForTimeout(200); await shot(page, 'blocks-boost');
 await page.goto(base + '#forge'); await page.waitForTimeout(700);
 for (let i = 0; i < 40; i++) await page.mouse.click(360, 390);
 await page.waitForTimeout(300); await shot(page, 'forge');

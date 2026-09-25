@@ -46,6 +46,12 @@ main{position:fixed;inset:var(--nav-h) 0 0 0}
 .bp-stat small{display:block;font-size:10px;letter-spacing:.15em;color:#b9b0e6}
 .bp-stat b{font-size:22px;font-variant-numeric:tabular-nums}
 #bp-restart{font-size:18px;padding:6px 12px}
+.bp-boost{display:flex;gap:8px;align-items:center;justify-content:center;padding:4px 0 10px}
+.bp-coins{background:rgba(0,0,0,.25);border-radius:10px;padding:6px 12px;font-weight:800;color:#ffd84d;min-width:70px;text-align:center}
+.bp-boost button{background:linear-gradient(160deg,#5b3fb0,#3a2a80);border-radius:12px;padding:5px 12px;font-size:20px;display:flex;align-items:center;gap:5px;box-shadow:0 3px 0 #1d1447}
+.bp-boost button small{font-size:11px;font-weight:800;color:#ffd84d}
+.bp-boost button.on{background:linear-gradient(160deg,#ff5d8f,#c43a6a);box-shadow:0 3px 0 #6a1a38,0 0 14px rgba(255,93,143,.6)}
+.bp-boost button.no{opacity:.4}
 #bp-mapbtn{font-size:16px;padding:6px 10px}
 .bp-levels{display:grid;grid-template-columns:repeat(auto-fill,minmax(58px,1fr));gap:8px;max-height:52vh;overflow:auto;padding:4px}
 .bp-lv{aspect-ratio:1;border-radius:14px;background:linear-gradient(160deg,#5b3fb0,#3a2a80);font-weight:800;font-size:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:0 3px 0 #1d1447}
@@ -54,7 +60,7 @@ main{position:fixed;inset:var(--nav-h) 0 0 0}
 .bp-lv.lock{opacity:.35;cursor:default}
 .bp-stars{font-size:40px;letter-spacing:6px;color:#ffc94d;text-shadow:0 0 16px rgba(255,201,77,.5)}
 .bp-stars i{font-style:normal;color:#3a3560;text-shadow:none}
-#bp-canvas{flex:1;width:100%;touch-action:none;display:block}
+#bp-canvas{flex:1 1 0;min-height:0;width:100%;touch-action:none;display:block}
 
 /* ---------- Star Forge ---------- */
 #tab-forge{background:radial-gradient(ellipse at 30% 40%,#221a44 0%,#0d0f1a 70%)}

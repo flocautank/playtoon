@@ -38,6 +38,15 @@ const S = {
   mode: 'classic', lvl: 1, goal: null, moves: 0, gems: new Set(), got: 0,
 };
 let ADV = { stars: {} };
+// Boosters payés en pièces : gagnées à chaque ligne en classique, aux étoiles en Aventure.
+const TOOLS = { hammer: 15, bomb: 30, shuffle: 20 };
+let COINS = 40, tool = null;
+try { const c = localStorage.getItem('blocparty.coins'); if (c !== null) COINS = +c; } catch (e) {}
+const saveCoins = () => { try { localStorage.setItem('blocparty.coins', COINS); } catch (e) {} paintBoost(); };
+function paintBoost() {
+  $('bp-coins').textContent = COINS;
+  document.querySelectorAll('#bp-boost button').forEach(b => { b.classList.toggle('on', b.dataset.tool === tool); b.classList.toggle('no', COINS < TOOLS[b.dataset.tool]); });
+}
 try { ADV = Object.assign(ADV, JSON.parse(localStorage.getItem('blocparty.adv') || '{}')); } catch (e) {}
 const saveAdv = () => { try { localStorage.setItem('blocparty.adv', JSON.stringify(ADV)); } catch (e) {} };
 const unlockedLvl = () => { let n = 1; while (ADV.stars[n]) n++; return Math.min(n, LEVELS); };
@@ -163,13 +172,16 @@ function advResult(win) {
   if (win) {
     const used = S.goal.moves - S.moves, ratio = used / S.goal.moves;
     stars = ratio <= 0.6 ? 3 : ratio <= 0.8 ? 2 : 1;
-    ADV.stars[S.lvl] = Math.max(ADV.stars[S.lvl] || 0, stars); saveAdv();
+    const prev = ADV.stars[S.lvl] || 0;
+    ADV.stars[S.lvl] = Math.max(prev, stars); saveAdv();
+    if (stars > prev) { COINS += (stars - prev) * 10; saveCoins(); }
   }
   setTimeout(() => {
     $('bp-restitle').textContent = win ? `Niveau ${S.lvl} réussi !` : 'Raté… presque !';
     $('bp-resstars').innerHTML = [1, 2, 3].map(k => k <= stars ? '★' : '<i>★</i>').join('');
-    $('bp-restext').textContent = win ? `${S.goal.moves - S.moves} coups utilisés sur ${S.goal.moves} · ${S.score} points` : (S.moves <= 0 ? 'Plus de coups.' : 'Plus de place pour les pièces.');
+    $('bp-restext').textContent = win ? `${S.goal.moves - S.moves} coups utilisés sur ${S.goal.moves} · 🪙 total ${COINS}` : (S.moves <= 0 ? 'Plus de coups.' : 'Plus de place pour les pièces.');
     $('bp-resnext').classList.toggle('hidden', !win || S.lvl >= LEVELS);
+    $('bp-rescont').classList.toggle('hidden', win || S.moves <= 0 || COINS < TOOLS.hammer);
     $('bp-res').classList.remove('hidden');
     if (win) [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => beep(f, 0.18, 'triangle', 0.06), i * 110));
     else beep(260, 0.4, 'sawtooth', 0.04);
@@ -190,6 +202,38 @@ function openMap() {
   const cur = box.children[open - 1]; if (cur) cur.scrollIntoView({ block: 'nearest' });
 }
 
+// Efface des cases hors placement (boosters) : gemmes récoltées, sans consommer de coup.
+function smash(cells) {
+  let hit = 0;
+  for (const [x, y] of cells) {
+    if (x < 0 || y < 0 || x >= N || y >= N || !S.board[y][x]) continue;
+    const color = S.board[y][x]; hit++;
+    S.clearing.push({ x, y, color, t: 0, delay: hit * 0.02 });
+    S.board[y][x] = null;
+    for (let k = 0; k < 5; k++) burst(x, y, color);
+    if (S.gems.delete(y * N + x)) { S.got++; for (let k = 0; k < 10; k++) burst(x, y, '#7ff6ff'); }
+  }
+  S.shake = 8; beep(120, 0.25, 'sawtooth', 0.05);
+  if (S.mode === 'adv' && S.goal.type === 'gems' && S.gems.size === 0) advResult(true);
+  save(); updateHUD();
+  return hit;
+}
+function useTool(name, gx, gy) {
+  const cost = TOOLS[name];
+  if (COINS < cost) return false;
+  if (name === 'shuffle') { S.tray = [null, null, null]; fillTray(); beep(700, 0.15, 'triangle', 0.05); }
+  else {
+    const cells = name === 'bomb' ? [-1, 0, 1].flatMap(dy => [-1, 0, 1].map(dx => [gx + dx, gy + dy])) : [[gx, gy]];
+    if (!smash(cells)) return false;
+  }
+  COINS -= cost; tool = null; saveCoins(); save();
+  // toujours bloqué après le booster ? la partie se termine
+  if (!S.over && !S.tray.some(t => t && canPlaceAnywhere(t))) {
+    if (S.mode === 'adv') advResult(false); else { S.over = true; setTimeout(gameOver, 600); }
+  }
+  return true;
+}
+
 function linesToClear(board) {
   const rows = [], cols = [];
   for (let y = 0; y < N; y++) if (board[y].every(c => c)) rows.push(y);
@@ -206,6 +250,7 @@ function place(idx, gx, gy) {
   const n = rows.length + cols.length;
   if (n > 0) {
     S.combo++; S.lines = (S.lines || 0) + n;
+    if (S.mode === 'classic') { COINS += n; saveCoins(); }
     const cells = new Map();
     rows.forEach(y => { for (let x = 0; x < N; x++) cells.set(y * N + x, [x, y]); });
     cols.forEach(x => { for (let y = 0; y < N; y++) cells.set(y * N + x, [x, y]); });
@@ -255,6 +300,7 @@ function place(idx, gx, gy) {
 function gameOver() {
   $('bp-final').textContent = S.score.toLocaleString('fr-FR');
   $('bp-newbest').textContent = S.score >= S.best && S.score > 0 ? '🏆 Nouveau record !' : 'Record : ' + S.best.toLocaleString('fr-FR');
+  $('bp-cont').classList.toggle('hidden', COINS < TOOLS.hammer);
   $('bp-over').classList.remove('hidden');
   beep(300, 0.3, 'sawtooth', 0.04); setTimeout(() => beep(200, 0.4, 'sawtooth', 0.04), 200);
 }
@@ -390,6 +436,16 @@ function draw(dt) {
 
   ctx.restore();
 
+  // zone visée par le marteau / la bombe
+  if (tool && hover) {
+    const gx = Math.floor((hover.x - L.bx) / L.cs), gy = Math.floor((hover.y - L.by) / L.cs), R = tool === 'bomb' ? 1 : 0;
+    if (gx >= 0 && gy >= 0 && gx < N && gy < N) {
+      ctx.fillStyle = 'rgba(255,93,143,.28)'; ctx.strokeStyle = '#ff5d8f'; ctx.lineWidth = 2;
+      const x0 = Math.max(0, gx - R), y0 = Math.max(0, gy - R), x1 = Math.min(N - 1, gx + R), y1 = Math.min(N - 1, gy + R);
+      rr(L.bx + x0 * L.cs, L.by + y0 * L.cs, (x1 - x0 + 1) * L.cs, (y1 - y0 + 1) * L.cs, L.cs * 0.2); ctx.fill(); ctx.stroke();
+    }
+  }
+
   // plateau de pièces
   for (let i = 0; i < 3; i++) {
     const p = S.tray[i]; if (!p || (S.drag && S.drag.idx === i)) continue;
@@ -435,6 +491,10 @@ function pos(e) { const r = canvas.getBoundingClientRect(); return { x: e.client
 canvas.addEventListener('pointerdown', e => {
   if (S.over) return;
   const { x, y } = pos(e);
+  if (tool) {
+    const gx = Math.floor((x - L.bx) / L.cs), gy = Math.floor((y - L.by) / L.cs);
+    if (gx >= 0 && gy >= 0 && gx < N && gy < N) { useTool(tool, gx, gy); return; }
+  }
   for (let i = 0; i < 3; i++) {
     const r = slotRect(i), p = S.tray[i];
     if (!p || x < r.x || x > r.x + r.w || y < r.y - 10 || y > r.y + r.h + 10) continue;
@@ -446,7 +506,8 @@ canvas.addEventListener('pointerdown', e => {
     break;
   }
 });
-canvas.addEventListener('pointermove', e => { if (S.drag) { const p = pos(e); S.drag.x = p.x; S.drag.y = p.y; } });
+let hover = null;
+canvas.addEventListener('pointermove', e => { const p = pos(e); hover = p; if (S.drag) { S.drag.x = p.x; S.drag.y = p.y; } });
 function drop() {
   if (!S.drag) return;
   const g = ghostTarget(); const idx = S.drag.idx; S.drag = null;
@@ -461,6 +522,17 @@ $('bp-restart').onclick = () => {
 };
 $('bp-again').onclick = newGame;
 $('bp-mapbtn').onclick = openMap;
+// reprendre une grille bloquée : on ferme l'écran de fin et on arme le marteau
+const resume = id => { $(id).classList.add('hidden'); S.over = false; tool = 'hammer'; paintBoost(); S.pops.push({ text: 'Choisis une case', sub: 'à casser', t: 0 }); };
+$('bp-cont').onclick = () => resume('bp-over');
+$('bp-rescont').onclick = () => resume('bp-res');
+document.querySelectorAll('#bp-boost button').forEach(b => b.onclick = () => {
+  const t = b.dataset.tool;
+  if (S.over || COINS < TOOLS[t]) { beep(180, 0.1, 'square', 0.03); return; }
+  if (t === 'shuffle') { useTool('shuffle'); return; }
+  tool = tool === t ? null : t; paintBoost();
+});
+paintBoost();
 $('bp-mapclose').onclick = () => $('bp-map').classList.add('hidden');
 $('bp-classic').onclick = () => { $('bp-map').classList.add('hidden'); if (S.mode === 'adv') { S.mode = 'classic'; rnd = Math.random; S.gems.clear(); if (!load() || !S.tray.some(t => t && canPlaceAnywhere(t))) newGame(); S.over = false; updateHUD(); } };
 $('bp-resnext').onclick = () => startLevel(Math.min(LEVELS, S.lvl + 1));

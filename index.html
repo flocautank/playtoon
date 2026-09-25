@@ -29,11 +29,18 @@
         <button class="btn ghost" id="bp-restart" title="Recommencer">↻</button>
       </div>
       <canvas id="bp-canvas"></canvas>
+      <div class="bp-boost" id="bp-boost">
+        <span class="bp-coins">🪙 <b id="bp-coins">0</b></span>
+        <button data-tool="hammer" title="Marteau : casse une case">🔨<small>15</small></button>
+        <button data-tool="bomb" title="Bombe : efface un carré 3×3">💣<small>30</small></button>
+        <button data-tool="shuffle" title="Mélange : trois nouvelles pièces">🔀<small>20</small></button>
+      </div>
       <div class="overlay hidden" id="bp-over">
         <div class="card">
           <h2>Plus de place !</h2>
           <p>Score : <b id="bp-final">0</b></p>
           <p class="muted" id="bp-newbest"></p>
+          <button class="btn ghost" id="bp-cont">🔨 Continuer avec un booster</button>
           <button class="btn" id="bp-again">Rejouer</button>
         </div>
       </div>
@@ -50,7 +57,7 @@
           <h2 id="bp-restitle">Niveau réussi !</h2>
           <div class="bp-stars" id="bp-resstars"></div>
           <p class="muted" id="bp-restext"></p>
-          <div class="row"><button class="btn" id="bp-resnext">Suivant</button><button class="btn ghost" id="bp-resretry">Réessayer</button><button class="btn ghost" id="bp-resmap">Carte</button></div>
+          <div class="row"><button class="btn ghost" id="bp-rescont">🔨 Continuer</button><button class="btn" id="bp-resnext">Suivant</button><button class="btn ghost" id="bp-resretry">Réessayer</button><button class="btn ghost" id="bp-resmap">Carte</button></div>
         </div>
       </div>
     </div>
