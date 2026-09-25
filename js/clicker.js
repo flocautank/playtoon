@@ -172,7 +172,7 @@ function buyGen(i) {
   if (n <= 0) return;
   const c = costN(i, n);
   if (c > S.dust) return;
-  S.dust -= c; S.gens[i] += n;
+  S.dust -= c; S.gens[i] += n; window.ptEvent && window.ptEvent('sf_forges', n);
   sfx(520 + i * 30, 0.06, 'triangle');
   refresh(true);
 }
@@ -262,6 +262,7 @@ function spawnComet() {
   comet = { x: fromLeft ? -0.1 : 1.1, y: 0.15 + Math.random() * 0.5, vx: (fromLeft ? 1 : -1) * (0.05 + Math.random() * 0.03) / (0.8 + luck() * 0.2), vy: 0.01 * (Math.random() - 0.5), t: 0 };
 }
 function catchComet() {
+  window.ptEvent && window.ptEvent('sf_comets', 1);
   S.cometsTotal++; S.lifeComets++;
   const r = Math.random();
   if (r < 0.45) {
@@ -369,7 +370,7 @@ function clickStar(x, y) {
   const X = cw / 2, Y = ch / 2, R = Math.min(cw, ch) * 0.2;
   if (Math.hypot(x - X, y - Y) > R * 1.3) return;
   const v = clickValue();
-  earn(v); S.clicks++; S.lifeClicks++; pulse = 1;
+  earn(v); S.clicks++; S.lifeClicks++; pulse = 1; window.ptEvent && window.ptEvent('sf_clicks', 1);
   floats.push({ x: x + (Math.random() - .5) * 20, y, t: '+' + fmt(v), life: 1, col: S.buffs.some(b => b.type === 'click') ? '#ff9dfc' : '#ffe38a' });
   for (let k = 0; k < 6; k++) parts.push({ x, y, vx: (Math.random() - .5) * 5, vy: -Math.random() * 5, life: 1, col: '#ffe38a', s: 2 + Math.random() * 2 });
   sfx(700 + Math.random() * 200, 0.04, 'sine', 0.03);
@@ -648,6 +649,10 @@ window.addEventListener('resize', () => visible && resizeStar());
 if (window.ResizeObserver) new ResizeObserver(() => visible && resizeStar()).observe(cv);
 
 window.GAMES.forge = {
+  reward() {   // objectif du jour : +1 Nova (on charge la sauvegarde si le jeu n'a pas encore été ouvert)
+    if (!inited) { inited = true; load(); lastT = performance.now(); requestAnimationFrame(loop); }
+    S.novaTotal++; S.novaBank++; save(); if (built) refresh(true);
+  },
   show() {
     visible = true;
     if (!inited) { inited = true; load(); lastT = performance.now(); requestAnimationFrame(loop); }

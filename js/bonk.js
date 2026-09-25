@@ -531,7 +531,7 @@ function newRun() {
   if (TOUCH) ['nb-joy', 'nb-jumpbtn', 'nb-actbtn', 'nb-slidebtn'].forEach(id => $(id).classList.remove('hidden'));
   $('nb-pausebtn').classList.remove('hidden');
   camY = S.p.y + 5;
-  if (META.music) music.start(0);
+  if (window.PT_MUSIC !== false) music.start(0);
   msg('Survis. Ramasse l\'XP. Ouvre les coffres.', 3.5);
   lockPointer();
   renderWeaponsHud();
@@ -821,7 +821,7 @@ function damage(e, amount, canCrit = true, kx = 0, kz = 0) {
 }
 function kill(e) {
   if (e.boss) { bossDeath(); return; }
-  S.kills++;
+  S.kills++; window.ptEvent && window.ptEvent('nb_kills', 1);
   const col = new THREE.Color(e.T.col);
   burst(e.x, e.y + 0.5, e.z, e.elite ? 60 : 10, [col.r, col.g, col.b], e.elite ? 9 : 5, 0.5);
   dropXp(e.x, e.y + 0.4, e.z, e.xp);
@@ -1321,7 +1321,7 @@ function interact() {
     return;
   }
   if (!t.free && S.gold < S.chestCost) { msg('Pas assez d\'or', 1); return; }
-  S.chestsOpened++;
+  S.chestsOpened++; window.ptEvent && window.ptEvent('nb_chests', 1);
   if (!t.free) { S.gold -= S.chestCost; S.chestCost = Math.round(S.chestCost * 1.45 + 4); }
   t.open = true; t.lid.rotation.x = -1.2; t.lid.position.z = -0.4; t.lid.position.y = 1.1;
   const ev = evoReady();
@@ -1353,7 +1353,7 @@ function nextStage() {
   applyStage(S.stage); buildLevel();
   S.p.x = 0; S.p.z = 0; S.p.y = terrainH(0, 0) + 1; S.p.vx = S.p.vy = S.p.vz = 0; S.p.hp = S.stats.hp; S.iframe = 2;
   camY = S.p.y + 5;
-  if (META.music) music.start(S.stage);
+  if (window.PT_MUSIC !== false) music.start(S.stage);
   msg(`ÉTAPE ${S.stage + 1} — ${ST().name}`, 4, '#' + new THREE.Color(...ST().lineB).getHexString());
   sfx('boss');
 }
@@ -1755,12 +1755,12 @@ function pause() {
   S.tomes.forEach(t => b.insertAdjacentHTML('beforeend', `<span>${TOMES[t.id].ic} ${TOMES[t.id].name} Nv${t.lvl}</span>`));
   Object.entries(S.items).forEach(([id, n]) => { const it = ITEMS.find(i => i.id === id); b.insertAdjacentHTML('beforeend', `<span>${it.ic} ${it.name}${n > 1 ? ' ×' + n : ''}</span>`); });
   $('nb-pause').classList.remove('hidden');
-  $('nb-music').checked = META.music;
+  $('nb-music').checked = window.PT_MUSIC !== false;
   $('nb-nums').value = META.nums || 'merge';
   music.stop(0.3);
   if (document.pointerLockElement) document.exitPointerLock();
 }
-function resume() { if (!S || S.state !== 'pause') return; $('nb-pause').classList.add('hidden'); S.state = 'play'; clock.getDelta(); lockPointer(); if (META.music) music.start(S.stage); }
+function resume() { if (!S || S.state !== 'pause') return; $('nb-pause').classList.add('hidden'); S.state = 'play'; clock.getDelta(); lockPointer(); if (window.PT_MUSIC !== false) music.start(S.stage); }
 function endRun(win) {
   if (S.state === 'end') return;
   S.state = 'end'; S.won = win;
@@ -1771,6 +1771,7 @@ function endRun(win) {
   META.totalKills += S.kills; META.maxLevel = Math.max(META.maxLevel, S.level); META.bestTime = Math.max(META.bestTime, surv); META.bestKills = Math.max(META.bestKills, S.kills);
   if (win) META.wins++;
   const cr = runCredits(S); META.credits = (META.credits || 0) + cr;
+  window.ptEvent && window.ptEvent('nb_time', surv);
   saveMeta();
   const newly = CHARS.filter(c => unlocked(c) && !before.includes(c.id));
   $('nb-endtitle').innerHTML = win ? '<span class="neon" style="font-size:30px">VICTOIRE</span>' : 'Tu as été désintégré';
@@ -1834,7 +1835,8 @@ $('nb-resume').onclick = resume;
 $('nb-quit').onclick = () => endRun(false);
 $('nb-reroll').onclick = reroll;
 $('nb-sens').oninput = e => { META.sens = +e.target.value; saveMeta(); };
-$('nb-music').onchange = e => { META.music = e.target.checked; saveMeta(); };
+$('nb-music').onchange = e => window.ptSetMusic(e.target.checked);
+window.addEventListener('pt-music', () => { if (window.PT_MUSIC && S && S.state === 'play' && active) music.start(S.stage); else if (!window.PT_MUSIC) music.stop(0.3); });
 
 // Boutons tactiles : pause via le timer
 $('nb-timer').style.pointerEvents = 'auto';
@@ -1845,6 +1847,7 @@ addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
 window.__nb = { get S() { return S; }, get camDist() { return camDist; }, update, pick, keys, interact, jump, damage, spawnEnemy, music, newRun, addWeapon, openLevelUp };
 
 window.GAMES.bonk = {
+  reward() { META.credits = (META.credits || 0) + 40; saveMeta(); if (!S || S.state === 'menu') try { renderMenu(); } catch (e) {} },   // objectif du jour
   show() {
     active = true;
     if (!inited) {

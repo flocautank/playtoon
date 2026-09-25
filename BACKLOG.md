@@ -15,12 +15,11 @@ headless (`node tools/smoke.mjs`, zéro erreur console, captures relues), pouss�
 
 *Évaluation n° 1 (sous-agent joueur, 2026-09-25, desktop + iPhone 13) — versée en tête.*
 
-1. **[Transverse]** Page d'accueil qui présente les trois jeux (et le profil). Un seul réglage audio (musique intégrée au réglage global). Objectifs du jour transverses qui relient les jeux. Zoom autorisé (retirer `user-scalable=no`), contraste et taille des textes secondaires.
 
 *Feuille de route (après les retours d'évaluation).*
 
-2. **[Star Forge] Événements** — météores rares (bonus ×77 de 7 s), éclipse (production doublée mais clics nuls) ; fréquence réglée par la Chance.
-3. **[Neon Bonk] Troisième étape** — « Le Vide » (gravité réduite, plateformes flottantes, boss final) après la Fournaise.
+1. **[Star Forge] Événements** — météores rares (bonus ×77 de 7 s), éclipse (production doublée mais clics nuls) ; fréquence réglée par la Chance.
+2. **[Neon Bonk] Troisième étape** — « Le Vide » (gravité réduite, plateformes flottantes, boss final) après la Fournaise.
 
 ## Fait
 
@@ -46,6 +45,7 @@ headless (`node tools/smoke.mjs`, zéro erreur console, captures relues), pouss�
 - **Itération E1** (2026-09-25, retours d'évaluation) — Star Forge : zone de l'étoile recalculée par `ResizeObserver` (15 touchers au centre = 15 poussières sur mobile, 0 avant) ; fiches au toucher (1er toucher = fiche, 2e = achat) pour améliorations, Constellation, Galaxie et succès, valeurs vivantes ; notifications déplacées au-dessus de l'étoile ; confirmations dans le style du jeu (`ptConfirm`, aussi pour Bloc Party et le profil) ; avertissement de Supernova quand le gain est faible ; carte « comment jouer » au premier lancement ; onglets moins serrés.
 - **Itération E2** (2026-09-25, retours d'évaluation) — Bloc Party : main animée « Glisse une pièce sur la grille » jusqu'à la première pose ; bouton « 🗺️ Modes » ; Chrono en pause sous toute fenêtre (vérifié : 0 s perdue en 1,5 s de thèmes ouverts), gros compteur qui clignote en rouge sous 10 s, score à côté ; barre du haut qui tient sur iPhone ; pièce lâchée hors grille qui revient en glissant avec un son ; ↻ confirmé en Aventure / Chrono ; carte plus contrastée, indication de défilement sur mobile.
 - **Itération E3** (2026-09-25, retours d'évaluation) — Neon Bonk : caméra qui se rapproche devant un obstacle (8,5 → 2,2 au pied d'un bloc, recul doux) ; chiffres de dégâts regroupés par ennemi, option « regroupés / critiques / aucun » dans la pause ; mobile : bouton pause ❚❚, bouton GLISSE séparé de E, level-up compact (3 cartes + Relancer visibles sur iPhone, sans raccourcis clavier), message déplacé, boutique non masquée par « Lancer » ; écran de fin avec « Rejouer » ; noms des armes et tomes au survol du HUD, indice d'évolution en clair dans la pause.
+- **Itération E4** (2026-09-25, retours d'évaluation) — Transverse : accueil (1er passage, puis « PLAYTOON » dans la nav — la barre garde ses trois onglets) qui présente les trois jeux ; objectifs du jour, un par jeu, tirés de la date, avec récompense dans le jeu (+30 pièces, +1 Nova, +40 crédits), suivis par `ptEvent` et visibles dans l'accueil et le profil ; menu son unique à deux réglages (effets, musique) respecté par les trois jeux ; zoom réautorisé ; textes secondaires plus contrastés. Test : le script de fumée n'attendait pas `addInitScript` (course à l'ouverture des pages), corrigé.
 
 ## À surveiller
 

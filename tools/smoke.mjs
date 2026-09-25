@@ -37,10 +37,10 @@ setTimeout(async () => {
   process.exit(2);
 }, 300000).unref();
 // chaque action échoue en 20 s avec un message lisible, plutôt que de bloquer tout le test
-const guard = p => { p.setDefaultTimeout(20000); return p; };
+const guard = async (p, welcome = false) => { p.setDefaultTimeout(20000); if (!welcome) await p.addInitScript(() => { try { localStorage.setItem('playtoon.welcomed', '1'); } catch (e) {} }); return p; };   // attendu : sinon la page peut charger avant le script
 
 // ---------- desktop
-const page = guard(await browser.newPage({ viewport: { width: 1280, height: 760 } })); watch(page, 'desktop');
+const page = await guard(await browser.newPage({ viewport: { width: 1280, height: 760 } })); watch(page, 'desktop');
 cdpDesk = await page.context().newCDPSession(page);
 page.on('dialog', d => d.accept());
 await page.goto(base + '#blocks'); await page.waitForTimeout(700); await shot(page, 'blocks');
@@ -220,7 +220,7 @@ await page.close();
 
 // ---------- Bloc Party : thèmes (500 pièces injectées)
 {
-  const t = guard(await browser.newPage({ viewport: { width: 1280, height: 760 } })); watch(t, 'thèmes');
+  const t = await guard(await browser.newPage({ viewport: { width: 1280, height: 760 } })); watch(t, 'thèmes');
   await t.addInitScript(() => { if (!sessionStorage.getItem('inj')) { sessionStorage.setItem('inj', 1); localStorage.setItem('blocparty.coins', '500'); } });
   await t.goto(base + '#blocks'); await t.waitForTimeout(500);
   await t.click('#bp-themebtn'); await t.waitForTimeout(300); await shot(t, 'blocks-themes');
@@ -240,7 +240,7 @@ await page.close();
 
 // ---------- Star Forge : Big Bang (sauvegarde injectée : 250 Novae gagnées)
 {
-  const g = guard(await browser.newPage({ viewport: { width: 1280, height: 760 } })); watch(g, 'big-bang');
+  const g = await guard(await browser.newPage({ viewport: { width: 1280, height: 760 } })); watch(g, 'big-bang');
   g.on('dialog', d => d.accept());
   await g.addInitScript(() => { if (!sessionStorage.getItem('inj')) { sessionStorage.setItem('inj', 1); localStorage.setItem('starforge.save.v1', JSON.stringify({ dust: 1e6, runTotal: 1e6, lifeTotal: 1e10, gens: [30, 20, 10, 5, 0, 0, 0, 0, 0, 0], upg: {}, novaTotal: 250, novaBank: 40, meta: { m_click: 1, m_auto: 1 }, ach: {}, prestiges: 12, chalDone: { c_hands: 1 }, last: Date.now() })); } });
   await g.goto(base + '#forge'); await g.waitForTimeout(500);
@@ -258,7 +258,7 @@ await page.close();
 
 // ---------- Star Forge : défis (sauvegarde injectée : 4 Supernovae, défi « Sans les mains » presque fini)
 {
-  const f = guard(await browser.newPage({ viewport: { width: 1280, height: 760 } })); watch(f, 'forge-défis');
+  const f = await guard(await browser.newPage({ viewport: { width: 1280, height: 760 } })); watch(f, 'forge-défis');
   f.on('dialog', d => d.accept());
   await f.addInitScript(() => { if (!sessionStorage.getItem('inj')) { sessionStorage.setItem('inj', 1); localStorage.setItem('starforge.save.v1', JSON.stringify({ dust: 1e5, runTotal: 9.9e5, lifeTotal: 5e8, gens: [50, 40, 20, 10, 2, 0, 0, 0, 0, 0], upg: {}, novaTotal: 30, novaBank: 5, meta: { m_click: 1 }, ach: {}, prestiges: 4, chal: 'c_hands', chalT: 0, chalDone: {}, last: Date.now() })); } });
   await f.goto(base + '#forge'); await f.waitForTimeout(600);
@@ -281,7 +281,7 @@ await page.close();
 
 // ---------- Profil : statistiques et export / import de toutes les sauvegardes
 {
-  const pr = guard(await browser.newPage({ viewport: { width: 1280, height: 760 } })); watch(pr, 'profil');
+  const pr = await guard(await browser.newPage({ viewport: { width: 1280, height: 760 } })); watch(pr, 'profil');
   pr.on('dialog', d => d.accept());
   await pr.addInitScript(() => { if (!sessionStorage.getItem('inj')) { sessionStorage.setItem('inj', 1);
     localStorage.setItem('blocparty.best', '1234'); localStorage.setItem('blocparty.adv', JSON.stringify({ stars: { 1: 3, 2: 2 } }));
@@ -299,10 +299,28 @@ await page.close();
   await pr.close();
 }
 
+// ---------- Accueil et objectifs du jour
+{
+  const h = await browser.newPage({ viewport: { width: 1280, height: 760 } }); await guard(h, true); watch(h, 'accueil');
+  await h.goto(base); await h.waitForTimeout(600);
+  const shown = await h.$eval('#pt-home', e => !e.classList.contains('hidden'));
+  await shot(h, 'home');
+  await h.click('#pt-home-close');
+  await h.evaluate(() => { for (const [t, n] of [['bp_lines', 100], ['bp_pieces', 100], ['sf_forges', 100], ['sf_comets', 10], ['sf_clicks', 1000], ['nb_kills', 1000], ['nb_chests', 10], ['nb_time', 999]]) window.ptEvent(t, n); });
+  await h.waitForTimeout(300); await shot(h, 'goals-toasts');
+  await h.goto(base + '#blocks'); await h.waitForTimeout(300);
+  const st = await h.evaluate(() => ({ goals: JSON.parse(localStorage.getItem('playtoon.goals')).done, coins: localStorage.getItem('blocparty.coins'), nova: (JSON.parse(localStorage.getItem('starforge.save.v1') || '{}').novaTotal), cr: JSON.parse(localStorage.getItem('neonbonk.meta.v1') || '{}').credits }));
+  await h.click('#brand'); await h.waitForTimeout(300); await shot(h, 'home-goals');
+  await h.click('#pt-home-close'); await h.click('#mute'); await h.click('#pt-mus'); await h.waitForTimeout(200); await shot(h, 'sound-menu');
+  const mus = await h.evaluate(() => [window.PT_MUSIC, localStorage.getItem('playtoon.music')]);
+  log(`accueil au 1er passage=${shown} · objectifs réussis=${JSON.stringify(st.goals)} · récompenses : pièces=${st.coins} Novae=${st.nova} crédits=${st.cr} · musique coupée depuis 🔊=${JSON.stringify(mus)}`);
+  await h.close();
+}
+
 // ---------- PWA : manifeste, icônes, service worker, fonctionnement hors-ligne
 {
   const ctxP = await browser.newContext({ viewport: { width: 1000, height: 700 } });
-  const w = guard(await ctxP.newPage()); watch(w, 'pwa');
+  const w = await guard(await ctxP.newPage()); watch(w, 'pwa');
   await w.goto(base + '#blocks'); await w.waitForTimeout(500);
   const man = await w.evaluate(async () => { const m = await (await fetch(document.querySelector('link[rel=manifest]').href)).json(); const ok = await Promise.all(m.icons.map(i => fetch(i.src).then(r => r.ok))); return `${m.name} · ${m.icons.length} icônes chargées=${ok.every(Boolean)} · start_url=${m.start_url}`; });
   const sw = await w.evaluate(async () => { const reg = await navigator.serviceWorker.ready; return reg.active ? reg.active.state : 'aucun'; });
@@ -318,7 +336,7 @@ await page.close();
 // ---------- mobile
 log('étape : mobile');
 const ctx = await browser.newContext({ ...devices['iPhone 13'] });
-const m = guard(await ctx.newPage()); watch(m, 'mobile');
+const m = await guard(await ctx.newPage()); watch(m, 'mobile');
 for (const t of ['blocks', 'forge', 'bonk']) {
   await m.goto(base + '#' + t); await m.waitForTimeout(900); await shot(m, 'm-' + t);
   if (t === 'forge') {

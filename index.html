@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Playtoon</title>
 <meta name="description" content="Trois jeux jouables dans le navigateur : Bloc Party, Star Forge et Neon Bonk.">
 <meta name="theme-color" content="#0d0f1a">
@@ -16,7 +16,7 @@
 </head>
 <body>
 <nav id="nav">
-  <span class="brand">PLAYTOON</span>
+  <button class="brand" id="brand" title="Accueil et objectifs du jour">PLAYTOON</button>
   <a href="#blocks" data-tab="blocks"><i style="background:#ff5d8f"></i>Bloc Party</a>
   <a href="#forge" data-tab="forge"><i style="background:#ffc94d"></i>Star Forge</a>
   <a href="#bonk" data-tab="bonk"><i style="background:#4dd4ff"></i>Neon Bonk</a>
@@ -24,6 +24,24 @@
   <button id="mute" class="mute" title="Couper / remettre le son" aria-label="Son">🔊</button>
 </nav>
 
+<div class="pt-sound hidden" id="pt-sound">
+  <label><input type="checkbox" id="pt-sfx" checked> Effets sonores</label>
+  <label><input type="checkbox" id="pt-mus" checked> Musique</label>
+</div>
+<div class="pt-toasts" id="pt-toasts"></div>
+<div class="overlay hidden" id="pt-home" style="position:fixed;z-index:160">
+  <div class="card wide">
+    <h1 class="pt-logo">PLAYTOON</h1>
+    <p class="muted">Trois jeux, une seule page. Ta progression est sauvegardée dans ce navigateur.</p>
+    <div class="pt-games">
+      <a class="pt-game" href="#blocks" style="--c:#ff5d8f"><b>🧩 Bloc Party</b><span>Pose les pièces, complète lignes et colonnes. Aventure, défi du jour, Chrono.</span></a>
+      <a class="pt-game" href="#forge" style="--c:#ffc94d"><b>✨ Star Forge</b><span>Touche l'étoile, bâtis des forges qui produisent même quand tu es parti.</span></a>
+      <a class="pt-game" href="#bonk" style="--c:#4dd4ff"><b>🕹️ Neon Bonk</b><span>Survis aux hordes en 3D : cours, saute, tes armes tirent seules.</span></a>
+    </div>
+    <div class="pt-goals"><h3>🎯 Objectifs du jour</h3><div id="pt-goals"></div></div>
+    <button class="btn" id="pt-home-close">Jouer</button>
+  </div>
+</div>
 <div class="overlay hidden" id="pt-modal" style="position:fixed;z-index:300">
   <div class="card"><div id="pt-modal-txt" style="text-align:left;line-height:1.5"></div>
     <div class="row"><button class="btn ghost" id="pt-cancel">Annuler</button><button class="btn" id="pt-ok">Continuer</button></div></div>
@@ -31,6 +49,7 @@
 <div class="overlay hidden" id="pt-profile" style="position:fixed;z-index:150">
   <div class="card wide">
     <h2>Profil</h2>
+    <div class="pt-goals"><h3>🎯 Objectifs du jour</h3><div id="pt-goals2"></div></div>
     <div class="pt-prof" id="pt-prof"></div>
     <details class="small"><summary>Sauvegarde de tous les jeux</summary>
       <p class="muted">Copie ce texte pour transférer ta progression sur un autre appareil, ou colles-en un pour la restaurer.</p>
@@ -194,7 +213,7 @@
           <div id="nb-build" class="nb-build"></div>
           <label class="small"><input type="range" id="nb-sens" min="0.3" max="2.5" step="0.1" value="1"> Sensibilité</label>
           <label class="small">Chiffres de dégâts <select id="nb-nums"><option value="merge">regroupés</option><option value="crit">critiques seulement</option><option value="off">aucun</option></select></label>
-          <label class="small"><input type="checkbox" id="nb-music" checked> Musique</label>
+          <label class="small"><input type="checkbox" id="nb-music" checked> Musique <span class="muted">(réglage commun, aussi dans 🔊)</span></label>
           <div class="row"><button class="btn" id="nb-resume">Reprendre</button><button class="btn ghost" id="nb-quit">Abandonner</button></div>
         </div>
       </div>

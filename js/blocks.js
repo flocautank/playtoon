@@ -329,6 +329,7 @@ function linesToClear(board) {
 
 function place(idx, gx, gy) {
   tutoDone();
+  window.ptEvent && window.ptEvent('bp_pieces', 1);
   const p = S.tray[idx];
   for (const [x, y] of p.cells) { S.board[gy + y][gx + x] = p.color; S.placedAnim.push({ x: gx + x, y: gy + y, t: 0 }); }
   S.tray[idx] = null;
@@ -336,7 +337,7 @@ function place(idx, gx, gy) {
   const { rows, cols } = linesToClear(S.board);
   const n = rows.length + cols.length;
   if (n > 0) {
-    S.combo++; S.lines = (S.lines || 0) + n;
+    S.combo++; S.lines = (S.lines || 0) + n; window.ptEvent && window.ptEvent('bp_lines', n);
     if (S.mode !== 'adv') { COINS += n; saveCoins(); }
     const cells = new Map();
     rows.forEach(y => { for (let x = 0; x < N; x++) cells.set(y * N + x, [x, y]); });
@@ -720,6 +721,7 @@ window.addEventListener('resize', () => running && resize());
 
 let inited = false;
 window.GAMES.blocks = {
+  reward() { COINS += 30; saveCoins(); },   // objectif du jour
   show() {
     if (!inited) { inited = true; if (!load()) newGame(); else if (!S.tray.some(t => t && canPlaceAnywhere(t))) newGame(); updateHUD(); }
     running = true; requestAnimationFrame(() => { resize(); last = performance.now(); requestAnimationFrame(frame); });
