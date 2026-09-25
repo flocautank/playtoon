@@ -13,8 +13,17 @@ headless (`node tools/smoke.mjs`, zéro erreur console, captures relues), pouss�
 
 ## À faire (ordre de priorité)
 
-1. **[Star Forge] Événements** — météores rares (bonus ×77 de 7 s), éclipse (production doublée mais clics nuls) ; fréquence réglée par la Chance.
-2. **[Neon Bonk] Troisième étape** — « Le Vide » (gravité réduite, plateformes flottantes, boss final) après la Fournaise.
+*Évaluation n° 1 (sous-agent joueur, 2026-09-25, desktop + iPhone 13) — versée en tête.*
+
+1. **[Star Forge — mobile, bloquant]** L'étoile ne répond qu'à moitié au doigt (zone cliquable calculée avant la mise en page, recalculée seulement au redimensionnement) → `ResizeObserver`. Améliorations / Constellation / succès illisibles au doigt (infobulles au survol seulement) → fiche au toucher avec bouton d'achat. Toasts qui recouvrent la Supernova et les listes → les déplacer. Infobulle figée (« Total : 0 /s ») → valeurs vivantes, fermée au changement de panneau. Onglets serrés. Supernova à 1 Nova trop tentante → avertissement ; « Comment jouer » visible au premier lancement ; confirmations dans le style du jeu.
+2. **[Bloc Party]** Pas de prise en main → main animée qui montre le glisser au 1er lancement, libellé « Modes » sur 🗺️. Chrono qui continue sous les fenêtres → pause. Temps du Chrono trop discret → gros compteur, rouge sous 10 s. Boutons 🗺️ / 🎨 rognés sur mobile. Pièce lâchée hors grille : retour animé + son. ↻ sans confirmation en Aventure / Chrono. Carte : contraste des cases verrouillées, indication de défilement sur mobile.
+3. **[Neon Bonk]** Caméra obstruée (murs, gros objets cachent l'avatar) → caméra qui se rapproche devant un obstacle. Chiffres de dégâts illisibles dès le niveau 8 → regroupés / critiques seulement / option. Mobile : bouton pause visible, bouton E sans glissade (bouton de glissade séparé), level-up compact (3 cartes visibles, « Relancer » accessible, pas de [1][2] au doigt), message d'accueil sans chevauchement, bouton « Lancer » qui ne recouvre pas la boutique. Écran de fin : « Rejouer » direct. Noms des armes au HUD / en pause, indice d'évolution lisible.
+4. **[Transverse]** Page d'accueil qui présente les trois jeux (et le profil). Un seul réglage audio (musique intégrée au réglage global). Objectifs du jour transverses qui relient les jeux. Zoom autorisé (retirer `user-scalable=no`), contraste et taille des textes secondaires.
+
+*Feuille de route (après les retours d'évaluation).*
+
+5. **[Star Forge] Événements** — météores rares (bonus ×77 de 7 s), éclipse (production doublée mais clics nuls) ; fréquence réglée par la Chance.
+6. **[Neon Bonk] Troisième étape** — « Le Vide » (gravité réduite, plateformes flottantes, boss final) après la Fournaise.
 
 ## Fait
 
