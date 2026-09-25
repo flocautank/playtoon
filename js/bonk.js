@@ -84,7 +84,7 @@ const CHARS = [
 
 const ETYPES = {
   drone: { geo: 'box', size: 0.9, hp: 9, speed: 4.4, dmg: 8, xp: 1, col: 0xff3df0, fly: true },
-  spike: { geo: 'tetra', size: 0.85, hp: 6, speed: 7.2, dmg: 6, xp: 1, col: 0xffa020 },
+  spike: { geo: 'tetra', size: 0.85, hp: 6, speed: 6.5, dmg: 6, xp: 1, col: 0xffa020 },
   brute: { geo: 'octa', size: 1.7, hp: 55, speed: 3.1, dmg: 18, xp: 5, col: 0xff3050 },
   gunner:{ geo: 'ico', size: 1.1, hp: 24, speed: 3.4, dmg: 10, xp: 3, col: 0x27e0ff, ranged: true },
   charger:{ geo: 'dart', size: 1.2, hp: 28, speed: 3.2, dmg: 11, xp: 3, col: 0x7cff8a, charge: true },   // s'arrête, clignote, puis fonce tout droit
@@ -208,7 +208,9 @@ void main(){
   gl_FragColor = vec4(c, 1.0);
 }`;
 const PART_VS = `attribute vec3 color; attribute float size; varying vec3 vC;
-void main(){ vC = color; vec4 mv = modelViewMatrix * vec4(position,1.0); gl_PointSize = size * 300.0 / -mv.z; gl_Position = projectionMatrix * mv; }`;
+void main(){ vC = color; vec4 mv = modelViewMatrix * vec4(position,1.0);
+  // taille bornée : sans ça, une particule collée à la caméra devient un sprite géant (coûteux, voire bloquant)
+  gl_PointSize = -mv.z > 0.5 ? min(size * 300.0 / -mv.z, 48.0) : 0.0; gl_Position = projectionMatrix * mv; }`;
 const PART_FS = `varying vec3 vC; void main(){ vec2 p = gl_PointCoord - 0.5; float d = length(p); if (d > 0.5) discard; float a = smoothstep(0.5, 0.0, d); gl_FragColor = vec4(vC * a * 1.4, a); }`;
 
 // ============================================================ état global
@@ -502,7 +504,7 @@ function newRun() {
   lockPointer();
   renderWeaponsHud();
 }
-const xpNeed = l => Math.floor(3 + (l - 1) * 3 + Math.pow(l - 1, 1.6) * 0.8);
+const xpNeed = l => Math.floor(3 + (l - 1) * 2.4 + Math.pow(l - 1, 1.55) * 0.7);
 
 function addWeapon(id) {
   const b = WEAPONS[id];
@@ -696,7 +698,7 @@ function pickType() {
 }
 function spawning(dt) {
   const m = diffMin();
-  let rate = 0.9 + m * 0.55 + m * m * 0.045 + (S.time <= 0 ? 4 + (-S.time / 60) * 4 : 0);
+  let rate = 0.8 + m * 0.42 + m * m * 0.05 + (S.time <= 0 ? 4 + (-S.time / 60) * 4 : 0);
   const cap = 70 + m * 36;
   if (S.boss) rate *= 0.5;
   rate *= 1 + 0.25 * (S.greed || 0);
@@ -751,15 +753,16 @@ function updateEnemies(dt) {
     if (e.T.ranged && d < 26) {
       e.shootT -= dt;
       if (e.shootT <= 0) {
-        e.shootT = e.elite ? 1.2 : 2.8;
+        // les balles sont la 1re cause de dégâts (tools/nb-balance.mjs) : plus lentes, plus rares, moins fortes
+        e.shootT = e.elite ? 1.5 : 3.4;
         const n = e.elite ? 5 : 1;
-        for (let k = 0; k < n; k++) fireBullet(e.x, e.y + 0.6, e.z, Math.atan2(dz, dx) + (k - (n - 1) / 2) * 0.22, 11, e.dmg);
+        for (let k = 0; k < n; k++) fireBullet(e.x, e.y + 0.6, e.z, Math.atan2(dz, dx) + (k - (n - 1) / 2) * 0.22, 8.5, e.dmg * 0.75);
       }
     }
     // contact joueur
     const dy = (p.y + 0.9) - (e.y + (e.T.fly ? 0 : e.size * 0.4));
     if (d < e.r + 0.6 && Math.abs(dy) < e.size * 0.6 + 1) {
-      if (hurt(e.dmg) && S.stats.thorns) damage(e, S.stats.thorns, false);
+      if (hurt(e.dmg, e.elite ? 'élite' : e.type) && S.stats.thorns) damage(e, S.stats.thorns, false);
     }
   }
 }
@@ -811,13 +814,14 @@ function explode(x, y, z, r, dmg, col) {
   addRing(x, y + 0.2, z, r, col, 0.3);
   sfx('boom');
 }
-function hurt(d) {
+function hurt(d, src = '?') {
   if (S.iframe > 0 || S.state !== 'play') return false;
   const s = S.stats;
   if (s.shield && S.shieldT <= 0) { S.shieldT = s.shield; S.iframe = 0.5; addNum(S.p.x, S.p.y + 2.2, S.p.z, 'BLOQUÉ', true); return true; }
   if (s.dodge && Math.random() < s.dodge) { S.iframe = 0.3; addNum(S.p.x, S.p.y + 2.2, S.p.z, 'ESQUIVE', false); return false; }
   d *= 1 - Math.min(0.75, s.armor);
   S.p.hp -= d; S.iframe = 0.7; S.hurtFlash = 1; sfx('hurt');
+  (S.hurtBy = S.hurtBy || {})[src] = (S.hurtBy[src] || 0) + d;   // statistiques d'équilibrage
   if (navigator.vibrate) navigator.vibrate(40);
   if (S.p.hp <= 0) {
     if (S.revives > 0) {
@@ -1027,14 +1031,14 @@ function updateProjectiles(dt) {
     b.x += b.vx * dt; b.z += b.vz * dt; b.y += b.vy * dt;
     const g = terrainH(b.x, b.z); if (b.y < g + 0.4) b.y = g + 0.4;
     let dead = b.life <= 0;
-    if (Math.hypot(b.x - p.x, b.z - p.z) < 0.9 && Math.abs(b.y - (p.y + 0.9)) < 1.1) { hurt(b.dmg); dead = true; }
+    if (Math.hypot(b.x - p.x, b.z - p.z) < 0.9 && Math.abs(b.y - (p.y + 0.9)) < 1.1) { hurt(b.dmg, 'balle'); dead = true; }
     if (dead) { S.bullets[i] = S.bullets[S.bullets.length - 1]; S.bullets.pop(); }
   }
 }
 
 // ============================================================ ramassage
 function updatePickups(dt) {
-  const p = S.p, R = 4.5 * S.stats.magnet;
+  const p = S.p, R = 5.5 * S.stats.magnet;
   for (let i = S.pickups.length - 1; i >= 0; i--) {
     const k = S.pickups[i]; k.t += dt;
     const dx = p.x - k.x, dy = (p.y + 0.8) - k.y, dz = p.z - k.z, d = Math.hypot(dx, dy, dz) || 0.001;
@@ -1300,7 +1304,7 @@ function updateBoss(dt) {
     else { for (let i = 0; i < 10; i++) { const a = i / 10 * TAU; spawnEnemy('spike', clamp(b.x + Math.cos(a) * 5, -HALF + 2, HALF - 2), clamp(b.z + Math.sin(a) * 5, -HALF + 2, HALF - 2)); } msg('LA HYDRE ENGENDRE…', 1, '#ffb020'); }
     sfx('boom');
   }
-  if (d < b.r + 0.8 && Math.abs(p.y + 1 - b.y) < 4) hurt(26);
+  if (d < b.r + 0.8 && Math.abs(p.y + 1 - b.y) < 4) hurt(26, 'boss');
   const hp = $('nb-bossbar'); hp.style.width = (b.hp / b.max * 100) + '%';
 }
 function bossDeath() {
@@ -1431,7 +1435,7 @@ function update(dt) {
       if (!r.mesh) { r.mesh = new THREE.Mesh(scene.userData.ringGeo, new THREE.MeshBasicMaterial({ color: 0xff2d55, transparent: true, opacity: 0.9, side: THREE.DoubleSide, blending: THREE.AdditiveBlending })); scene.add(r.mesh); }
       r.mesh.scale.set(r.r, 1, r.r); r.mesh.position.set(r.x, terrainH(p.x, p.z) + 0.3, r.z);
       const dp = Math.hypot(p.x - r.x, p.z - r.z);
-      if (!r.hitDone && Math.abs(dp - r.r) < 0.9 && p.y - terrainH(p.x, p.z) < 0.9) { r.hitDone = true; hurt(r.dmg); }
+      if (!r.hitDone && Math.abs(dp - r.r) < 0.9 && p.y - terrainH(p.x, p.z) < 0.9) { r.hitDone = true; hurt(r.dmg, 'onde'); }
       if (r.r > r.max) { scene.remove(r.mesh); r.mesh.material.dispose(); S.rings.splice(i, 1); }
     } else {
       r.life -= dt; const k = 1 - r.life / r.max;
@@ -1724,7 +1728,7 @@ $('nb-timer').addEventListener('click', () => pause());
 
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
 // Accès de débogage (console) à l'état de la run.
-window.__nb = { get S() { return S; }, update, pick, keys, interact, jump, damage, spawnEnemy, music };
+window.__nb = { get S() { return S; }, update, pick, keys, interact, jump, damage, spawnEnemy, music, newRun };
 
 window.GAMES.bonk = {
   show() {
