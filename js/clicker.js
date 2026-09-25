@@ -599,7 +599,7 @@ function tick(dt) {
 }
 let autoAcc = 0, galAcc = 0;
 
-function save() { S.last = Date.now(); try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
+function save() { if (window.PT_NOSAVE) return; S.last = Date.now(); try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
 function load() {
   try {
     const d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');

@@ -18,6 +18,14 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
 #nav a:hover{color:var(--text)}
 #nav .mute{margin-left:auto;font-size:14px;padding:0 6px;opacity:.75;height:100%}
 #nav .mute:hover{opacity:1}
+#nav #profile{margin-left:auto}
+#nav #profile + .mute{margin-left:0}
+.pt-prof{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;text-align:left}
+.pt-g{background:var(--panel2);border-radius:12px;padding:10px 12px;border-top:3px solid var(--c)}
+.pt-g h3{font-size:14px;margin-bottom:6px;display:flex;justify-content:space-between}
+.pt-g h3 small{color:var(--muted);font-weight:500}
+.pt-g div{display:flex;justify-content:space-between;font-size:12px;padding:2px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.pt-g div span{color:var(--muted)}
 #nav a.on{color:var(--text);border-bottom-color:var(--text)}
 #nav a.on i{opacity:1}
 @media (max-width:520px){#nav .brand{display:none}#nav a{padding:0 8px;font-size:12px}#nav{justify-content:space-around}}

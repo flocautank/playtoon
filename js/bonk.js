@@ -150,7 +150,7 @@ const SHOP = [
 const shopLvl = id => (META.shop && META.shop[id]) || 0;
 const shopCost = it => Math.round(it.base * Math.pow(1.8, shopLvl(it.id)));
 function runCredits(S) { return Math.floor(S.kills / 15 + S.t / 10 + S.level * 2 + (S.stage || 0) * 120 + (S.bossDead ? 100 : 0) + (S.won ? 80 : 0)); }
-const saveMeta = () => { try { localStorage.setItem(META_KEY, JSON.stringify(META)); } catch (e) {} };
+const saveMeta = () => { if (window.PT_NOSAVE) return; try { localStorage.setItem(META_KEY, JSON.stringify(META)); } catch (e) {} };
 const unlocked = c => !c.unlock || c.unlock.test(META);
 
 // ============================================================ rendu : shaders

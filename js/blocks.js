@@ -89,6 +89,7 @@ function load() {
   return false;
 }
 function save() {
+  if (window.PT_NOSAVE) return;
   if (S.mode !== 'classic') return;   // aventure et défi du jour ne touchent pas à la partie classique en cours
   try {
     localStorage.setItem('blocparty.best', S.best);

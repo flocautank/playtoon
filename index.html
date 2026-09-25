@@ -20,8 +20,22 @@
   <a href="#blocks" data-tab="blocks"><i style="background:#ff5d8f"></i>Bloc Party</a>
   <a href="#forge" data-tab="forge"><i style="background:#ffc94d"></i>Star Forge</a>
   <a href="#bonk" data-tab="bonk"><i style="background:#4dd4ff"></i>Neon Bonk</a>
+  <button id="profile" class="mute" title="Profil et statistiques" aria-label="Profil">👤</button>
   <button id="mute" class="mute" title="Couper / remettre le son" aria-label="Son">🔊</button>
 </nav>
+
+<div class="overlay hidden" id="pt-profile" style="position:fixed;z-index:150">
+  <div class="card wide">
+    <h2>Profil</h2>
+    <div class="pt-prof" id="pt-prof"></div>
+    <details class="small"><summary>Sauvegarde de tous les jeux</summary>
+      <p class="muted">Copie ce texte pour transférer ta progression sur un autre appareil, ou colles-en un pour la restaurer.</p>
+      <textarea id="pt-io" rows="4" style="width:100%;background:#0a0c16;color:#ccd;border:1px solid #2a3050;border-radius:8px;padding:6px;font-size:11px"></textarea>
+      <div class="row"><button class="btn ghost small" id="pt-exp">Exporter</button><button class="btn ghost small" id="pt-imp">Importer</button></div>
+    </details>
+    <button class="btn ghost" id="pt-close">Fermer</button>
+  </div>
+</div>
 
 <main>
   <!-- ============ JEU 1 : BLOC PARTY ============ -->

@@ -251,6 +251,26 @@ await page.close();
   await f.close();
 }
 
+// ---------- Profil : statistiques et export / import de toutes les sauvegardes
+{
+  const pr = guard(await browser.newPage({ viewport: { width: 1280, height: 760 } })); watch(pr, 'profil');
+  pr.on('dialog', d => d.accept());
+  await pr.addInitScript(() => { if (!sessionStorage.getItem('inj')) { sessionStorage.setItem('inj', 1);
+    localStorage.setItem('blocparty.best', '1234'); localStorage.setItem('blocparty.adv', JSON.stringify({ stars: { 1: 3, 2: 2 } }));
+    localStorage.setItem('neonbonk.meta.v1', JSON.stringify({ runs: 7, wins: 1, bestTime: 612, maxLevel: 31, totalKills: 4321, bossKills: 2 }));
+    localStorage.setItem('starforge.save.v1', JSON.stringify({ lifeTotal: 5e9, prestiges: 3, novaTotal: 40, ach: { a: 1 }, gens: [1], last: Date.now() })); } });
+  await pr.goto(base + '#blocks'); await pr.waitForTimeout(500);
+  await pr.click('#profile'); await pr.waitForTimeout(300); await shot(pr, 'profile');
+  const txt = await pr.$eval('#pt-prof', e => e.innerText.replace(/\s+/g, ' '));
+  await pr.click('#pt-profile summary'); await pr.click('#pt-exp');
+  const code = await pr.$eval('#pt-io', e => e.value);
+  await pr.evaluate(() => localStorage.setItem('blocparty.best', '1'));
+  await pr.fill('#pt-io', code); await pr.click('#pt-imp'); await pr.waitForTimeout(1500);
+  const back = await pr.evaluate(() => localStorage.getItem('blocparty.best') + ' / ' + JSON.parse(localStorage.getItem('starforge.save.v1')).prestiges);
+  log(`profil : ${txt.slice(0, 160)}… · export ${code.length} car. · après import : record=${back}`);
+  await pr.close();
+}
+
 // ---------- PWA : manifeste, icônes, service worker, fonctionnement hors-ligne
 {
   const ctxP = await browser.newContext({ viewport: { width: 1000, height: 700 } });
