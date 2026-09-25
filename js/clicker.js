@@ -176,6 +176,20 @@ function buyGen(i) {
   sfx(520 + i * 30, 0.06, 'triangle');
   refresh(true);
 }
+// les moins chères d'abord : ce que « Tout acheter » prendrait avec la poussière actuelle
+function affordableUpg() {
+  let d = S.dust; const out = [];
+  for (const u of UPGRADES.filter(u => !S.upg[u.id] && u.req(S)).sort((a, b) => upgCost(a) - upgCost(b))) { const c = upgCost(u); if (c > d) break; d -= c; out.push(u); }
+  return out;
+}
+function buyAllUpg() {
+  if (inChal('c_noupg')) { toast('🚫 Défi Ascète : pas d\'améliorations'); return; }
+  const l = affordableUpg(); if (!l.length) return;
+  for (const u of l) { S.dust -= upgCost(u); S.upg[u.id] = 1; }
+  sfx(880, 0.12, 'triangle'); sfx(1320, 0.12, 'triangle', 0.08); sfx(1760, 0.14, 'triangle', 0.16);
+  toast(`✅ ${l.length} amélioration${l.length > 1 ? 's' : ''} achetée${l.length > 1 ? 's' : ''}`);
+  refresh(true);
+}
 function buyUpg(u) {
   const c = upgCost(u);
   if (inChal('c_noupg')) { toast('🚫 Défi Ascète : pas d\'améliorations'); return; }
@@ -304,18 +318,21 @@ function resizeStar() {
   cv.width = cw * dpr; cv.height = ch * dpr;
   bgStars = Array.from({ length: 70 }, () => ({ x: Math.random() * cw, y: Math.random() * ch, s: Math.random() * 1.5 + 0.3, p: Math.random() * 6 }));
 }
+// l'étoile grossit quand le cadre est bas (mobile) : les orbites se resserrent pour tenir
+const starR = () => Math.min(cw, ch) * (ch < 260 ? 0.3 : 0.2);
 function drawStar(dt, time) {
   const c = cx2; c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, cw, ch);
   bgStars.forEach(s => { c.globalAlpha = 0.3 + 0.3 * Math.sin(time * 1.5 + s.p); c.fillStyle = '#fff'; c.fillRect(s.x, s.y, s.s, s.s); });
   c.globalAlpha = 1;
-  const X = cw / 2, Y = ch / 2, R = Math.min(cw, ch) * 0.2 * (1 + pulse * 0.08);
+  const X = cw / 2, Y = ch / 2, R = starR() * (1 + pulse * 0.08);
   pulse = Math.max(0, pulse - dt * 5);
   const hue = (40 + S.novaTotal * 7) % 360;
   const frenzy = S.buffs.some(b => b.type === 'frenzy');
   // orbites des forges
   GENS.forEach((g, i) => {
     if (!S.gens[i]) return;
-    const orb = R * (1.5 + i * 0.22); if (orb > Math.min(cw, ch) * 0.5) return;
+    const small = ch < 260, orb = R * (small ? 1.3 + i * 0.14 : 1.5 + i * 0.22);
+    if (small ? orb * 0.42 > ch * 0.5 || orb > cw * 0.48 : orb > Math.min(cw, ch) * 0.5) return;
     c.strokeStyle = 'rgba(255,255,255,.05)'; c.beginPath(); c.ellipse(X, Y, orb, orb * 0.42, 0, 0, Math.PI * 2); c.stroke();
     const n = Math.min(S.gens[i], 18);
     for (let k = 0; k < n; k++) {
@@ -375,7 +392,7 @@ function drawStar(dt, time) {
 
 function clickStar(x, y) {
   if (comet && Math.hypot(x - comet.x * cw, y - comet.y * ch) < 34) { catchComet(); return; }
-  const X = cw / 2, Y = ch / 2, R = Math.min(cw, ch) * 0.2;
+  const X = cw / 2, Y = ch / 2, R = starR();
   if (Math.hypot(x - X, y - Y) > R * 1.3) return;
   const v = clickValue();
   earn(v); S.clicks++; S.lifeClicks++; pulse = 1; window.ptEvent && window.ptEvent('sf_clicks', 1);
@@ -422,7 +439,8 @@ function build() {
       panel.appendChild(b);
     });
   } else if (tab === 'upg') {
-    const h = document.createElement('div'); h.className = 'sf-h'; h.textContent = 'Disponibles'; panel.appendChild(h);
+    const h = document.createElement('div'); h.className = 'sf-h sf-h-row'; h.innerHTML = '<span>Disponibles</span><button class="btn small" id="sf-buyall">Tout acheter</button>'; panel.appendChild(h);
+    h.querySelector('button').onclick = buyAllUpg;
     const grid = document.createElement('div'); grid.className = 'sf-grid'; grid.id = 'sf-upg-grid'; panel.appendChild(grid);
     const h2 = document.createElement('div'); h2.className = 'sf-h'; h2.id = 'sf-upg-owned-h'; panel.appendChild(h2);
     const grid2 = document.createElement('div'); grid2.className = 'sf-grid'; grid2.id = 'sf-upg-owned'; panel.appendChild(grid2);
@@ -486,7 +504,7 @@ function fillUpgrades() {
   const av = UPGRADES.filter(u => !S.upg[u.id] && u.req(S)).sort((a, b) => upgCost(a) - upgCost(b));
   if (!av.length) grid.innerHTML = '<p class="muted small" style="grid-column:1/-1">Rien pour l\'instant — continue à forger.</p>';
   av.forEach(u => {
-    const b = document.createElement('button'); b.className = 'sf-upg'; b.dataset.id = u.id; b.textContent = u.ic;
+    const b = document.createElement('button'); b.className = 'sf-upg'; b.dataset.id = u.id; b.innerHTML = `<span>${u.ic}</span><small>${fmt(upgCost(u))}</small>`;
     tipify(b, () => `<b>${u.name}</b><br>${u.desc}<br><span style="color:var(--gold)">${fmt(upgCost(u))}</span>${S.dust < upgCost(u) ? ' <span class="muted">(pas assez)</span>' : ''}`, () => buyUpg(u));
     grid.appendChild(b);
   });
@@ -507,7 +525,7 @@ function refresh(structural) {
   $('sf-buffs').innerHTML = S.buffs.map(b => `<span class="${BN[b.type][1]}">${BN[b.type][0]} · ${Math.ceil(b.t)} s</span>`).join('');
   $('sf-click').textContent = fmt(clickValue());
   const g = novaGain();
-  $('sf-nova-gain').textContent = g; $('sf-nova-have').textContent = S.novaBank + (S.novaTotal !== S.novaBank ? ` (${S.novaTotal} gagnées)` : '');
+  $('sf-nova-gain').textContent = fmt(g); $('sf-nova-have').textContent = fmt(S.novaBank) + (S.novaTotal !== S.novaBank ? ` (${fmt(S.novaTotal)} gagnées)` : '');
   $('sf-prestige').disabled = g < 1;
   $('sf-prestige-box').style.display = S.runTotal >= 1e5 || S.novaTotal > 0 ? '' : 'none';
   $('sf-tab-chal').classList.toggle('hidden', S.prestiges < 1);
@@ -544,6 +562,8 @@ function refresh(structural) {
       const u = UPGRADES.find(x => x.id === b.dataset.id);
       b.classList.toggle('can', S.dust >= upgCost(u)); b.classList.toggle('no', S.dust < upgCost(u));
     });
+    const n = affordableUpg().length, ba = $('sf-buyall');
+    if (ba) { ba.textContent = n ? `Tout acheter (${n})` : 'Tout acheter'; ba.disabled = !n || inChal('c_noupg'); }
   } else if (tab === 'meta') {
     const g = singGain(), bbi = $('sf-bb-info');
     if (bbi) {
