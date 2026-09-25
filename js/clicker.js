@@ -67,6 +67,7 @@ const ACH = [];
   ACH.push({ id: 'tot' + n, ic: '💰', name, desc: `Produire ${fmt(n)} au total`, test: s => s.lifeTotal >= n }));
 [[100, '🖱️'], [1000, '🖱️'], [10000, '🖱️']].forEach(([n, ic]) => ACH.push({ id: 'clk' + n, ic, name: `${n} clics`, desc: `Cliquer ${n} fois`, test: s => s.lifeClicks >= n }));
 GENS.forEach((g, i) => ACH.push({ id: 'own' + i, ic: g.ic, name: `Collection : ${g.name}`, desc: `Posséder 50 ${g.name}`, test: s => s.gens[i] >= 50 }));
+ACH.push({ id: 'bigbang', ic: '🌌', name: 'Big Bang', desc: 'Déclencher un Big Bang', test: s => (s.bigbangs || 0) >= 1 });
 [[1, '💥'], [5, '🌠'], [20, '🌌']].forEach(([n, ic]) => ACH.push({ id: 'pre' + n, ic, name: `${n} Supernova${n > 1 ? 'e' : ''}`, desc: `Déclencher ${n} Supernova${n > 1 ? 'e' : ''}`, test: s => s.prestiges >= n }));
 [[1, '⭐'], [10, '🌟'], [50, '🎇']].forEach(([n, ic]) => ACH.push({ id: 'com' + n, ic, name: `Chasseur de comètes ${n}`, desc: `Attraper ${n} comète(s) dorée(s)`, test: s => s.lifeComets >= n }));
 [[1e3, '⚡'], [1e6, '⚡'], [1e9, '⚡']].forEach(([n, ic]) => ACH.push({ id: 'dps' + n, ic, name: `${fmt(n)} /s`, desc: `Atteindre ${fmt(n)} par seconde`, test: s => dps() >= n }));
@@ -81,6 +82,18 @@ const CHALS = [
   { id: 'c_dim', ic: '🌑', name: 'Étoile pâle', desc: 'Toute la production est divisée par 10, pas de comètes.', goal: 1e7, need: 3, reward: 'Supernovae : +25 % de Novae' },
   { id: 'c_rush', ic: '⏱️', name: 'Contre la montre', desc: 'Le chrono tourne, hors-ligne compris.', goal: 1e8, need: 4, time: 900, reward: 'Comètes +25 % plus fréquentes et plus longues' },
 ];
+// Big Bang : 2e couche de prestige. Réinitialise Novae et Constellation contre des Singularités
+// (gain de Novae +50 % et production +10 % chacune), à dépenser dans la Galaxie (automatisations).
+const BIGBANG_MIN = 200;
+const GALAXY = [
+  { id: 'g_auto', ic: '🤖', name: 'Contremaître', cost: 1, desc: 'Achète automatiquement la forge la moins chère, chaque seconde.' },
+  { id: 'g_comet', ic: '🧲', name: 'Filet à comètes', cost: 1, desc: 'Les comètes dorées sont attrapées toutes seules.' },
+  { id: 'g_nova', ic: '🌟', name: 'Braises', cost: 2, desc: 'Chaque Big Bang démarre avec 10 Novae (et la Constellation de départ).' },
+  { id: 'g_upg', ic: '🛠️', name: 'Ingénieur', cost: 3, desc: 'Achète automatiquement les améliorations abordables.' },
+  { id: 'g_big', ic: '🌌', name: 'Expansion', cost: 5, desc: 'Chaque Singularité donne +20 % de production au lieu de +10 %.' },
+];
+const gal = id => !!(S.gal && S.gal[id]);
+const singGain = () => Math.floor(Math.sqrt(S.novaTotal / 50));
 const inChal = id => S.chal === id;
 const chalDone = id => !!(S.chalDone && S.chalDone[id]);
 
@@ -88,7 +101,7 @@ const chalDone = id => !!(S.chalDone && S.chalDone[id]);
 function fresh() {
   return {
     dust: 0, runTotal: 0, lifeTotal: 0, clicks: 0, lifeClicks: 0, gens: GENS.map(() => 0), upg: {}, cometsTotal: 0, lifeComets: 0,
-    novaTotal: 0, novaBank: 0, meta: {}, ach: {}, prestiges: 0, chal: null, chalT: 0, chalDone: {}, buffs: [], last: Date.now(), started: Date.now(),
+    novaTotal: 0, novaBank: 0, meta: {}, ach: {}, prestiges: 0, chal: null, chalT: 0, chalDone: {}, sing: 0, singBank: 0, gal: {}, bigbangs: 0, buffs: [], last: Date.now(), started: Date.now(),
   };
 }
 let S = fresh();
@@ -121,6 +134,7 @@ function globalMult() {
   m *= 1 + Object.keys(S.ach).length * (has('m_ach') ? 0.03 : 0.01);
   if (has('m_sing')) m *= 3;
   if (chalDone('c_hands')) m *= 1.5;
+  m *= 1 + (S.sing || 0) * (gal('g_big') ? 0.2 : 0.1);
   if (inChal('c_dim')) m *= 0.1;
   for (const b of S.buffs) if (b.type === 'frenzy') m *= 7;
   return m;
@@ -145,7 +159,7 @@ function maxAffordable(i) {
   return Math.max(0, Math.floor(Math.log(S.dust * (r - 1) / b + 1) / Math.log(r)));
 }
 const upgCost = u => u.cost * (has('m_upg') ? 0.75 : 1) * (chalDone('c_noupg') ? 0.85 : 1);
-function novaGain() { if (S.chal) return 0; return Math.floor(Math.sqrt(S.runTotal / 2e5) * (has('m_crunch') ? 2 : 1) * (chalDone('c_dim') ? 1.25 : 1)); }
+function novaGain() { if (S.chal) return 0; return Math.floor(Math.sqrt(S.runTotal / 2e5) * (has('m_crunch') ? 2 : 1) * (chalDone('c_dim') ? 1.25 : 1) * (1 + 0.5 * (S.sing || 0))); }
 function luck() { let l = 1; for (const u of UPGRADES) if (S.upg[u.id] && u.fx.luck) l += u.fx.luck; if (has('m_comet')) l *= 2; if (chalDone('c_rush')) l *= 1.25; return l; }
 
 // ---------- actions ----------
@@ -178,7 +192,7 @@ function buyMeta(m) {
 }
 // Repart de zéro en gardant tout ce qui est permanent (utilisé par Supernova et par les défis).
 function resetRun(extra) {
-  const keep = { novaTotal: S.novaTotal, novaBank: S.novaBank, meta: S.meta, ach: S.ach, prestiges: S.prestiges, lifeTotal: S.lifeTotal, lifeClicks: S.lifeClicks, lifeComets: S.lifeComets, chalDone: S.chalDone || {}, ...extra };
+  const keep = { novaTotal: S.novaTotal, novaBank: S.novaBank, meta: S.meta, ach: S.ach, prestiges: S.prestiges, lifeTotal: S.lifeTotal, lifeClicks: S.lifeClicks, lifeComets: S.lifeComets, chalDone: S.chalDone || {}, sing: S.sing || 0, singBank: S.singBank || 0, gal: S.gal || {}, bigbangs: S.bigbangs || 0, ...extra };
   const kept = {};
   if (has('m_keep')) for (const k of ['click0', 'click1', 'click2']) if (S.upg[k]) kept[k] = 1;
   S = Object.assign(fresh(), keep); S.upg = kept;
@@ -207,6 +221,23 @@ function checkChal(dt) {
     sfx(660, 0.3, 'triangle', 0.08); sfx(990, 0.4, 'triangle', 0.06);
     save(); refresh(true);
   }
+}
+
+function bigBang() {
+  if (S.chal) { toast('Termine ou abandonne le défi avant un Big Bang'); return; }
+  const g = singGain();
+  if (S.novaTotal < BIGBANG_MIN || g < 1) return;
+  if (!confirm(`BIG BANG !\n\nTu perds tes Novae (${S.novaTotal}) et toute ta Constellation,\nmais tu gagnes ${g} Singularité(s) : Novae +${g * 50} %, production +${g * (gal('g_big') ? 20 : 10)} %,\net de quoi automatiser ta Galaxie. Succès et défis sont conservés.\n\nContinuer ?`)) return;
+  const start = gal('g_nova') ? 10 : 0;
+  resetRun({ novaTotal: start, novaBank: start, meta: {}, sing: (S.sing || 0) + g, singBank: (S.singBank || 0) + g, bigbangs: (S.bigbangs || 0) + 1 });
+  if (gal('g_nova')) S.meta = { m_click: 1 };
+  flash = 1.5; sfx(60, 2, 'sawtooth', 0.1); sfx(90, 2, 'triangle', 0.08);
+  toast(`🌌 Big Bang ! +${g} Singularité${g > 1 ? 's' : ''}`);
+  checkAch(); save(); refresh(true);
+}
+function buyGal(x) {
+  if (gal(x.id) || (S.singBank || 0) < x.cost) return;
+  S.singBank -= x.cost; S.gal[x.id] = 1; toast(`${x.ic} ${x.name} débloqué`); sfx(660, 0.3, 'triangle', 0.08); refresh(true);
 }
 
 function prestige() {
@@ -380,6 +411,13 @@ function build() {
     let svg = '<svg viewBox="0 0 100 100" preserveAspectRatio="none">';
     META.forEach(m => m.req.forEach(r => { const p = META.find(q => q.id === r); svg += `<line x1="${p.x}" y1="${p.y}" x2="${m.x}" y2="${m.y}" stroke="#4a3a78" stroke-width="0.6" vector-effect="non-scaling-stroke" data-l="${m.id}" />`; }));
     tree.innerHTML = svg + '</svg>';
+    const bb = document.createElement('div'); bb.id = 'sf-bigbang'; bb.className = 'sf-bb';
+    bb.innerHTML = `<div class="sf-h">Big Bang</div><p class="muted small" id="sf-bb-info"></p><button class="btn nova-btn" id="sf-bb-btn">Déclencher le Big Bang</button><div class="sf-h">Galaxie</div><div id="sf-gal"></div>`;
+    setTimeout(() => {
+      const gl = $('sf-gal'); if (!gl) return;
+      GALAXY.forEach(x => { const d = document.createElement('button'); d.className = 'sf-item'; d.dataset.id = x.id; d.innerHTML = `<div class="ic" style="background:#2b1f4a">${x.ic}</div><div class="mid"><b>${x.name}</b><span>${x.desc}</span></div><div class="rt"><b class="nova">${x.cost}✧</b></div>`; d.onclick = () => buyGal(x); gl.appendChild(d); });
+      $('sf-bb-btn').onclick = bigBang; refresh();
+    });
     META.forEach(m => {
       const n = document.createElement('button'); n.className = 'sf-node'; n.dataset.id = m.id;
       n.style.left = m.x + '%'; n.style.top = m.y + '%';
@@ -390,6 +428,7 @@ function build() {
       tree.appendChild(n);
     });
     panel.appendChild(tree);
+    panel.appendChild(bb);
   } else if (tab === 'chal') {
     const info = document.createElement('div'); info.className = 'muted small'; info.textContent = 'Un défi relance la run sous contrainte, sans Novae. Réussis l\'objectif pour gagner une récompense permanente ; la contrainte disparaît aussitôt et la run continue.'; panel.appendChild(info);
     CHALS.forEach(c => {
@@ -485,6 +524,12 @@ function refresh(structural) {
       b.classList.toggle('can', S.dust >= upgCost(u)); b.classList.toggle('no', S.dust < upgCost(u));
     });
   } else if (tab === 'meta') {
+    const g = singGain(), bbi = $('sf-bb-info');
+    if (bbi) {
+      bbi.innerHTML = S.novaTotal >= BIGBANG_MIN || S.sing ? `Novae gagnées : <b class="nova">${S.novaTotal}</b> → <b>${g}</b> Singularité${g > 1 ? 's' : ''} ✧ · possédées : <b>${S.singBank || 0}</b> (${S.sing || 0} au total : Novae +${(S.sing || 0) * 50} %, production +${(S.sing || 0) * (gal('g_big') ? 20 : 10)} %)` : `Se débloque à ${BIGBANG_MIN} Novae gagnées (tu en as ${S.novaTotal}). Réinitialise Novae et Constellation contre des Singularités.`;
+      $('sf-bb-btn').disabled = S.novaTotal < BIGBANG_MIN || g < 1 || !!S.chal;
+      document.querySelectorAll('#sf-gal .sf-item').forEach(d => { const x = GALAXY.find(y => y.id === d.dataset.id); d.classList.toggle('done', gal(x.id)); d.querySelector('.rt b').textContent = gal(x.id) ? '✓ acquis' : x.cost + '✧'; d.classList.toggle('can', !gal(x.id) && (S.singBank || 0) >= x.cost); d.classList.toggle('no', !gal(x.id) && (S.singBank || 0) < x.cost); });
+    }
     $('sf-meta-info').innerHTML = `Novae disponibles : <b class="nova">${S.novaBank}</b> · Bonus passif : <b>+${Math.round(S.novaTotal * novaPct() * 100)} %</b> de production. Les nœuds de la Constellation survivent à toutes les Supernovae.`;
     panel.querySelectorAll('.sf-node').forEach(n => {
       const m = META.find(q => q.id === n.dataset.id);
@@ -536,10 +581,23 @@ function tick(dt) {
   checkChal(dt);
   if (has('m_auto') && !inChal('c_hands')) { autoAcc += dt * 5; while (autoAcc >= 1) { autoAcc--; const v = clickValue(); earn(v); S.clicks++; } }
   S.buffs.forEach(b => b.t -= dt); S.buffs = S.buffs.filter(b => b.t > 0);
+  galAcc += dt;
+  if (galAcc >= 1) {
+    galAcc = 0;
+    if (gal('g_auto')) for (let k = 0; k < 10; k++) {   // la forge la moins chère, tant qu'on peut
+      let bi = -1, bc = Infinity;
+      GENS.forEach((g, i) => { if (inChal('c_short') && i > 2) return; const c = costN(i, 1); if (c < bc) { bc = c; bi = i; } });
+      if (bi < 0 || bc > S.dust) break;
+      S.dust -= bc; S.gens[bi]++;
+    }
+    if (gal('g_upg') && !inChal('c_noupg')) for (const u of UPGRADES) if (!S.upg[u.id] && u.req(S) && upgCost(u) <= S.dust) { S.dust -= upgCost(u); S.upg[u.id] = 1; }
+  }
+  if (comet && gal('g_comet') && comet.t === undefined) comet.t = 0;
+  if (comet && gal('g_comet') && (comet.t += dt) > 1.2) catchComet();
   if (!comet) { nextComet -= dt; if (nextComet <= 0 && visible && !inChal('c_dim')) spawnComet(); }
   else { comet.x += comet.vx * dt; comet.y += comet.vy * dt; if (comet.x < -0.2 || comet.x > 1.2) { comet = null; nextComet = (60 + Math.random() * 120) / luck(); } }
 }
-let autoAcc = 0;
+let autoAcc = 0, galAcc = 0;
 
 function save() { S.last = Date.now(); try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
 function load() {

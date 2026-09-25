@@ -210,6 +210,24 @@ await page.close();
   await t.close();
 }
 
+// ---------- Star Forge : Big Bang (sauvegarde injectée : 250 Novae gagnées)
+{
+  const g = guard(await browser.newPage({ viewport: { width: 1280, height: 760 } })); watch(g, 'big-bang');
+  g.on('dialog', d => d.accept());
+  await g.addInitScript(() => { if (!sessionStorage.getItem('inj')) { sessionStorage.setItem('inj', 1); localStorage.setItem('starforge.save.v1', JSON.stringify({ dust: 1e6, runTotal: 1e6, lifeTotal: 1e10, gens: [30, 20, 10, 5, 0, 0, 0, 0, 0, 0], upg: {}, novaTotal: 250, novaBank: 40, meta: { m_click: 1, m_auto: 1 }, ach: {}, prestiges: 12, chalDone: { c_hands: 1 }, last: Date.now() })); } });
+  await g.goto(base + '#forge'); await g.waitForTimeout(500);
+  await g.click('[data-sf=meta]'); await g.waitForTimeout(400); await shot(g, 'forge-bigbang');
+  await g.click('#sf-bb-btn'); await g.waitForTimeout(400);
+  let st = await g.evaluate(() => { const S = window.__sf.S; return { sing: S.sing, bank: S.singBank, nova: S.novaTotal, meta: Object.keys(S.meta).length, chal: Object.keys(S.chalDone).length }; });
+  await g.click('#sf-gal .sf-item[data-id=g_auto]'); await g.waitForTimeout(200);
+  await g.evaluate(() => { window.__sf.S.dust = 5000; });
+  await g.waitForTimeout(2500);
+  const gens = await g.evaluate(() => window.__sf.S.gens.reduce((a, b) => a + b, 0));
+  await shot(g, 'forge-galaxy');
+  log(`Big Bang : singularités=${st.sing} (banque ${st.bank}) · Novae après=${st.nova} · nœuds=${st.meta} · défis gardés=${st.chal} · forges achetées seules=${gens}`);
+  await g.close();
+}
+
 // ---------- Star Forge : défis (sauvegarde injectée : 4 Supernovae, défi « Sans les mains » presque fini)
 {
   const f = guard(await browser.newPage({ viewport: { width: 1280, height: 760 } })); watch(f, 'forge-défis');

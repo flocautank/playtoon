@@ -121,6 +121,7 @@ main{position:fixed;inset:var(--nav-h) 0 0 0}
 .sf-tip{position:fixed;z-index:200;background:#0a0c16;border:1px solid var(--line);border-radius:10px;padding:8px 10px;max-width:260px;font-size:12px;pointer-events:none}
 .sf-tip b{font-size:13px}
 .sf-meta-tree{position:relative;min-height:520px}
+.sf-bb{display:flex;flex-direction:column;gap:6px;margin-top:10px;padding-top:6px;border-top:1px solid var(--line)}
 .sf-node{position:absolute;width:62px;height:62px;border-radius:50%;background:var(--panel);border:2px solid var(--line);display:flex;align-items:center;justify-content:center;flex-direction:column;font-size:20px;transform:translate(-50%,-50%);z-index:2}
 .sf-node small{font-size:10px;color:var(--muted)}
 .sf-node.can{border-color:var(--nova);box-shadow:0 0 14px rgba(198,139,255,.45)}
