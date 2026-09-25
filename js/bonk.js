@@ -85,6 +85,14 @@ const ETYPES = {
   spike: { geo: 'tetra', size: 0.85, hp: 6, speed: 7.2, dmg: 6, xp: 1, col: 0xffa020 },
   brute: { geo: 'octa', size: 1.7, hp: 55, speed: 3.1, dmg: 18, xp: 5, col: 0xff3050 },
   gunner:{ geo: 'ico', size: 1.1, hp: 24, speed: 3.4, dmg: 10, xp: 3, col: 0x27e0ff, ranged: true },
+  charger:{ geo: 'dart', size: 1.2, hp: 28, speed: 3.2, dmg: 11, xp: 3, col: 0x7cff8a, charge: true },   // s'arrête, clignote, puis fonce tout droit
+  splitter:{ geo: 'dodeca', size: 1.4, hp: 42, speed: 3.6, dmg: 12, xp: 4, col: 0xb98bff, split: true }, // se scinde en 3 à la mort
+};
+// Sanctuaires : charge (bénédiction), défi (2 élites → coffre gratuit), avarice (+or, +ennemis)
+const SHRINES = {
+  charge: { col: 0x7cff8a, css: '#7cff8a', n: 4 },
+  chal: { col: 0xff3050, css: '#ff3050', n: 2 },
+  greed: { col: 0xffc94d, css: '#ffc94d', n: 2 },
 };
 
 // Étapes : la run enchaîne la Grille puis la Fournaise ; la victoire vient après le 2e boss.
@@ -260,7 +268,7 @@ function init() {
 
   // géométries partagées
   const G = {
-    box: new THREE.BoxGeometry(1, 1, 1), tetra: new THREE.TetrahedronGeometry(0.75), octa: new THREE.OctahedronGeometry(0.6),
+    box: new THREE.BoxGeometry(1, 1, 1), dart: new THREE.ConeGeometry(0.45, 1.3, 4).rotateX(-Math.PI / 2), dodeca: new THREE.DodecahedronGeometry(0.6), jar: new THREE.CylinderGeometry(0.35, 0.45, 0.8, 7), tetra: new THREE.TetrahedronGeometry(0.75), octa: new THREE.OctahedronGeometry(0.6),
     ico: new THREE.IcosahedronGeometry(0.6), gem: new THREE.OctahedronGeometry(0.28), coin: new THREE.CylinderGeometry(0.3, 0.3, 0.08, 10).rotateX(Math.PI / 2),
     bolt: new THREE.BoxGeometry(0.12, 0.12, 1.1), ball: new THREE.IcosahedronGeometry(0.3, 1), disc: new THREE.CylinderGeometry(0.6, 0.6, 0.1, 16),
     rocket: new THREE.ConeGeometry(0.2, 0.8, 6).rotateX(Math.PI / 2), heart: new THREE.OctahedronGeometry(0.4), bullet: new THREE.IcosahedronGeometry(0.35, 0),
@@ -277,6 +285,7 @@ function init() {
   mk('coin', G.coin, 0xffd84d, 250, 0.7);
   mk('heart', G.heart, 0xff4d8a, 30, 0.7);
   mk('magnetp', G.ico, 0x7cff8a, 10, 0.7);
+  mk('jar', G.jar, 0xb98bff, 60, 0.5);
   mk('bolt', G.bolt, 0x7ff6ff, 400, 1.2);
   mk('orb', G.ball, 0xb98bff, 24, 1.0);
   mk('disc', G.disc, 0x7cff8a, 40, 0.9);
@@ -394,27 +403,43 @@ function buildLevel() {
     if (Math.hypot(x, z) < 12 || S.obst.some(o => insideObs(o, x, z, 1.2))) continue;
     S.chests.push(mkChestData(x, z, terrainH(x, z)));
   }
-  S.chests.forEach(c => {
-    const g = new THREE.Group();
-    const b = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.8, 0.9), neonMat(0xffc94d, 0.35)); b.position.y = 0.4; g.add(b);
-    const l = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.25, 1.0), neonMat(0xff8a1a, 0.5)); l.position.y = 0.92; g.add(l);
-    g.position.set(c.x, c.y, c.z); g.rotation.y = rand(0, TAU); levelGroup.add(g); c.mesh = g; c.lid = l;
-  });
+  S.chests.forEach(addChestMesh);
   // sanctuaires
-  for (let i = 0; i < 6; i++) {
-    let x, z, t = 0; do { x = rand(-HALF + 12, HALF - 12); z = rand(-HALF + 12, HALF - 12); } while ((!free(x, z, 4) || Math.hypot(x, z) < 22) && ++t < 60);
+  const kinds = Object.entries(SHRINES).flatMap(([k, v]) => Array(v.n).fill(k));
+  for (const kind of kinds) {
+    const col = SHRINES[kind].col;
+    let x, z, t = 0; do { x = rand(-HALF + 12, HALF - 12); z = rand(-HALF + 12, HALF - 12); } while ((!free(x, z, 4) || Math.hypot(x, z) < 22 || S.shrines.some(o => Math.hypot(o.x - x, o.z - z) < 20)) && ++t < 60);
     const y = terrainH(x, z);
     const g = new THREE.Group();
     for (let k = 0; k < 4; k++) {
-      const p = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.25, 3.2, 5), neonMat(0x7cff8a, 0.5));
+      const p = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.25, 3.2, 5), neonMat(col, 0.5));
       const a = k * Math.PI / 2 + Math.PI / 4; p.position.set(Math.cos(a) * 3, 1.6, Math.sin(a) * 3); g.add(p);
     }
-    const crystal = new THREE.Mesh(new THREE.OctahedronGeometry(0.8), neonMat(0x7cff8a, 0.8)); crystal.position.y = 3; g.add(crystal);
-    const ring = new THREE.Mesh(scene.userData.ringGeo, new THREE.MeshBasicMaterial({ color: 0x7cff8a, transparent: true, opacity: 0.6, side: THREE.DoubleSide })); ring.scale.setScalar(3.4); ring.position.y = 0.15; g.add(ring);
-    const fill = new THREE.Mesh(new THREE.CircleGeometry(1, 48).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x7cff8a, transparent: true, opacity: 0.25 })); fill.position.y = 0.12; fill.scale.setScalar(0.001); g.add(fill);
+    const crystal = new THREE.Mesh(kind === 'chal' ? new THREE.TetrahedronGeometry(1) : kind === 'greed' ? new THREE.CylinderGeometry(0.8, 0.8, 0.25, 12).rotateX(Math.PI / 2) : new THREE.OctahedronGeometry(0.8), neonMat(col, 0.8)); crystal.position.y = 3; g.add(crystal);
+    const ring = new THREE.Mesh(scene.userData.ringGeo, new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.6, side: THREE.DoubleSide })); ring.scale.setScalar(3.4); ring.position.y = 0.15; g.add(ring);
+    const fill = new THREE.Mesh(new THREE.CircleGeometry(1, 48).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.25 })); fill.position.y = 0.12; fill.scale.setScalar(0.001); g.add(fill);
     g.position.set(x, y, z); levelGroup.add(g);
-    S.shrines.push({ x, y, z, charge: 0, used: false, mesh: g, crystal, fill, ring });
+    S.shrines.push({ kind, x, y, z, charge: 0, used: false, mesh: g, crystal, fill, ring });
   }
+  // jarres : se brisent au contact et lâchent or / XP / soin
+  S.jars = [];
+  for (let i = 0; i < 40; i++) {
+    const x = rand(-HALF + 5, HALF - 5), z = rand(-HALF + 5, HALF - 5);
+    if (Math.hypot(x, z) < 8 || S.obst.some(o => insideObs(o, x, z, 0.8))) continue;
+    S.jars.push({ x, z, y: terrainH(x, z), rot: rand(0, TAU), broken: false });
+  }
+}
+function addChestMesh(c) {
+  const g = new THREE.Group();
+  const b = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.8, 0.9), neonMat(c.free ? 0x7ff6ff : 0xffc94d, 0.35)); b.position.y = 0.4; g.add(b);
+  const l = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.25, 1.0), neonMat(c.free ? 0x27e0ff : 0xff8a1a, 0.5)); l.position.y = 0.92; g.add(l);
+  g.position.set(c.x, c.y, c.z); g.rotation.y = rand(0, TAU); levelGroup.add(g); c.mesh = g; c.lid = l;
+}
+function shrineReward(s) {
+  const c = { x: s.x, y: s.y, z: s.z, open: false, free: true };
+  addChestMesh(c); S.chests.push(c);
+  burst(s.x, s.y + 2, s.z, 60, [1, 0.3, 0.4], 8, 0.7);
+  msg('☠ Défi réussi : coffre gratuit au sanctuaire !', 3, '#7ff6ff'); sfx('chest');
 }
 function mkChestData(x, z, y) { return { x, y, z, open: false }; }
 function insideObs(o, x, z, r) {
@@ -659,9 +684,11 @@ function spawnAround(type, dMin, dMax, elite) {
 }
 function pickType() {
   const m = diffMin(), r = Math.random();
-  if (m > 4 && r < 0.12) return 'gunner';
-  if (m > 2.2 && r < 0.26) return 'brute';
-  if (m > 0.8 && r < 0.55) return 'spike';
+  if (m > 5 && r < 0.07) return 'splitter';
+  if (m > 3.5 && r < 0.12) return 'charger';
+  if (m > 4 && r < 0.22) return 'gunner';
+  if (m > 2.2 && r < 0.28) return 'brute';
+  if (m > 0.8 && r < 0.6) return 'spike';
   return 'drone';
 }
 function spawning(dt) {
@@ -669,6 +696,7 @@ function spawning(dt) {
   let rate = 0.9 + m * 0.55 + m * m * 0.045 + (S.time <= 0 ? 4 + (-S.time / 60) * 4 : 0);
   const cap = 70 + m * 36;
   if (S.boss) rate *= 0.5;
+  rate *= 1 + 0.25 * (S.greed || 0);
   S.spawnAcc += rate * dt;
   while (S.spawnAcc >= 1) { S.spawnAcc--; if (S.enemies.length < cap) spawnAround(pickType(), 26, 42); }
   if (S.t >= S.nextSwarm && !S.boss) {
@@ -691,6 +719,13 @@ function updateEnemies(dt) {
     let dx = p.x - e.x, dz = p.z - e.z; const d = Math.hypot(dx, dz) || 1; dx /= d; dz /= d;
     let sp = e.speed;
     if (e.T.ranged && d < 13) sp = d < 9 ? -e.speed * 0.6 : 0;
+    if (e.T.charge) {
+      e.cst = e.cst || 0; e.ct = (e.ct || 0) - dt;
+      if (e.cst === 0 && d < 15 && e.ct <= 0) { e.cst = 1; e.ct = 0.7; e.cdx = dx; e.cdz = dz; }            // visée
+      if (e.cst === 1) { sp = 0; e.flash = 0.6 + 0.4 * Math.sin(S.t * 40); if (e.ct <= 0) { e.cst = 2; e.ct = 0.8; } }
+      else if (e.cst === 2) { dx = e.cdx; dz = e.cdz; sp = e.speed * 5; if (e.ct <= 0) { e.cst = 0; e.ct = 2.4; } }  // ruée
+      e.face = Math.atan2(dx, dz);
+    }
     e.x += (dx * sp + e.kx) * dt; e.z += (dz * sp + e.kz) * dt;
     e.kx *= Math.pow(0.02, dt); e.kz *= Math.pow(0.02, dt);
     // séparation
@@ -748,7 +783,9 @@ function kill(e) {
   const col = new THREE.Color(e.T.col);
   burst(e.x, e.y + 0.5, e.z, e.elite ? 60 : 10, [col.r, col.g, col.b], e.elite ? 9 : 5, 0.5);
   dropXp(e.x, e.y + 0.4, e.z, e.xp);
-  const g = S.stats.gold;
+  if (e.T.split && !e.child) for (let k = 0; k < 3; k++) { const c = spawnEnemy('spike', e.x + rand(-1, 1), e.z + rand(-1, 1)); if (c) { c.child = true; c.kx = rand(-8, 8); c.kz = rand(-8, 8); } }
+  if (e.chal) { e.chal.left--; if (e.chal.left <= 0) shrineReward(e.chal); }
+  const g = S.stats.gold * (1 + 0.5 * (S.greed || 0));
   if (e.elite) { for (let i = 0; i < 8; i++) addPickup('coin', e.x + rand(-1.5, 1.5), e.y + 0.5, e.z + rand(-1.5, 1.5), Math.ceil(3 * g)); addPickup('heart', e.x, e.y + 0.5, e.z, 30); }
   else if (Math.random() < 0.07) addPickup('coin', e.x, e.y + 0.4, e.z, Math.max(1, Math.round(rand(1, 3) * g)));
   if (Math.random() < 0.006) addPickup('heart', e.x, e.y + 0.4, e.z, 20);
@@ -1137,14 +1174,30 @@ function updateInteract(dt) {
     if (c.open) continue;
     if (Math.hypot(c.x - p.x, c.z - p.z) < 2.2 && Math.abs(c.y - p.y) < 2) {
       promptTarget = c;
-      txt = S.gold >= S.chestCost ? `[E] Ouvrir le coffre — ◆ ${S.chestCost}` : `Coffre — il faut ◆ ${S.chestCost} (tu as ${S.gold})`;
+      txt = c.free ? '[E] Ouvrir le coffre — gratuit' : S.gold >= S.chestCost ? `[E] Ouvrir le coffre — ◆ ${S.chestCost}` : `Coffre — il faut ◆ ${S.chestCost} (tu as ${S.gold})`;
     }
   }
   if (S.portal && Math.hypot(S.portal.x - p.x, S.portal.z - p.z) < 3.5) { promptTarget = S.portal; txt = S.stage < STAGES.length - 1 ? '[E] Entrer dans le portail — étape suivante' : '[E] Entrer dans le portail — victoire'; }
+  for (const s of S.shrines) {
+    if (s.used || s.kind === 'charge') continue;
+    if (Math.hypot(s.x - p.x, s.z - p.z) < 3.3 && Math.abs(s.y - p.y) < 3) {
+      promptTarget = s;
+      txt = s.kind === 'chal' ? '[E] Sanctuaire du défi — 2 élites, un coffre gratuit' : '[E] Sanctuaire d\'avarice — +50 % d\'or, +25 % d\'ennemis';
+    }
+  }
+  // jarres
+  for (const j of S.jars) {
+    if (j.broken || Math.abs(j.x - p.x) > 1.2 || Math.abs(j.z - p.z) > 1.2 || Math.abs(j.y - p.y) > 1.5) continue;
+    j.broken = true; burst(j.x, j.y + 0.5, j.z, 16, [0.72, 0.55, 1], 5, 0.4); sfx('hit');
+    const r = Math.random();
+    if (r < 0.5) for (let k = 0; k < 3; k++) addPickup('coin', j.x, j.y + 0.5, j.z, Math.max(1, Math.round(2 * S.stats.gold)));
+    else if (r < 0.85) dropXp(j.x, j.y + 0.5, j.z, 5 + Math.round(diffMin() * 2));
+    else addPickup('heart', j.x, j.y + 0.5, j.z, 25);
+  }
   const pr = $('nb-prompt'); pr.textContent = txt; pr.classList.toggle('show', !!txt);
   for (const s of S.shrines) {
     s.crystal.rotation.y += dt * 1.5; s.crystal.position.y = 3 + Math.sin(S.t * 2) * 0.3;
-    if (s.used) continue;
+    if (s.used || s.kind !== 'charge') continue;
     const inside = Math.hypot(s.x - p.x, s.z - p.z) < 3.3 && Math.abs(s.y - p.y) < 3;
     s.charge = clamp(s.charge + (inside ? dt / 3 : -dt / 6), 0, 1);
     s.fill.scale.setScalar(Math.max(0.001, s.charge * 3.3));
@@ -1158,9 +1211,25 @@ function updateInteract(dt) {
 function interact() {
   const t = promptTarget; if (!t) return;
   if (t === S.portal) { if (S.stage < STAGES.length - 1) nextStage(); else endRun(true); return; }
-  if (S.gold < S.chestCost) { msg('Pas assez d\'or', 1); return; }
-  S.gold -= S.chestCost; S.chestsOpened++;
-  S.chestCost = Math.round(S.chestCost * 1.45 + 4);
+  if (t.kind) {   // sanctuaire
+    t.used = true; t.crystal.visible = false; t.ring.material.opacity = 0.12;
+    if (t.kind === 'chal') {
+      t.left = 0;
+      for (let k = 0; k < 2; k++) {
+        const a = rand(0, TAU), e = spawnEnemy(Math.random() < 0.5 ? 'brute' : 'charger', clamp(t.x + Math.cos(a) * 12, -HALF + 2, HALF - 2), clamp(t.z + Math.sin(a) * 12, -HALF + 2, HALF - 2), true);
+        if (e) { e.chal = t; t.left++; }
+      }
+      if (!t.left) shrineReward(t); else msg('☠ Deux élites arrivent !', 2.5, '#ff3050');
+    } else {
+      S.greed = (S.greed || 0) + 1;
+      msg(`🪙 Avarice ×${S.greed} : +50 % d'or, +25 % d'ennemis`, 3, '#ffc94d');
+    }
+    burst(t.x, t.y + 2, t.z, 40, t.kind === 'chal' ? [1, 0.2, 0.3] : [1, 0.8, 0.3], 7, 0.6); sfx('boss');
+    return;
+  }
+  if (!t.free && S.gold < S.chestCost) { msg('Pas assez d\'or', 1); return; }
+  S.chestsOpened++;
+  if (!t.free) { S.gold -= S.chestCost; S.chestCost = Math.round(S.chestCost * 1.45 + 4); }
   t.open = true; t.lid.rotation.x = -1.2; t.lid.position.z = -0.4; t.lid.position.y = 1.1;
   let rar = rollRarity(10), pool = ITEMS.filter(i => i.r === rar);
   while (!pool.length) { rar--; pool = ITEMS.filter(i => i.r === rar); }
@@ -1379,7 +1448,8 @@ function syncMeshes(dt) {
     const m = meshes['e_' + e.type], i = counts[e.type]++;
     const sc = e.size * (1 + e.flash * 0.15);
     dummy.position.set(e.x, e.y + (e.T.fly ? 0 : e.size * 0.45), e.z);
-    dummy.rotation.set(e.type === 'drone' ? e.rot : 0, e.rot, e.type === 'drone' ? e.rot * 0.7 : 0);
+    if (e.T.charge) dummy.rotation.set(0, e.face || 0, 0);
+    else dummy.rotation.set(e.type === 'drone' ? e.rot : 0, e.rot, e.type === 'drone' ? e.rot * 0.7 : 0);
     dummy.scale.setScalar(sc); dummy.updateMatrix(); m.setMatrixAt(i, dummy.matrix);
     if (e.flash > 0.05) tmpC.setRGB(1, 1, 1).lerp(tmpC2.set(e.elite ? 0xffc94d : e.T.col), 1 - e.flash);
     else tmpC.set(e.elite ? 0xffc94d : e.T.col);
@@ -1397,6 +1467,7 @@ function syncMeshes(dt) {
     dummy.updateMatrix(); m.setMatrixAt(i, dummy.matrix);
     if (k.type === 'gem') m.setColorAt(i, tmpC.set(k.v >= 25 ? 0xff3df0 : k.v >= 5 ? 0x7cff8a : 0x27e0ff));
   }
+  { const m = meshes.jar; let n = 0; for (const j of S.jars || []) { if (j.broken || n >= m.instanceMatrix.count) continue; dummy.position.set(j.x, j.y + 0.4, j.z); dummy.rotation.set(0, j.rot, 0); dummy.scale.setScalar(1); dummy.updateMatrix(); m.setMatrixAt(n++, dummy.matrix); } m.count = n; m.instanceMatrix.needsUpdate = true; }
   for (const k in pc) { const m = meshes[k]; m.count = Math.min(pc[k], m.instanceMatrix.count); m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; }
   // projectiles
   const put = (name, list, fn) => { const m = meshes[name]; let n = 0; for (const o of list) { if (n >= m.instanceMatrix.count) break; fn(o); dummy.updateMatrix(); m.setMatrixAt(n++, dummy.matrix); } m.count = n; m.instanceMatrix.needsUpdate = true; };
@@ -1496,7 +1567,7 @@ function draw2D(dt) {
   };
   for (const e of S.enemies) if (Math.abs(e.x - S.p.x) < 60 && Math.abs(e.z - S.p.z) < 60) dot(e.x, e.z, e.elite ? '#ffc94d' : 'rgba(255,61,120,.7)', e.elite ? 3 : 1.3);
   for (const c of S.chests) if (!c.open) dot(c.x, c.z, '#ffd84d', 3);
-  for (const s of S.shrines) if (!s.used) dot(s.x, s.z, '#7cff8a', 3.5);
+  for (const s of S.shrines) if (!s.used) dot(s.x, s.z, SHRINES[s.kind].css, 3.5);
   if (S.boss) dot(S.boss.x, S.boss.z, '#ff2d55', 6);
   if (S.portal) dot(S.portal.x, S.portal.z, '#27e0ff', 6);
   ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.moveTo(cx, cy - 6); ctx.lineTo(cx - 4, cy + 4); ctx.lineTo(cx + 4, cy + 4); ctx.fill();
@@ -1641,7 +1712,7 @@ $('nb-timer').addEventListener('click', () => pause());
 
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
 // Accès de débogage (console) à l'état de la run.
-window.__nb = { get S() { return S; }, update, pick, keys, interact, jump };
+window.__nb = { get S() { return S; }, update, pick, keys, interact, jump, damage, spawnEnemy };
 
 window.GAMES.bonk = {
   show() {

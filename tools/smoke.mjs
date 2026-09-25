@@ -66,6 +66,27 @@ const sim = await page.evaluate(() => {
 });
 log('bonk 90 s simulées :', sim);
 await page.waitForTimeout(800); await shot(page, 'bonk-play');
+log('bestiaire/sanctuaires :', await page.evaluate(() => {
+  const nb = window.__nb, S = nb.S, out = [];
+  S.state = 'play'; S.stats.hp = S.p.hp = 1e6; S.enemies.length = 0;
+  const c = nb.spawnEnemy('charger', S.p.x + 10, S.p.z);
+  let rush = false; for (let i = 0; i < 90; i++) { S.state = 'play'; S.pending = 0; nb.update(1 / 30); if (c.cst === 2) rush = true; }
+  out.push('ruée=' + rush);
+  S.enemies.length = 0;
+  const sp = nb.spawnEnemy('splitter', S.p.x + 30, S.p.z); nb.update(1 / 30); nb.damage(sp, 1e9, false);
+  out.push('enfants=' + S.enemies.filter(e => e.child).length);
+  S.enemies.length = 0;
+  const ch = S.shrines.find(x => x.kind === 'chal'); S.p.x = ch.x; S.p.z = ch.z; S.p.y = ch.y; nb.update(1 / 30); nb.interact();
+  const el = S.enemies.filter(e => e.chal); out.push('élites=' + el.length);
+  el.forEach(e => nb.damage(e, 1e12, false)); nb.update(1 / 30);
+  const free = S.chests.find(x => x.free); out.push('coffre gratuit=' + !!free);
+  if (free) { const gold = S.gold; S.p.x = free.x + 0.5; S.p.z = free.z; S.p.y = free.y; nb.update(1 / 30); nb.interact(); out.push('ouvert=' + free.open + ' or intact=' + (S.gold >= gold)); }
+  const gr = S.shrines.find(x => x.kind === 'greed'); S.p.x = gr.x; S.p.z = gr.z; S.p.y = gr.y; nb.update(1 / 30); nb.interact(); out.push('avarice=' + S.greed);
+  const j = S.jars.find(x => !x.broken); S.p.x = j.x; S.p.z = j.z; S.p.y = j.y; nb.update(1 / 30); out.push('jarre=' + j.broken);
+  S.dmgDealt = 0;   // les dégâts de test gonfleraient les PV adaptatifs du boss
+  return out.join(' ');
+}));
+await page.waitForTimeout(600); await shot(page, 'bonk-shrine');
 // parcours complet : boss 1 → portail → étape 2 → boss 2 → portail final
 const killBossAndEnter = () => page.evaluate(() => {
   const nb = window.__nb, S = nb.S;
