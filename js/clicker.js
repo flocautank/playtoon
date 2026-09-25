@@ -194,6 +194,7 @@ function catchComet() {
 // ---------- son ----------
 let actx = null;
 function sfx(f, d = 0.05, type = 'sine', v = 0.05) {
+  if (window.PT_MUTE) return;
   try {
     actx = actx || new (window.AudioContext || window.webkitAudioContext)();
     const o = actx.createOscillator(), g = actx.createGain();

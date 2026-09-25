@@ -89,8 +89,23 @@ const ETYPES = {
 
 // ============================================================ méta (sauvegarde)
 const META_KEY = 'neonbonk.meta.v1';
-let META = { totalKills: 0, bossKills: 0, maxLevel: 0, bestTime: 0, bestKills: 0, runs: 0, wins: 0, sel: 'glitch', sens: 1 };
+let META = { totalKills: 0, bossKills: 0, maxLevel: 0, bestTime: 0, bestKills: 0, runs: 0, wins: 0, sel: 'glitch', sens: 1, credits: 0, shop: {} };
 try { Object.assign(META, JSON.parse(localStorage.getItem(META_KEY) || '{}')); } catch (e) {}
+// Boutique permanente : crédits gagnés à chaque run, améliorations conservées d'une run à l'autre.
+const SHOP = [
+  { id: 'hp', ic: '❤️', name: 'Blindage', max: 5, base: 30, desc: l => `+${10 * l} PV max`, fx: (s, l) => s.hp += 10 * l },
+  { id: 'dmg', ic: '💥', name: 'Surcharge', max: 5, base: 40, desc: l => `+${5 * l} % dégâts`, fx: (s, l) => s.dmg += 0.05 * l },
+  { id: 'speed', ic: '👟', name: 'Servomoteurs', max: 5, base: 30, desc: l => `+${3 * l} % vitesse`, fx: (s, l) => s.speed += 0.03 * l },
+  { id: 'magnet', ic: '🧲', name: 'Champ magnétique', max: 5, base: 25, desc: l => `+${10 * l} % ramassage`, fx: (s, l) => s.magnet += 0.1 * l },
+  { id: 'xp', ic: '📘', name: 'Mémoire', max: 5, base: 40, desc: l => `+${5 * l} % XP`, fx: (s, l) => s.xp += 0.05 * l },
+  { id: 'luck', ic: '🍀', name: 'Fortune', max: 5, base: 40, desc: l => `+${4 * l} chance`, fx: (s, l) => s.luck += 4 * l },
+  { id: 'gold', ic: '🪙', name: 'Dividendes', max: 5, base: 35, desc: l => `+${20 * l} % or`, fx: (s, l) => s.gold += 0.2 * l },
+  { id: 'reroll', ic: '🎲', name: 'Relances', max: 3, base: 60, desc: l => `+${l} relance${l > 1 ? 's' : ''} par run`, fx: () => {} },
+  { id: 'revive', ic: '✚', name: 'Seconde vie', max: 1, base: 200, desc: () => 'Ressuscite une fois par run', fx: () => {} },
+];
+const shopLvl = id => (META.shop && META.shop[id]) || 0;
+const shopCost = it => Math.round(it.base * Math.pow(1.8, shopLvl(it.id)));
+function runCredits(S) { return Math.floor(S.kills / 15 + S.t / 10 + S.level * 2 + (S.bossDead ? 100 : 0) + (S.won ? 50 : 0)); }
 const saveMeta = () => { try { localStorage.setItem(META_KEY, JSON.stringify(META)); } catch (e) {} };
 const unlocked = c => !c.unlock || c.unlock.test(META);
 
@@ -415,7 +430,10 @@ function newRun() {
     p: { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, onGround: true, jumps: 1, slide: 0, slideCd: 0, face: Math.PI, hp: 100 },
     cam: { yaw: 0, pitch: 0.42 },
   };
-  S.stats = baseStats(ch); S.p.hp = S.stats.hp;
+  S.stats = baseStats(ch);
+  for (const it of SHOP) if (shopLvl(it.id)) it.fx(S.stats, shopLvl(it.id));
+  S.rerolls += shopLvl('reroll'); S.revives = shopLvl('revive');
+  S.p.hp = S.stats.hp;
   buildLevel();
   S.p.y = terrainH(0, 0);
   addWeapon(ch.weapon);
@@ -548,6 +566,7 @@ function slide() {
 let actx = null;
 const sfxLast = {};
 function sfx(kind) {
+  if (window.PT_MUTE) return;
   const now = performance.now();
   const gap = { hit: 40, kill: 45, xp: 35 }[kind] || 0;
   if (sfxLast[kind] && now - sfxLast[kind] < gap) return;
@@ -735,7 +754,15 @@ function hurt(d) {
   d *= 1 - Math.min(0.75, s.armor);
   S.p.hp -= d; S.iframe = 0.7; S.hurtFlash = 1; sfx('hurt');
   if (navigator.vibrate) navigator.vibrate(40);
-  if (S.p.hp <= 0) { S.p.hp = 0; endRun(false); }
+  if (S.p.hp <= 0) {
+    if (S.revives > 0) {
+      // Seconde vie : soin à moitié, invulnérabilité, onde qui repousse tout
+      S.revives--; S.p.hp = S.stats.hp * 0.5; S.iframe = 2.5;
+      explode(S.p.x, S.p.y, S.p.z, 9, 50 * S.stats.dmg, [0.5, 1, 0.9]);
+      near(S.p.x, S.p.z, 14, e => { const dx = e.x - S.p.x, dz = e.z - S.p.z, d = Math.hypot(dx, dz) || 1; e.kx += dx / d * 30; e.kz += dz / d * 30; });
+      msg('✚ SECONDE VIE', 2, '#7cff8a');
+    } else { S.p.hp = 0; endRun(false); }
+  }
   return true;
 }
 
@@ -1504,12 +1531,14 @@ function endRun(win) {
   const before = CHARS.filter(unlocked).map(c => c.id);
   META.totalKills += S.kills; META.maxLevel = Math.max(META.maxLevel, S.level); META.bestTime = Math.max(META.bestTime, surv); META.bestKills = Math.max(META.bestKills, S.kills);
   if (win) META.wins++;
+  const cr = runCredits(S); META.credits = (META.credits || 0) + cr;
   saveMeta();
   const newly = CHARS.filter(c => unlocked(c) && !before.includes(c.id));
   $('nb-endtitle').innerHTML = win ? '<span class="neon" style="font-size:30px">VICTOIRE</span>' : 'Tu as été désintégré';
   const row = (a, b) => `<div><span class="muted">${a}</span><b>${b}</b></div>`;
   $('nb-endstats').innerHTML = row('Temps', `${Math.floor(surv / 60)}:${String(surv % 60).padStart(2, '0')}`) + row('Niveau', S.level) + row('Éliminations', S.kills) + row('Dégâts', Math.round(S.dmgDealt).toLocaleString('fr-FR'))
     + row('Coffres', S.chestsOpened) + row('Personnage', S.ch.name)
+    + `<div style="grid-column:1/-1;color:#7ff6ff;justify-content:center">◈ +${cr} crédits pour la boutique</div>`
     + (newly.length ? `<div style="grid-column:1/-1;color:#ffc94d;justify-content:center">🔓 Débloqué : ${newly.map(c => c.name).join(', ')}</div>` : '');
   $('nb-end').classList.remove('hidden');
   $('nb-hud').classList.add('hidden');
@@ -1527,7 +1556,9 @@ function toMenu() {
   ['nb-end', 'nb-pause', 'nb-levelup'].forEach(id => $(id).classList.add('hidden'));
   $('nb-hud').classList.add('hidden');
   renderMenu();
+  if (g2) g2.clearRect(0, 0, W, H);
   $('nb-menu').classList.remove('hidden');
+  $('nb-menu').querySelector('.card').scrollTop = 0;
 }
 function renderMenu() {
   const box = $('nb-chars'); box.innerHTML = '';
@@ -1541,6 +1572,17 @@ function renderMenu() {
   });
   $('nb-meta').textContent = META.runs ? `Runs : ${META.runs} · Victoires : ${META.wins} · Record : ${Math.floor(META.bestTime / 60)}:${String(META.bestTime % 60).padStart(2, '0')} · Niveau max : ${META.maxLevel} · Éliminations totales : ${META.totalKills}` : '';
   $('nb-sens').value = META.sens;
+  $('nb-credits').textContent = META.credits || 0;
+  const sh = $('nb-shop'); sh.innerHTML = '';
+  for (const it of SHOP) {
+    const l = shopLvl(it.id), c = shopCost(it), max = l >= it.max;
+    const b = document.createElement('button');
+    b.className = 'nb-sh ' + (max ? 'max' : (META.credits || 0) >= c ? 'can' : 'no');
+    b.innerHTML = `<b>${it.ic} ${it.name} <span class="pips">${'■'.repeat(l)}${'□'.repeat(it.max - l)}</span></b><span class="cost">${max ? 'MAX' : '◈ ' + c}</span>`
+      + `<span class="muted">${max ? it.desc(l) : (l ? it.desc(l) + ' → ' : '') + it.desc(l + 1)}</span>`;
+    b.onclick = () => { if (max || (META.credits || 0) < c) return; META.credits -= c; META.shop[it.id] = l + 1; saveMeta(); sfx('chest'); renderMenu(); };
+    sh.appendChild(b);
+  }
 }
 
 $('nb-start').onclick = () => { S = null; newRun(); clock.getDelta(); };

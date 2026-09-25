@@ -14,6 +14,13 @@ function show(id) {
   try { localStorage.setItem('arcade.tab', id); } catch (e) {}
 }
 
+// Son global : un seul interrupteur pour les trois jeux (lu par chaque fonction de son).
+const muteBtn = document.getElementById('mute');
+try { window.PT_MUTE = localStorage.getItem('playtoon.mute') === '1'; } catch (e) {}
+const paintMute = () => { muteBtn.textContent = window.PT_MUTE ? '🔇' : '🔊'; };
+muteBtn.onclick = () => { window.PT_MUTE = !window.PT_MUTE; paintMute(); try { localStorage.setItem('playtoon.mute', window.PT_MUTE ? '1' : '0'); } catch (e) {} muteBtn.blur(); };
+paintMute();
+
 window.addEventListener('hashchange', () => show(location.hash.slice(1)));
 let start = location.hash.slice(1);
 if (!tabs.includes(start)) { try { start = localStorage.getItem('arcade.tab') || 'blocks'; } catch (e) { start = 'blocks'; } }

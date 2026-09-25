@@ -34,6 +34,7 @@ const S = {
 
 let audio = null;
 function beep(freq, dur = 0.08, type = 'sine', vol = 0.06) {
+  if (window.PT_MUTE) return;
   try {
     audio = audio || new (window.AudioContext || window.webkitAudioContext)();
     const o = audio.createOscillator(), g = audio.createGain();
