@@ -25,6 +25,15 @@ const log = (...a) => console.log(...a);
 const page = await browser.newPage({ viewport: { width: 1280, height: 760 } }); watch(page, 'desktop');
 page.on('dialog', d => d.accept());
 await page.goto(base + '#blocks'); await page.waitForTimeout(700); await shot(page, 'blocks');
+await page.click('#bp-mapbtn'); await page.waitForTimeout(300); await shot(page, 'blocks-map');
+await page.click('.bp-lv'); await page.waitForTimeout(500); await shot(page, 'blocks-adv');
+log('aventure niv 1 :', await page.evaluate(() => {
+  const { S, place, fits, N } = window.__bp;
+  for (let k = 0; k < 40 && !S.over; k++) { let done = false; S.tray.forEach((pc, i) => { if (done || !pc) return; for (let y = 0; y < N && !done; y++) for (let x = 0; x < N && !done; x++) if (fits(pc, x, y)) { place(i, x, y); done = true; } }); if (!done) break; }
+  return `terminé=${S.over} coups restants=${S.moves} gemmes=${S.got}/${S.goal.gems}`;
+}));
+await page.waitForTimeout(1000); await shot(page, 'blocks-res');
+await page.click('#bp-resmap'); await page.click('#bp-classic'); await page.waitForTimeout(300);
 await page.goto(base + '#forge'); await page.waitForTimeout(700);
 for (let i = 0; i < 40; i++) await page.mouse.click(360, 390);
 await page.waitForTimeout(300); await shot(page, 'forge');

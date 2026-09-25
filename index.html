@@ -23,9 +23,10 @@
   <section id="tab-blocks" class="tab">
     <div class="bp-wrap">
       <div class="bp-top">
-        <div class="bp-stat"><small>SCORE</small><b id="bp-score">0</b></div>
-        <div class="bp-stat"><small>MEILLEUR</small><b id="bp-best">0</b></div>
-        <button class="btn ghost" id="bp-restart" title="Nouvelle partie">↻</button>
+        <button class="btn ghost" id="bp-mapbtn" title="Carte de l'aventure">🗺️</button>
+        <div class="bp-stat"><small id="bp-l1">SCORE</small><b id="bp-score">0</b></div>
+        <div class="bp-stat"><small id="bp-l2">MEILLEUR</small><b id="bp-best">0</b></div>
+        <button class="btn ghost" id="bp-restart" title="Recommencer">↻</button>
       </div>
       <canvas id="bp-canvas"></canvas>
       <div class="overlay hidden" id="bp-over">
@@ -34,6 +35,22 @@
           <p>Score : <b id="bp-final">0</b></p>
           <p class="muted" id="bp-newbest"></p>
           <button class="btn" id="bp-again">Rejouer</button>
+        </div>
+      </div>
+      <div class="overlay hidden" id="bp-map">
+        <div class="card wide">
+          <h2>Aventure</h2>
+          <p class="muted small">Récupère les 💎 en effaçant les lignes qui les contiennent, ou efface le nombre de lignes demandé, avant la fin des coups. Moins tu utilises de coups, plus tu gagnes d'étoiles.</p>
+          <div class="bp-levels" id="bp-levels"></div>
+          <div class="row"><button class="btn ghost" id="bp-classic">Partie classique (sans fin)</button><button class="btn ghost" id="bp-mapclose">Fermer</button></div>
+        </div>
+      </div>
+      <div class="overlay hidden" id="bp-res">
+        <div class="card">
+          <h2 id="bp-restitle">Niveau réussi !</h2>
+          <div class="bp-stars" id="bp-resstars"></div>
+          <p class="muted" id="bp-restext"></p>
+          <div class="row"><button class="btn" id="bp-resnext">Suivant</button><button class="btn ghost" id="bp-resretry">Réessayer</button><button class="btn ghost" id="bp-resmap">Carte</button></div>
         </div>
       </div>
     </div>

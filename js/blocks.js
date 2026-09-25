@@ -20,6 +20,11 @@ const SHAPES = [
   [[[0, 0], [1, 1]], 1], [[[1, 0], [0, 1]], 1], [[[0, 0], [1, 1], [2, 2]], 0.8], [[[2, 0], [1, 1], [0, 2]], 0.8],
 ];
 const PRAISE = ['', 'Bien !', 'Super !', 'Génial !', 'Incroyable !', 'LÉGENDAIRE !'];
+const STONE = '#7d7f9c';
+const LEVELS = 40;
+// Générateur déterministe : un niveau d'aventure a toujours la même grille et les mêmes pièces.
+function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+let rnd = Math.random;
 
 const $ = id => document.getElementById(id);
 const canvas = $('bp-canvas');
@@ -30,7 +35,12 @@ let L = {}; // layout
 const S = {
   board: [], tray: [], score: 0, shown: 0, best: 0, combo: 0, over: false,
   drag: null, fx: [], pops: [], clearing: [], shake: 0, placedAnim: [],
+  mode: 'classic', lvl: 1, goal: null, moves: 0, gems: new Set(), got: 0,
 };
+let ADV = { stars: {} };
+try { ADV = Object.assign(ADV, JSON.parse(localStorage.getItem('blocparty.adv') || '{}')); } catch (e) {}
+const saveAdv = () => { try { localStorage.setItem('blocparty.adv', JSON.stringify(ADV)); } catch (e) {} };
+const unlockedLvl = () => { let n = 1; while (ADV.stars[n]) n++; return Math.min(n, LEVELS); };
 
 let audio = null;
 function beep(freq, dur = 0.08, type = 'sine', vol = 0.06) {
@@ -57,6 +67,7 @@ function load() {
   return false;
 }
 function save() {
+  if (S.mode === 'adv') return;   // l'aventure ne touche pas à la partie classique en cours
   try {
     localStorage.setItem('blocparty.best', S.best);
     if (S.over) localStorage.removeItem('blocparty.save');
@@ -66,13 +77,13 @@ function save() {
 
 function pickShape() {
   const total = SHAPES.reduce((a, s) => a + s[1], 0);
-  let r = Math.random() * total;
+  let r = rnd() * total;
   for (const s of SHAPES) { r -= s[1]; if (r <= 0) return s[0]; }
   return SHAPES[0][0];
 }
 function makePiece() {
   const cells = pickShape();
-  return { cells, w: Math.max(...cells.map(c => c[0])) + 1, h: Math.max(...cells.map(c => c[1])) + 1, color: COLORS[(Math.random() * COLORS.length) | 0] };
+  return { cells, w: Math.max(...cells.map(c => c[0])) + 1, h: Math.max(...cells.map(c => c[1])) + 1, color: COLORS[(rnd() * COLORS.length) | 0] };
 }
 function fits(p, gx, gy, board = S.board) {
   for (const [x, y] of p.cells) {
@@ -87,21 +98,96 @@ function canPlaceAnywhere(p, board = S.board) {
 }
 function fillTray() {
   // Un peu de bienveillance : on réessaie pour qu'au moins une pièce rentre.
+  // En Aventure, on vise un plateau où les trois pièces rentrent (le niveau doit rester jouable).
   let best = null;
-  for (let tries = 0; tries < 12; tries++) {
+  const tries = S.mode === 'adv' ? 30 : 12;
+  for (let k = 0; k < tries; k++) {
     const t = [makePiece(), makePiece(), makePiece()];
-    if (t.some(p => canPlaceAnywhere(p))) { best = t; break; }
-    best = t;
+    const ok = S.mode === 'adv' ? t.every(p => canPlaceAnywhere(p)) : t.some(p => canPlaceAnywhere(p));
+    if (ok) { best = t; break; }
+    if (!best || t.some(p => canPlaceAnywhere(p))) best = t;
   }
   S.tray = best;
 }
 
 function newGame() {
+  S.mode = 'classic'; rnd = Math.random; S.gems.clear();
   S.board = Array.from({ length: N }, () => Array(N).fill(null));
   S.score = 0; S.shown = 0; S.combo = 0; S.over = false; S.fx = []; S.pops = []; S.clearing = [];
   fillTray();
   $('bp-over').classList.add('hidden');
   save(); updateHUD();
+}
+
+function genLevel(n) {
+  // Les pierres forment des lignes / colonnes à trous : on les complète pour libérer les gemmes.
+  const r = mulberry32(n * 7919 + 13);
+  const board = Array.from({ length: N }, () => Array(N).fill(null));
+  const bands = Math.min(1 + Math.floor(n / 4), 5), cells = [];
+  const used = new Set();
+  for (let k = 0; k < bands; k++) {
+    let horiz, idx, t = 0;
+    do { horiz = r() < 0.5; idx = (r() * N) | 0; } while (used.has((horiz ? 'r' : 'c') + idx) && ++t < 20);
+    used.add((horiz ? 'r' : 'c') + idx);
+    const fill = Math.min(6, 3 + Math.floor(n / 8) + ((r() * 2) | 0));
+    const order = [...Array(N).keys()].sort(() => r() - 0.5).slice(0, fill);
+    for (const j of order) {
+      const x = horiz ? j : idx, y = horiz ? idx : j;
+      if (board[y][x]) continue;
+      board[y][x] = STONE;
+      if (board[y].every(c => c) || board.every(row => row[x])) { board[y][x] = null; continue; }
+      cells.push([x, y]);
+    }
+  }
+  const type = n % 4 === 0 ? 'lines' : 'gems';
+  const gemsN = Math.min(2 + Math.floor(n / 3), 10, cells.length);
+  const gems = new Set();
+  while (gems.size < gemsN) { const [x, y] = cells[(r() * cells.length) | 0]; gems.add(y * N + x); }
+  const target = 3 + Math.floor(n / 5);
+  const moves = type === 'gems' ? 6 + Math.round(gemsN * 1.5) + bands * 2 : 6 + target * 3;
+  return { board, gems: type === 'gems' ? gems : new Set(), goal: { type, gems: type === 'gems' ? gemsN : 0, target, moves } };
+}
+function startLevel(n) {
+  const L0 = genLevel(n);
+  S.mode = 'adv'; S.lvl = n; S.goal = L0.goal; S.moves = L0.goal.moves; S.gems = L0.gems; S.got = 0; S.lines = 0; S.rescue = 1;
+  S.board = L0.board; S.score = 0; S.shown = 0; S.combo = 0; S.over = false; S.fx = []; S.pops = []; S.clearing = [];
+  rnd = mulberry32(n * 104729 + 7);
+  fillTray();
+  ['bp-over', 'bp-map', 'bp-res'].forEach(id => $(id).classList.add('hidden'));
+  S.pops.push({ text: `Niveau ${n}`, sub: S.goal.type === 'gems' ? `Récupère ${S.goal.gems} 💎` : `Efface ${S.goal.target} lignes`, t: 0 });
+  updateHUD();
+}
+function advResult(win) {
+  S.over = true;
+  let stars = 0;
+  if (win) {
+    const used = S.goal.moves - S.moves, ratio = used / S.goal.moves;
+    stars = ratio <= 0.6 ? 3 : ratio <= 0.8 ? 2 : 1;
+    ADV.stars[S.lvl] = Math.max(ADV.stars[S.lvl] || 0, stars); saveAdv();
+  }
+  setTimeout(() => {
+    $('bp-restitle').textContent = win ? `Niveau ${S.lvl} réussi !` : 'Raté… presque !';
+    $('bp-resstars').innerHTML = [1, 2, 3].map(k => k <= stars ? '★' : '<i>★</i>').join('');
+    $('bp-restext').textContent = win ? `${S.goal.moves - S.moves} coups utilisés sur ${S.goal.moves} · ${S.score} points` : (S.moves <= 0 ? 'Plus de coups.' : 'Plus de place pour les pièces.');
+    $('bp-resnext').classList.toggle('hidden', !win || S.lvl >= LEVELS);
+    $('bp-res').classList.remove('hidden');
+    if (win) [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => beep(f, 0.18, 'triangle', 0.06), i * 110));
+    else beep(260, 0.4, 'sawtooth', 0.04);
+  }, 700);
+}
+function openMap() {
+  const box = $('bp-levels'); box.innerHTML = '';
+  const open = unlockedLvl();
+  for (let n = 1; n <= LEVELS; n++) {
+    const st = ADV.stars[n] || 0, lock = n > open;
+    const b = document.createElement('button');
+    b.className = 'bp-lv' + (lock ? ' lock' : '') + (n === open && !st ? ' cur' : '');
+    b.innerHTML = `${lock ? '🔒' : n}<small>${st ? '★'.repeat(st) : n % 4 === 0 ? 'lignes' : '💎'}</small>`;
+    if (!lock) b.onclick = () => startLevel(n);
+    box.appendChild(b);
+  }
+  $('bp-map').classList.remove('hidden');
+  const cur = box.children[open - 1]; if (cur) cur.scrollIntoView({ block: 'nearest' });
 }
 
 function linesToClear(board) {
@@ -119,7 +205,7 @@ function place(idx, gx, gy) {
   const { rows, cols } = linesToClear(S.board);
   const n = rows.length + cols.length;
   if (n > 0) {
-    S.combo++;
+    S.combo++; S.lines = (S.lines || 0) + n;
     const cells = new Map();
     rows.forEach(y => { for (let x = 0; x < N; x++) cells.set(y * N + x, [x, y]); });
     cols.forEach(x => { for (let y = 0; y < N; y++) cells.set(y * N + x, [x, y]); });
@@ -131,6 +217,7 @@ function place(idx, gx, gy) {
       S.clearing.push({ x, y, color, t: 0, delay: (Math.abs(x - gx) + Math.abs(y - gy)) * 0.025 });
       S.board[y][x] = null;
       for (let k = 0; k < 4; k++) burst(x, y, color);
+      if (S.gems.delete(y * N + x)) { S.got++; for (let k = 0; k < 10; k++) burst(x, y, '#7ff6ff'); setTimeout(() => beep(1400 + S.got * 60, 0.1, 'sine', 0.05), 80); }
     }
     const allClear = S.board.every(r => r.every(c => !c));
     if (allClear) gained += 300;
@@ -144,8 +231,20 @@ function place(idx, gx, gy) {
     beep(220 + Math.random() * 40, 0.06, 'square', 0.025);
   }
   S.score += gained;
-  if (S.score > S.best) S.best = S.score;
   if (S.tray.every(t => !t)) fillTray();
+  if (S.mode === 'adv') {
+    S.moves--;
+    const win = S.goal.type === 'gems' ? S.gems.size === 0 : S.lines >= S.goal.target;
+    if (win) advResult(true);
+    else if (S.moves <= 0) advResult(false);
+    else if (!S.tray.some(t => t && canPlaceAnywhere(t))) {
+      // Filet de sécurité : un nouveau tirage offert par niveau, puis c'est perdu.
+      if (S.rescue > 0) { S.rescue--; S.tray = [null, null, null]; fillTray(); S.pops.push({ text: 'Nouvelles pièces !', sub: 'offertes une fois par niveau', t: 0 }); beep(880, 0.15, 'triangle', 0.05); }
+      if (!S.tray.some(t => t && canPlaceAnywhere(t))) advResult(false);
+    }
+    updateHUD(); return;
+  }
+  if (S.score > S.best) S.best = S.score;
   if (!S.tray.some(t => t && canPlaceAnywhere(t))) {
     S.over = true;
     setTimeout(gameOver, 600);
@@ -165,7 +264,15 @@ function burst(gx, gy, color) {
   S.fx.push({ x: cx, y: cy, vx: (Math.random() - 0.5) * 9, vy: (Math.random() - 0.9) * 9, s: L.cs * (0.15 + Math.random() * 0.2), color, life: 1, rot: Math.random() * 6 });
 }
 
-function updateHUD() { $('bp-best').textContent = S.best.toLocaleString('fr-FR'); }
+function updateHUD() {
+  const adv = S.mode === 'adv';
+  $('bp-l1').textContent = adv ? `NIVEAU ${S.lvl} · COUPS` : 'SCORE';
+  $('bp-l2').textContent = adv ? 'OBJECTIF' : 'MEILLEUR';
+  if (adv) {
+    $('bp-score').textContent = S.moves;
+    $('bp-best').textContent = S.goal.type === 'gems' ? `💎 ${S.got}/${S.goal.gems}` : `▤ ${Math.min(S.lines, S.goal.target)}/${S.goal.target}`;
+  } else $('bp-best').textContent = S.best.toLocaleString('fr-FR');
+}
 
 // ---------- layout ----------
 function resize() {
@@ -204,6 +311,16 @@ function cell(x, y, s, color, alpha = 1) {
   ctx.globalAlpha = 1;
 }
 
+function gem(cx, cy, r) {
+  const k = 1 + Math.sin(performance.now() / 260 + cx) * 0.06;
+  ctx.save(); ctx.translate(cx, cy); ctx.scale(k, k);
+  ctx.fillStyle = '#27e0ff'; ctx.shadowColor = '#7ff6ff'; ctx.shadowBlur = 10;
+  ctx.beginPath(); ctx.moveTo(0, -r); ctx.lineTo(r * 0.85, -r * 0.2); ctx.lineTo(0, r); ctx.lineTo(-r * 0.85, -r * 0.2); ctx.closePath(); ctx.fill();
+  ctx.shadowBlur = 0; ctx.fillStyle = 'rgba(255,255,255,.7)';
+  ctx.beginPath(); ctx.moveTo(0, -r); ctx.lineTo(r * 0.35, -r * 0.2); ctx.lineTo(-r * 0.35, -r * 0.2); ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
 function ghostTarget() {
   const d = S.drag; if (!d) return null;
   const p = S.tray[d.idx];
@@ -224,7 +341,7 @@ function draw(dt) {
   ctx.clearRect(0, 0, W, H);
   S.shown += (S.score - S.shown) * Math.min(1, dt * 10);
   if (Math.abs(S.score - S.shown) < 0.5) S.shown = S.score;
-  $('bp-score').textContent = Math.round(S.shown).toLocaleString('fr-FR');
+  if (S.mode !== 'adv') $('bp-score').textContent = Math.round(S.shown).toLocaleString('fr-FR');
 
   let sx = 0, sy = 0;
   if (S.shake > 0) { sx = (Math.random() - 0.5) * S.shake; sy = (Math.random() - 0.5) * S.shake; S.shake = Math.max(0, S.shake - dt * 40); }
@@ -255,6 +372,7 @@ function draw(dt) {
     if (pa) { const k = Math.sin(Math.min(1, pa.t / 0.25) * Math.PI) * 0.12; s = L.cs * (1 + k); ox = (L.cs - s) / 2; }
     const lit = hl && (hl.rows.includes(y) || hl.cols.includes(x));
     cell(L.bx + x * L.cs + ox, L.by + y * L.cs + ox, s, lit ? hl.color : c);
+    if (S.gems.has(y * N + x)) gem(L.bx + (x + 0.5) * L.cs, L.by + (y + 0.48) * L.cs, L.cs * 0.3);
     if (lit) { ctx.fillStyle = 'rgba(255,255,255,' + (0.18 + 0.12 * Math.sin(performance.now() / 90)) + ')'; rr(L.bx + x * L.cs + 3, L.by + y * L.cs + 3, L.cs - 6, L.cs - 6, L.cs * .15); ctx.fill(); }
   }
   S.placedAnim.forEach(a => a.t += dt); S.placedAnim = S.placedAnim.filter(a => a.t < 0.25);
@@ -337,8 +455,17 @@ function drop() {
 canvas.addEventListener('pointerup', drop);
 canvas.addEventListener('pointercancel', () => S.drag = null);
 
-$('bp-restart').onclick = () => { if (S.score === 0 || confirm('Recommencer une nouvelle partie ?')) newGame(); };
+$('bp-restart').onclick = () => {
+  if (S.mode === 'adv') { startLevel(S.lvl); return; }
+  if (S.score === 0 || confirm('Recommencer une nouvelle partie ?')) newGame();
+};
 $('bp-again').onclick = newGame;
+$('bp-mapbtn').onclick = openMap;
+$('bp-mapclose').onclick = () => $('bp-map').classList.add('hidden');
+$('bp-classic').onclick = () => { $('bp-map').classList.add('hidden'); if (S.mode === 'adv') { S.mode = 'classic'; rnd = Math.random; S.gems.clear(); if (!load() || !S.tray.some(t => t && canPlaceAnywhere(t))) newGame(); S.over = false; updateHUD(); } };
+$('bp-resnext').onclick = () => startLevel(Math.min(LEVELS, S.lvl + 1));
+$('bp-resretry').onclick = () => startLevel(S.lvl);
+$('bp-resmap').onclick = () => { $('bp-res').classList.add('hidden'); openMap(); };
 window.addEventListener('resize', () => running && resize());
 
 let inited = false;
@@ -349,3 +476,5 @@ window.GAMES.blocks = {
   },
   hide() { running = false; S.drag = null; },
 };
+// Accès de test (tools/smoke.mjs, console).
+window.__bp = { S, place, fits, startLevel, linesToClear, canPlaceAnywhere, N };
