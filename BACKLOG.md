@@ -18,8 +18,7 @@ headless (`node tools/smoke.mjs`, zéro erreur console, captures relues), pouss�
 
 *Feuille de route (après les retours d'évaluation).*
 
-1. **[Star Forge] Événements** — météores rares (bonus ×77 de 7 s), éclipse (production doublée mais clics nuls) ; fréquence réglée par la Chance.
-2. **[Neon Bonk] Troisième étape** — « Le Vide » (gravité réduite, plateformes flottantes, boss final) après la Fournaise.
+1. **[Neon Bonk] Troisième étape** — « Le Vide » (gravité réduite, plateformes flottantes, boss final) après la Fournaise.
 
 ## Fait
 
@@ -46,6 +45,7 @@ headless (`node tools/smoke.mjs`, zéro erreur console, captures relues), pouss�
 - **Itération E2** (2026-09-25, retours d'évaluation) — Bloc Party : main animée « Glisse une pièce sur la grille » jusqu'à la première pose ; bouton « 🗺️ Modes » ; Chrono en pause sous toute fenêtre (vérifié : 0 s perdue en 1,5 s de thèmes ouverts), gros compteur qui clignote en rouge sous 10 s, score à côté ; barre du haut qui tient sur iPhone ; pièce lâchée hors grille qui revient en glissant avec un son ; ↻ confirmé en Aventure / Chrono ; carte plus contrastée, indication de défilement sur mobile.
 - **Itération E3** (2026-09-25, retours d'évaluation) — Neon Bonk : caméra qui se rapproche devant un obstacle (8,5 → 2,2 au pied d'un bloc, recul doux) ; chiffres de dégâts regroupés par ennemi, option « regroupés / critiques / aucun » dans la pause ; mobile : bouton pause ❚❚, bouton GLISSE séparé de E, level-up compact (3 cartes + Relancer visibles sur iPhone, sans raccourcis clavier), message déplacé, boutique non masquée par « Lancer » ; écran de fin avec « Rejouer » ; noms des armes et tomes au survol du HUD, indice d'évolution en clair dans la pause.
 - **Itération E4** (2026-09-25, retours d'évaluation) — Transverse : accueil (1er passage, puis « PLAYTOON » dans la nav — la barre garde ses trois onglets) qui présente les trois jeux ; objectifs du jour, un par jeu, tirés de la date, avec récompense dans le jeu (+30 pièces, +1 Nova, +40 crédits), suivis par `ptEvent` et visibles dans l'accueil et le profil ; menu son unique à deux réglages (effets, musique) respecté par les trois jeux ; zoom réautorisé ; textes secondaires plus contrastés. Test : le script de fumée n'attendait pas `addInitScript` (course à l'ouverture des pages), corrigé.
+- **Itération 18** (2026-09-25) — Star Forge : événements — météore violet rare (8 % des passages × Chance) qui donne ×77 pendant 7 s ; éclipse toutes les 8 à 16 min (plus souvent avec la Chance) : production ×2 mais clics nuls pendant 45 s, étoile assombrie ; bandeau des effets en cours avec leur durée ; au plus 3 notifications à la fois.
 
 ## À surveiller
 

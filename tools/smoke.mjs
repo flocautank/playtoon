@@ -244,6 +244,17 @@ await page.close();
   g.on('dialog', d => d.accept());
   await g.addInitScript(() => { if (!sessionStorage.getItem('inj')) { sessionStorage.setItem('inj', 1); localStorage.setItem('starforge.save.v1', JSON.stringify({ dust: 1e6, runTotal: 1e6, lifeTotal: 1e10, gens: [30, 20, 10, 5, 0, 0, 0, 0, 0, 0], upg: {}, novaTotal: 250, novaBank: 40, meta: { m_click: 1, m_auto: 1 }, ach: {}, prestiges: 12, chalDone: { c_hands: 1 }, last: Date.now() })); } });
   await g.goto(base + '#forge'); await g.waitForTimeout(500);
+  log('événements :', await g.evaluate(async () => {
+    const F = window.__sf, S = F.S, base = F.dps(), out = [];
+    let tries = 0; do { F.spawnComet(); } while (!F.comet.meteor && ++tries < 500);
+    F.catchComet(); out.push(`météore ×${(F.dps() / base).toFixed(0)}`);
+    S.buffs = []; S.buffs.push({ type: 'eclipse', t: 45, max: 45 });
+    out.push(`éclipse ×${(F.dps() / base).toFixed(1)}, clic=${F.clickValue()}`);
+    await new Promise(r => setTimeout(r, 600));
+    return out.join(' · ');
+  }));
+  await shot(g, 'forge-eclipse');
+  await g.evaluate(() => { window.__sf.S.buffs = []; });
   await g.click('[data-sf=meta]'); await g.waitForTimeout(400); await shot(g, 'forge-bigbang');
   await g.click('#sf-bb-btn'); await g.waitForTimeout(200); await g.click('#pt-ok'); await g.waitForTimeout(400);
   let st = await g.evaluate(() => { const S = window.__sf.S; return { sing: S.sing, bank: S.singBank, nova: S.novaTotal, meta: Object.keys(S.meta).length, chal: Object.keys(S.chalDone).length }; });

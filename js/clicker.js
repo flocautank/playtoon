@@ -136,13 +136,13 @@ function globalMult() {
   if (chalDone('c_hands')) m *= 1.5;
   m *= 1 + (S.sing || 0) * (gal('g_big') ? 0.2 : 0.1);
   if (inChal('c_dim')) m *= 0.1;
-  for (const b of S.buffs) if (b.type === 'frenzy') m *= 7;
+  for (const b of S.buffs) { if (b.type === 'frenzy') m *= 7; else if (b.type === 'meteor') m *= 77; else if (b.type === 'eclipse') m *= 2; }
   return m;
 }
 function baseDps() { let d = 0; GENS.forEach((g, i) => d += S.gens[i] * g.prod * genMult(i)); return d; }
 function dps() { return baseDps() * globalMult(); }
 function clickValue() {
-  if (inChal('c_hands')) return 0;
+  if (inChal('c_hands') || S.buffs.some(b => b.type === 'eclipse')) return 0;
   let c = 1;
   for (const u of UPGRADES) if (S.upg[u.id] && u.fx.click) c *= u.fx.click;
   if (has('m_click')) c *= 3;
@@ -259,13 +259,16 @@ let comet = null, nextComet = 40 + Math.random() * 60;
 const buffDur = () => (has('m_long') ? 2 : 1) * (chalDone('c_rush') ? 1.25 : 1);
 function spawnComet() {
   const fromLeft = Math.random() < 0.5;
-  comet = { x: fromLeft ? -0.1 : 1.1, y: 0.15 + Math.random() * 0.5, vx: (fromLeft ? 1 : -1) * (0.05 + Math.random() * 0.03) / (0.8 + luck() * 0.2), vy: 0.01 * (Math.random() - 0.5), t: 0 };
+  const meteor = Math.random() < 0.08 * luck();   // rare, plus fréquent avec la Chance
+  comet = { meteor, x: fromLeft ? -0.1 : 1.1, y: 0.15 + Math.random() * 0.5, vx: (fromLeft ? 1 : -1) * (0.05 + Math.random() * 0.03) / (0.8 + luck() * 0.2), vy: 0.01 * (Math.random() - 0.5), t: 0 };
 }
 function catchComet() {
   window.ptEvent && window.ptEvent('sf_comets', 1);
   S.cometsTotal++; S.lifeComets++;
   const r = Math.random();
-  if (r < 0.45) {
+  if (comet.meteor) {
+    S.buffs.push({ type: 'meteor', t: 7 * buffDur(), max: 7 * buffDur() }); toast(`🌠 MÉTÉORE : production ×77 pendant ${7 * buffDur()} s !`); flash = 0.5;
+  } else if (r < 0.45) {
     const v = Math.min(S.dust * 0.15, dps() * 900) + 13;
     earn(v); toast(`☄️ Pluie d'or : +${fmt(v)}`);
   } else if (r < 0.85) {
@@ -274,7 +277,7 @@ function catchComet() {
     S.buffs.push({ type: 'click', t: 13 * buffDur(), max: 13 * buffDur() }); toast('☄️ Frappe divine : clics ×777 pendant ' + 13 * buffDur() + ' s');
   }
   sfx(1200, 0.3, 'sine', 0.1); sfx(1600, 0.3, 'sine', 0.08);
-  for (let k = 0; k < 40; k++) parts.push({ x: comet.x * cw, y: comet.y * ch, vx: (Math.random() - .5) * 8, vy: (Math.random() - .5) * 8, life: 1, col: '#ffd84d', s: 3 });
+  for (let k = 0; k < 40; k++) parts.push({ x: comet.x * cw, y: comet.y * ch, vx: (Math.random() - .5) * 8, vy: (Math.random() - .5) * 8, life: 1, col: comet.meteor ? '#d9a8ff' : '#ffd84d', s: 3 });
   comet = null; nextComet = (60 + Math.random() * 120) / luck();
   refresh(true);
 }
@@ -347,13 +350,18 @@ function drawStar(dt, time) {
   c.beginPath(); c.arc(-R * 0.16, -R * 0.05, R * 0.05, 0, 7); c.arc(R * 0.16, -R * 0.05, R * 0.05, 0, 7); c.fill();
   c.strokeStyle = '#3a2a10'; c.lineWidth = R * 0.03; c.beginPath(); c.arc(0, R * 0.05, R * 0.1, 0.2, Math.PI - 0.2); c.stroke();
   c.restore();
+  if (S.buffs.some(b => b.type === 'eclipse')) {
+    c.fillStyle = 'rgba(6,6,18,.72)'; c.beginPath(); c.arc(X + R * 0.35, Y - R * 0.1, R * 1.05, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = 'rgba(200,200,255,.35)'; c.lineWidth = 3; c.beginPath(); c.arc(X + R * 0.35, Y - R * 0.1, R * 1.05, 0, Math.PI * 2); c.stroke();
+  }
   // comète
   if (comet) {
     const px = comet.x * cw, py = comet.y * ch;
     const tg = c.createLinearGradient(px, py, px - comet.vx * cw * 3, py);
-    tg.addColorStop(0, 'rgba(255,216,77,.8)'); tg.addColorStop(1, 'rgba(255,216,77,0)');
-    c.strokeStyle = tg; c.lineWidth = 10; c.lineCap = 'round'; c.beginPath(); c.moveTo(px, py); c.lineTo(px - comet.vx * cw * 3, py - comet.vy * ch * 3); c.stroke();
-    c.fillStyle = '#fff4b0'; c.shadowColor = '#ffd84d'; c.shadowBlur = 20; c.beginPath(); c.arc(px, py, 11 + Math.sin(time * 10) * 2, 0, 7); c.fill(); c.shadowBlur = 0;
+    const cc = comet.meteor ? '198,139,255' : '255,216,77';
+    tg.addColorStop(0, `rgba(${cc},.85)`); tg.addColorStop(1, `rgba(${cc},0)`);
+    c.strokeStyle = tg; c.lineWidth = comet.meteor ? 14 : 10; c.lineCap = 'round'; c.beginPath(); c.moveTo(px, py); c.lineTo(px - comet.vx * cw * 3, py - comet.vy * ch * 3); c.stroke();
+    c.fillStyle = comet.meteor ? '#f0dcff' : '#fff4b0'; c.shadowColor = comet.meteor ? '#c68bff' : '#ffd84d'; c.shadowBlur = 20; c.beginPath(); c.arc(px, py, 11 + Math.sin(time * 10) * 2, 0, 7); c.fill(); c.shadowBlur = 0;
   }
   // particules + nombres
   parts.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += 0.1; p.life -= dt * 1.5; c.globalAlpha = Math.max(0, p.life); c.fillStyle = p.col; c.fillRect(p.x, p.y, p.s, p.s); });
@@ -495,6 +503,8 @@ function refresh(structural) {
   if (tip) { if (!tip.el.isConnected) hideTip(); else tip.innerHTML = tip.fn(); }
   $('sf-dust').textContent = fmt(S.dust);
   $('sf-rate').textContent = fmt(dps());
+  const BN = { frenzy: ['☄️ Frénésie ×7', ''], click: ['👆 Frappe ×777', ''], meteor: ['🌠 Météore ×77', 'met'], eclipse: ['🌑 Éclipse : ×2, clics nuls', 'ecl'] };
+  $('sf-buffs').innerHTML = S.buffs.map(b => `<span class="${BN[b.type][1]}">${BN[b.type][0]} · ${Math.ceil(b.t)} s</span>`).join('');
   $('sf-click').textContent = fmt(clickValue());
   const g = novaGain();
   $('sf-nova-gain').textContent = g; $('sf-nova-have').textContent = S.novaBank + (S.novaTotal !== S.novaBank ? ` (${S.novaTotal} gagnées)` : '');
@@ -568,8 +578,8 @@ function refresh(structural) {
 
 function toast(t) {
   const z = $('sf-toasts'); const d = document.createElement('div'); d.className = 'toast'; d.textContent = t; z.appendChild(d);
-  setTimeout(() => d.remove(), 4000);
-  while (z.children.length > 4) z.firstChild.remove();
+  setTimeout(() => d.remove(), 3200);
+  while (z.children.length > 3) z.firstChild.remove();
 }
 function checkAch() {
   for (const a of ACH) if (!S.ach[a.id] && a.test(S)) { S.ach[a.id] = 1; toast(`🏆 Succès : ${a.name}`); }
@@ -593,6 +603,8 @@ function tick(dt) {
   checkChal(dt);
   if (has('m_auto') && !inChal('c_hands')) { autoAcc += dt * 5; while (autoAcc >= 1) { autoAcc--; const v = clickValue(); earn(v); S.clicks++; } }
   S.buffs.forEach(b => b.t -= dt); S.buffs = S.buffs.filter(b => b.t > 0);
+  // éclipse : de temps en temps, production ×2 mais clics sans effet pendant 45 s
+  if (visible && !S.chal) { nextEclipse -= dt * luck(); if (nextEclipse <= 0) { nextEclipse = 480 + Math.random() * 480; S.buffs.push({ type: 'eclipse', t: 45, max: 45 }); toast('🌑 Éclipse : production ×2, mais tes clics sont sans effet (45 s)'); sfx(90, 1, 'sine', 0.08); } }
   galAcc += dt;
   if (galAcc >= 1) {
     galAcc = 0;
@@ -609,7 +621,7 @@ function tick(dt) {
   if (!comet) { nextComet -= dt; if (nextComet <= 0 && visible && !inChal('c_dim')) spawnComet(); }
   else { comet.x += comet.vx * dt; comet.y += comet.vy * dt; if (comet.x < -0.2 || comet.x > 1.2) { comet = null; nextComet = (60 + Math.random() * 120) / luck(); } }
 }
-let autoAcc = 0, galAcc = 0;
+let autoAcc = 0, galAcc = 0, nextEclipse = 300 + Math.random() * 300;
 
 function save() { if (window.PT_NOSAVE) return; S.last = Date.now(); try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
 function load() {
@@ -662,4 +674,4 @@ window.GAMES.forge = {
   hide() { visible = false; hideTip(); save(); },
 };
 // Accès de test (tools/sf-balance.mjs, console).
-window.__sf = { fmt, get S() { return S; }, set S(v) { S = v; }, tick, buyGen, buyUpg, UPGRADES, GENS, costN, upgCost, dps, clickValue, novaGain, earn, fresh, resetRun, META, buyMeta, setMult: m => { buyMult = m; } };
+window.__sf = { fmt, get S() { return S; }, get comet() { return comet; }, spawnComet, catchComet, set S(v) { S = v; }, tick, buyGen, buyUpg, UPGRADES, GENS, costN, upgCost, dps, clickValue, novaGain, earn, fresh, resetRun, META, buyMeta, setMult: m => { buyMult = m; } };
