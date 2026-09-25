@@ -21,6 +21,19 @@ const SHAPES = [
 ];
 const PRAISE = ['', 'Bien !', 'Super !', 'Génial !', 'Incroyable !', 'LÉGENDAIRE !'];
 const STONE = '#7d7f9c';
+// Thèmes : la couleur de base d'une pièce (indice dans COLORS) est remappée à l'affichage.
+const THEMES = [
+  { id: 'classic', name: 'Classique', cost: 0, style: 'candy', pal: COLORS, bg: 'radial-gradient(ellipse at 50% 0%,#3b2a6b 0%,#1b1840 55%,#120f2a 100%)' },
+  { id: 'neon', name: 'Néon', cost: 60, style: 'neon', pal: ['#ff3df0', '#ffe14d', '#27e0ff', '#5dff7a', '#b46bff', '#ff7a2e', '#2effd5'], bg: 'radial-gradient(ellipse at 50% 0%,#1a0a33 0%,#07040f 70%)' },
+  { id: 'pastel', name: 'Pastel', cost: 80, style: 'soft', pal: ['#ffb3c7', '#ffe3a3', '#a8e6ff', '#b8f5c0', '#d9c2ff', '#ffc9a8', '#a8fff0'], bg: 'radial-gradient(ellipse at 50% 0%,#5a4a8a 0%,#3a3066 60%,#2a2450 100%)' },
+  { id: 'pixel', name: 'Pixel', cost: 100, style: 'pixel', pal: ['#e8405a', '#f6c03a', '#3aa8f6', '#4fd65a', '#9a5af6', '#f6823a', '#3af6c8'], bg: 'linear-gradient(#1a2440,#0c1224)' },
+  { id: 'gold', name: 'Or & Obsidienne', cost: 200, style: 'gem', pal: ['#ffd24d', '#ffe899', '#e0a93a', '#fff0c2', '#c98a2a', '#ffb84d', '#f5d68a'], bg: 'radial-gradient(ellipse at 50% 0%,#2a2218 0%,#0a0806 70%)' },
+];
+let THEME = { owned: ['classic'], cur: 'classic' };
+try { THEME = Object.assign(THEME, JSON.parse(localStorage.getItem('blocparty.themes') || '{}')); } catch (e) {}
+const saveTheme = () => { try { localStorage.setItem('blocparty.themes', JSON.stringify(THEME)); } catch (e) {} };
+const curTheme = () => THEMES.find(t => t.id === THEME.cur) || THEMES[0];
+const tc = c => { const i = COLORS.indexOf(c); return i >= 0 ? curTheme().pal[i] : c; };
 const LEVELS = 40;
 // Générateur déterministe : un niveau d'aventure a toujours la même grille et les mêmes pièces.
 function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
@@ -211,6 +224,26 @@ function startDaily() {
   updateHUD();
 }
 
+function applyTheme() { $('tab-blocks').style.background = curTheme().bg; }
+function openThemes() {
+  const box = $('bp-thgrid'); box.innerHTML = '';
+  for (const t of THEMES) {
+    const owned = THEME.owned.includes(t.id), cur = THEME.cur === t.id;
+    const d = document.createElement('button'); d.className = 'bp-th' + (cur ? ' cur' : '') + (!owned && COINS < t.cost ? ' no' : '');
+    d.innerHTML = `<canvas width="200" height="100"></canvas><b>${t.name}</b><small>${cur ? '✓ équipé' : owned ? 'Équiper' : '🪙 ' + t.cost}</small>`;
+    // aperçu : 4 cases dans le style du thème, sur son fond
+    const cv = d.querySelector('canvas'), g = cv.getContext('2d'), prev = THEME.cur;
+    THEME.cur = t.id; g.fillStyle = '#15122e'; g.fillRect(0, 0, 200, 100);
+    [0, 1, 2, 3].forEach(i => cell(18 + i * 42, 30, 40, COLORS[i], 1, g)); THEME.cur = prev;
+    d.onclick = () => {
+      if (!owned) { if (COINS < t.cost) { beep(180, 0.1, 'square', 0.03); return; } COINS -= t.cost; saveCoins(); THEME.owned.push(t.id); beep(880, 0.2, 'triangle', 0.06); }
+      THEME.cur = t.id; saveTheme(); applyTheme(); openThemes();
+    };
+    box.appendChild(d);
+  }
+  $('bp-themes').classList.remove('hidden');
+}
+
 function openMap() {
   $('bp-daily').innerHTML = `📅 Défi du jour<small>${todayLabel()}${DAILY.day === dayKey() && DAILY.best ? ' · meilleur ' + DAILY.best.toLocaleString('fr-FR') : ''}${DAILY.streak > 1 && DAILY.day === dayKey() ? ' · série ' + DAILY.streak : ''}</small>`;
   const box = $('bp-levels'); box.innerHTML = '';
@@ -292,6 +325,7 @@ function place(idx, gx, gy) {
     const allClear = S.board.every(r => r.every(c => !c));
     if (allClear) gained += 300;
     const label = allClear ? 'TABLE RASE ! +300' : (PRAISE[Math.min(n, 5)] || '') + (S.combo > 1 ? `  Combo ×${S.combo}` : '');
+    S.pops.length = 0;   // un seul message à la fois : les éloges successifs ne se superposent plus
     S.pops.push({ text: label, sub: '+' + (gained), t: 0 });
     S.shake = Math.min(14, 3 + n * 3);
     [523, 659, 784, 1046, 1318].slice(0, Math.min(5, n + 1)).forEach((f, i) => setTimeout(() => beep(f, 0.12, 'triangle', 0.05), i * 60));
@@ -334,7 +368,7 @@ function gameOver() {
 
 function burst(gx, gy, color) {
   const cx = L.bx + (gx + 0.5) * L.cs, cy = L.by + (gy + 0.5) * L.cs;
-  S.fx.push({ x: cx, y: cy, vx: (Math.random() - 0.5) * 9, vy: (Math.random() - 0.9) * 9, s: L.cs * (0.15 + Math.random() * 0.2), color, life: 1, rot: Math.random() * 6 });
+  S.fx.push({ x: cx, y: cy, vx: (Math.random() - 0.5) * 9, vy: (Math.random() - 0.9) * 9, s: L.cs * (0.15 + Math.random() * 0.2), color: tc(color), life: 1, rot: Math.random() * 6 });
 }
 
 function updateHUD() {
@@ -376,13 +410,34 @@ function shade(hex, amt) {
   r = Math.max(0, Math.min(255, r)); g = Math.max(0, Math.min(255, g)); b = Math.max(0, Math.min(255, b));
   return `rgb(${r},${g},${b})`;
 }
-function cell(x, y, s, color, alpha = 1) {
-  const p = s * 0.06, r = s * 0.18;
-  ctx.globalAlpha = alpha;
-  ctx.fillStyle = shade(color, -60); rr(x + p, y + p + s * 0.05, s - 2 * p, s - 2 * p, r); ctx.fill();
-  ctx.fillStyle = color; rr(x + p, y + p, s - 2 * p, s - 2 * p - s * 0.05, r); ctx.fill();
-  ctx.fillStyle = 'rgba(255,255,255,.35)'; rr(x + s * 0.2, y + s * 0.14, s * 0.6, s * 0.14, s * 0.07); ctx.fill();
-  ctx.globalAlpha = 1;
+function cell(x, y, s, color, alpha = 1, c2 = ctx) {
+  color = tc(color);
+  const style = curTheme().style, p = s * 0.06, r = s * 0.18;
+  const X = c2 === ctx ? ctx : c2;
+  X.globalAlpha = alpha;
+  const box = (xx, yy, w, h, rad) => { X.beginPath(); X.roundRect ? X.roundRect(xx, yy, w, h, rad) : X.rect(xx, yy, w, h); };
+  if (style === 'neon') {
+    X.fillStyle = shade(color, -150); box(x + p, y + p, s - 2 * p, s - 2 * p, r); X.fill();
+    X.strokeStyle = color; X.lineWidth = Math.max(2, s * 0.08); X.shadowColor = color; X.shadowBlur = s * 0.35; box(x + p * 1.6, y + p * 1.6, s - 3.2 * p, s - 3.2 * p, r * 0.8); X.stroke(); X.shadowBlur = 0;
+  } else if (style === 'pixel') {
+    const q = Math.max(2, Math.round(s / 8));
+    X.fillStyle = shade(color, -70); X.fillRect(x + p, y + p, s - 2 * p, s - 2 * p);
+    X.fillStyle = color; X.fillRect(x + p, y + p, s - 2 * p - q, s - 2 * p - q);
+    X.fillStyle = 'rgba(255,255,255,.55)'; X.fillRect(x + p + q, y + p + q, q * 2, q);
+  } else if (style === 'soft') {
+    X.fillStyle = color; box(x + p, y + p, s - 2 * p, s - 2 * p, s * 0.32); X.fill();
+    X.fillStyle = 'rgba(255,255,255,.45)'; X.beginPath(); X.arc(x + s * 0.33, y + s * 0.32, s * 0.1, 0, 7); X.fill();
+  } else if (style === 'gem') {
+    const m = s / 2;
+    X.fillStyle = shade(color, -90); X.fillRect(x + p, y + p, s - 2 * p, s - 2 * p);
+    X.fillStyle = color; X.beginPath(); X.moveTo(x + m, y + p * 2); X.lineTo(x + s - p * 2, y + m); X.lineTo(x + m, y + s - p * 2); X.lineTo(x + p * 2, y + m); X.closePath(); X.fill();
+    X.fillStyle = 'rgba(255,255,255,.5)'; X.beginPath(); X.moveTo(x + m, y + p * 2); X.lineTo(x + s * 0.7, y + m * 0.9); X.lineTo(x + m, y + m); X.closePath(); X.fill();
+  } else {
+    X.fillStyle = shade(color, -60); box(x + p, y + p + s * 0.05, s - 2 * p, s - 2 * p, r); X.fill();
+    X.fillStyle = color; box(x + p, y + p, s - 2 * p, s - 2 * p - s * 0.05, r); X.fill();
+    X.fillStyle = 'rgba(255,255,255,.35)'; box(x + s * 0.2, y + s * 0.14, s * 0.6, s * 0.14, s * 0.07); X.fill();
+  }
+  X.globalAlpha = 1;
 }
 
 function gem(cx, cy, r) {
@@ -550,6 +605,9 @@ $('bp-restart').onclick = () => {
 };
 $('bp-again').onclick = () => S.mode === 'daily' ? startDaily() : newGame();
 $('bp-mapbtn').onclick = openMap;
+$('bp-themebtn').onclick = openThemes;
+$('bp-themeclose').onclick = () => $('bp-themes').classList.add('hidden');
+applyTheme();
 // reprendre une grille bloquée : on ferme l'écran de fin et on arme le marteau
 const resume = id => { $(id).classList.add('hidden'); S.over = false; tool = 'hammer'; paintBoost(); S.pops.push({ text: 'Choisis une case', sub: 'à casser', t: 0 }); };
 $('bp-cont').onclick = () => resume('bp-over');

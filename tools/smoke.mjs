@@ -113,6 +113,7 @@ log('bestiaire/sanctuaires :', await page.evaluate(() => {
   const nb = window.__nb, S = nb.S, out = [];
   S.state = 'play'; S.stats.hp = S.p.hp = 1e6; S.enemies.length = 0;
   const c = nb.spawnEnemy('charger', S.p.x + 10, S.p.z);
+  c.hp = c.max = 1e9;   // qu'il survive au blaster le temps de charger
   let rush = false; for (let i = 0; i < 90; i++) { S.state = 'play'; S.pending = 0; nb.update(1 / 30); if (c.cst === 2) rush = true; }
   out.push('ruée=' + rush);
   S.enemies.length = 0;
@@ -188,6 +189,26 @@ await page.waitForTimeout(400); await shot(page, 'bonk-end');
 await page.click('#nb-again').catch(() => {}); await page.waitForTimeout(400); await shot(page, 'bonk-menu2');
 log('crédits après run :', await page.$eval('#nb-credits', e => e.textContent));
 await page.close();
+
+// ---------- Bloc Party : thèmes (500 pièces injectées)
+{
+  const t = guard(await browser.newPage({ viewport: { width: 1280, height: 760 } })); watch(t, 'thèmes');
+  await t.addInitScript(() => { if (!sessionStorage.getItem('inj')) { sessionStorage.setItem('inj', 1); localStorage.setItem('blocparty.coins', '500'); } });
+  await t.goto(base + '#blocks'); await t.waitForTimeout(500);
+  await t.click('#bp-themebtn'); await t.waitForTimeout(300); await shot(t, 'blocks-themes');
+  const res = [];
+  for (const i of [1, 3, 4]) {
+    await t.click(`#bp-thgrid .bp-th:nth-child(${i + 1})`); await t.waitForTimeout(200);
+    await t.click('#bp-themeclose');
+    await t.evaluate(() => { const { S, place, fits, N } = window.__bp; for (let k = 0; k < 3; k++) S.tray.forEach((pc, j) => { if (!pc) return; for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (S.tray[j] && fits(pc, x, y)) { place(j, x, y); return; } }); });
+    await t.waitForTimeout(400); await shot(t, 'blocks-theme-' + i);
+    if (await t.$eval('#bp-over', e => !e.classList.contains('hidden'))) await t.click('#bp-again');   // placements au hasard : partie parfois finie
+    await t.click('#bp-themebtn'); await t.waitForTimeout(200);
+  }
+  const st = await t.evaluate(() => [localStorage.getItem('blocparty.themes'), localStorage.getItem('blocparty.coins')]);
+  log('thèmes :', st.join(' · pièces='));
+  await t.close();
+}
 
 // ---------- Star Forge : défis (sauvegarde injectée : 4 Supernovae, défi « Sans les mains » presque fini)
 {
