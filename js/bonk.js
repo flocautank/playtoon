@@ -1754,6 +1754,7 @@ function draw2D(dt) {
 
 let hudT = 0;
 function updateHUD(dt) {
+  $('nb-root').classList.toggle('bossing', !!S.boss);   // les annonces passent sous la barre du boss
   hudT -= dt; if (hudT > 0) return; hudT = 0.1;
   $('nb-xpbar').style.width = (S.xp / S.need * 100) + '%';
   $('nb-level').textContent = 'NIV ' + S.level + ' · ÉTAPE ' + (S.stage + 1);

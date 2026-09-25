@@ -404,6 +404,20 @@ for (const t of ['blocks', 'forge', 'bonk']) {
   }
 }
 await m.tap('#nb-start'); await m.waitForTimeout(1500); await shot(m, 'm-bonk-play');
+// joystick : un pouce posé sur le cercle doit déplacer le personnage (régression : pointercancel du navigateur)
+{
+  const cdpM = await ctx.newCDPSession(m);
+  const jr = await m.$eval('#nb-joy', e => { const r = e.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; });
+  const res = [];
+  for (let k = 0; k < 2; k++) {
+    const s0 = await m.evaluate(() => { const S = window.__nb.S; S.enemies.length = 0; S.p.hp = 1e6; return [S.p.x, S.p.z]; });
+    await cdpM.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: jr.x, y: jr.y }] });
+    for (let i = 1; i <= 10; i++) { await cdpM.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: jr.x, y: jr.y - i * 5 }] }); await m.waitForTimeout(30); }
+    await m.waitForTimeout(1200); await cdpM.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    res.push(await m.evaluate(s0 => { const S = window.__nb.S; return +Math.hypot(S.p.x - s0[0], S.p.z - s0[1]).toFixed(1); }, s0));
+  }
+  log('mobile joystick sur le cercle : déplacements', res.join(' / '), res.every(d => d > 5) ? 'OK' : 'ÉCHEC');
+}
 await m.evaluate(() => { const S = window.__nb.S; S.xp = S.need * 1.01; window.__nb.update(1 / 30); });
 await m.waitForTimeout(400); await shot(m, 'm-bonk-levelup');
 const visibleCards = await m.$$eval('.nb-choice', els => els.filter(e => { const r = e.getBoundingClientRect(); return r.bottom <= innerHeight && r.top >= 0; }).length);

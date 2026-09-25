@@ -13,9 +13,9 @@ headless (`node tools/smoke.mjs`, zéro erreur console, captures relues), pouss�
 
 ## À faire (ordre de priorité)
 
-*Évaluation n° 2 (sous-agent joueur, 2026-09-25, desktop + iPhone 13) — aucun bloquant, zéro erreur console ; corrections de l'évaluation n° 1 confirmées.*
+*Évaluation n° 3 (sous-agent joueur, 2026-09-25, desktop + iPhone 13) — un bloquant (joystick mobile), le reste en finitions ; corrections des évaluations 1 et 2 confirmées. Verdict : une fois le joystick corrigé, plus rien qui vaille une itération → fin de la boucle.*
 
-*(retours de l'évaluation n° 2 traités — prochaine étape : évaluation n° 3)*
+*(vide)*
 
 *Feuille de route (après les retours d'évaluation).*
 
@@ -52,6 +52,7 @@ headless (`node tools/smoke.mjs`, zéro erreur console, captures relues), pouss�
 - **Itération E6** (2026-09-25, évaluation n° 2) — Star Forge : prix sous chaque amélioration (doré si abordable), bouton « Tout acheter (n) » (les moins chères d'abord) ; notifications en bas de l'écran sur mobile et sous le bandeau d'effets sur desktop ; étoile plus grande et orbites resserrées quand le cadre est bas, description de la Supernova masquée sur mobile ; Novae formatées.
 - **Itération E7** (2026-09-25, évaluation n° 2) — Bloc Party : bouton « 🗺️ Modes » sur l'écran de fin (fermer la carte y ramène, « Partie classique » relance) ; « +3 coups · 🪙 25 » une fois par tentative quand l'Aventure échoue faute de coups ; « RECORD » masqué tant qu'il n'y en a pas ; 🎯 au lieu de 📅 (qui affichait une date anglaise) ; messages du plateau jamais plus larges que la grille.
 - **Itération E8** (2026-09-25, évaluation n° 2) — Transverse : 🏠 dans la nav mobile (accueil et objectifs du jour toujours accessibles, la barre garde ses trois onglets et tient à 360 px) ; bouton « Jouer » de l'accueil collé en bas de la carte, visible sans défiler.
+- **Itération E9** (2026-09-25, évaluation n° 3) — Neon Bonk : **joystick mobile** qui ne répondait pas quand le pouce se posait sur son cercle (le navigateur annulait le geste : `touch-action` sur toute la zone de jeu, cercle transparent aux touchers ; 0,8 → 15 unités parcourues, test de non-régression par vrais événements tactiles) ; piste de fond sous la barre du boss, annonces décalées sous elle ; listes de la pause au même style. Bloc Party : « presque » seulement s'il manquait peu, pas de record Chrono à 0 point, thèmes en deux colonnes sur mobile. Star Forge : bandeau Supernova réduit à une ligne quand il n'y a rien à gagner, « Nova / Novae » accordé, onglets qui tiennent sur mobile.
 
 ## À surveiller
 

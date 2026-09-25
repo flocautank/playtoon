@@ -260,7 +260,7 @@ async function prestige() {
   const g = novaGain();
   if (g < 1) return;
   const warn = g <= 3 ? `<br><br>⚠️ <b>C'est encore peu.</b> Le gain grimpe vite : en continuant quelques minutes, tu pourrais en obtenir ${novaGainAt(S.runTotal * 4)}.` : '';
-  if (!await ptConfirm(`<b>💥 Supernova</b><br>Tu perds ta poussière, tes forges et tes améliorations,<br>mais tu gagnes <b class="nova">${g} Nova(e)</b> : +${Math.round(g * novaPct() * 100)} % de production permanente et de quoi développer ta Constellation.${warn}`, 'Exploser')) return;
+  if (!await ptConfirm(`<b>💥 Supernova</b><br>Tu perds ta poussière, tes forges et tes améliorations,<br>mais tu gagnes <b class="nova">${fmt(g)} Nova${g > 1 ? 'e' : ''}</b> : +${Math.round(g * novaPct() * 100)} % de production permanente et de quoi développer ta Constellation.${warn}`, 'Exploser')) return;
   resetRun({ novaTotal: S.novaTotal + g, novaBank: S.novaBank + g, prestiges: S.prestiges + 1 });
   flash = 1;
   sfx(110, 1.2, 'sawtooth', 0.08);
@@ -527,6 +527,7 @@ function refresh(structural) {
   const g = novaGain();
   $('sf-nova-gain').textContent = fmt(g); $('sf-nova-have').textContent = fmt(S.novaBank) + (S.novaTotal !== S.novaBank ? ` (${fmt(S.novaTotal)} gagnées)` : '');
   $('sf-prestige').disabled = g < 1;
+  $('sf-prestige-box').classList.toggle('idle', g < 1);
   $('sf-prestige-box').style.display = S.runTotal >= 1e5 || S.novaTotal > 0 ? '' : 'none';
   $('sf-tab-chal').classList.toggle('hidden', S.prestiges < 1);
   const ch = S.chal && CHALS.find(x => x.id === S.chal);

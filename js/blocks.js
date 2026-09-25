@@ -194,7 +194,8 @@ function advResult(win) {
     if (stars > prev) { COINS += (stars - prev) * 10; saveCoins(); }
   }
   setTimeout(() => {
-    $('bp-restitle').textContent = win ? `Niveau ${S.lvl} réussi !` : 'Raté… presque !';
+    const close = S.goal.type === 'gems' ? S.got >= S.goal.gems - 1 : S.lines >= S.goal.target - 1;
+    $('bp-restitle').textContent = win ? `Niveau ${S.lvl} réussi !` : close ? 'Raté… presque !' : 'Raté !';
     $('bp-resstars').innerHTML = [1, 2, 3].map(k => k <= stars ? '★' : '<i>★</i>').join('');
     $('bp-restext').textContent = win ? `${S.goal.moves - S.moves} coups utilisés sur ${S.goal.moves} · 🪙 total ${COINS}` : (S.moves <= 0 ? 'Plus de coups.' : 'Plus de place pour les pièces.');
     $('bp-resnext').classList.toggle('hidden', !win || S.lvl >= LEVELS);
@@ -266,7 +267,7 @@ function chronoEnd() {
   if (S.over) return;
   S.over = true; S.endWhy = S.clock <= 0.05 ? 'time' : 'stuck'; S.clock = Math.max(0, S.clock);
   const entry = { s: S.score, d: new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }), t: Date.now() };
-  TOP.push(entry); TOP.sort((a, b) => b.s - a.s); TOP = TOP.slice(0, 10);
+  if (S.score > 0) { TOP.push(entry); TOP.sort((a, b) => b.s - a.s); TOP = TOP.slice(0, 10); }   // un chrono à 0 point n'est pas un record
   S.myRank = TOP.indexOf(entry);
   try { localStorage.setItem('blocparty.chrono', JSON.stringify(TOP)); } catch (e) {}
   updateHUD();
@@ -403,7 +404,7 @@ function gameOver() {
   $('bp-overtitle').textContent = S.mode === 'chrono' && S.endWhy === 'time' ? '⏱ Temps écoulé !' : 'Plus de place !';
   const top = $('bp-top10'); top.classList.toggle('hidden', S.mode !== 'chrono');
   if (S.mode === 'chrono') {
-    $('bp-newbest').textContent = S.myRank === 0 ? '🏆 Meilleur chrono !' : S.myRank > 0 ? `Classé ${S.myRank + 1}ᵉ de ton top 10` : 'Hors du top 10';
+    $('bp-newbest').textContent = S.myRank === 0 ? '🏆 Meilleur chrono !' : S.myRank > 0 ? `Classé ${S.myRank + 1}ᵉ de ton top 10` : S.score ? 'Hors du top 10' : 'Aucun point : pas de classement';
     top.innerHTML = TOP.map((e, i) => `<li class="${i === S.myRank ? 'me' : ''}">${e.s.toLocaleString('fr-FR')} <span class="muted">· ${e.d}</span></li>`).join('');
   } else if (S.mode === 'daily') $('bp-newbest').textContent = `🎯 Défi du ${todayLabel()} — meilleur du jour : ${DAILY.best.toLocaleString('fr-FR')} · série : ${DAILY.streak} jour${DAILY.streak > 1 ? 's' : ''}`;
   else $('bp-newbest').textContent = S.score >= S.best && S.score > 0 ? '🏆 Nouveau record !' : 'Record : ' + S.best.toLocaleString('fr-FR');
