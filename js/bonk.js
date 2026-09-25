@@ -400,7 +400,7 @@ function buildLevel() {
     S.obst.push({ kind: 'cyl', x, z, r, top });
   }
   // coffres au sol
-  while (S.chests.length < 16) {
+  for (let tries = 0; S.chests.length < 16 && tries < 2000; tries++) {   // borné : jamais de boucle infinie à la génération
     const x = rand(-HALF + 6, HALF - 6), z = rand(-HALF + 6, HALF - 6);
     if (Math.hypot(x, z) < 12 || S.obst.some(o => insideObs(o, x, z, 1.2))) continue;
     S.chests.push(mkChestData(x, z, terrainH(x, z)));

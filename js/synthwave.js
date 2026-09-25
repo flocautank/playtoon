@@ -44,7 +44,9 @@ export class Synthwave {
     const c = this.ctx;
     if (window.PT_MUTE) this.master.gain.value = 0; else if (this.on && this.master.gain.value === 0) this._fade(0.5, 0.3);
     const sixteenth = 60 / this.bpm / 4;
-    while (this.next < c.currentTime + 0.12) { this._play(this.step, this.next, sixteenth); this.next += sixteenth; this.step = (this.step + 1) % 64; }
+    // si l'audio a pris du retard (onglet gelé, appareil lent), on recale au lieu de tout rattraper
+    if (this.next < c.currentTime - 0.25) this.next = c.currentTime + 0.05;
+    for (let n = 0; this.next < c.currentTime + 0.12 && n < 16; n++) { this._play(this.step, this.next, sixteenth); this.next += sixteenth; this.step = (this.step + 1) % 64; }
   }
 
   _play(s, t, dur) {

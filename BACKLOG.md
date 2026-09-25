@@ -6,9 +6,8 @@ headless (`node tools/smoke.mjs`, zéro erreur console, captures relues), pouss�
 
 ## À faire (ordre de priorité)
 
-1. **[Bloc Party] Défi du jour** — graine quotidienne identique pour tout le monde, meilleur score du jour.
-2. **[Transverse] PWA** — manifest + icône pour installer Playtoon sur l'écran d'accueil mobile.
-3. **[Neon Bonk] Équilibrage minutes 2–5** — le bot « humain » (fuite + ramassage, choix au hasard) meurt entre 2:30 et 9:00 selon les runs, v1 comme aujourd'hui : mesurer sur 20 runs et adoucir la montée (brutes, taux d'apparition) sans rendre la fin triviale.
+1. **[Transverse] PWA** — manifest + icône pour installer Playtoon sur l'écran d'accueil mobile.
+2. **[Neon Bonk] Équilibrage minutes 2–5** — le bot « humain » (fuite + ramassage, choix au hasard) meurt entre 2:30 et 9:00 selon les runs, v1 comme aujourd'hui : mesurer sur 20 runs et adoucir la montée (brutes, taux d'apparition) sans rendre la fin triviale.
 
 ## Fait
 
@@ -21,7 +20,8 @@ headless (`node tools/smoke.mjs`, zéro erreur console, captures relues), pouss�
 - **Itération 6** (2026-09-25) — Neon Bonk : chargeur (vise, clignote, fonce en ligne droite) et diviseur (se scinde en 3) ; sanctuaires typés — charge (bénédiction), défi (2 élites → coffre gratuit), avarice (+50 % d'or, +25 % d'ennemis, cumulable) — couleurs propres sur le radar ; 40 jarres qui se brisent au contact (or, XP ou soin).
 - **Itération 7** (2026-09-25) — Neon Bonk : musique synthwave procédurale (`js/synthwave.js`, WebAudio) — nappe, basse, arpège avec écho, batterie ; intensité 0–3 selon la minute, la foule proche et le boss ; transposée et accélérée dans la Fournaise ; coupée par le bouton son, réglable dans la pause.
 - **Itération 8** (2026-09-25) — Star Forge : équilibrage mesuré par `tools/sf-balance.mjs` (joueur appliqué, 3 clics/s, meilleur rendement) — 1re Supernova rentable vers 12–15 min au lieu de 25, 20 Novae en 45 min, run 2 deux fois plus rapide (Novae : √(produit/2e5), +5 % chacune, 8 % avec le nœud ; palier ×2 dès 10 forges) ; option de notation scientifique ; correctif d'un plantage au chargement introduit en cours d'itération et attrapé par le test.
+- **Itération 9** (2026-09-25) — Bloc Party : défi du jour (grille et suite de pièces tirées de la date, identiques pour tous et à chaque essai), meilleur du jour, série de jours consécutifs, pièces gagnées ; bornage défensif de deux boucles (placement des coffres de Neon Bonk, rattrapage de la musique) ; test de fumée avec délais par action, étapes horodatées et chien de garde qui imprime la pile en cas de gel.
 
 ## À surveiller
 
-- `tools/smoke.mjs` a échoué une fois sans message lisible pendant l'itération 4, puis est passé deux fois de suite : possible instabilité d'un clic en headless.
+- **Gel intermittent en headless au lancement de Neon Bonk** (itérations 4 et 9) : ~1 passage sur 10 du test complet, jamais reproduit isolément (28/28 lancements seuls OK) ni depuis le bornage des boucles (11/12). Le chien de garde de `tools/smoke.mjs` imprime désormais la pile de la page gelée : au prochain gel, lire la pile avant de conclure à un artefact du rendu logiciel (SwiftShader).

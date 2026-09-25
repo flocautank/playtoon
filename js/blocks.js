@@ -76,7 +76,7 @@ function load() {
   return false;
 }
 function save() {
-  if (S.mode === 'adv') return;   // l'aventure ne touche pas à la partie classique en cours
+  if (S.mode !== 'classic') return;   // aventure et défi du jour ne touchent pas à la partie classique en cours
   try {
     localStorage.setItem('blocparty.best', S.best);
     if (S.over) localStorage.removeItem('blocparty.save');
@@ -187,7 +187,32 @@ function advResult(win) {
     else beep(260, 0.4, 'sawtooth', 0.04);
   }, 700);
 }
+// ---------- défi du jour : même grille et mêmes pièces pour tout le monde, graine = date locale
+const dayKey = (d = new Date()) => d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+const todayLabel = () => new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
+let DAILY = { day: 0, best: 0, streak: 0, last: 0 };
+try { DAILY = Object.assign(DAILY, JSON.parse(localStorage.getItem('blocparty.daily') || '{}')); } catch (e) {}
+const saveDaily = () => { try { localStorage.setItem('blocparty.daily', JSON.stringify(DAILY)); } catch (e) {} };
+function startDaily() {
+  const today = dayKey();
+  if (DAILY.day !== today) {
+    const y = new Date(); y.setDate(y.getDate() - 1);
+    DAILY.streak = DAILY.day === dayKey(y) ? DAILY.streak + 1 : 1;
+    DAILY.day = today; DAILY.best = 0; saveDaily();
+  }
+  const r = mulberry32(today);
+  const board = Array.from({ length: N }, () => Array(N).fill(null));
+  for (let k = 0; k < 7; k++) { const x = (r() * N) | 0, y = (r() * N) | 0; board[y][x] = STONE; }
+  S.mode = 'daily'; S.gems = new Set(); S.board = board; S.score = 0; S.shown = 0; S.combo = 0; S.over = false; S.fx = []; S.pops = []; S.clearing = [];
+  rnd = mulberry32(today * 31 + 7);
+  fillTray();
+  ['bp-over', 'bp-map', 'bp-res'].forEach(id => $(id).classList.add('hidden'));
+  S.pops.push({ text: '📅 Défi du jour', sub: `${todayLabel()} · série ${DAILY.streak}`, t: 0 });
+  updateHUD();
+}
+
 function openMap() {
+  $('bp-daily').innerHTML = `📅 Défi du jour<small>${todayLabel()}${DAILY.day === dayKey() && DAILY.best ? ' · meilleur ' + DAILY.best.toLocaleString('fr-FR') : ''}${DAILY.streak > 1 && DAILY.day === dayKey() ? ' · série ' + DAILY.streak : ''}</small>`;
   const box = $('bp-levels'); box.innerHTML = '';
   const open = unlockedLvl();
   for (let n = 1; n <= LEVELS; n++) {
@@ -250,7 +275,7 @@ function place(idx, gx, gy) {
   const n = rows.length + cols.length;
   if (n > 0) {
     S.combo++; S.lines = (S.lines || 0) + n;
-    if (S.mode === 'classic') { COINS += n; saveCoins(); }
+    if (S.mode !== 'adv') { COINS += n; saveCoins(); }
     const cells = new Map();
     rows.forEach(y => { for (let x = 0; x < N; x++) cells.set(y * N + x, [x, y]); });
     cols.forEach(x => { for (let y = 0; y < N; y++) cells.set(y * N + x, [x, y]); });
@@ -289,7 +314,8 @@ function place(idx, gx, gy) {
     }
     updateHUD(); return;
   }
-  if (S.score > S.best) S.best = S.score;
+  if (S.mode === 'daily') { if (S.score > DAILY.best) { DAILY.best = S.score; saveDaily(); } }
+  else if (S.score > S.best) S.best = S.score;
   if (!S.tray.some(t => t && canPlaceAnywhere(t))) {
     S.over = true;
     setTimeout(gameOver, 600);
@@ -299,7 +325,8 @@ function place(idx, gx, gy) {
 
 function gameOver() {
   $('bp-final').textContent = S.score.toLocaleString('fr-FR');
-  $('bp-newbest').textContent = S.score >= S.best && S.score > 0 ? '🏆 Nouveau record !' : 'Record : ' + S.best.toLocaleString('fr-FR');
+  if (S.mode === 'daily') $('bp-newbest').textContent = `📅 Défi du ${todayLabel()} — meilleur du jour : ${DAILY.best.toLocaleString('fr-FR')} · série : ${DAILY.streak} jour${DAILY.streak > 1 ? 's' : ''}`;
+  else $('bp-newbest').textContent = S.score >= S.best && S.score > 0 ? '🏆 Nouveau record !' : 'Record : ' + S.best.toLocaleString('fr-FR');
   $('bp-cont').classList.toggle('hidden', COINS < TOOLS.hammer);
   $('bp-over').classList.remove('hidden');
   beep(300, 0.3, 'sawtooth', 0.04); setTimeout(() => beep(200, 0.4, 'sawtooth', 0.04), 200);
@@ -311,9 +338,10 @@ function burst(gx, gy, color) {
 }
 
 function updateHUD() {
-  const adv = S.mode === 'adv';
-  $('bp-l1').textContent = adv ? `NIVEAU ${S.lvl} · COUPS` : 'SCORE';
-  $('bp-l2').textContent = adv ? 'OBJECTIF' : 'MEILLEUR';
+  const adv = S.mode === 'adv', daily = S.mode === 'daily';
+  $('bp-l1').textContent = adv ? `NIVEAU ${S.lvl} · COUPS` : daily ? '📅 DÉFI DU JOUR' : 'SCORE';
+  $('bp-l2').textContent = adv ? 'OBJECTIF' : daily ? 'MEILLEUR DU JOUR' : 'MEILLEUR';
+  if (daily) { $('bp-best').textContent = DAILY.best.toLocaleString('fr-FR'); return; }
   if (adv) {
     $('bp-score').textContent = S.moves;
     $('bp-best').textContent = S.goal.type === 'gems' ? `💎 ${S.got}/${S.goal.gems}` : `▤ ${Math.min(S.lines, S.goal.target)}/${S.goal.target}`;
@@ -520,7 +548,7 @@ $('bp-restart').onclick = () => {
   if (S.mode === 'adv') { startLevel(S.lvl); return; }
   if (S.score === 0 || confirm('Recommencer une nouvelle partie ?')) newGame();
 };
-$('bp-again').onclick = newGame;
+$('bp-again').onclick = () => S.mode === 'daily' ? startDaily() : newGame();
 $('bp-mapbtn').onclick = openMap;
 // reprendre une grille bloquée : on ferme l'écran de fin et on arme le marteau
 const resume = id => { $(id).classList.add('hidden'); S.over = false; tool = 'hammer'; paintBoost(); S.pops.push({ text: 'Choisis une case', sub: 'à casser', t: 0 }); };
@@ -534,7 +562,8 @@ document.querySelectorAll('#bp-boost button').forEach(b => b.onclick = () => {
 });
 paintBoost();
 $('bp-mapclose').onclick = () => $('bp-map').classList.add('hidden');
-$('bp-classic').onclick = () => { $('bp-map').classList.add('hidden'); if (S.mode === 'adv') { S.mode = 'classic'; rnd = Math.random; S.gems.clear(); if (!load() || !S.tray.some(t => t && canPlaceAnywhere(t))) newGame(); S.over = false; updateHUD(); } };
+$('bp-daily').onclick = startDaily;
+$('bp-classic').onclick = () => { $('bp-map').classList.add('hidden'); if (S.mode !== 'classic') { S.mode = 'classic'; rnd = Math.random; S.gems.clear(); if (!load() || !S.tray.some(t => t && canPlaceAnywhere(t))) newGame(); S.over = false; updateHUD(); } };
 $('bp-resnext').onclick = () => startLevel(Math.min(LEVELS, S.lvl + 1));
 $('bp-resretry').onclick = () => startLevel(S.lvl);
 $('bp-resmap').onclick = () => { $('bp-res').classList.add('hidden'); openMap(); };
@@ -549,4 +578,4 @@ window.GAMES.blocks = {
   hide() { running = false; S.drag = null; },
 };
 // Accès de test (tools/smoke.mjs, console).
-window.__bp = { S, place, fits, startLevel, linesToClear, canPlaceAnywhere, N };
+window.__bp = { S, place, fits, startLevel, startDaily, linesToClear, canPlaceAnywhere, N };
