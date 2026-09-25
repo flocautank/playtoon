@@ -87,6 +87,8 @@ const filledAfter = await page.evaluate(() => window.__bp.S.board.flat().filter(
 log(`bombe : cases ${filledBefore} → ${filledAfter}, pièces ${coinsBefore} → ${await page.$eval('#bp-coins', e => e.textContent)}`);
 await page.click('[data-tool=shuffle]'); await page.waitForTimeout(200); await shot(page, 'blocks-boost');
 log('étape : Star Forge'); await page.goto(base + '#forge'); await page.waitForTimeout(700);
+const intro = await page.$eval('#sf-intro', e => !e.classList.contains('hidden')); await shot(page, 'forge-intro'); if (intro) await page.click('#sf-intro-ok');
+log('intro Star Forge affichée au 1er lancement :', intro);
 for (let i = 0; i < 40; i++) await page.mouse.click(360, 390);
 await page.waitForTimeout(300); await shot(page, 'forge');
 for (const t of ['upg', 'meta', 'ach', 'opt', 'gen']) { await page.click(`[data-sf=${t}]`); await page.waitForTimeout(150); }
@@ -228,7 +230,7 @@ await page.close();
   await g.addInitScript(() => { if (!sessionStorage.getItem('inj')) { sessionStorage.setItem('inj', 1); localStorage.setItem('starforge.save.v1', JSON.stringify({ dust: 1e6, runTotal: 1e6, lifeTotal: 1e10, gens: [30, 20, 10, 5, 0, 0, 0, 0, 0, 0], upg: {}, novaTotal: 250, novaBank: 40, meta: { m_click: 1, m_auto: 1 }, ach: {}, prestiges: 12, chalDone: { c_hands: 1 }, last: Date.now() })); } });
   await g.goto(base + '#forge'); await g.waitForTimeout(500);
   await g.click('[data-sf=meta]'); await g.waitForTimeout(400); await shot(g, 'forge-bigbang');
-  await g.click('#sf-bb-btn'); await g.waitForTimeout(400);
+  await g.click('#sf-bb-btn'); await g.waitForTimeout(200); await g.click('#pt-ok'); await g.waitForTimeout(400);
   let st = await g.evaluate(() => { const S = window.__sf.S; return { sing: S.sing, bank: S.singBank, nova: S.novaTotal, meta: Object.keys(S.meta).length, chal: Object.keys(S.chalDone).length }; });
   await g.click('#sf-gal .sf-item[data-id=g_auto]'); await g.waitForTimeout(200);
   await g.evaluate(() => { window.__sf.S.dust = 5000; });
@@ -252,7 +254,7 @@ await page.close();
   log(`défi : bandeau « ${banner} » → réussis=${JSON.stringify(st.chalDone)} en cours=${st.chal}`);
   // lancer un défi depuis l'interface
   await f.goto(base + '#forge'); await f.waitForTimeout(500); await f.click('#sf-tab-chal'); await f.waitForTimeout(200);
-  await f.click('.sf-ch[data-id=c_short] button'); await f.waitForTimeout(400); await shot(f, 'forge-chal-run');
+  await f.click('.sf-ch[data-id=c_short] button'); await f.waitForTimeout(200); await shot(f, 'forge-modal'); await f.click('#pt-ok'); await f.waitForTimeout(400); await shot(f, 'forge-chal-run');
   await f.click('[data-sf=opt]'); await f.click('#sf-sci'); await f.waitForTimeout(300);
   log('notation scientifique :', await f.evaluate(() => window.__sf.fmt(1.234e9)));
   await f.click('#sf-sci');
@@ -276,7 +278,7 @@ await page.close();
   await pr.click('#pt-profile summary'); await pr.click('#pt-exp');
   const code = await pr.$eval('#pt-io', e => e.value);
   await pr.evaluate(() => localStorage.setItem('blocparty.best', '1'));
-  await pr.fill('#pt-io', code); await pr.click('#pt-imp'); await pr.waitForTimeout(1500);
+  await pr.fill('#pt-io', code); await pr.click('#pt-imp'); await pr.waitForTimeout(200); await pr.click('#pt-ok'); await pr.waitForTimeout(1500);
   const back = await pr.evaluate(() => localStorage.getItem('blocparty.best') + ' / ' + JSON.parse(localStorage.getItem('starforge.save.v1')).prestiges);
   log(`profil : ${txt.slice(0, 160)}… · export ${code.length} car. · après import : record=${back}`);
   await pr.close();
@@ -302,7 +304,21 @@ await page.close();
 log('étape : mobile');
 const ctx = await browser.newContext({ ...devices['iPhone 13'] });
 const m = guard(await ctx.newPage()); watch(m, 'mobile');
-for (const t of ['blocks', 'forge', 'bonk']) { await m.goto(base + '#' + t); await m.waitForTimeout(900); await shot(m, 'm-' + t); }
+for (const t of ['blocks', 'forge', 'bonk']) {
+  await m.goto(base + '#' + t); await m.waitForTimeout(900); await shot(m, 'm-' + t);
+  if (t === 'forge') {
+    if (await m.$eval('#sf-intro', e => !e.classList.contains('hidden'))) await m.tap('#sf-intro-ok');
+    const r = await m.$eval('#sf-canvas', c => { const b = c.getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2 }; });
+    for (let i = 0; i < 15; i++) await m.touchscreen.tap(r.x, r.y);
+    await m.waitForTimeout(300);
+    log('mobile : 15 touchers au centre de l\'étoile →', await m.$eval('#sf-dust', e => e.textContent), 'poussière');
+    await m.evaluate(() => { window.__sf.S.dust = 1e5; window.__sf.S.gens[0] = 12; }); await m.tap('[data-sf=upg]'); await m.waitForTimeout(400);
+    await m.tap('#sf-upg-grid .sf-upg'); await m.waitForTimeout(250); await shot(m, 'm-forge-tip');
+    const before = await m.evaluate(() => Object.keys(window.__sf.S.upg).length);
+    await m.tap('#sf-upg-grid .sf-upg'); await m.waitForTimeout(250);
+    log('mobile : fiche au 1er toucher =', !!(await m.$('.sf-tip')) || 'fermée après achat', '· achat au 2e toucher :', before, '→', await m.evaluate(() => Object.keys(window.__sf.S.upg).length));
+  }
+}
 await m.tap('#nb-start'); await m.waitForTimeout(1500); await shot(m, 'm-bonk-play');
 
 await browser.close(); srv.close();

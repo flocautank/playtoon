@@ -652,7 +652,7 @@ canvas.addEventListener('pointercancel', () => S.drag = null);
 $('bp-restart').onclick = () => {
   if (S.mode === 'adv') { startLevel(S.lvl); return; }
   if (S.mode === 'chrono') { startChrono(); return; }
-  if (S.score === 0 || confirm('Recommencer une nouvelle partie ?')) newGame();
+  if (S.score === 0) newGame(); else window.ptConfirm('Recommencer une nouvelle partie ? Le score en cours sera perdu.', 'Recommencer').then(ok => ok && newGame());
 };
 $('bp-again').onclick = () => S.mode === 'daily' ? startDaily() : S.mode === 'chrono' ? startChrono() : newGame();
 $('bp-chrono').onclick = startChrono;

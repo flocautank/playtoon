@@ -14,6 +14,17 @@ function show(id) {
   try { localStorage.setItem('arcade.tab', id); } catch (e) {}
 }
 
+// Confirmation dans le style du site (remplace window.confirm) : renvoie une promesse de booléen.
+window.ptConfirm = (html, ok = 'Continuer') => new Promise(res => {
+  const m = document.getElementById('pt-modal');
+  document.getElementById('pt-modal-txt').innerHTML = html;
+  document.getElementById('pt-ok').textContent = ok;
+  const done = v => { m.classList.add('hidden'); res(v); };
+  document.getElementById('pt-ok').onclick = () => done(true);
+  document.getElementById('pt-cancel').onclick = () => done(false);
+  m.classList.remove('hidden');
+});
+
 // Son global : un seul interrupteur pour les trois jeux (lu par chaque fonction de son).
 const muteBtn = document.getElementById('mute');
 try { window.PT_MUTE = localStorage.getItem('playtoon.mute') === '1'; } catch (e) {}
@@ -60,10 +71,10 @@ document.getElementById('pt-exp').onclick = () => {
   const o = {}; for (const k of KEYS()) o[k] = localStorage.getItem(k);
   document.getElementById('pt-io').value = btoa(unescape(encodeURIComponent(JSON.stringify(o))));
 };
-document.getElementById('pt-imp').onclick = () => {
+document.getElementById('pt-imp').onclick = async () => {
   try {
     const o = JSON.parse(decodeURIComponent(escape(atob(document.getElementById('pt-io').value.trim()))));
-    if (!confirm('Remplacer la progression actuelle des trois jeux par cette sauvegarde ?')) return;
+    if (!await window.ptConfirm('Remplacer la progression actuelle des <b>trois jeux</b> par cette sauvegarde ?', 'Remplacer')) return;
     window.PT_NOSAVE = true;   // empêche les jeux de réécrire leur état en mémoire par-dessus l'import au rechargement
     for (const [k, v] of Object.entries(o)) if (/^(blocparty|starforge|neonbonk|playtoon)\./.test(k)) localStorage.setItem(k, v);
     location.reload();

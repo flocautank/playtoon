@@ -15,15 +15,14 @@ headless (`node tools/smoke.mjs`, zéro erreur console, captures relues), pouss�
 
 *Évaluation n° 1 (sous-agent joueur, 2026-09-25, desktop + iPhone 13) — versée en tête.*
 
-1. **[Star Forge — mobile, bloquant]** L'étoile ne répond qu'à moitié au doigt (zone cliquable calculée avant la mise en page, recalculée seulement au redimensionnement) → `ResizeObserver`. Améliorations / Constellation / succès illisibles au doigt (infobulles au survol seulement) → fiche au toucher avec bouton d'achat. Toasts qui recouvrent la Supernova et les listes → les déplacer. Infobulle figée (« Total : 0 /s ») → valeurs vivantes, fermée au changement de panneau. Onglets serrés. Supernova à 1 Nova trop tentante → avertissement ; « Comment jouer » visible au premier lancement ; confirmations dans le style du jeu.
-2. **[Bloc Party]** Pas de prise en main → main animée qui montre le glisser au 1er lancement, libellé « Modes » sur 🗺️. Chrono qui continue sous les fenêtres → pause. Temps du Chrono trop discret → gros compteur, rouge sous 10 s. Boutons 🗺️ / 🎨 rognés sur mobile. Pièce lâchée hors grille : retour animé + son. ↻ sans confirmation en Aventure / Chrono. Carte : contraste des cases verrouillées, indication de défilement sur mobile.
-3. **[Neon Bonk]** Caméra obstruée (murs, gros objets cachent l'avatar) → caméra qui se rapproche devant un obstacle. Chiffres de dégâts illisibles dès le niveau 8 → regroupés / critiques seulement / option. Mobile : bouton pause visible, bouton E sans glissade (bouton de glissade séparé), level-up compact (3 cartes visibles, « Relancer » accessible, pas de [1][2] au doigt), message d'accueil sans chevauchement, bouton « Lancer » qui ne recouvre pas la boutique. Écran de fin : « Rejouer » direct. Noms des armes au HUD / en pause, indice d'évolution lisible.
-4. **[Transverse]** Page d'accueil qui présente les trois jeux (et le profil). Un seul réglage audio (musique intégrée au réglage global). Objectifs du jour transverses qui relient les jeux. Zoom autorisé (retirer `user-scalable=no`), contraste et taille des textes secondaires.
+1. **[Bloc Party]** Pas de prise en main → main animée qui montre le glisser au 1er lancement, libellé « Modes » sur 🗺️. Chrono qui continue sous les fenêtres → pause. Temps du Chrono trop discret → gros compteur, rouge sous 10 s. Boutons 🗺️ / 🎨 rognés sur mobile. Pièce lâchée hors grille : retour animé + son. ↻ sans confirmation en Aventure / Chrono. Carte : contraste des cases verrouillées, indication de défilement sur mobile.
+2. **[Neon Bonk]** Caméra obstruée (murs, gros objets cachent l'avatar) → caméra qui se rapproche devant un obstacle. Chiffres de dégâts illisibles dès le niveau 8 → regroupés / critiques seulement / option. Mobile : bouton pause visible, bouton E sans glissade (bouton de glissade séparé), level-up compact (3 cartes visibles, « Relancer » accessible, pas de [1][2] au doigt), message d'accueil sans chevauchement, bouton « Lancer » qui ne recouvre pas la boutique. Écran de fin : « Rejouer » direct. Noms des armes au HUD / en pause, indice d'évolution lisible.
+3. **[Transverse]** Page d'accueil qui présente les trois jeux (et le profil). Un seul réglage audio (musique intégrée au réglage global). Objectifs du jour transverses qui relient les jeux. Zoom autorisé (retirer `user-scalable=no`), contraste et taille des textes secondaires.
 
 *Feuille de route (après les retours d'évaluation).*
 
-5. **[Star Forge] Événements** — météores rares (bonus ×77 de 7 s), éclipse (production doublée mais clics nuls) ; fréquence réglée par la Chance.
-6. **[Neon Bonk] Troisième étape** — « Le Vide » (gravité réduite, plateformes flottantes, boss final) après la Fournaise.
+4. **[Star Forge] Événements** — météores rares (bonus ×77 de 7 s), éclipse (production doublée mais clics nuls) ; fréquence réglée par la Chance.
+5. **[Neon Bonk] Troisième étape** — « Le Vide » (gravité réduite, plateformes flottantes, boss final) après la Fournaise.
 
 ## Fait
 
@@ -46,6 +45,7 @@ headless (`node tools/smoke.mjs`, zéro erreur console, captures relues), pouss�
 - **Itération 16** (2026-09-25) — Profil commun (icône 👤 dans la nav, sans ajouter d'onglet) : records et progression des trois jeux, temps joué par jeu, export / import de toutes les sauvegardes en un seul code (les jeux ne réécrivent plus leur état par-dessus un import).
 - **Itération 17a** (2026-09-25) — Bloc Party : mode Chrono (2 min, +1,5 s par ligne, points qui valent de plus en plus, grille bloquée → nouvelles pièces contre 5 s, top 10 local daté) depuis la carte.
 - **Itération 17b** (2026-09-25) — Neon Bonk : re-mesure après laser, mines et évolutions — médiane 6:33 → 8:42, 11/30 runs atteignent le boss, aucune ne le bat (bot naïf, sans coffres ni évolutions). Laser adouci (4,5 dégâts / 0,18 s). Jugé acceptable : atteindre le boss est la norme, le battre demande un vrai build.
+- **Itération E1** (2026-09-25, retours d'évaluation) — Star Forge : zone de l'étoile recalculée par `ResizeObserver` (15 touchers au centre = 15 poussières sur mobile, 0 avant) ; fiches au toucher (1er toucher = fiche, 2e = achat) pour améliorations, Constellation, Galaxie et succès, valeurs vivantes ; notifications déplacées au-dessus de l'étoile ; confirmations dans le style du jeu (`ptConfirm`, aussi pour Bloc Party et le profil) ; avertissement de Supernova quand le gain est faible ; carte « comment jouer » au premier lancement ; onglets moins serrés.
 
 ## À surveiller
 

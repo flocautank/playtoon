@@ -159,6 +159,7 @@ function maxAffordable(i) {
   return Math.max(0, Math.floor(Math.log(S.dust * (r - 1) / b + 1) / Math.log(r)));
 }
 const upgCost = u => u.cost * (has('m_upg') ? 0.75 : 1) * (chalDone('c_noupg') ? 0.85 : 1);
+function novaGainAt(total) { return Math.floor(Math.sqrt(total / 2e5) * (has('m_crunch') ? 2 : 1) * (chalDone('c_dim') ? 1.25 : 1) * (1 + 0.5 * (S.sing || 0))); }
 function novaGain() { if (S.chal) return 0; return Math.floor(Math.sqrt(S.runTotal / 2e5) * (has('m_crunch') ? 2 : 1) * (chalDone('c_dim') ? 1.25 : 1) * (1 + 0.5 * (S.sing || 0))); }
 function luck() { let l = 1; for (const u of UPGRADES) if (S.upg[u.id] && u.fx.luck) l += u.fx.luck; if (has('m_comet')) l *= 2; if (chalDone('c_rush')) l *= 1.25; return l; }
 
@@ -198,16 +199,16 @@ function resetRun(extra) {
   S = Object.assign(fresh(), keep); S.upg = kept;
   if (has('m_start')) { S.gens[0] = 10; S.gens[1] = 5; }
 }
-function startChal(c) {
+async function startChal(c) {
   if (S.chal || chalDone(c.id) || S.prestiges < c.need) return;
-  if (!confirm(`Défi « ${c.name} »\n\n${c.desc}\nObjectif : produire ${fmt(c.goal)}${c.time ? ' en ' + c.time / 60 + ' min' : ''}.\nRécompense permanente : ${c.reward}.\n\nTa run actuelle repart de zéro (sans Novae). Continuer ?`)) return;
+  if (!await ptConfirm(`<b>${c.ic} Défi « ${c.name} »</b><br>${c.desc}<br>Objectif : produire <b>${fmt(c.goal)}</b>${c.time ? ' en ' + c.time / 60 + ' min' : ''}.<br>Récompense permanente : <b>${c.reward}</b>.<br><br>Ta run actuelle repart de zéro (sans Novae).`, 'Lancer le défi')) return;
   resetRun({ chal: c.id, chalT: 0 });
   comet = null; flash = 0.6; toast(`${c.ic} Défi lancé : ${c.name}`); sfx(330, 0.4, 'square', 0.05);
   save(); refresh(true);
 }
-function quitChal(silent) {
+async function quitChal(silent) {
   if (!S.chal) return;
-  if (!silent && !confirm('Abandonner le défi ? La run repart de zéro.')) return;
+  if (!silent && !await ptConfirm('Abandonner le défi ? La run repart de zéro.', 'Abandonner')) return;
   resetRun({ chal: null }); save(); refresh(true);
 }
 function checkChal(dt) {
@@ -223,11 +224,11 @@ function checkChal(dt) {
   }
 }
 
-function bigBang() {
+async function bigBang() {
   if (S.chal) { toast('Termine ou abandonne le défi avant un Big Bang'); return; }
   const g = singGain();
   if (S.novaTotal < BIGBANG_MIN || g < 1) return;
-  if (!confirm(`BIG BANG !\n\nTu perds tes Novae (${S.novaTotal}) et toute ta Constellation,\nmais tu gagnes ${g} Singularité(s) : Novae +${g * 50} %, production +${g * (gal('g_big') ? 20 : 10)} %,\net de quoi automatiser ta Galaxie. Succès et défis sont conservés.\n\nContinuer ?`)) return;
+  if (!await ptConfirm(`<b>🌌 BIG BANG</b><br>Tu perds tes Novae (${S.novaTotal}) et toute ta Constellation,<br>mais tu gagnes <b>${g} Singularité(s)</b> : Novae +${g * 50} %, production +${g * (gal('g_big') ? 20 : 10)} %, et de quoi automatiser ta Galaxie.<br>Succès et défis sont conservés.`, 'Big Bang !')) return;
   const start = gal('g_nova') ? 10 : 0;
   resetRun({ novaTotal: start, novaBank: start, meta: {}, sing: (S.sing || 0) + g, singBank: (S.singBank || 0) + g, bigbangs: (S.bigbangs || 0) + 1 });
   if (gal('g_nova')) S.meta = { m_click: 1 };
@@ -240,11 +241,12 @@ function buyGal(x) {
   S.singBank -= x.cost; S.gal[x.id] = 1; toast(`${x.ic} ${x.name} débloqué`); sfx(660, 0.3, 'triangle', 0.08); refresh(true);
 }
 
-function prestige() {
+async function prestige() {
   if (S.chal) { toast('Termine ou abandonne le défi avant une Supernova'); return; }
   const g = novaGain();
   if (g < 1) return;
-  if (!confirm(`Supernova !\n\nTu perds ta poussière, tes forges et tes améliorations,\nmais tu gagnes ${g} Nova(e) : +${Math.round(g * novaPct() * 100)} % de production permanente et de quoi développer ta Constellation.\n\nContinuer ?`)) return;
+  const warn = g <= 3 ? `<br><br>⚠️ <b>C'est encore peu.</b> Le gain grimpe vite : en continuant quelques minutes, tu pourrais en obtenir ${novaGainAt(S.runTotal * 4)}.` : '';
+  if (!await ptConfirm(`<b>💥 Supernova</b><br>Tu perds ta poussière, tes forges et tes améliorations,<br>mais tu gagnes <b class="nova">${g} Nova(e)</b> : +${Math.round(g * novaPct() * 100)} % de production permanente et de quoi développer ta Constellation.${warn}`, 'Exploser')) return;
   resetRun({ novaTotal: S.novaTotal + g, novaBank: S.novaBank + g, prestiges: S.prestiges + 1 });
   flash = 1;
   sfx(110, 1.2, 'sawtooth', 0.08);
@@ -377,15 +379,26 @@ cv.addEventListener('pointerdown', e => { const r = cv.getBoundingClientRect(); 
 // ---------- UI ----------
 let tab = 'gen', built = null;
 const panel = $('sf-panel');
-let tip = null;
+let tip = null, lastPT = 'mouse';
+document.addEventListener('pointerdown', e => { lastPT = e.pointerType; if (tip && !tip.el.contains(e.target)) hideTip(); }, true);
 function showTip(el, html) {
-  hideTip(); tip = document.createElement('div'); tip.className = 'sf-tip'; tip.innerHTML = html; document.body.appendChild(tip);
+  const fn = typeof html === 'function' ? html : () => html;
+  hideTip(); tip = document.createElement('div'); tip.className = 'sf-tip'; tip.innerHTML = fn(); tip.el = el; tip.fn = fn; document.body.appendChild(tip);
   const r = el.getBoundingClientRect(); const tr = tip.getBoundingClientRect();
   let x = r.left + r.width / 2 - tr.width / 2, y = r.top - tr.height - 8;
   if (y < 40) y = r.bottom + 8; x = Math.max(6, Math.min(innerWidth - tr.width - 6, x));
   tip.style.left = x + 'px'; tip.style.top = y + 'px';
 }
 function hideTip() { if (tip) tip.remove(); tip = null; }
+// Branche une fiche sur un élément : au doigt, 1er toucher = fiche, 2e toucher = action.
+function tipify(el, fn, action) {
+  el.onmouseenter = () => { if (lastPT === 'mouse') showTip(el, fn); };
+  el.onmouseleave = () => { if (lastPT === 'mouse') hideTip(); };
+  el.onclick = () => {
+    if (lastPT !== 'mouse' && !(tip && tip.el === el)) { showTip(el, () => fn() + (action ? '<br><i class="muted">Touche encore pour acheter</i>' : '')); return; }
+    if (action) { action(); if (lastPT !== 'mouse') hideTip(); }
+  };
+}
 
 function build() {
   hideTip(); panel.innerHTML = ''; built = tab;
@@ -394,9 +407,9 @@ function build() {
     GENS.forEach((g, i) => {
       const b = document.createElement('button'); b.className = 'sf-item'; b.dataset.i = i;
       b.innerHTML = `<div class="ic" style="background:${g.col}22">${g.ic}</div><div class="mid"><b>${g.name}</b><span class="d"></span></div><div class="rt"><b class="n">0</b><span class="c"></span></div>`;
-      b.onclick = () => buyGen(i);
-      b.onmouseenter = () => showTip(b, `<b>${g.name}</b><br>${g.desc}<br><br>Chacun : ${fmt(g.prod * genMult(i) * globalMult())} /s<br>Total : ${fmt(S.gens[i] * g.prod * genMult(i) * globalMult())} /s<br>Prochain palier (×2) : ${MILESTONES.find(t => t > S.gens[i]) || '—'}`);
-      b.onmouseleave = hideTip;
+      b.onclick = () => buyGen(i);   // au doigt, achat direct : la ligne affiche déjà l'essentiel
+      b.onmouseenter = () => { if (lastPT === 'mouse') showTip(b, () => `<b>${g.name}</b><br>${g.desc}<br><br>Chacun : ${fmt(g.prod * genMult(i) * globalMult())} /s<br>Total : ${fmt(S.gens[i] * g.prod * genMult(i) * globalMult())} /s<br>Prochain palier (×2) : ${MILESTONES.find(t => t > S.gens[i]) || '—'}`); };
+      b.onmouseleave = () => { if (lastPT === 'mouse') hideTip(); };
       panel.appendChild(b);
     });
   } else if (tab === 'upg') {
@@ -422,9 +435,7 @@ function build() {
       const n = document.createElement('button'); n.className = 'sf-node'; n.dataset.id = m.id;
       n.style.left = m.x + '%'; n.style.top = m.y + '%';
       n.innerHTML = `${m.ic}<small>${m.cost}✦</small>`;
-      n.onclick = () => buyMeta(m);
-      n.onmouseenter = () => showTip(n, `<b>${m.name}</b> — <span class="nova">${m.cost} Novae</span><br>${m.desc}${m.req.length ? '<br><span class="muted">Requiert : ' + m.req.map(r => META.find(q => q.id === r).name).join(', ') + '</span>' : ''}`);
-      n.onmouseleave = hideTip;
+      tipify(n, () => `<b>${m.name}</b> — <span class="nova">${m.cost} Novae</span>${S.meta[m.id] ? ' ✓' : ''}<br>${m.desc}${m.req.length ? '<br><span class="muted">Requiert : ' + m.req.map(r => META.find(q => q.id === r).name).join(', ') + '</span>' : ''}`, () => buyMeta(m));
       tree.appendChild(n);
     });
     panel.appendChild(tree);
@@ -440,7 +451,7 @@ function build() {
   } else if (tab === 'ach') {
     const info = document.createElement('div'); info.className = 'muted small'; info.id = 'sf-ach-info'; panel.appendChild(info);
     const g = document.createElement('div'); g.className = 'sf-ach';
-    ACH.forEach(a => { const d = document.createElement('div'); d.dataset.id = a.id; d.textContent = a.ic; d.onmouseenter = () => showTip(d, `<b>${a.name}</b><br>${a.desc}`); d.onmouseleave = hideTip; g.appendChild(d); });
+    ACH.forEach(a => { const d = document.createElement('div'); d.dataset.id = a.id; d.textContent = a.ic; tipify(d, () => `<b>${a.name}</b>${S.ach[a.id] ? ' ✓' : ''}<br>${a.desc}`); g.appendChild(d); });
     panel.appendChild(g);
     const st = document.createElement('div'); st.className = 'muted small'; st.id = 'sf-stats'; st.style.marginTop = '12px'; panel.appendChild(st);
   } else if (tab === 'opt') {
@@ -456,7 +467,7 @@ function build() {
     $('sf-sci').onchange = e => { SCI = e.target.checked; try { localStorage.setItem('starforge.sci', SCI ? '1' : '0'); } catch (x) {} refresh(true); };
     $('sf-exp').onclick = () => { save(); $('sf-io').value = btoa(unescape(encodeURIComponent(JSON.stringify(S)))); };
     $('sf-imp').onclick = () => { try { const d = JSON.parse(decodeURIComponent(escape(atob($('sf-io').value.trim())))); S = Object.assign(fresh(), d); save(); toast('Sauvegarde importée'); refresh(true); } catch (e) { toast('Sauvegarde invalide'); } };
-    $('sf-wipe').onclick = () => { if (confirm('Effacer définitivement toute ta progression, Novae comprises ?')) { S = fresh(); save(); refresh(true); } };
+    $('sf-wipe').onclick = async () => { if (await ptConfirm('Effacer <b>définitivement</b> toute ta progression de Star Forge, Novae et Singularités comprises ?', 'Tout effacer')) { S = fresh(); save(); refresh(true); } };
   }
   refresh();
 }
@@ -467,14 +478,12 @@ function fillUpgrades() {
   if (!av.length) grid.innerHTML = '<p class="muted small" style="grid-column:1/-1">Rien pour l\'instant — continue à forger.</p>';
   av.forEach(u => {
     const b = document.createElement('button'); b.className = 'sf-upg'; b.dataset.id = u.id; b.textContent = u.ic;
-    b.onclick = () => buyUpg(u);
-    b.onmouseenter = () => showTip(b, `<b>${u.name}</b><br>${u.desc}<br><span style="color:var(--gold)">${fmt(upgCost(u))}</span>`);
-    b.onmouseleave = hideTip;
+    tipify(b, () => `<b>${u.name}</b><br>${u.desc}<br><span style="color:var(--gold)">${fmt(upgCost(u))}</span>${S.dust < upgCost(u) ? ' <span class="muted">(pas assez)</span>' : ''}`, () => buyUpg(u));
     grid.appendChild(b);
   });
   const owned = UPGRADES.filter(u => S.upg[u.id]);
   $('sf-upg-owned-h').textContent = `Achetées (${owned.length}/${UPGRADES.length})`;
-  owned.forEach(u => { const d = document.createElement('div'); d.className = 'sf-upg'; d.style.opacity = .6; d.textContent = u.ic; d.onmouseenter = () => showTip(d, `<b>${u.name}</b><br>${u.desc}`); d.onmouseleave = hideTip; grid2.appendChild(d); });
+  owned.forEach(u => { const d = document.createElement('div'); d.className = 'sf-upg'; d.style.opacity = .6; d.textContent = u.ic; tipify(d, () => `<b>${u.name}</b> ✓<br>${u.desc}`); grid2.appendChild(d); });
   upgSig = sigUpg();
 }
 let upgSig = '';
@@ -482,6 +491,7 @@ const sigUpg = () => UPGRADES.filter(u => !S.upg[u.id] && u.req(S)).map(u => u.i
 
 function refresh(structural) {
   if (!built) return;
+  if (tip) { if (!tip.el.isConnected) hideTip(); else tip.innerHTML = tip.fn(); }
   $('sf-dust').textContent = fmt(S.dust);
   $('sf-rate').textContent = fmt(dps());
   $('sf-click').textContent = fmt(clickValue());
@@ -573,6 +583,7 @@ document.querySelectorAll('#sf-buymult button').forEach(b => b.onclick = () => {
   buyMult = b.dataset.m === 'max' ? 'max' : +b.dataset.m; refresh();
 });
 $('sf-prestige').onclick = prestige;
+$('sf-intro-ok').onclick = () => { $('sf-intro').classList.add('hidden'); try { localStorage.setItem('starforge.intro', '1'); } catch (e) {} };
 $('sf-chal-quit').onclick = () => quitChal(false);
 
 // ---------- boucle ----------
@@ -633,11 +644,14 @@ function loop(t) {
 document.addEventListener('visibilitychange', () => { if (document.hidden) save(); else if (inited) { const d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (d) { const away = Math.min(8 * 3600, (Date.now() - d.last) / 1000); if (away > 5) earn(dps() * away * (has('m_off') ? 1 : 0.25)); } } });
 window.addEventListener('beforeunload', save);
 window.addEventListener('resize', () => visible && resizeStar());
+// la zone cliquable suit la taille réelle du cadre (la mise en page mobile change après le premier calcul)
+if (window.ResizeObserver) new ResizeObserver(() => visible && resizeStar()).observe(cv);
 
 window.GAMES.forge = {
   show() {
     visible = true;
     if (!inited) { inited = true; load(); lastT = performance.now(); requestAnimationFrame(loop); }
+    try { if (!localStorage.getItem('starforge.intro') && !S.lifeTotal) $('sf-intro').classList.remove('hidden'); } catch (e) {}
     requestAnimationFrame(() => { resizeStar(); build(); });
   },
   hide() { visible = false; hideTip(); save(); },

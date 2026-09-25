@@ -24,6 +24,10 @@
   <button id="mute" class="mute" title="Couper / remettre le son" aria-label="Son">🔊</button>
 </nav>
 
+<div class="overlay hidden" id="pt-modal" style="position:fixed;z-index:300">
+  <div class="card"><div id="pt-modal-txt" style="text-align:left;line-height:1.5"></div>
+    <div class="row"><button class="btn ghost" id="pt-cancel">Annuler</button><button class="btn" id="pt-ok">Continuer</button></div></div>
+</div>
 <div class="overlay hidden" id="pt-profile" style="position:fixed;z-index:150">
   <div class="card wide">
     <h2>Profil</h2>
@@ -130,6 +134,13 @@
       </div>
     </div>
     <div class="toast-zone" id="sf-toasts"></div>
+    <div class="overlay hidden" id="sf-intro">
+      <div class="card">
+        <h2>✨ Star Forge</h2>
+        <p style="text-align:left;line-height:1.55">1. <b>Touche l'étoile</b> pour récolter de la poussière d'étoile.<br>2. Achète des <b>forges</b> (à droite) : elles produisent toutes seules, même quand tu es parti.<br>3. Les <b>améliorations</b> multiplient la production. Attrape les ☄️ comètes dorées qui passent.<br>4. Plus tard, une <b class="nova">Supernova</b> te fait repartir de zéro, mais bien plus fort.</p>
+        <button class="btn" id="sf-intro-ok">C'est parti</button>
+      </div>
+    </div>
   </section>
 
   <!-- ============ JEU 3 : NEON BONK ============ -->
