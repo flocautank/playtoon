@@ -4,6 +4,9 @@ window.GAMES = window.GAMES || {};
 
 const $ = id => document.getElementById(id);
 const SAVE_KEY = 'starforge.save.v1';
+// Notation scientifique (option) : déclarée avant tout appel à fmt(), utilisé dès le chargement.
+let SCI = false;
+try { SCI = localStorage.getItem('starforge.sci') === '1'; } catch (e) {}
 
 // ---------- données ----------
 const GENS = [
@@ -21,7 +24,7 @@ const GENS = [
 const GEN_TIERS = [1, 5, 25, 50, 100, 150, 200, 250];
 const TIER_COST = [10, 50, 500, 5e4, 5e6, 5e8, 5e10, 5e12];
 const TIER_NAMES = ['Polissage', 'Alliage stellaire', 'Résonance', 'Surchauffe', 'Quintessence', 'Transcendance', 'Absolu', 'Omega'];
-const MILESTONES = [25, 50, 100, 150, 200, 250, 300, 350, 400, 500];
+const MILESTONES = [10, 25, 50, 100, 150, 200, 250, 300, 350, 400, 500];
 
 const UPGRADES = [];
 GENS.forEach((g, gi) => GEN_TIERS.forEach((t, ti) => UPGRADES.push({
@@ -54,7 +57,7 @@ const META = [
   { id: 'm_long', ic: '⏳', name: 'Éternité', cost: 25, x: 50, y: 58, req: ['m_comet'], desc: 'Les effets de comète durent deux fois plus longtemps.' },
   { id: 'm_ach', ic: '🏆', name: 'Panthéon', cost: 40, x: 22, y: 60, req: ['m_off', 'm_keep'], desc: 'Chaque succès donne +3 % au lieu de +1 %.' },
   { id: 'm_upg', ic: '🛠️', name: 'Ingénierie', cost: 40, x: 80, y: 58, req: ['m_econ'], desc: 'Les améliorations coûtent 25 % de moins.' },
-  { id: 'm_nova', ic: '🌟', name: 'Novae brillantes', cost: 80, x: 50, y: 74, req: ['m_long', 'm_ach', 'm_upg'], desc: 'Chaque Nova gagnée donne +5 % au lieu de +3 %.' },
+  { id: 'm_nova', ic: '🌟', name: 'Novae brillantes', cost: 80, x: 50, y: 74, req: ['m_long', 'm_ach', 'm_upg'], desc: 'Chaque Nova gagnée donne +8 % au lieu de +5 %.' },
   { id: 'm_sing', ic: '🕳️', name: 'Singularité', cost: 250, x: 32, y: 90, req: ['m_nova'], desc: 'Toute la production ×3.' },
   { id: 'm_crunch', ic: '♾️', name: 'Big Crunch', cost: 600, x: 68, y: 90, req: ['m_nova'], desc: 'Les Supernovae rapportent deux fois plus de Novae.' },
 ];
@@ -93,6 +96,7 @@ let S = fresh();
 const has = id => !!S.meta[id];
 function fmt(n) {
   if (!isFinite(n)) return '∞';
+  if (SCI && n >= 1e6) return n.toExponential(2).replace('e+', 'e');
   if (n < 1000) return n < 10 && n % 1 ? n.toFixed(1) : Math.floor(n).toString();
   if (n < 1e6) return Math.floor(n).toLocaleString('fr-FR');
   const units = ['M', 'G', 'T', 'P', 'E', 'Z', 'Y', 'R', 'Q'];
@@ -109,10 +113,11 @@ function genMult(i) {
   if (i < 3 && chalDone('c_short')) m *= 3;
   return m;
 }
+const novaPct = () => has('m_nova') ? 0.08 : 0.05;
 function globalMult() {
   let m = 1;
   for (const u of UPGRADES) if (S.upg[u.id] && u.fx.global) m *= u.fx.global;
-  m *= 1 + S.novaTotal * (has('m_nova') ? 0.05 : 0.03);
+  m *= 1 + S.novaTotal * novaPct();
   m *= 1 + Object.keys(S.ach).length * (has('m_ach') ? 0.03 : 0.01);
   if (has('m_sing')) m *= 3;
   if (chalDone('c_hands')) m *= 1.5;
@@ -140,7 +145,7 @@ function maxAffordable(i) {
   return Math.max(0, Math.floor(Math.log(S.dust * (r - 1) / b + 1) / Math.log(r)));
 }
 const upgCost = u => u.cost * (has('m_upg') ? 0.75 : 1) * (chalDone('c_noupg') ? 0.85 : 1);
-function novaGain() { if (S.chal) return 0; return Math.floor(Math.sqrt(S.runTotal / 1e6) * (has('m_crunch') ? 2 : 1) * (chalDone('c_dim') ? 1.25 : 1)); }
+function novaGain() { if (S.chal) return 0; return Math.floor(Math.sqrt(S.runTotal / 2e5) * (has('m_crunch') ? 2 : 1) * (chalDone('c_dim') ? 1.25 : 1)); }
 function luck() { let l = 1; for (const u of UPGRADES) if (S.upg[u.id] && u.fx.luck) l += u.fx.luck; if (has('m_comet')) l *= 2; if (chalDone('c_rush')) l *= 1.25; return l; }
 
 // ---------- actions ----------
@@ -208,7 +213,7 @@ function prestige() {
   if (S.chal) { toast('Termine ou abandonne le défi avant une Supernova'); return; }
   const g = novaGain();
   if (g < 1) return;
-  if (!confirm(`Supernova !\n\nTu perds ta poussière, tes forges et tes améliorations,\nmais tu gagnes ${g} Nova(e) : +${g * (has('m_nova') ? 5 : 3)} % de production permanente et de quoi développer ta Constellation.\n\nContinuer ?`)) return;
+  if (!confirm(`Supernova !\n\nTu perds ta poussière, tes forges et tes améliorations,\nmais tu gagnes ${g} Nova(e) : +${Math.round(g * novaPct() * 100)} % de production permanente et de quoi développer ta Constellation.\n\nContinuer ?`)) return;
   resetRun({ novaTotal: S.novaTotal + g, novaBank: S.novaBank + g, prestiges: S.prestiges + 1 });
   flash = 1;
   sfx(110, 1.2, 'sawtooth', 0.08);
@@ -404,8 +409,12 @@ function build() {
       <p class="muted small">Sauvegarde automatique dans ton navigateur toutes les 10 secondes.</p>
       <div class="row" style="justify-content:flex-start"><button class="btn ghost small" id="sf-exp">Exporter</button><button class="btn ghost small" id="sf-imp">Importer</button><button class="btn small" id="sf-wipe" style="background:#a0304a">Tout effacer</button></div>
       <textarea id="sf-io" style="width:100%;height:90px;margin-top:8px;background:#0a0c16;color:#ccd;border:1px solid #2a3050;border-radius:8px;padding:6px;font-size:11px"></textarea>
+      <div class="sf-h">Affichage</div>
+      <label class="small"><input type="checkbox" id="sf-sci"> Notation scientifique (1.23e9 au lieu de 1.23 G)</label>
       <div class="sf-h">Comment jouer</div>
       <p class="small muted">Clique l'étoile pour récolter de la poussière. Achète des forges qui produisent seules, puis des améliorations qui les multiplient. Chaque palier de 25, 50, 100… forges double leur production. Attrape les comètes dorées qui traversent le ciel. Quand la progression ralentit, déclenche une <b class="nova">Supernova</b> : tu repars de zéro, mais avec des Novae qui boostent tout et débloquent la Constellation.</p>`;
+    $('sf-sci').checked = SCI;
+    $('sf-sci').onchange = e => { SCI = e.target.checked; try { localStorage.setItem('starforge.sci', SCI ? '1' : '0'); } catch (x) {} refresh(true); };
     $('sf-exp').onclick = () => { save(); $('sf-io').value = btoa(unescape(encodeURIComponent(JSON.stringify(S)))); };
     $('sf-imp').onclick = () => { try { const d = JSON.parse(decodeURIComponent(escape(atob($('sf-io').value.trim())))); S = Object.assign(fresh(), d); save(); toast('Sauvegarde importée'); refresh(true); } catch (e) { toast('Sauvegarde invalide'); } };
     $('sf-wipe').onclick = () => { if (confirm('Effacer définitivement toute ta progression, Novae comprises ?')) { S = fresh(); save(); refresh(true); } };
@@ -476,7 +485,7 @@ function refresh(structural) {
       b.classList.toggle('can', S.dust >= upgCost(u)); b.classList.toggle('no', S.dust < upgCost(u));
     });
   } else if (tab === 'meta') {
-    $('sf-meta-info').innerHTML = `Novae disponibles : <b class="nova">${S.novaBank}</b> · Bonus passif : <b>+${Math.round(S.novaTotal * (has('m_nova') ? 5 : 3))} %</b> de production. Les nœuds de la Constellation survivent à toutes les Supernovae.`;
+    $('sf-meta-info').innerHTML = `Novae disponibles : <b class="nova">${S.novaBank}</b> · Bonus passif : <b>+${Math.round(S.novaTotal * novaPct() * 100)} %</b> de production. Les nœuds de la Constellation survivent à toutes les Supernovae.`;
     panel.querySelectorAll('.sf-node').forEach(n => {
       const m = META.find(q => q.id === n.dataset.id);
       const open = m.req.every(r => S.meta[r]);
@@ -575,3 +584,5 @@ window.GAMES.forge = {
   },
   hide() { visible = false; hideTip(); save(); },
 };
+// Accès de test (tools/sf-balance.mjs, console).
+window.__sf = { fmt, get S() { return S; }, set S(v) { S = v; }, tick, buyGen, buyUpg, UPGRADES, GENS, costN, upgCost, dps, clickValue, novaGain, earn, fresh, resetRun, META, buyMeta, setMult: m => { buyMult = m; } };

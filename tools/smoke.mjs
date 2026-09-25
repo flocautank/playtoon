@@ -142,6 +142,9 @@ await page.close();
   // lancer un défi depuis l'interface
   await f.goto(base + '#forge'); await f.waitForTimeout(500); await f.click('#sf-tab-chal'); await f.waitForTimeout(200);
   await f.click('.sf-ch[data-id=c_short] button'); await f.waitForTimeout(400); await shot(f, 'forge-chal-run');
+  await f.click('[data-sf=opt]'); await f.click('#sf-sci'); await f.waitForTimeout(300);
+  log('notation scientifique :', await f.evaluate(() => window.__sf.fmt(1.234e9)));
+  await f.click('#sf-sci');
   await f.goto(base + '#blocks'); await f.waitForTimeout(300);
   st = await f.evaluate(() => JSON.parse(localStorage.getItem('starforge.save.v1')));
   log(`défi lancé : en cours=${st.chal} poussière=${Math.round(st.dust)} novae=${st.novaTotal}`);
