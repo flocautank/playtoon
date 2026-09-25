@@ -99,3 +99,47 @@ jobs:
           echo "$PLAY_JSON" > "$RUNNER_TEMP/play.json"
           npm install --no-save googleapis@144
           node tools/play-upload.mjs "$RUNNER_TEMP/play.json" android/app/build/outputs/bundle/release/app-release.aab internal
+
+  # Démarre l'APK de test dans un vrai émulateur Android (avec services Google) : pas de plantage au lancement,
+  # console du jeu (Capacitor/Console) et journaux AdMob / consentement recopiés dans le journal de la CI.
+  emulator-smoke:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: block-quarry-*-debug-apk
+          merge-multiple: true
+          path: apk
+      - name: KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis_playstore
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          script: |
+            adb install -r apk/*.apk
+            adb logcat -c
+            adb shell am start -n io.github.flocautank.blockquarry/.MainActivity
+            sleep 45
+            adb exec-out screencap -p > launch.png
+            adb logcat -d > logcat.txt || true
+            echo "=== processus ===" ; adb shell pidof io.github.flocautank.blockquarry || echo "APPLICATION ARRÊTÉE"
+            echo "=== console du jeu, AdMob, consentement, facturation ===" ; grep -E "Capacitor/Console|Capacitor/Plugin|Ads|UserMessaging|Billing|AndroidRuntime|FATAL" logcat.txt | grep -vE "chatty" | head -150 || true
+            if grep -q "FATAL EXCEPTION" logcat.txt; then echo "::error::plantage au lancement"; grep -A30 "FATAL EXCEPTION" logcat.txt | head -60; exit 1; fi
+            adb shell pidof io.github.flocautank.blockquarry
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: block-quarry-emulator-${{ github.run_number }}
+          path: |
+            launch.png
+            logcat.txt
+          retention-days: 14
