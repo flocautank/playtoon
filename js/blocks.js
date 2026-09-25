@@ -1,4 +1,5 @@
-// BLOC PARTY — puzzle casual façon "Block Blast" : pose les pièces, complète lignes et colonnes.
+// BLOCK QUARRY (ex-Bloc Party) — puzzle casual façon "Block Blast" : pose les pièces, complète lignes et colonnes.
+import { t, num, date, applyI18n } from './i18n.js';
 window.GAMES = window.GAMES || {};
 
 const N = 8;
@@ -19,15 +20,14 @@ const SHAPES = [
   [[[0, 0], [1, 0], [1, 1], [2, 1]], 2], [[[1, 0], [2, 0], [0, 1], [1, 1]], 2], [[[0, 0], [0, 1], [1, 1], [1, 2]], 2], [[[1, 0], [1, 1], [0, 1], [0, 2]], 2],
   [[[0, 0], [1, 1]], 1], [[[1, 0], [0, 1]], 1], [[[0, 0], [1, 1], [2, 2]], 0.8], [[[2, 0], [1, 1], [0, 2]], 0.8],
 ];
-const PRAISE = ['', 'Bien !', 'Super !', 'Génial !', 'Incroyable !', 'LÉGENDAIRE !'];
 const STONE = '#7d7f9c';
 // Thèmes : la couleur de base d'une pièce (indice dans COLORS) est remappée à l'affichage.
 const THEMES = [
-  { id: 'classic', name: 'Classique', cost: 0, style: 'candy', pal: COLORS, bg: 'radial-gradient(ellipse at 50% 0%,#3b2a6b 0%,#1b1840 55%,#120f2a 100%)' },
-  { id: 'neon', name: 'Néon', cost: 60, style: 'neon', pal: ['#ff3df0', '#ffe14d', '#27e0ff', '#5dff7a', '#b46bff', '#ff7a2e', '#2effd5'], bg: 'radial-gradient(ellipse at 50% 0%,#1a0a33 0%,#07040f 70%)' },
-  { id: 'pastel', name: 'Pastel', cost: 80, style: 'soft', pal: ['#ffb3c7', '#ffe3a3', '#a8e6ff', '#b8f5c0', '#d9c2ff', '#ffc9a8', '#a8fff0'], bg: 'radial-gradient(ellipse at 50% 0%,#5a4a8a 0%,#3a3066 60%,#2a2450 100%)' },
-  { id: 'pixel', name: 'Pixel', cost: 100, style: 'pixel', pal: ['#e8405a', '#f6c03a', '#3aa8f6', '#4fd65a', '#9a5af6', '#f6823a', '#3af6c8'], bg: 'linear-gradient(#1a2440,#0c1224)' },
-  { id: 'gold', name: 'Or & Obsidienne', cost: 200, style: 'gem', pal: ['#ffd24d', '#ffe899', '#e0a93a', '#fff0c2', '#c98a2a', '#ffb84d', '#f5d68a'], bg: 'radial-gradient(ellipse at 50% 0%,#2a2218 0%,#0a0806 70%)' },
+  { id: 'classic', cost: 0, style: 'candy', pal: COLORS, bg: 'radial-gradient(ellipse at 50% 0%,#3b2a6b 0%,#1b1840 55%,#120f2a 100%)' },
+  { id: 'neon', cost: 60, style: 'neon', pal: ['#ff3df0', '#ffe14d', '#27e0ff', '#5dff7a', '#b46bff', '#ff7a2e', '#2effd5'], bg: 'radial-gradient(ellipse at 50% 0%,#1a0a33 0%,#07040f 70%)' },
+  { id: 'pastel', cost: 80, style: 'soft', pal: ['#ffb3c7', '#ffe3a3', '#a8e6ff', '#b8f5c0', '#d9c2ff', '#ffc9a8', '#a8fff0'], bg: 'radial-gradient(ellipse at 50% 0%,#5a4a8a 0%,#3a3066 60%,#2a2450 100%)' },
+  { id: 'pixel', cost: 100, style: 'pixel', pal: ['#e8405a', '#f6c03a', '#3aa8f6', '#4fd65a', '#9a5af6', '#f6823a', '#3af6c8'], bg: 'linear-gradient(#1a2440,#0c1224)' },
+  { id: 'gold', cost: 200, style: 'gem', pal: ['#ffd24d', '#ffe899', '#e0a93a', '#fff0c2', '#c98a2a', '#ffb84d', '#f5d68a'], bg: 'radial-gradient(ellipse at 50% 0%,#2a2218 0%,#0a0806 70%)' },
 ];
 let THEME = { owned: ['classic'], cur: 'classic' };
 try { THEME = Object.assign(THEME, JSON.parse(localStorage.getItem('blocparty.themes') || '{}')); } catch (e) {}
@@ -180,7 +180,7 @@ function startLevel(n) {
   rnd = mulberry32(n * 104729 + 7);
   fillTray();
   ['bp-over', 'bp-map', 'bp-res'].forEach(id => $(id).classList.add('hidden'));
-  S.pops.push({ text: `Niveau ${n}`, sub: S.goal.type === 'gems' ? `Récupère ${S.goal.gems} 💎` : `Efface ${S.goal.target} lignes`, t: 0 });
+  S.pops.push({ text: t('bp.level', { n }), sub: S.goal.type === 'gems' ? t('bp.getGems', { n: S.goal.gems }) : t('bp.clearLines', { n: S.goal.target }), t: 0 });
   updateHUD();
 }
 function advResult(win) {
@@ -195,9 +195,9 @@ function advResult(win) {
   }
   setTimeout(() => {
     const close = S.goal.type === 'gems' ? S.got >= S.goal.gems - 1 : S.lines >= S.goal.target - 1;
-    $('bp-restitle').textContent = win ? `Niveau ${S.lvl} réussi !` : close ? 'Raté… presque !' : 'Raté !';
+    $('bp-restitle').textContent = win ? t('bp.levelWon', { n: S.lvl }) : close ? t('bp.failClose') : t('bp.fail');
     $('bp-resstars').innerHTML = [1, 2, 3].map(k => k <= stars ? '★' : '<i>★</i>').join('');
-    $('bp-restext').textContent = win ? `${S.goal.moves - S.moves} coups utilisés sur ${S.goal.moves} · 🪙 total ${COINS}` : (S.moves <= 0 ? 'Plus de coups.' : 'Plus de place pour les pièces.');
+    $('bp-restext').textContent = win ? t('bp.resWin', { used: S.goal.moves - S.moves, total: S.goal.moves, coins: COINS }) : (S.moves <= 0 ? t('bp.noMoves') : t('bp.noRoom'));
     $('bp-resnext').classList.toggle('hidden', !win || S.lvl >= LEVELS);
     $('bp-rescont').classList.toggle('hidden', win || S.moves <= 0 || COINS < TOOLS.hammer);
     $('bp-resmore').classList.toggle('hidden', win || S.moves > 0 || S.moreBought || COINS < MORE_COST);   // seconde chance, une fois par tentative
@@ -208,7 +208,7 @@ function advResult(win) {
 }
 // ---------- défi du jour : même grille et mêmes pièces pour tout le monde, graine = date locale
 const dayKey = (d = new Date()) => d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
-const todayLabel = () => new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
+const todayLabel = () => date(new Date(), { day: 'numeric', month: 'long' });
 let DAILY = { day: 0, best: 0, streak: 0, last: 0 };
 try { DAILY = Object.assign(DAILY, JSON.parse(localStorage.getItem('blocparty.daily') || '{}')); } catch (e) {}
 const saveDaily = () => { try { localStorage.setItem('blocparty.daily', JSON.stringify(DAILY)); } catch (e) {} };
@@ -226,24 +226,25 @@ function startDaily() {
   rnd = mulberry32(today * 31 + 7);
   fillTray();
   ['bp-over', 'bp-map', 'bp-res'].forEach(id => $(id).classList.add('hidden'));
-  S.pops.push({ text: '🎯 Défi du jour', sub: `${todayLabel()} · série ${DAILY.streak}`, t: 0 });
+  S.pops.push({ text: t('bp.daily'), sub: t('bp.dailySub', { date: todayLabel(), n: DAILY.streak }), t: 0 });
   updateHUD();
 }
 
 function applyTheme() { $('tab-blocks').style.background = curTheme().bg; }
 function openThemes() {
   const box = $('bp-thgrid'); box.innerHTML = '';
-  for (const t of THEMES) {
-    const owned = THEME.owned.includes(t.id), cur = THEME.cur === t.id;
-    const d = document.createElement('button'); d.className = 'bp-th' + (cur ? ' cur' : '') + (!owned && COINS < t.cost ? ' no' : '');
-    d.innerHTML = `<canvas width="200" height="100"></canvas><b>${t.name}</b><small>${cur ? '✓ équipé' : owned ? 'Équiper' : '🪙 ' + t.cost}</small>`;
+  const tr = t;
+  for (const th of THEMES) {
+    const owned = THEME.owned.includes(th.id), cur = THEME.cur === th.id;
+    const d = document.createElement('button'); d.className = 'bp-th' + (cur ? ' cur' : '') + (!owned && COINS < th.cost ? ' no' : '');
+    d.innerHTML = `<canvas width="200" height="100"></canvas><b>${tr('bp.th.' + th.id)}</b><small>${cur ? tr('bp.equipped') : owned ? tr('bp.equip') : '🪙 ' + th.cost}</small>`;
     // aperçu : 4 cases dans le style du thème, sur son fond
     const cv = d.querySelector('canvas'), g = cv.getContext('2d'), prev = THEME.cur;
-    THEME.cur = t.id; g.fillStyle = '#15122e'; g.fillRect(0, 0, 200, 100);
+    THEME.cur = th.id; g.fillStyle = '#15122e'; g.fillRect(0, 0, 200, 100);
     [0, 1, 2, 3].forEach(i => cell(18 + i * 42, 30, 40, COLORS[i], 1, g)); THEME.cur = prev;
     d.onclick = () => {
-      if (!owned) { if (COINS < t.cost) { beep(180, 0.1, 'square', 0.03); return; } COINS -= t.cost; saveCoins(); THEME.owned.push(t.id); beep(880, 0.2, 'triangle', 0.06); }
-      THEME.cur = t.id; saveTheme(); applyTheme(); openThemes();
+      if (!owned) { if (COINS < th.cost) { beep(180, 0.1, 'square', 0.03); return; } COINS -= th.cost; saveCoins(); THEME.owned.push(th.id); beep(880, 0.2, 'triangle', 0.06); }
+      THEME.cur = th.id; saveTheme(); applyTheme(); openThemes();
     };
     box.appendChild(d);
   }
@@ -260,13 +261,13 @@ function startChrono() {
   S.score = 0; S.shown = 0; S.combo = 0; S.over = false; S.fx = []; S.pops = []; S.clearing = [];
   fillTray();
   ['bp-over', 'bp-map', 'bp-res'].forEach(id => $(id).classList.add('hidden'));
-  S.pops.push({ text: '⏱ Chrono !', sub: '2 minutes, chaque ligne rend du temps', t: 0 });
+  S.pops.push({ text: t('bp.chrono'), sub: t('bp.chronoSub'), t: 0 });
   updateHUD();
 }
 function chronoEnd() {
   if (S.over) return;
   S.over = true; S.endWhy = S.clock <= 0.05 ? 'time' : 'stuck'; S.clock = Math.max(0, S.clock);
-  const entry = { s: S.score, d: new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }), t: Date.now() };
+  const entry = { s: S.score, d: date(new Date(), { day: 'numeric', month: 'short' }), t: Date.now() };
   if (S.score > 0) { TOP.push(entry); TOP.sort((a, b) => b.s - a.s); TOP = TOP.slice(0, 10); }   // un chrono à 0 point n'est pas un record
   S.myRank = TOP.indexOf(entry);
   try { localStorage.setItem('blocparty.chrono', JSON.stringify(TOP)); } catch (e) {}
@@ -275,14 +276,14 @@ function chronoEnd() {
 }
 
 function openMap() {
-  $('bp-daily').innerHTML = `🎯 Défi du jour<small>${todayLabel()}${DAILY.day === dayKey() && DAILY.best ? ' · meilleur ' + DAILY.best.toLocaleString('fr-FR') : ''}${DAILY.streak > 1 && DAILY.day === dayKey() ? ' · série ' + DAILY.streak : ''}</small>`;
+  $('bp-daily').innerHTML = `${t('bp.dailyBtn')}<small>${todayLabel()}${DAILY.day === dayKey() && DAILY.best ? t('bp.dailyBest', { n: num(DAILY.best) }) : ''}${DAILY.streak > 1 && DAILY.day === dayKey() ? t('bp.dailyStreak', { n: DAILY.streak }) : ''}</small>`;
   const box = $('bp-levels'); box.innerHTML = '';
   const open = unlockedLvl();
   for (let n = 1; n <= LEVELS; n++) {
     const st = ADV.stars[n] || 0, lock = n > open;
     const b = document.createElement('button');
     b.className = 'bp-lv' + (lock ? ' lock' : '') + (n === open && !st ? ' cur' : '');
-    b.innerHTML = `${lock ? '🔒' : n}<small>${st ? '★'.repeat(st) : n % 4 === 0 ? 'lignes' : '💎'}</small>`;
+    b.innerHTML = `${lock ? '🔒' : n}<small>${st ? '★'.repeat(st) : n % 4 === 0 ? t('bp.mapLines') : '💎'}</small>`;
     if (!lock) b.onclick = () => startLevel(n);
     box.appendChild(b);
   }
@@ -357,7 +358,7 @@ function place(idx, gx, gy) {
     }
     const allClear = S.board.every(r => r.every(c => !c));
     if (allClear) gained += 300;
-    const label = allClear ? 'TABLE RASE ! +300' : (PRAISE[Math.min(n, 5)] || '') + (S.combo > 1 ? `  Combo ×${S.combo}` : '');
+    const label = allClear ? t('bp.allClear') : (t('bp.praise')[Math.min(n, 5)] || '') + (S.combo > 1 ? '  ' + t('bp.combo', { n: S.combo }) : '');
     S.pops.length = 0;   // un seul message à la fois : les éloges successifs ne se superposent plus
     S.pops.push({ text: label, sub: '+' + (gained), t: 0 });
     S.shake = Math.min(14, 3 + n * 3);
@@ -376,7 +377,7 @@ function place(idx, gx, gy) {
     else if (S.moves <= 0) advResult(false);
     else if (!S.tray.some(t => t && canPlaceAnywhere(t))) {
       // Filet de sécurité : un nouveau tirage offert par niveau, puis c'est perdu.
-      if (S.rescue > 0) { S.rescue--; S.tray = [null, null, null]; fillTray(); S.pops.push({ text: 'Nouvelles pièces !', sub: 'offertes une fois par niveau', t: 0 }); beep(880, 0.15, 'triangle', 0.05); }
+      if (S.rescue > 0) { S.rescue--; S.tray = [null, null, null]; fillTray(); S.pops.push({ text: t('bp.newPieces'), sub: t('bp.newPiecesSub'), t: 0 }); beep(880, 0.15, 'triangle', 0.05); }
       if (!S.tray.some(t => t && canPlaceAnywhere(t))) advResult(false);
     }
     updateHUD(); return;
@@ -384,7 +385,7 @@ function place(idx, gx, gy) {
   if (S.mode === 'chrono') {
     if (!S.tray.some(t => t && canPlaceAnywhere(t))) {   // bloqué : nouvelles pièces contre 5 s
       S.tray = [null, null, null]; fillTray(); S.clock -= 5;
-      S.pops.length = 0; S.pops.push({ text: 'Nouvelles pièces', sub: '−5 s', t: 0 }); beep(300, 0.2, 'square', 0.04);
+      S.pops.length = 0; S.pops.push({ text: t('bp.newPiecesChrono'), sub: '−5 s', t: 0 }); beep(300, 0.2, 'square', 0.04);
       if (!S.tray.some(t => t && canPlaceAnywhere(t))) chronoEnd();
     }
     updateHUD(); return;
@@ -400,14 +401,14 @@ function place(idx, gx, gy) {
 
 function gameOver() {
   S.over = true;
-  $('bp-final').textContent = S.score.toLocaleString('fr-FR');
-  $('bp-overtitle').textContent = S.mode === 'chrono' && S.endWhy === 'time' ? '⏱ Temps écoulé !' : 'Plus de place !';
+  $('bp-final').textContent = num(S.score);
+  $('bp-overtitle').textContent = S.mode === 'chrono' && S.endWhy === 'time' ? t('bp.timeUp') : t('bp.overTitle');
   const top = $('bp-top10'); top.classList.toggle('hidden', S.mode !== 'chrono');
   if (S.mode === 'chrono') {
-    $('bp-newbest').textContent = S.myRank === 0 ? '🏆 Meilleur chrono !' : S.myRank > 0 ? `Classé ${S.myRank + 1}ᵉ de ton top 10` : S.score ? 'Hors du top 10' : 'Aucun point : pas de classement';
-    top.innerHTML = TOP.map((e, i) => `<li class="${i === S.myRank ? 'me' : ''}">${e.s.toLocaleString('fr-FR')} <span class="muted">· ${e.d}</span></li>`).join('');
-  } else if (S.mode === 'daily') $('bp-newbest').textContent = `🎯 Défi du ${todayLabel()} — meilleur du jour : ${DAILY.best.toLocaleString('fr-FR')} · série : ${DAILY.streak} jour${DAILY.streak > 1 ? 's' : ''}`;
-  else $('bp-newbest').textContent = S.score >= S.best && S.score > 0 ? '🏆 Nouveau record !' : 'Record : ' + S.best.toLocaleString('fr-FR');
+    $('bp-newbest').textContent = S.myRank === 0 ? t('bp.bestChrono') : S.myRank > 0 ? t('bp.rank', { n: S.myRank + 1 }) : S.score ? t('bp.outTop') : t('bp.noPoints');
+    top.innerHTML = TOP.map((e, i) => `<li class="${i === S.myRank ? 'me' : ''}">${num(e.s)} <span class="muted">· ${e.d}</span></li>`).join('');
+  } else if (S.mode === 'daily') $('bp-newbest').textContent = t('bp.dailyEnd', { date: todayLabel(), best: num(DAILY.best), n: DAILY.streak });
+  else $('bp-newbest').textContent = S.score >= S.best && S.score > 0 ? t('bp.newRecord') : t('bp.record', { n: num(S.best) });
   $('bp-cont').classList.toggle('hidden', COINS < TOOLS.hammer || S.mode === 'chrono');
   $('bp-over').classList.remove('hidden');
   beep(300, 0.3, 'sawtooth', 0.04); setTimeout(() => beep(200, 0.4, 'sawtooth', 0.04), 200);
@@ -420,21 +421,21 @@ function burst(gx, gy, color) {
 
 function updateHUD() {
   const adv = S.mode === 'adv', daily = S.mode === 'daily';
-  $('bp-l1').textContent = adv ? `NIVEAU ${S.lvl} · COUPS` : daily ? '🎯 DÉFI DU JOUR' : 'SCORE';
-  $('bp-l2').textContent = adv ? 'OBJECTIF' : daily ? 'MEILLEUR DU JOUR' : 'MEILLEUR';
-  if (daily) { $('bp-best').textContent = DAILY.best.toLocaleString('fr-FR'); return; }
+  $('bp-l1').textContent = adv ? t('bp.hudLevel', { n: S.lvl }) : daily ? t('bp.hudDaily') : t('bp.score');
+  $('bp-l2').textContent = adv ? t('bp.hudGoal') : daily ? t('bp.hudDailyBest') : t('bp.best');
+  if (daily) { $('bp-best').textContent = num(DAILY.best); return; }
   if (S.mode === 'chrono') {
     const c = Math.max(0, Math.ceil(S.clock));
-    $('bp-l1').textContent = '⏱ TEMPS';
+    $('bp-l1').textContent = t('bp.hudTime');
     $('bp-score').textContent = `${Math.floor(c / 60)}:${String(c % 60).padStart(2, '0')}`;
     $('bp-score').classList.toggle('urgent', c <= 10 && !S.over);
-    $('bp-l2').textContent = TOP[0] ? `SCORE · RECORD ${TOP[0].s.toLocaleString('fr-FR')}` : 'SCORE';
-    $('bp-best').textContent = S.score.toLocaleString('fr-FR'); return;
+    $('bp-l2').textContent = TOP[0] ? t('bp.hudScoreRec', { n: num(TOP[0].s) }) : t('bp.score');
+    $('bp-best').textContent = num(S.score); return;
   }
   if (adv) {
     $('bp-score').textContent = S.moves;
     $('bp-best').textContent = S.goal.type === 'gems' ? `💎 ${S.got}/${S.goal.gems}` : `▤ ${Math.min(S.lines, S.goal.target)}/${S.goal.target}`;
-  } else $('bp-best').textContent = S.best.toLocaleString('fr-FR');
+  } else $('bp-best').textContent = num(S.best);
 }
 
 // ---------- layout ----------
@@ -532,7 +533,7 @@ function draw(dt) {
   ctx.clearRect(0, 0, W, H);
   S.shown += (S.score - S.shown) * Math.min(1, dt * 10);
   if (Math.abs(S.score - S.shown) < 0.5) S.shown = S.score;
-  if (S.mode !== 'adv' && S.mode !== 'chrono') $('bp-score').textContent = Math.round(S.shown).toLocaleString('fr-FR');
+  if (S.mode !== 'adv' && S.mode !== 'chrono') $('bp-score').textContent = num(S.shown);
   if (S.mode !== 'chrono') $('bp-score').classList.remove('urgent');
 
   let sx = 0, sy = 0;
@@ -624,7 +625,7 @@ function draw(dt) {
     ctx.font = `${Math.round(L.cs * 0.9)}px system-ui`; ctx.textAlign = 'center'; ctx.fillText('👆', hx + L.cs * 0.3, hy + L.cs * 0.9);
     ctx.globalAlpha = 1;
     ctx.font = `800 ${Math.round(L.cs * 0.34)}px system-ui,sans-serif`; ctx.fillStyle = '#fff';
-    ctx.fillText('Glisse une pièce sur la grille', L.bx + L.bs / 2, L.by - 14 + (L.by < 30 ? 30 : 0));
+    ctx.fillText(t('bp.tuto'), L.bx + L.bs / 2, L.by - 14 + (L.by < 30 ? 30 : 0));
   }
 
   // pièce en main
@@ -694,9 +695,9 @@ canvas.addEventListener('pointerup', drop);
 canvas.addEventListener('pointercancel', () => S.drag = null);
 
 $('bp-restart').onclick = () => {
-  if (S.mode === 'adv') { if (S.moves === S.goal.moves) startLevel(S.lvl); else ptConfirm(`Recommencer le niveau ${S.lvl} ?`, 'Recommencer').then(ok => ok && startLevel(S.lvl)); return; }
-  if (S.mode === 'chrono') { if (!S.score || S.over) startChrono(); else ptConfirm('Relancer le Chrono ? Le score en cours sera perdu.', 'Relancer').then(ok => ok && startChrono()); return; }
-  if (S.score === 0) newGame(); else window.ptConfirm('Recommencer une nouvelle partie ? Le score en cours sera perdu.', 'Recommencer').then(ok => ok && newGame());
+  if (S.mode === 'adv') { if (S.moves === S.goal.moves) startLevel(S.lvl); else ptConfirm(t('bp.cRestartLevel', { n: S.lvl }), t('bp.cRestart')).then(ok => ok && startLevel(S.lvl)); return; }
+  if (S.mode === 'chrono') { if (!S.score || S.over) startChrono(); else ptConfirm(t('bp.cChrono'), t('bp.cChronoOk')).then(ok => ok && startChrono()); return; }
+  if (S.score === 0) newGame(); else window.ptConfirm(t('bp.cNewGame'), t('bp.cRestart')).then(ok => ok && newGame());
 };
 $('bp-again').onclick = () => S.mode === 'daily' ? startDaily() : S.mode === 'chrono' ? startChrono() : newGame();
 $('bp-chrono').onclick = startChrono;
@@ -705,14 +706,14 @@ $('bp-themebtn').onclick = openThemes;
 $('bp-themeclose').onclick = () => $('bp-themes').classList.add('hidden');
 applyTheme();
 // reprendre une grille bloquée : on ferme l'écran de fin et on arme le marteau
-const resume = id => { $(id).classList.add('hidden'); S.over = false; tool = 'hammer'; paintBoost(); S.pops.push({ text: 'Choisis une case', sub: 'à casser', t: 0 }); };
+const resume = id => { $(id).classList.add('hidden'); S.over = false; tool = 'hammer'; paintBoost(); S.pops.push({ text: t('bp.pickCell'), sub: t('bp.pickCellSub'), t: 0 }); };
 $('bp-cont').onclick = () => resume('bp-over');
 $('bp-rescont').onclick = () => resume('bp-res');
 const MORE_COST = 25;
 $('bp-resmore').onclick = () => {
   if (COINS < MORE_COST || S.moreBought) return;
   COINS -= MORE_COST; saveCoins(); S.moreBought = true; S.moves += 3; S.over = false;
-  $('bp-res').classList.add('hidden'); S.pops.push({ text: '+3 coups', sub: 'dernière chance !', t: 0 }); updateHUD();
+  $('bp-res').classList.add('hidden'); S.pops.push({ text: t('bp.plus3'), sub: t('bp.lastChance'), t: 0 }); updateHUD();
 };
 $('bp-overmap').onclick = () => { $('bp-over').classList.add('hidden'); openMap(); };
 document.querySelectorAll('#bp-boost button').forEach(b => b.onclick = () => {
@@ -722,6 +723,10 @@ document.querySelectorAll('#bp-boost button').forEach(b => b.onclick = () => {
   tool = tool === t ? null : t; paintBoost();
 });
 paintBoost();
+// langue : le HTML se traduit tout seul, le reste se redessine
+applyI18n();
+const sel = document.getElementById('pt-langsel'); if (sel) import('./i18n.js').then(m => m.langSelect(sel));
+window.addEventListener('pt-lang', () => { updateHUD(); if (!$('bp-themes').classList.contains('hidden')) openThemes(); if (!$('bp-map').classList.contains('hidden')) openMap(); });
 $('bp-mapclose').onclick = () => { $('bp-map').classList.add('hidden'); if (S.over && S.mode !== 'adv') $('bp-over').classList.remove('hidden'); };   // fermer la carte après une fin de partie ramène à l'écran de fin
 $('bp-daily').onclick = startDaily;
 $('bp-classic').onclick = () => { $('bp-map').classList.add('hidden'); if (S.mode === 'classic' && S.over) { newGame(); return; } if (S.mode !== 'classic') { S.mode = 'classic'; rnd = Math.random; S.gems.clear(); if (!load() || !S.tray.some(t => t && canPlaceAnywhere(t))) newGame(); S.over = false; updateHUD(); } };

@@ -1,7 +1,7 @@
 {
   "name": "Playtoon",
   "short_name": "Playtoon",
-  "description": "Trois jeux dans le navigateur : Bloc Party, Star Forge et Neon Bonk.",
+  "description": "Trois jeux dans le navigateur : Block Quarry, Star Forge et Neon Bonk.",
   "lang": "fr",
   "start_url": "./",
   "scope": "./",
@@ -15,7 +15,7 @@
     { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
   "shortcuts": [
-    { "name": "Bloc Party", "url": "./#blocks" },
+    { "name": "Block Quarry", "url": "./#blocks" },
     { "name": "Star Forge", "url": "./#forge" },
     { "name": "Neon Bonk", "url": "./#bonk" }
   ]

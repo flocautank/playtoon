@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Playtoon</title>
-<meta name="description" content="Trois jeux jouables dans le navigateur : Bloc Party, Star Forge et Neon Bonk.">
+<meta name="description" content="Trois jeux jouables dans le navigateur : Block Quarry, Star Forge et Neon Bonk.">
 <meta name="theme-color" content="#0d0f1a">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -17,7 +17,7 @@
 <body>
 <nav id="nav">
   <button class="brand" id="brand" title="Accueil et objectifs du jour">PLAYTOON</button>
-  <a href="#blocks" data-tab="blocks"><i style="background:#ff5d8f"></i>Bloc Party</a>
+  <a href="#blocks" data-tab="blocks"><i style="background:#ff5d8f"></i>Block Quarry</a>
   <a href="#forge" data-tab="forge"><i style="background:#ffc94d"></i>Star Forge</a>
   <a href="#bonk" data-tab="bonk"><i style="background:#4dd4ff"></i>Neon Bonk</a>
   <button id="profile" class="mute" title="Profil et statistiques" aria-label="Profil">👤</button>
@@ -34,7 +34,7 @@
     <h1 class="pt-logo">PLAYTOON</h1>
     <p class="muted">Trois jeux, une seule page. Ta progression est sauvegardée dans ce navigateur.</p>
     <div class="pt-games">
-      <a class="pt-game" href="#blocks" style="--c:#ff5d8f"><b>🧩 Bloc Party</b><span>Pose les pièces, complète lignes et colonnes. Aventure, défi du jour, Chrono.</span></a>
+      <a class="pt-game" href="#blocks" style="--c:#ff5d8f"><b>🧩 Block Quarry</b><span>Pose les pièces, complète lignes et colonnes. Aventure, défi du jour, Chrono.</span></a>
       <a class="pt-game" href="#forge" style="--c:#ffc94d"><b>✨ Star Forge</b><span>Touche l'étoile, bâtis des forges qui produisent même quand tu es parti.</span></a>
       <a class="pt-game" href="#bonk" style="--c:#4dd4ff"><b>🕹️ Neon Bonk</b><span>Survis aux hordes en 3D : cours, saute, tes armes tirent seules.</span></a>
     </div>
@@ -49,6 +49,7 @@
 <div class="overlay hidden" id="pt-profile" style="position:fixed;z-index:150">
   <div class="card wide">
     <h2>Profil</h2>
+    <label class="small pt-lang">🌐 <span data-i18n="language">Language</span> <select id="pt-langsel"></select></label>
     <div class="pt-goals"><h3>🎯 Objectifs du jour</h3><div id="pt-goals2"></div></div>
     <div class="pt-prof" id="pt-prof"></div>
     <details class="small"><summary>Sauvegarde de tous les jeux</summary>
@@ -65,53 +66,53 @@
   <section id="tab-blocks" class="tab">
     <div class="bp-wrap">
       <div class="bp-top">
-        <button class="btn ghost" id="bp-mapbtn" title="Modes de jeu : Aventure, défi du jour, Chrono">🗺️<small>Modes</small></button>
-        <div class="bp-stat"><small id="bp-l1">SCORE</small><b id="bp-score">0</b></div>
-        <div class="bp-stat"><small id="bp-l2">MEILLEUR</small><b id="bp-best">0</b></div>
-        <button class="btn ghost" id="bp-restart" title="Recommencer">↻</button>
-        <button class="btn ghost" id="bp-themebtn" title="Thèmes">🎨</button>
+        <button class="btn ghost" id="bp-mapbtn" data-i18n-title="bp.modesTip">🗺️<small data-i18n="bp.modes">Modes</small></button>
+        <div class="bp-stat"><small id="bp-l1" data-i18n="bp.score">SCORE</small><b id="bp-score">0</b></div>
+        <div class="bp-stat"><small id="bp-l2" data-i18n="bp.best">BEST</small><b id="bp-best">0</b></div>
+        <button class="btn ghost" id="bp-restart" data-i18n-title="bp.restartTip">↻</button>
+        <button class="btn ghost" id="bp-themebtn" data-i18n-title="bp.themesTip">🎨</button>
       </div>
       <canvas id="bp-canvas"></canvas>
       <div class="bp-boost" id="bp-boost">
         <span class="bp-coins">🪙 <b id="bp-coins">0</b></span>
-        <button data-tool="hammer" title="Marteau : casse une case">🔨<small>15</small></button>
-        <button data-tool="bomb" title="Bombe : efface un carré 3×3">💣<small>30</small></button>
-        <button data-tool="shuffle" title="Mélange : trois nouvelles pièces">🔀<small>20</small></button>
+        <button data-tool="hammer" data-i18n-title="bp.hammerTip">🔨<small>15</small></button>
+        <button data-tool="bomb" data-i18n-title="bp.bombTip">💣<small>30</small></button>
+        <button data-tool="shuffle" data-i18n-title="bp.shuffleTip">🔀<small>20</small></button>
       </div>
       <div class="overlay hidden" id="bp-over">
         <div class="card">
-          <h2 id="bp-overtitle">Plus de place !</h2>
-          <p>Score : <b id="bp-final">0</b></p>
+          <h2 id="bp-overtitle" data-i18n="bp.overTitle">No more room!</h2>
+          <p><span data-i18n="bp.finalScore">Score:</span> <b id="bp-final">0</b></p>
           <p class="muted" id="bp-newbest"></p>
           <ol class="bp-top10 hidden" id="bp-top10"></ol>
-          <button class="btn ghost" id="bp-cont">🔨 Continuer avec un booster</button>
-          <div class="row"><button class="btn" id="bp-again">Rejouer</button><button class="btn ghost" id="bp-overmap">🗺️ Modes</button></div>
+          <button class="btn ghost" id="bp-cont" data-i18n="bp.contBooster">🔨 Continue with a booster</button>
+          <div class="row"><button class="btn" id="bp-again" data-i18n="bp.again">Play again</button><button class="btn ghost" id="bp-overmap" data-i18n="bp.modesBtn">🗺️ Modes</button></div>
         </div>
       </div>
       <div class="overlay hidden" id="bp-map">
         <div class="card wide">
-          <h2>Aventure</h2>
-          <p class="muted small">Récupère les 💎 en effaçant les lignes qui les contiennent, ou efface le nombre de lignes demandé, avant la fin des coups. Moins tu utilises de coups, plus tu gagnes d'étoiles.</p>
+          <h2 data-i18n="bp.adventure">Adventure</h2>
+          <p class="muted small" data-i18n="bp.advHelp"></p>
           <div class="bp-levels" id="bp-levels"></div>
-          <p class="muted small bp-scrollhint">↕ 40 niveaux : fais défiler la carte</p>
-          <div class="row"><button class="btn bp-daily" id="bp-daily" style="flex:1">🎯 Défi du jour</button><button class="btn bp-daily" id="bp-chrono" style="flex:1;background:linear-gradient(135deg,#4dd4ff,#7a5bff)">⏱ Chrono 2 min<small>+1,5 s par ligne effacée</small></button></div>
-          <div class="row"><button class="btn ghost" id="bp-classic">Partie classique (sans fin)</button><button class="btn ghost" id="bp-mapclose">Fermer</button></div>
+          <p class="muted small bp-scrollhint" data-i18n="bp.scrollHint"></p>
+          <div class="row"><button class="btn bp-daily" id="bp-daily" style="flex:1">🎯</button><button class="btn bp-daily" id="bp-chrono" style="flex:1;background:linear-gradient(135deg,#4dd4ff,#7a5bff)"><span data-i18n="bp.chronoBtn">⏱</span><small data-i18n="bp.chronoBtnSub"></small></button></div>
+          <div class="row"><button class="btn ghost" id="bp-classic" data-i18n="bp.classic">Classic</button><button class="btn ghost" id="bp-mapclose" data-i18n="close">Close</button></div>
         </div>
       </div>
       <div class="overlay hidden" id="bp-themes">
         <div class="card wide">
-          <h2>Thèmes</h2>
-          <p class="muted small">Débloque des styles de blocs avec tes pièces 🪙 (gagnées en effaçant des lignes et en décrochant des étoiles).</p>
+          <h2 data-i18n="bp.themes">Themes</h2>
+          <p class="muted small" data-i18n="bp.themesHelp"></p>
           <div class="bp-thgrid" id="bp-thgrid"></div>
-          <button class="btn ghost" id="bp-themeclose">Fermer</button>
+          <button class="btn ghost" id="bp-themeclose" data-i18n="close">Close</button>
         </div>
       </div>
       <div class="overlay hidden" id="bp-res">
         <div class="card">
-          <h2 id="bp-restitle">Niveau réussi !</h2>
+          <h2 id="bp-restitle" data-i18n="bp.cleared">Level cleared!</h2>
           <div class="bp-stars" id="bp-resstars"></div>
           <p class="muted" id="bp-restext"></p>
-          <div class="row"><button class="btn" id="bp-resmore">+3 coups · 🪙 25</button><button class="btn ghost" id="bp-rescont">🔨 Continuer</button><button class="btn" id="bp-resnext">Suivant</button><button class="btn ghost" id="bp-resretry">Réessayer</button><button class="btn ghost" id="bp-resmap">Carte</button></div>
+          <div class="row"><button class="btn" id="bp-resmore" data-i18n="bp.more">+3</button><button class="btn ghost" id="bp-rescont" data-i18n="bp.cont">🔨</button><button class="btn" id="bp-resnext" data-i18n="bp.next">Next</button><button class="btn ghost" id="bp-resretry" data-i18n="bp.retry">Retry</button><button class="btn ghost" id="bp-resmap" data-i18n="bp.map">Map</button></div>
         </div>
       </div>
     </div>
@@ -233,6 +234,7 @@
   </section>
 </main>
 
+<script type="module" src="js/i18n.js"></script>
 <script type="module" src="js/blocks.js"></script>
 <script type="module" src="js/clicker.js"></script>
 <script type="module" src="js/bonk.js"></script>
