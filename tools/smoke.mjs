@@ -64,6 +64,17 @@ log('défi du jour :', await page.evaluate(() => {
   return `identique=${a === b} score=${S.score} meilleur=${d.best} série=${d.streak} mode=${S.mode}`;
 }));
 await page.click('#bp-mapbtn'); await page.waitForTimeout(200); await shot(page, 'blocks-map2'); await page.click('#bp-classic'); await page.waitForTimeout(300);
+// chrono : le temps s'écoule, une ligne rend du temps, fin → top 10
+await page.click('#bp-mapbtn'); await page.waitForTimeout(200); await page.click('#bp-chrono'); await page.waitForTimeout(1500);
+log('chrono :', await page.evaluate(async () => {
+  const { S, place, fits, N } = window.__bp; const t0 = S.clock;
+  for (let k = 0; k < 10 && !S.over; k++) { let done = false; S.tray.forEach((pc, i) => { if (done || !pc) return; for (let y = 0; y < N && !done; y++) for (let x = 0; x < N && !done; x++) if (fits(pc, x, y)) { place(i, x, y); done = true; } }); }
+  const t1 = S.clock; S.clock = 0.05; await new Promise(r => setTimeout(r, 900));
+  return `temps ${t0.toFixed(1)} → ${t1.toFixed(1)} s · fini=${S.over} · score=${S.score} · top10=${JSON.parse(localStorage.getItem('blocparty.chrono')).length}`;
+}));
+await page.waitForTimeout(600); await shot(page, 'blocks-chrono-end');
+await page.click('#bp-again'); await page.waitForTimeout(300);
+await page.click('#bp-mapbtn'); await page.waitForTimeout(200); await page.click('#bp-classic'); await page.waitForTimeout(300);
 // boosters : on remplit un peu la grille, puis bombe au centre
 await page.evaluate(() => { const { S, place, fits, N } = window.__bp; for (let k = 0; k < 4; k++) S.tray.forEach((pc, i) => { if (!pc) return; for (let y = 2; y < N; y++) for (let x = 2; x < N; x++) if (S.tray[i] && fits(pc, x, y)) { place(i, x, y); return; } }); });
 const filledBefore = await page.evaluate(() => window.__bp.S.board.flat().filter(Boolean).length);

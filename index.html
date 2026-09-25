@@ -57,9 +57,10 @@
       </div>
       <div class="overlay hidden" id="bp-over">
         <div class="card">
-          <h2>Plus de place !</h2>
+          <h2 id="bp-overtitle">Plus de place !</h2>
           <p>Score : <b id="bp-final">0</b></p>
           <p class="muted" id="bp-newbest"></p>
+          <ol class="bp-top10 hidden" id="bp-top10"></ol>
           <button class="btn ghost" id="bp-cont">🔨 Continuer avec un booster</button>
           <button class="btn" id="bp-again">Rejouer</button>
         </div>
@@ -69,7 +70,7 @@
           <h2>Aventure</h2>
           <p class="muted small">Récupère les 💎 en effaçant les lignes qui les contiennent, ou efface le nombre de lignes demandé, avant la fin des coups. Moins tu utilises de coups, plus tu gagnes d'étoiles.</p>
           <div class="bp-levels" id="bp-levels"></div>
-          <button class="btn bp-daily" id="bp-daily">📅 Défi du jour</button>
+          <div class="row"><button class="btn bp-daily" id="bp-daily" style="flex:1">📅 Défi du jour</button><button class="btn bp-daily" id="bp-chrono" style="flex:1;background:linear-gradient(135deg,#4dd4ff,#7a5bff)">⏱ Chrono 2 min<small>+1,5 s par ligne effacée</small></button></div>
           <div class="row"><button class="btn ghost" id="bp-classic">Partie classique (sans fin)</button><button class="btn ghost" id="bp-mapclose">Fermer</button></div>
         </div>
       </div>

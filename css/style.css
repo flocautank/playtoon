@@ -75,6 +75,8 @@ main{position:fixed;inset:var(--nav-h) 0 0 0}
 .bp-lv.lock{opacity:.35;cursor:default}
 .bp-daily{background:linear-gradient(135deg,#ff8a4d,#ff5d8f);display:flex;flex-direction:column;align-items:center;gap:2px}
 .bp-daily small{font-size:11px;font-weight:600;opacity:.9}
+.bp-top10{text-align:left;font-size:13px;max-height:210px;overflow:auto;padding-left:28px;font-variant-numeric:tabular-nums}
+.bp-top10 li{padding:2px 0}.bp-top10 li.me{color:#ffc94d;font-weight:800}
 .bp-stars{font-size:40px;letter-spacing:6px;color:#ffc94d;text-shadow:0 0 16px rgba(255,201,77,.5)}
 .bp-stars i{font-style:normal;color:#3a3560;text-shadow:none}
 #bp-canvas{flex:1 1 0;min-height:0;width:100%;touch-action:none;display:block}

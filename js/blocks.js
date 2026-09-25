@@ -245,6 +245,30 @@ function openThemes() {
   $('bp-themes').classList.remove('hidden');
 }
 
+// ---------- Chrono : 2 minutes, +1,5 s par ligne, points qui valent de plus en plus, top 10 local
+const CHRONO_T = 120;
+let TOP = [];
+try { TOP = JSON.parse(localStorage.getItem('blocparty.chrono') || '[]'); } catch (e) {}
+function startChrono() {
+  S.mode = 'chrono'; rnd = Math.random; S.gems = new Set(); S.clock = CHRONO_T; S.chronoT = 0; S.myRank = -1;
+  S.board = Array.from({ length: N }, () => Array(N).fill(null));
+  S.score = 0; S.shown = 0; S.combo = 0; S.over = false; S.fx = []; S.pops = []; S.clearing = [];
+  fillTray();
+  ['bp-over', 'bp-map', 'bp-res'].forEach(id => $(id).classList.add('hidden'));
+  S.pops.push({ text: '⏱ Chrono !', sub: '2 minutes, chaque ligne rend du temps', t: 0 });
+  updateHUD();
+}
+function chronoEnd() {
+  if (S.over) return;
+  S.over = true; S.endWhy = S.clock <= 0.05 ? 'time' : 'stuck'; S.clock = Math.max(0, S.clock);
+  const entry = { s: S.score, d: new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }), t: Date.now() };
+  TOP.push(entry); TOP.sort((a, b) => b.s - a.s); TOP = TOP.slice(0, 10);
+  S.myRank = TOP.indexOf(entry);
+  try { localStorage.setItem('blocparty.chrono', JSON.stringify(TOP)); } catch (e) {}
+  updateHUD();
+  setTimeout(gameOver, 400);
+}
+
 function openMap() {
   $('bp-daily').innerHTML = `📅 Défi du jour<small>${todayLabel()}${DAILY.day === dayKey() && DAILY.best ? ' · meilleur ' + DAILY.best.toLocaleString('fr-FR') : ''}${DAILY.streak > 1 && DAILY.day === dayKey() ? ' · série ' + DAILY.streak : ''}</small>`;
   const box = $('bp-levels'); box.innerHTML = '';
@@ -314,7 +338,8 @@ function place(idx, gx, gy) {
     rows.forEach(y => { for (let x = 0; x < N; x++) cells.set(y * N + x, [x, y]); });
     cols.forEach(x => { for (let y = 0; y < N; y++) cells.set(y * N + x, [x, y]); });
     const lineScore = 10 * n * (n + 1) / 2 * N / 8;
-    const bonus = Math.round(lineScore * (1 + (S.combo - 1) * 0.5));
+    const bonus = Math.round(lineScore * (1 + (S.combo - 1) * 0.5) * (S.mode === 'chrono' ? 1 + S.chronoT / 60 : 1));
+    if (S.mode === 'chrono') S.clock += 1.5 * n;
     gained += bonus;
     for (const [x, y] of cells.values()) {
       const color = S.board[y][x];
@@ -349,6 +374,14 @@ function place(idx, gx, gy) {
     }
     updateHUD(); return;
   }
+  if (S.mode === 'chrono') {
+    if (!S.tray.some(t => t && canPlaceAnywhere(t))) {   // bloqué : nouvelles pièces contre 5 s
+      S.tray = [null, null, null]; fillTray(); S.clock -= 5;
+      S.pops.length = 0; S.pops.push({ text: 'Nouvelles pièces', sub: '−5 s', t: 0 }); beep(300, 0.2, 'square', 0.04);
+      if (!S.tray.some(t => t && canPlaceAnywhere(t))) chronoEnd();
+    }
+    updateHUD(); return;
+  }
   if (S.mode === 'daily') { if (S.score > DAILY.best) { DAILY.best = S.score; saveDaily(); } }
   else if (S.score > S.best) S.best = S.score;
   if (!S.tray.some(t => t && canPlaceAnywhere(t))) {
@@ -360,9 +393,14 @@ function place(idx, gx, gy) {
 
 function gameOver() {
   $('bp-final').textContent = S.score.toLocaleString('fr-FR');
-  if (S.mode === 'daily') $('bp-newbest').textContent = `📅 Défi du ${todayLabel()} — meilleur du jour : ${DAILY.best.toLocaleString('fr-FR')} · série : ${DAILY.streak} jour${DAILY.streak > 1 ? 's' : ''}`;
+  $('bp-overtitle').textContent = S.mode === 'chrono' && S.endWhy === 'time' ? '⏱ Temps écoulé !' : 'Plus de place !';
+  const top = $('bp-top10'); top.classList.toggle('hidden', S.mode !== 'chrono');
+  if (S.mode === 'chrono') {
+    $('bp-newbest').textContent = S.myRank === 0 ? '🏆 Meilleur chrono !' : S.myRank > 0 ? `Classé ${S.myRank + 1}ᵉ de ton top 10` : 'Hors du top 10';
+    top.innerHTML = TOP.map((e, i) => `<li class="${i === S.myRank ? 'me' : ''}">${e.s.toLocaleString('fr-FR')} <span class="muted">· ${e.d}</span></li>`).join('');
+  } else if (S.mode === 'daily') $('bp-newbest').textContent = `📅 Défi du ${todayLabel()} — meilleur du jour : ${DAILY.best.toLocaleString('fr-FR')} · série : ${DAILY.streak} jour${DAILY.streak > 1 ? 's' : ''}`;
   else $('bp-newbest').textContent = S.score >= S.best && S.score > 0 ? '🏆 Nouveau record !' : 'Record : ' + S.best.toLocaleString('fr-FR');
-  $('bp-cont').classList.toggle('hidden', COINS < TOOLS.hammer);
+  $('bp-cont').classList.toggle('hidden', COINS < TOOLS.hammer || S.mode === 'chrono');
   $('bp-over').classList.remove('hidden');
   beep(300, 0.3, 'sawtooth', 0.04); setTimeout(() => beep(200, 0.4, 'sawtooth', 0.04), 200);
 }
@@ -377,6 +415,12 @@ function updateHUD() {
   $('bp-l1').textContent = adv ? `NIVEAU ${S.lvl} · COUPS` : daily ? '📅 DÉFI DU JOUR' : 'SCORE';
   $('bp-l2').textContent = adv ? 'OBJECTIF' : daily ? 'MEILLEUR DU JOUR' : 'MEILLEUR';
   if (daily) { $('bp-best').textContent = DAILY.best.toLocaleString('fr-FR'); return; }
+  if (S.mode === 'chrono') {
+    const c = Math.max(0, Math.ceil(S.clock));
+    $('bp-l1').textContent = `⏱ ${Math.floor(c / 60)}:${String(c % 60).padStart(2, '0')} · SCORE`;
+    $('bp-l2').textContent = 'MEILLEUR CHRONO';
+    $('bp-best').textContent = (TOP[0] ? TOP[0].s : 0).toLocaleString('fr-FR'); return;
+  }
   if (adv) {
     $('bp-score').textContent = S.moves;
     $('bp-best').textContent = S.goal.type === 'gems' ? `💎 ${S.got}/${S.goal.gems}` : `▤ ${Math.min(S.lines, S.goal.target)}/${S.goal.target}`;
@@ -467,6 +511,11 @@ function frame(t) {
 }
 
 function draw(dt) {
+  if (S.mode === 'chrono' && !S.over) {
+    S.clock -= dt; S.chronoT += dt;
+    if ((S.clock | 0) !== (S.lastSec | 0)) { S.lastSec = S.clock; updateHUD(); if (S.clock < 10 && S.clock > 0) beep(900, 0.04, 'square', 0.02); }
+    if (S.clock <= 0) chronoEnd();
+  }
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   ctx.clearRect(0, 0, W, H);
   S.shown += (S.score - S.shown) * Math.min(1, dt * 10);
@@ -602,9 +651,11 @@ canvas.addEventListener('pointercancel', () => S.drag = null);
 
 $('bp-restart').onclick = () => {
   if (S.mode === 'adv') { startLevel(S.lvl); return; }
+  if (S.mode === 'chrono') { startChrono(); return; }
   if (S.score === 0 || confirm('Recommencer une nouvelle partie ?')) newGame();
 };
-$('bp-again').onclick = () => S.mode === 'daily' ? startDaily() : newGame();
+$('bp-again').onclick = () => S.mode === 'daily' ? startDaily() : S.mode === 'chrono' ? startChrono() : newGame();
+$('bp-chrono').onclick = startChrono;
 $('bp-mapbtn').onclick = openMap;
 $('bp-themebtn').onclick = openThemes;
 $('bp-themeclose').onclick = () => $('bp-themes').classList.add('hidden');
@@ -637,4 +688,4 @@ window.GAMES.blocks = {
   hide() { running = false; S.drag = null; },
 };
 // Accès de test (tools/smoke.mjs, console).
-window.__bp = { S, place, fits, startLevel, startDaily, linesToClear, canPlaceAnywhere, N };
+window.__bp = { S, place, fits, startLevel, startDaily, startChrono, linesToClear, canPlaceAnywhere, N };
