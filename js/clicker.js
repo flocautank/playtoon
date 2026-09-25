@@ -68,11 +68,24 @@ GENS.forEach((g, i) => ACH.push({ id: 'own' + i, ic: g.ic, name: `Collection : $
 [[1, '⭐'], [10, '🌟'], [50, '🎇']].forEach(([n, ic]) => ACH.push({ id: 'com' + n, ic, name: `Chasseur de comètes ${n}`, desc: `Attraper ${n} comète(s) dorée(s)`, test: s => s.lifeComets >= n }));
 [[1e3, '⚡'], [1e6, '⚡'], [1e9, '⚡']].forEach(([n, ic]) => ACH.push({ id: 'dps' + n, ic, name: `${fmt(n)} /s`, desc: `Atteindre ${fmt(n)} par seconde`, test: s => dps() >= n }));
 
+// Défis : une run sous contrainte (entrer = repartir de zéro, sans Novae), objectif en poussière
+// produite ; la réussite débloque une récompense permanente et lève la contrainte.
+const CHALS = [
+  { id: 'c_hands', ic: '🙌', name: 'Sans les mains', desc: 'Les clics (et l\'Automate) ne rapportent rien.', goal: 1e6, need: 1, reward: 'Production ×1,5' },
+  { id: 'c_short', ic: '🧱', name: 'Pénurie', desc: 'Seules les trois premières forges sont disponibles.', goal: 1e6, need: 1, reward: 'Étincelles, Lanternes et Moulins ×3' },
+  { id: 'c_noupg', ic: '🚫', name: 'Ascète', desc: 'Impossible d\'acheter des améliorations.', goal: 3e6, need: 2, reward: 'Améliorations 15 % moins chères' },
+  { id: 'c_infl', ic: '📈', name: 'Inflation', desc: 'Le prix des forges grimpe de 25 % par achat au lieu de 15 %.', goal: 1e7, need: 2, reward: 'Croissance des prix −0,5 point' },
+  { id: 'c_dim', ic: '🌑', name: 'Étoile pâle', desc: 'Toute la production est divisée par 10, pas de comètes.', goal: 1e7, need: 3, reward: 'Supernovae : +25 % de Novae' },
+  { id: 'c_rush', ic: '⏱️', name: 'Contre la montre', desc: 'Le chrono tourne, hors-ligne compris.', goal: 1e8, need: 4, time: 900, reward: 'Comètes +25 % plus fréquentes et plus longues' },
+];
+const inChal = id => S.chal === id;
+const chalDone = id => !!(S.chalDone && S.chalDone[id]);
+
 // ---------- état ----------
 function fresh() {
   return {
     dust: 0, runTotal: 0, lifeTotal: 0, clicks: 0, lifeClicks: 0, gens: GENS.map(() => 0), upg: {}, cometsTotal: 0, lifeComets: 0,
-    novaTotal: 0, novaBank: 0, meta: {}, ach: {}, prestiges: 0, buffs: [], last: Date.now(), started: Date.now(),
+    novaTotal: 0, novaBank: 0, meta: {}, ach: {}, prestiges: 0, chal: null, chalT: 0, chalDone: {}, buffs: [], last: Date.now(), started: Date.now(),
   };
 }
 let S = fresh();
@@ -93,6 +106,7 @@ function genMult(i) {
   let m = 1;
   for (const u of UPGRADES) if (S.upg[u.id] && u.fx.gen === i) m *= u.fx.mult;
   for (const t of MILESTONES) if (S.gens[i] >= t) m *= 2;
+  if (i < 3 && chalDone('c_short')) m *= 3;
   return m;
 }
 function globalMult() {
@@ -101,12 +115,15 @@ function globalMult() {
   m *= 1 + S.novaTotal * (has('m_nova') ? 0.05 : 0.03);
   m *= 1 + Object.keys(S.ach).length * (has('m_ach') ? 0.03 : 0.01);
   if (has('m_sing')) m *= 3;
+  if (chalDone('c_hands')) m *= 1.5;
+  if (inChal('c_dim')) m *= 0.1;
   for (const b of S.buffs) if (b.type === 'frenzy') m *= 7;
   return m;
 }
 function baseDps() { let d = 0; GENS.forEach((g, i) => d += S.gens[i] * g.prod * genMult(i)); return d; }
 function dps() { return baseDps() * globalMult(); }
 function clickValue() {
+  if (inChal('c_hands')) return 0;
   let c = 1;
   for (const u of UPGRADES) if (S.upg[u.id] && u.fx.click) c *= u.fx.click;
   if (has('m_click')) c *= 3;
@@ -115,21 +132,22 @@ function clickValue() {
   for (const b of S.buffs) if (b.type === 'click') c *= 777;
   return c;
 }
-const growth = () => has('m_econ') ? 1.14 : 1.15;
+const growth = () => inChal('c_infl') ? 1.25 : (has('m_econ') ? 1.14 : 1.15) - (chalDone('c_infl') ? 0.005 : 0);
 const genBase = i => GENS[i].cost * (has('m_cheap') ? 0.9 : 1);
 function costN(i, n) { const r = growth(), b = genBase(i) * Math.pow(r, S.gens[i]); return b * (Math.pow(r, n) - 1) / (r - 1); }
 function maxAffordable(i) {
   const r = growth(), b = genBase(i) * Math.pow(r, S.gens[i]);
   return Math.max(0, Math.floor(Math.log(S.dust * (r - 1) / b + 1) / Math.log(r)));
 }
-const upgCost = u => u.cost * (has('m_upg') ? 0.75 : 1);
-function novaGain() { return Math.floor(Math.sqrt(S.runTotal / 1e6) * (has('m_crunch') ? 2 : 1)); }
-function luck() { let l = 1; for (const u of UPGRADES) if (S.upg[u.id] && u.fx.luck) l += u.fx.luck; if (has('m_comet')) l *= 2; return l; }
+const upgCost = u => u.cost * (has('m_upg') ? 0.75 : 1) * (chalDone('c_noupg') ? 0.85 : 1);
+function novaGain() { if (S.chal) return 0; return Math.floor(Math.sqrt(S.runTotal / 1e6) * (has('m_crunch') ? 2 : 1) * (chalDone('c_dim') ? 1.25 : 1)); }
+function luck() { let l = 1; for (const u of UPGRADES) if (S.upg[u.id] && u.fx.luck) l += u.fx.luck; if (has('m_comet')) l *= 2; if (chalDone('c_rush')) l *= 1.25; return l; }
 
 // ---------- actions ----------
 function earn(v) { S.dust += v; S.runTotal += v; S.lifeTotal += v; }
 let buyMult = 1;
 function buyGen(i) {
+  if (inChal('c_short') && i > 2) return;
   let n = buyMult === 'max' ? maxAffordable(i) : buyMult;
   if (n <= 0) return;
   const c = costN(i, n);
@@ -140,6 +158,7 @@ function buyGen(i) {
 }
 function buyUpg(u) {
   const c = upgCost(u);
+  if (inChal('c_noupg')) { toast('🚫 Défi Ascète : pas d\'améliorations'); return; }
   if (S.upg[u.id] || c > S.dust || !u.req(S)) return;
   S.dust -= c; S.upg[u.id] = 1;
   sfx(880, 0.12, 'triangle'); sfx(1320, 0.12, 'triangle', 0.08);
@@ -152,15 +171,45 @@ function buyMeta(m) {
   sfx(660, 0.2, 'sine'); sfx(990, 0.3, 'sine', 0.1);
   refresh(true);
 }
-function prestige() {
-  const g = novaGain();
-  if (g < 1) return;
-  if (!confirm(`Supernova !\n\nTu perds ta poussière, tes forges et tes améliorations,\nmais tu gagnes ${g} Nova(e) : +${g * (has('m_nova') ? 5 : 3)} % de production permanente et de quoi développer ta Constellation.\n\nContinuer ?`)) return;
-  const keep = { novaTotal: S.novaTotal + g, novaBank: S.novaBank + g, meta: S.meta, ach: S.ach, prestiges: S.prestiges + 1, lifeTotal: S.lifeTotal, lifeClicks: S.lifeClicks, lifeComets: S.lifeComets };
+// Repart de zéro en gardant tout ce qui est permanent (utilisé par Supernova et par les défis).
+function resetRun(extra) {
+  const keep = { novaTotal: S.novaTotal, novaBank: S.novaBank, meta: S.meta, ach: S.ach, prestiges: S.prestiges, lifeTotal: S.lifeTotal, lifeClicks: S.lifeClicks, lifeComets: S.lifeComets, chalDone: S.chalDone || {}, ...extra };
   const kept = {};
   if (has('m_keep')) for (const k of ['click0', 'click1', 'click2']) if (S.upg[k]) kept[k] = 1;
   S = Object.assign(fresh(), keep); S.upg = kept;
   if (has('m_start')) { S.gens[0] = 10; S.gens[1] = 5; }
+}
+function startChal(c) {
+  if (S.chal || chalDone(c.id) || S.prestiges < c.need) return;
+  if (!confirm(`Défi « ${c.name} »\n\n${c.desc}\nObjectif : produire ${fmt(c.goal)}${c.time ? ' en ' + c.time / 60 + ' min' : ''}.\nRécompense permanente : ${c.reward}.\n\nTa run actuelle repart de zéro (sans Novae). Continuer ?`)) return;
+  resetRun({ chal: c.id, chalT: 0 });
+  comet = null; flash = 0.6; toast(`${c.ic} Défi lancé : ${c.name}`); sfx(330, 0.4, 'square', 0.05);
+  save(); refresh(true);
+}
+function quitChal(silent) {
+  if (!S.chal) return;
+  if (!silent && !confirm('Abandonner le défi ? La run repart de zéro.')) return;
+  resetRun({ chal: null }); save(); refresh(true);
+}
+function checkChal(dt) {
+  if (!S.chal) return;
+  const c = CHALS.find(x => x.id === S.chal);
+  S.chalT += dt;
+  if (c.time && S.chalT > c.time) { toast(`⏱️ Temps écoulé : défi « ${c.name} » raté`); quitChal(true); return; }
+  if (S.runTotal >= c.goal) {
+    S.chalDone[c.id] = 1; S.chal = null;
+    toast(`🏅 Défi réussi : ${c.name} — ${c.reward}`); flash = 0.8;
+    sfx(660, 0.3, 'triangle', 0.08); sfx(990, 0.4, 'triangle', 0.06);
+    save(); refresh(true);
+  }
+}
+
+function prestige() {
+  if (S.chal) { toast('Termine ou abandonne le défi avant une Supernova'); return; }
+  const g = novaGain();
+  if (g < 1) return;
+  if (!confirm(`Supernova !\n\nTu perds ta poussière, tes forges et tes améliorations,\nmais tu gagnes ${g} Nova(e) : +${g * (has('m_nova') ? 5 : 3)} % de production permanente et de quoi développer ta Constellation.\n\nContinuer ?`)) return;
+  resetRun({ novaTotal: S.novaTotal + g, novaBank: S.novaBank + g, prestiges: S.prestiges + 1 });
   flash = 1;
   sfx(110, 1.2, 'sawtooth', 0.08);
   toast(`💥 Supernova ! +${g} Novae`);
@@ -169,7 +218,7 @@ function prestige() {
 
 // ---------- comètes dorées ----------
 let comet = null, nextComet = 40 + Math.random() * 60;
-const buffDur = () => has('m_long') ? 2 : 1;
+const buffDur = () => (has('m_long') ? 2 : 1) * (chalDone('c_rush') ? 1.25 : 1);
 function spawnComet() {
   const fromLeft = Math.random() < 0.5;
   comet = { x: fromLeft ? -0.1 : 1.1, y: 0.15 + Math.random() * 0.5, vx: (fromLeft ? 1 : -1) * (0.05 + Math.random() * 0.03) / (0.8 + luck() * 0.2), vy: 0.01 * (Math.random() - 0.5), t: 0 };
@@ -336,6 +385,14 @@ function build() {
       tree.appendChild(n);
     });
     panel.appendChild(tree);
+  } else if (tab === 'chal') {
+    const info = document.createElement('div'); info.className = 'muted small'; info.textContent = 'Un défi relance la run sous contrainte, sans Novae. Réussis l\'objectif pour gagner une récompense permanente ; la contrainte disparaît aussitôt et la run continue.'; panel.appendChild(info);
+    CHALS.forEach(c => {
+      const d = document.createElement('div'); d.className = 'sf-ch'; d.dataset.id = c.id;
+      d.innerHTML = `<div class="ic">${c.ic}</div><div class="mid"><b>${c.name}</b><span>${c.desc} Objectif : ${fmt(c.goal)}${c.time ? ' en ' + c.time / 60 + ' min' : ''}.</span><span class="rw">🏅 ${c.reward}</span></div><button class="btn small">Lancer</button>`;
+      d.querySelector('button').onclick = () => startChal(c);
+      panel.appendChild(d);
+    });
   } else if (tab === 'ach') {
     const info = document.createElement('div'); info.className = 'muted small'; info.id = 'sf-ach-info'; panel.appendChild(info);
     const g = document.createElement('div'); g.className = 'sf-ach';
@@ -384,6 +441,10 @@ function refresh(structural) {
   $('sf-nova-gain').textContent = g; $('sf-nova-have').textContent = S.novaBank + (S.novaTotal !== S.novaBank ? ` (${S.novaTotal} gagnées)` : '');
   $('sf-prestige').disabled = g < 1;
   $('sf-prestige-box').style.display = S.runTotal >= 1e5 || S.novaTotal > 0 ? '' : 'none';
+  $('sf-tab-chal').classList.toggle('hidden', S.prestiges < 1);
+  const ch = S.chal && CHALS.find(x => x.id === S.chal);
+  $('sf-chal').classList.toggle('hidden', !ch);
+  if (ch) $('sf-chal-txt').textContent = `${ch.ic} ${ch.name} : ${fmt(Math.min(S.runTotal, ch.goal))} / ${fmt(ch.goal)}${ch.time ? ` · ⏱ ${Math.max(0, Math.ceil((ch.time - S.chalT) / 60))} min` : ''}`;
   // pastille "améliorations dispo"
   const anyUpg = UPGRADES.some(u => !S.upg[u.id] && u.req(S) && S.dust >= upgCost(u));
   document.querySelector('[data-sf=upg]').classList.toggle('badge', anyUpg);
@@ -403,8 +464,10 @@ function refresh(structural) {
       b.querySelector('.c').textContent = (n > 1 ? `×${n} · ` : '') + fmt(c);
       const next = MILESTONES.find(t => t > S.gens[i]);
       b.querySelector('.d').textContent = known ? `${fmt(gen.prod * genMult(i) * globalMult())} /s chacun${next ? ` · palier ${next}` : ''}` : '???';
-      b.classList.toggle('can', known && S.dust >= c);
-      b.classList.toggle('no', !known || S.dust < c);
+      const banned = inChal('c_short') && i > 2;
+      if (banned) b.querySelector('.d').textContent = '🧱 indisponible pendant le défi Pénurie';
+      b.classList.toggle('can', known && !banned && S.dust >= c);
+      b.classList.toggle('no', !known || banned || S.dust < c);
     });
   } else if (tab === 'upg') {
     if (structural || sigUpg() !== upgSig) fillUpgrades();
@@ -422,6 +485,14 @@ function refresh(structural) {
       n.classList.toggle('lock', !S.meta[m.id] && !open);
     });
     panel.querySelectorAll('line').forEach(l => l.setAttribute('stroke', S.meta[l.dataset.l] ? '#c68bff' : '#3a3060'));
+  } else if (tab === 'chal') {
+    panel.querySelectorAll('.sf-ch').forEach(d => {
+      const c = CHALS.find(x => x.id === d.dataset.id), b = d.querySelector('button');
+      const done = chalDone(c.id), lock = S.prestiges < c.need, cur = inChal(c.id);
+      d.classList.toggle('done', done); d.classList.toggle('lock', lock && !done); d.classList.toggle('cur', cur);
+      b.textContent = done ? 'Réussi ✓' : cur ? 'En cours' : lock ? `${c.need} Supernova${c.need > 1 ? 'e' : ''}` : 'Lancer';
+      b.disabled = done || cur || lock || !!S.chal;
+    });
   } else if (tab === 'ach') {
     const got = Object.keys(S.ach).length;
     $('sf-ach-info').textContent = `${got}/${ACH.length} succès — chacun donne +${has('m_ach') ? 3 : 1} % de production, pour toujours.`;
@@ -448,13 +519,15 @@ document.querySelectorAll('#sf-buymult button').forEach(b => b.onclick = () => {
   buyMult = b.dataset.m === 'max' ? 'max' : +b.dataset.m; refresh();
 });
 $('sf-prestige').onclick = prestige;
+$('sf-chal-quit').onclick = () => quitChal(false);
 
 // ---------- boucle ----------
 function tick(dt) {
   earn(dps() * dt);
-  if (has('m_auto')) { autoAcc += dt * 5; while (autoAcc >= 1) { autoAcc--; const v = clickValue(); earn(v); S.clicks++; } }
+  checkChal(dt);
+  if (has('m_auto') && !inChal('c_hands')) { autoAcc += dt * 5; while (autoAcc >= 1) { autoAcc--; const v = clickValue(); earn(v); S.clicks++; } }
   S.buffs.forEach(b => b.t -= dt); S.buffs = S.buffs.filter(b => b.t > 0);
-  if (!comet) { nextComet -= dt; if (nextComet <= 0 && visible) spawnComet(); }
+  if (!comet) { nextComet -= dt; if (nextComet <= 0 && visible && !inChal('c_dim')) spawnComet(); }
   else { comet.x += comet.vx * dt; comet.y += comet.vy * dt; if (comet.x < -0.2 || comet.x > 1.2) { comet = null; nextComet = (60 + Math.random() * 120) / luck(); } }
 }
 let autoAcc = 0;
@@ -465,6 +538,7 @@ function load() {
     const d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
     if (!d) return;
     S = Object.assign(fresh(), d);
+    if (S.chal) S.chalT += Math.min(8 * 3600, (Date.now() - (d.last || Date.now())) / 1000);   // le chrono tourne aussi hors-ligne
     while (S.gens.length < GENS.length) S.gens.push(0);
     S.buffs = [];
     const away = Math.min(8 * 3600, (Date.now() - (d.last || Date.now())) / 1000);

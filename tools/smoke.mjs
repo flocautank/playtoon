@@ -94,6 +94,26 @@ await page.click('#nb-again').catch(() => {}); await page.waitForTimeout(400); a
 log('crédits après run :', await page.$eval('#nb-credits', e => e.textContent));
 await page.close();
 
+// ---------- Star Forge : défis (sauvegarde injectée : 4 Supernovae, défi « Sans les mains » presque fini)
+{
+  const f = await browser.newPage({ viewport: { width: 1280, height: 760 } }); watch(f, 'forge-défis');
+  f.on('dialog', d => d.accept());
+  await f.addInitScript(() => { if (!sessionStorage.getItem('inj')) { sessionStorage.setItem('inj', 1); localStorage.setItem('starforge.save.v1', JSON.stringify({ dust: 1e5, runTotal: 9.9e5, lifeTotal: 5e8, gens: [50, 40, 20, 10, 2, 0, 0, 0, 0, 0], upg: {}, novaTotal: 30, novaBank: 5, meta: { m_click: 1 }, ach: {}, prestiges: 4, chal: 'c_hands', chalT: 0, chalDone: {}, last: Date.now() })); } });
+  await f.goto(base + '#forge'); await f.waitForTimeout(600);
+  const banner = await f.$eval('#sf-chal-txt', e => e.textContent);
+  await f.click('#sf-tab-chal'); await f.waitForTimeout(3000); await shot(f, 'forge-chal');
+  await f.click('[data-sf=gen]'); await f.goto(base + '#blocks'); await f.waitForTimeout(300);
+  let st = await f.evaluate(() => JSON.parse(localStorage.getItem('starforge.save.v1')));
+  log(`défi : bandeau « ${banner} » → réussis=${JSON.stringify(st.chalDone)} en cours=${st.chal}`);
+  // lancer un défi depuis l'interface
+  await f.goto(base + '#forge'); await f.waitForTimeout(500); await f.click('#sf-tab-chal'); await f.waitForTimeout(200);
+  await f.click('.sf-ch[data-id=c_short] button'); await f.waitForTimeout(400); await shot(f, 'forge-chal-run');
+  await f.goto(base + '#blocks'); await f.waitForTimeout(300);
+  st = await f.evaluate(() => JSON.parse(localStorage.getItem('starforge.save.v1')));
+  log(`défi lancé : en cours=${st.chal} poussière=${Math.round(st.dust)} novae=${st.novaTotal}`);
+  await f.close();
+}
+
 // ---------- mobile
 const ctx = await browser.newContext({ ...devices['iPhone 13'] });
 const m = await ctx.newPage(); watch(m, 'mobile');
