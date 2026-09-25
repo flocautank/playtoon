@@ -6,11 +6,10 @@ headless (`node tools/smoke.mjs`, zéro erreur console, captures relues), pouss�
 
 ## À faire (ordre de priorité)
 
-1. **[Neon Bonk] Évolutions d'armes** — une arme au niveau max + un tome précis se fondent en arme évoluée (ex. Blaster + Multiplicité → Canon à rafales), proposée dans un coffre.
-2. **[Neon Bonk] Deux armes de plus** — laser continu (rayon qui balaie) et mines de proximité.
-3. **[Bloc Party] Thèmes** — jeux de couleurs et formes de blocs à débloquer avec les pièces.
-4. **[Star Forge] Big Bang** — 2e couche de prestige : réinitialise Novae et Constellation contre des « Singularités » qui multiplient le gain de Novae.
-5. **[Transverse] Profil** — page de statistiques commune aux trois jeux (records, temps joué, succès).
+1. **[Neon Bonk] Deux armes de plus** — laser continu (rayon qui balaie) et mines de proximité.
+2. **[Bloc Party] Thèmes** — jeux de couleurs et formes de blocs à débloquer avec les pièces.
+3. **[Star Forge] Big Bang** — 2e couche de prestige : réinitialise Novae et Constellation contre des « Singularités » qui multiplient le gain de Novae.
+4. **[Transverse] Profil** — page de statistiques commune aux trois jeux (records, temps joué, succès).
 
 ## Fait
 
@@ -26,6 +25,7 @@ headless (`node tools/smoke.mjs`, zéro erreur console, captures relues), pouss�
 - **Itération 9** (2026-09-25) — Bloc Party : défi du jour (grille et suite de pièces tirées de la date, identiques pour tous et à chaque essai), meilleur du jour, série de jours consécutifs, pièces gagnées ; bornage défensif de deux boucles (placement des coffres de Neon Bonk, rattrapage de la musique) ; test de fumée avec délais par action, étapes horodatées et chien de garde qui imprime la pile en cas de gel.
 - **Itération 10** (2026-09-25) — PWA : manifeste, icônes PNG (générées par `tools/make-icons.mjs`), service worker « réseau d'abord » (jamais de version périmée en ligne, jeu complet hors-ligne), raccourcis vers chaque jeu ; testé hors-ligne dans le test de fumée.
 - **Itération 11** (2026-09-25) — Neon Bonk : équilibrage mesuré sur 30 runs par `tools/nb-balance.mjs` (bot humain naïf) — médiane de survie 4:59 → 6:33, Q3 8:41, 5/30 atteignent le boss (0/20 avant) ; balles des tireurs identifiées comme 1re cause de dégâts (53 %) puis adoucies, XP plus facile, apparitions un peu plus douces en minutes 2–5, épines moins rapides, ramassage plus large. **Gel intermittent résolu** : taille des particules non bornée près de la caméra (sprites géants) ; 60 runs consécutives sans gel après correctif.
+- **Itération 12** (2026-09-25) — Neon Bonk : 7 évolutions d'armes (arme Nv 8 + tome associé → le prochain coffre la fait évoluer) : Canon à rafales, Anneau de Saturne, Cœur pulsar (soigne), Tempête, Scie stellaire, Lame d'Oméga, Barrage ; indices sur les cartes et dans la pause, annonce quand une évolution est prête, icône dorée au HUD.
 
 ## À surveiller
 

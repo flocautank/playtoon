@@ -32,6 +32,21 @@ const WEAPONS = {
   blade:   { name: 'Lame néon', ic: '🗡️', desc: 'Un large coup de lame devant toi.', cd: 1.0, dmg: 28, count: 1, area: 4, ups: ['dmg', 'cd', 'area', 'count'] },
   rocket:  { name: 'Missiles', ic: '🚀', desc: 'Des missiles à tête chercheuse qui explosent en zone.', cd: 2.6, dmg: 34, count: 1, area: 3.6, speed: 18, ups: ['dmg', 'cd', 'count', 'area'] },
 };
+// Évolutions : arme au niveau 8+ et tome associé possédé → le prochain coffre fait évoluer l'arme.
+const EVO_LVL = 8;
+const EVOS = {
+  blaster: { tome: 'multi', name: 'Canon à rafales', ic: '💥', desc: 'dégâts ×2, +2 traits, +3 perforations', fx: w => { w.dmgM *= 2; w.count += 2; w.pierce += 3; } },
+  orbit:   { tome: 'area', name: 'Anneau de Saturne', ic: '💫', desc: 'dégâts ×2, +3 orbes, +40 % de rayon', fx: w => { w.dmgM *= 2; w.count += 3; w.areaM += 0.4; } },
+  pulse:   { tome: 'vital', name: 'Cœur pulsar', ic: '💗', desc: 'dégâts ×2, +40 % de zone, soigne 1 PV par ennemi touché', fx: w => { w.dmgM *= 2; w.areaM += 0.4; } },
+  arc:     { tome: 'crit', name: 'Tempête', ic: '🌩️', desc: 'dégâts ×1,8, +2 éclairs, +3 rebonds', fx: w => { w.dmgM *= 1.8; w.count += 2; w.chain += 3; } },
+  disc:    { tome: 'agile', name: 'Scie stellaire', ic: '⚙️', desc: 'dégâts ×2, +2 disques, +50 % de vitesse', fx: w => { w.dmgM *= 2; w.count += 2; w.speedM += 0.5; } },
+  blade:   { tome: 'power', name: 'Lame d\'Oméga', ic: '⚔️', desc: 'dégâts ×2,5, frappe devant et derrière, +40 % de portée', fx: w => { w.dmgM *= 2.5; w.count += 1; w.areaM += 0.4; } },
+  rocket:  { tome: 'haste', name: 'Barrage', ic: '🎆', desc: 'dégâts ×1,6, +3 missiles, +30 % d\'explosion', fx: w => { w.dmgM *= 1.6; w.count += 3; w.areaM += 0.3; } },
+};
+const wName = w => w.evo ? EVOS[w.id].name : WEAPONS[w.id].name;
+const wIc = w => w.evo ? EVOS[w.id].ic : WEAPONS[w.id].ic;
+const evoReady = () => S.weapons.find(w => !w.evo && w.lvl >= EVO_LVL && S.tomes.some(t => t.id === EVOS[w.id].tome));
+
 const UPV = {
   dmg:    { v: [0.18, 0.28, 0.42, 0.65], txt: v => `+${Math.round(v * 100)} % dégâts` },
   cd:     { v: [0.06, 0.09, 0.13, 0.18], txt: v => `−${Math.round(v * 100)} % recharge` },
@@ -900,7 +915,9 @@ function updateWeapons(dt) {
         if (w.t <= 0) {
           w.t = st.cd;
           const R = st.area;
-          near(px, pz, R + 1, e => { const dx = e.x - px, dz = e.z - pz, d = Math.hypot(dx, dz) || 1; if (d < R + e.r) damage(e, st.dmg, true, dx / d * 18, dz / d * 18); });
+          let touched = 0;
+          near(px, pz, R + 1, e => { const dx = e.x - px, dz = e.z - pz, d = Math.hypot(dx, dz) || 1; if (d < R + e.r) { touched++; damage(e, st.dmg, true, dx / d * 18, dz / d * 18); } });
+          if (w.evo && touched) S.p.hp = Math.min(S.stats.hp, S.p.hp + Math.min(touched, 12));
           if (S.boss && Math.hypot(S.boss.x - px, S.boss.z - pz) < R + S.boss.r) damage(S.boss, st.dmg);
           addRing(px, p.y + 0.3, pz, R, [0.49, 1, 0.54], 0.35);
           burst(px, p.y + 0.5, pz, 20, [0.49, 1, 0.54], R * 1.5, 0.3);
@@ -1110,13 +1127,15 @@ function buildChoices(mode) {
 function choiceHTML(c) {
   const R = RAR[c.rar];
   let ic, title, lines;
-  if (c.kind === 'wnew') { const b = WEAPONS[c.id]; ic = b.ic; title = b.name; lines = ['Nouvelle arme', b.desc]; }
-  else if (c.kind === 'wup') { const b = WEAPONS[c.id], w = S.weapons.find(x => x.id === c.id); ic = b.ic; title = `${b.name} → Nv ${w.lvl + 1}`; lines = c.ups.map(u => UPV[u.k].txt(u.v)); }
+  if (c.kind === 'wnew') { const b = WEAPONS[c.id]; ic = b.ic; title = b.name; lines = ['Nouvelle arme', b.desc, `<span class="muted small">⭐ évolue avec ${TOMES[EVOS[c.id].tome].name}</span>`]; }
+  else if (c.kind === 'wup') { const w = S.weapons.find(x => x.id === c.id); ic = wIc(w); title = `${wName(w)} → Nv ${w.lvl + 1}`; lines = c.ups.map(u => UPV[u.k].txt(u.v)); }
   else if (c.kind === 'tnew' || c.kind === 'tup' || c.kind === 'stat') {
     const t = TOMES[c.key || c.id]; ic = t.ic; const tt = S.tomes.find(x => x.id === c.id);
     title = c.kind === 'stat' ? t.name.replace('Tome', 'Bénédiction') : c.kind === 'tnew' ? t.name : `${t.name} → Nv ${tt.lvl + 1}`;
     lines = [t.txt(t.v[c.rar])];
     if (c.kind === 'tnew') lines.unshift('Nouveau tome');
+    const evoW = Object.keys(EVOS).find(k => EVOS[k].tome === (c.key || c.id));
+    if (c.kind === 'tnew' && evoW) lines.push(`<span class="muted small">⭐ fait évoluer ${WEAPONS[evoW].name}</span>`);
   } else if (c.kind === 'gold') { ic = '◆'; title = 'Bourse'; lines = ['+25 or']; }
   else { ic = '💗'; title = 'Soin'; lines = ['Restaure 50 % des PV']; }
   return `<div class="ic">${ic}</div><span class="tag">${R.name}</span><b>${title}</b>${lines.map(l => `<p>${l}</p>`).join('')}`;
@@ -1166,6 +1185,8 @@ function pick(i) {
   else if (c.kind === 'gold') S.gold += 25;
   else S.p.hp = Math.min(S.stats.hp, S.p.hp + S.stats.hp * 0.5);
   if (choiceMode === 'level') S.pending--;
+  const rdy = evoReady();
+  if (rdy && !rdy.told) { rdy.told = true; setTimeout(() => msg(`⭐ ${WEAPONS[rdy.id].name} peut évoluer : ouvre un coffre !`, 4, '#ffc94d'), 300); }
   renderWeaponsHud();
   if (choiceMode === 'level' && S.pending > 0) { openLevelUp('level'); return; }
   $('nb-levelup').classList.add('hidden');
@@ -1238,6 +1259,13 @@ function interact() {
   S.chestsOpened++;
   if (!t.free) { S.gold -= S.chestCost; S.chestCost = Math.round(S.chestCost * 1.45 + 4); }
   t.open = true; t.lid.rotation.x = -1.2; t.lid.position.z = -0.4; t.lid.position.y = 1.1;
+  const ev = evoReady();
+  if (ev) {
+    const E = EVOS[ev.id]; ev.evo = true; E.fx(ev);
+    burst(t.x, t.y + 1, t.z, 120, [1, 0.85, 0.3], 10, 0.9); addRing(t.x, t.y + 0.3, t.z, 8, [1, 0.8, 0.3], 0.6);
+    msg(`⭐ ÉVOLUTION : ${WEAPONS[ev.id].name} → ${E.ic} ${E.name}`, 4.5, '#ffc94d');
+    sfx('level'); sfx('chest'); renderWeaponsHud(); return;
+  }
   let rar = rollRarity(10), pool = ITEMS.filter(i => i.r === rar);
   while (!pool.length) { rar--; pool = ITEMS.filter(i => i.r === rar); }
   const it = pool[(Math.random() * pool.length) | 0];
@@ -1606,7 +1634,7 @@ function updateHUD(dt) {
 }
 function renderWeaponsHud() {
   const box = $('nb-weapons'); box.innerHTML = '';
-  S.weapons.forEach(w => { const d = document.createElement('div'); d.innerHTML = `${WEAPONS[w.id].ic}<small>${w.lvl}</small>`; d.style.borderColor = '#ff3df0'; box.appendChild(d); });
+  S.weapons.forEach(w => { const d = document.createElement('div'); d.innerHTML = `${wIc(w)}<small>${w.lvl}</small>`; d.style.borderColor = w.evo ? '#ffc94d' : '#ff3df0'; if (w.evo) d.style.boxShadow = '0 0 8px #ffc94d'; box.appendChild(d); });
   S.tomes.forEach(t => { const d = document.createElement('div'); d.innerHTML = `${TOMES[t.id].ic}<small>${t.lvl}</small>`; d.style.borderColor = '#27e0ff'; box.appendChild(d); });
   Object.entries(S.items).forEach(([id, n]) => { const it = ITEMS.find(i => i.id === id); const d = document.createElement('div'); d.innerHTML = `${it.ic}<small>${n > 1 ? n : ''}</small>`; d.style.borderColor = RAR[it.r].col; box.appendChild(d); });
 }
@@ -1641,7 +1669,7 @@ function pause() {
   if (!S || S.state !== 'play') return;
   S.state = 'pause';
   const b = $('nb-build'); b.innerHTML = '';
-  S.weapons.forEach(w => b.insertAdjacentHTML('beforeend', `<span>${WEAPONS[w.id].ic} ${WEAPONS[w.id].name} Nv${w.lvl}</span>`));
+  S.weapons.forEach(w => b.insertAdjacentHTML('beforeend', `<span>${wIc(w)} ${wName(w)} Nv${w.lvl}${!w.evo ? ` <span class="muted">(⭐ Nv${EVO_LVL} + ${TOMES[EVOS[w.id].tome].ic})</span>` : ''}</span>`));
   S.tomes.forEach(t => b.insertAdjacentHTML('beforeend', `<span>${TOMES[t.id].ic} ${TOMES[t.id].name} Nv${t.lvl}</span>`));
   Object.entries(S.items).forEach(([id, n]) => { const it = ITEMS.find(i => i.id === id); b.insertAdjacentHTML('beforeend', `<span>${it.ic} ${it.name}${n > 1 ? ' ×' + n : ''}</span>`); });
   $('nb-pause').classList.remove('hidden');

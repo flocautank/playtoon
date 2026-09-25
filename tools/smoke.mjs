@@ -130,6 +130,20 @@ log('bestiaire/sanctuaires :', await page.evaluate(() => {
   return out.join(' ');
 }));
 await page.waitForTimeout(600); await shot(page, 'bonk-shrine');
+log('évolution :', await page.evaluate(() => {
+  const nb = window.__nb, S = nb.S;
+  S.state = 'play'; S.enemies.length = 0;
+  const w = S.weapons.find(x => x.id === 'blaster'); w.lvl = 8;
+  if (!S.tomes.find(t => t.id === 'multi')) S.tomes.push({ id: 'multi', lvl: 1 });
+  const c = { x: S.p.x + 0.5, y: S.p.y, z: S.p.z, open: false, free: true }; S.chests.push(c);
+  c.mesh = { children: [null, { material: { uniforms: { uCore: { value: 0 } } } }] }; c.lid = { rotation: {}, position: {} };
+  nb.update(1 / 30); nb.interact();
+  for (let i = 0; i < 20; i++) nb.spawnEnemy('drone', S.p.x + 8 + i % 5, S.p.z + (i % 3));
+  const before = S.kills; for (let i = 0; i < 150; i++) { S.state = 'play'; S.pending = 0; nb.update(1 / 30); }
+  return `évoluée=${w.evo} · traits simultanés=${1 + w.count} · perforation=${w.pierce} · éliminations en 5 s=${S.kills - before}`;
+}));
+await page.keyboard.press('Escape'); await page.evaluate(() => { const S = window.__nb.S; if (S.state === 'play') document.getElementById('nb-timer').click(); });
+await page.waitForTimeout(400); await shot(page, 'bonk-evo');
 // parcours complet : boss 1 → portail → étape 2 → boss 2 → portail final
 const killBossAndEnter = () => page.evaluate(() => {
   const nb = window.__nb, S = nb.S;
