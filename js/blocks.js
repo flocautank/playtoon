@@ -175,7 +175,7 @@ function genLevel(n) {
 }
 function startLevel(n) {
   const L0 = genLevel(n);
-  S.mode = 'adv'; S.lvl = n; S.goal = L0.goal; S.moves = L0.goal.moves; S.gems = L0.gems; S.got = 0; S.lines = 0; S.rescue = 1;
+  S.mode = 'adv'; S.lvl = n; S.goal = L0.goal; S.moves = L0.goal.moves; S.gems = L0.gems; S.got = 0; S.lines = 0; S.rescue = 1; S.moreBought = false;
   S.board = L0.board; S.score = 0; S.shown = 0; S.combo = 0; S.over = false; S.fx = []; S.pops = []; S.clearing = [];
   rnd = mulberry32(n * 104729 + 7);
   fillTray();
@@ -199,6 +199,7 @@ function advResult(win) {
     $('bp-restext').textContent = win ? `${S.goal.moves - S.moves} coups utilisés sur ${S.goal.moves} · 🪙 total ${COINS}` : (S.moves <= 0 ? 'Plus de coups.' : 'Plus de place pour les pièces.');
     $('bp-resnext').classList.toggle('hidden', !win || S.lvl >= LEVELS);
     $('bp-rescont').classList.toggle('hidden', win || S.moves <= 0 || COINS < TOOLS.hammer);
+    $('bp-resmore').classList.toggle('hidden', win || S.moves > 0 || S.moreBought || COINS < MORE_COST);   // seconde chance, une fois par tentative
     $('bp-res').classList.remove('hidden');
     if (win) [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => beep(f, 0.18, 'triangle', 0.06), i * 110));
     else beep(260, 0.4, 'sawtooth', 0.04);
@@ -224,7 +225,7 @@ function startDaily() {
   rnd = mulberry32(today * 31 + 7);
   fillTray();
   ['bp-over', 'bp-map', 'bp-res'].forEach(id => $(id).classList.add('hidden'));
-  S.pops.push({ text: '📅 Défi du jour', sub: `${todayLabel()} · série ${DAILY.streak}`, t: 0 });
+  S.pops.push({ text: '🎯 Défi du jour', sub: `${todayLabel()} · série ${DAILY.streak}`, t: 0 });
   updateHUD();
 }
 
@@ -273,7 +274,7 @@ function chronoEnd() {
 }
 
 function openMap() {
-  $('bp-daily').innerHTML = `📅 Défi du jour<small>${todayLabel()}${DAILY.day === dayKey() && DAILY.best ? ' · meilleur ' + DAILY.best.toLocaleString('fr-FR') : ''}${DAILY.streak > 1 && DAILY.day === dayKey() ? ' · série ' + DAILY.streak : ''}</small>`;
+  $('bp-daily').innerHTML = `🎯 Défi du jour<small>${todayLabel()}${DAILY.day === dayKey() && DAILY.best ? ' · meilleur ' + DAILY.best.toLocaleString('fr-FR') : ''}${DAILY.streak > 1 && DAILY.day === dayKey() ? ' · série ' + DAILY.streak : ''}</small>`;
   const box = $('bp-levels'); box.innerHTML = '';
   const open = unlockedLvl();
   for (let n = 1; n <= LEVELS; n++) {
@@ -397,13 +398,14 @@ function place(idx, gx, gy) {
 }
 
 function gameOver() {
+  S.over = true;
   $('bp-final').textContent = S.score.toLocaleString('fr-FR');
   $('bp-overtitle').textContent = S.mode === 'chrono' && S.endWhy === 'time' ? '⏱ Temps écoulé !' : 'Plus de place !';
   const top = $('bp-top10'); top.classList.toggle('hidden', S.mode !== 'chrono');
   if (S.mode === 'chrono') {
     $('bp-newbest').textContent = S.myRank === 0 ? '🏆 Meilleur chrono !' : S.myRank > 0 ? `Classé ${S.myRank + 1}ᵉ de ton top 10` : 'Hors du top 10';
     top.innerHTML = TOP.map((e, i) => `<li class="${i === S.myRank ? 'me' : ''}">${e.s.toLocaleString('fr-FR')} <span class="muted">· ${e.d}</span></li>`).join('');
-  } else if (S.mode === 'daily') $('bp-newbest').textContent = `📅 Défi du ${todayLabel()} — meilleur du jour : ${DAILY.best.toLocaleString('fr-FR')} · série : ${DAILY.streak} jour${DAILY.streak > 1 ? 's' : ''}`;
+  } else if (S.mode === 'daily') $('bp-newbest').textContent = `🎯 Défi du ${todayLabel()} — meilleur du jour : ${DAILY.best.toLocaleString('fr-FR')} · série : ${DAILY.streak} jour${DAILY.streak > 1 ? 's' : ''}`;
   else $('bp-newbest').textContent = S.score >= S.best && S.score > 0 ? '🏆 Nouveau record !' : 'Record : ' + S.best.toLocaleString('fr-FR');
   $('bp-cont').classList.toggle('hidden', COINS < TOOLS.hammer || S.mode === 'chrono');
   $('bp-over').classList.remove('hidden');
@@ -417,7 +419,7 @@ function burst(gx, gy, color) {
 
 function updateHUD() {
   const adv = S.mode === 'adv', daily = S.mode === 'daily';
-  $('bp-l1').textContent = adv ? `NIVEAU ${S.lvl} · COUPS` : daily ? '📅 DÉFI DU JOUR' : 'SCORE';
+  $('bp-l1').textContent = adv ? `NIVEAU ${S.lvl} · COUPS` : daily ? '🎯 DÉFI DU JOUR' : 'SCORE';
   $('bp-l2').textContent = adv ? 'OBJECTIF' : daily ? 'MEILLEUR DU JOUR' : 'MEILLEUR';
   if (daily) { $('bp-best').textContent = DAILY.best.toLocaleString('fr-FR'); return; }
   if (S.mode === 'chrono') {
@@ -425,7 +427,7 @@ function updateHUD() {
     $('bp-l1').textContent = '⏱ TEMPS';
     $('bp-score').textContent = `${Math.floor(c / 60)}:${String(c % 60).padStart(2, '0')}`;
     $('bp-score').classList.toggle('urgent', c <= 10 && !S.over);
-    $('bp-l2').textContent = `SCORE · RECORD ${(TOP[0] ? TOP[0].s : 0).toLocaleString('fr-FR')}`;
+    $('bp-l2').textContent = TOP[0] ? `SCORE · RECORD ${TOP[0].s.toLocaleString('fr-FR')}` : 'SCORE';
     $('bp-best').textContent = S.score.toLocaleString('fr-FR'); return;
   }
   if (adv) {
@@ -645,11 +647,12 @@ function draw(dt) {
     const sc = 1 + Math.max(0, 0.3 - k) * 2;
     ctx.save(); ctx.globalAlpha = a; ctx.translate(W / 2, L.by + L.bs * 0.42 - k * 40); ctx.scale(sc, sc);
     ctx.textAlign = 'center'; ctx.font = `900 ${Math.round(L.cs * 0.62)}px system-ui,sans-serif`;
-    ctx.lineWidth = 6; ctx.strokeStyle = '#2a1257'; ctx.strokeText(p.text, 0, 0);
+    const mw = L.bs * 0.96 / sc;   // jamais plus large que la grille (textes longs, petits écrans)
+    ctx.lineWidth = 6; ctx.strokeStyle = '#2a1257'; ctx.strokeText(p.text, 0, 0, mw);
     const gr = ctx.createLinearGradient(0, -30, 0, 10); gr.addColorStop(0, '#fff6a8'); gr.addColorStop(1, '#ff9d2e');
-    ctx.fillStyle = gr; ctx.fillText(p.text, 0, 0);
+    ctx.fillStyle = gr; ctx.fillText(p.text, 0, 0, mw);
     ctx.font = `800 ${Math.round(L.cs * 0.4)}px system-ui,sans-serif`; ctx.fillStyle = '#fff';
-    ctx.strokeText(p.sub, 0, L.cs * 0.55); ctx.fillText(p.sub, 0, L.cs * 0.55);
+    ctx.strokeText(p.sub, 0, L.cs * 0.55, mw); ctx.fillText(p.sub, 0, L.cs * 0.55, mw);
     ctx.restore();
   });
   S.pops = S.pops.filter(p => p.t < 1.2);
@@ -704,6 +707,13 @@ applyTheme();
 const resume = id => { $(id).classList.add('hidden'); S.over = false; tool = 'hammer'; paintBoost(); S.pops.push({ text: 'Choisis une case', sub: 'à casser', t: 0 }); };
 $('bp-cont').onclick = () => resume('bp-over');
 $('bp-rescont').onclick = () => resume('bp-res');
+const MORE_COST = 25;
+$('bp-resmore').onclick = () => {
+  if (COINS < MORE_COST || S.moreBought) return;
+  COINS -= MORE_COST; saveCoins(); S.moreBought = true; S.moves += 3; S.over = false;
+  $('bp-res').classList.add('hidden'); S.pops.push({ text: '+3 coups', sub: 'dernière chance !', t: 0 }); updateHUD();
+};
+$('bp-overmap').onclick = () => { $('bp-over').classList.add('hidden'); openMap(); };
 document.querySelectorAll('#bp-boost button').forEach(b => b.onclick = () => {
   const t = b.dataset.tool;
   if (S.over || COINS < TOOLS[t]) { beep(180, 0.1, 'square', 0.03); return; }
@@ -711,9 +721,9 @@ document.querySelectorAll('#bp-boost button').forEach(b => b.onclick = () => {
   tool = tool === t ? null : t; paintBoost();
 });
 paintBoost();
-$('bp-mapclose').onclick = () => $('bp-map').classList.add('hidden');
+$('bp-mapclose').onclick = () => { $('bp-map').classList.add('hidden'); if (S.over && S.mode !== 'adv') $('bp-over').classList.remove('hidden'); };   // fermer la carte après une fin de partie ramène à l'écran de fin
 $('bp-daily').onclick = startDaily;
-$('bp-classic').onclick = () => { $('bp-map').classList.add('hidden'); if (S.mode !== 'classic') { S.mode = 'classic'; rnd = Math.random; S.gems.clear(); if (!load() || !S.tray.some(t => t && canPlaceAnywhere(t))) newGame(); S.over = false; updateHUD(); } };
+$('bp-classic').onclick = () => { $('bp-map').classList.add('hidden'); if (S.mode === 'classic' && S.over) { newGame(); return; } if (S.mode !== 'classic') { S.mode = 'classic'; rnd = Math.random; S.gems.clear(); if (!load() || !S.tray.some(t => t && canPlaceAnywhere(t))) newGame(); S.over = false; updateHUD(); } };
 $('bp-resnext').onclick = () => startLevel(Math.min(LEVELS, S.lvl + 1));
 $('bp-resretry').onclick = () => startLevel(S.lvl);
 $('bp-resmap').onclick = () => { $('bp-res').classList.add('hidden'); openMap(); };
@@ -729,4 +739,4 @@ window.GAMES.blocks = {
   hide() { running = false; S.drag = null; },
 };
 // Accès de test (tools/smoke.mjs, console).
-window.__bp = { S, place, fits, startLevel, startDaily, startChrono, linesToClear, canPlaceAnywhere, N };
+window.__bp = { S, place, fits, startLevel, startDaily, startChrono, linesToClear, canPlaceAnywhere, N, gameOver };

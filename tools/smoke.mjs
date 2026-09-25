@@ -52,7 +52,26 @@ log('aventure niv 1 :', await page.evaluate(() => {
   return `terminé=${S.over} coups restants=${S.moves} gemmes=${S.got}/${S.goal.gems}`;
 }));
 await page.waitForTimeout(1000); await shot(page, 'blocks-res');
+// seconde chance : +3 coups contre 25 pièces, une fois par tentative
+if (await page.isVisible('#bp-resmore')) {
+  await page.click('#bp-resmore'); await page.waitForTimeout(200);
+  log('+3 coups :', await page.evaluate(() => {
+    const { S, place, fits, N } = window.__bp; const m0 = S.moves, hidden = document.getElementById('bp-res').classList.contains('hidden');
+    for (let k = 0; k < 10 && !S.over; k++) { let done = false; S.tray.forEach((pc, i) => { if (done || !pc) return; for (let y = 0; y < N && !done; y++) for (let x = 0; x < N && !done; x++) if (fits(pc, x, y)) { place(i, x, y); done = true; } }); if (!done) break; }
+    return `coups=${m0} fenêtre fermée=${hidden} → fini à nouveau=${S.over}`;
+  }));
+  await page.waitForTimeout(1000);
+  log('+3 coups proposé une 2e fois :', await page.isVisible('#bp-resmore'));
+} else log('+3 coups : non proposé (niveau réussi)');
 await page.click('#bp-resmap'); await page.click('#bp-classic'); await page.waitForTimeout(300);
+// fin de partie classique : sortie vers les modes
+await page.evaluate(() => window.__bp.gameOver()); await page.waitForTimeout(300);
+await page.click('#bp-overmap'); await page.waitForTimeout(200);
+log('fin de partie → Modes :', await page.isVisible('#bp-map'));
+await page.click('#bp-mapclose'); await page.waitForTimeout(200);
+log('carte fermée → écran de fin revient :', await page.isVisible('#bp-over'));
+await page.click('#bp-overmap'); await page.click('#bp-classic'); await page.waitForTimeout(300);
+log('partie classique relancée :', await page.evaluate(() => !window.__bp.S.over && window.__bp.S.score === 0));
 // défi du jour : déterministe (mêmes pièces à chaque essai), meilleur du jour enregistré
 await page.click('#bp-mapbtn'); await page.waitForTimeout(200); await page.click('#bp-daily'); await page.waitForTimeout(500); await shot(page, 'blocks-daily');
 log('défi du jour :', await page.evaluate(() => {
@@ -80,6 +99,7 @@ await page.waitForTimeout(600); await shot(page, 'blocks-chrono-end');
 await page.click('#bp-again'); await page.waitForTimeout(300);
 await page.click('#bp-mapbtn'); await page.waitForTimeout(200); await page.click('#bp-classic'); await page.waitForTimeout(300);
 // boosters : on remplit un peu la grille, puis bombe au centre
+await page.evaluate(() => window.GAMES.blocks.reward());   // +30 pièces : le test des « +3 coups » en a dépensé 25
 await page.evaluate(() => { const { S, place, fits, N } = window.__bp; for (let k = 0; k < 4; k++) S.tray.forEach((pc, i) => { if (!pc) return; for (let y = 2; y < N; y++) for (let x = 2; x < N; x++) if (S.tray[i] && fits(pc, x, y)) { place(i, x, y); return; } }); });
 const filledBefore = await page.evaluate(() => window.__bp.S.board.flat().filter(Boolean).length);
 const coinsBefore = +(await page.$eval('#bp-coins', e => e.textContent));

@@ -15,8 +15,7 @@ headless (`node tools/smoke.mjs`, zéro erreur console, captures relues), pouss�
 
 *Évaluation n° 2 (sous-agent joueur, 2026-09-25, desktop + iPhone 13) — aucun bloquant, zéro erreur console ; corrections de l'évaluation n° 1 confirmées.*
 
-1. **[Bloc Party] E7** — écran « Plus de place ! » sans sortie vers les modes ; « +3 coups contre 🪙 25 » après un échec en Aventure ; « RECORD 0 » masqué tant qu'il n'y a pas de record ; emoji 📅 (« July 17 ») remplacé.
-2. **[Transverse] E8** — accès à l'accueil et aux objectifs sur mobile (logo masqué sous 520 px) ; bouton « Jouer » de l'accueil visible sans défiler sur mobile.
+1. **[Transverse] E8** — accès à l'accueil et aux objectifs sur mobile (logo masqué sous 520 px) ; bouton « Jouer » de l'accueil visible sans défiler sur mobile.
 
 *Feuille de route (après les retours d'évaluation).*
 
@@ -51,6 +50,7 @@ headless (`node tools/smoke.mjs`, zéro erreur console, captures relues), pouss�
 - **Itération 19** (2026-09-25) — Neon Bonk : 3e étape « Le Vide » après la Fournaise — gravité divisée par deux, relief doux, palette nuit violette, 11 grappes de plateformes flottantes en escalier (on tient dessus, on passe dessous, coffre au sommet), drones qui montent chercher le joueur ; boss final « Archonte du Vide » (×4 PV, 5 attaques dont un puits de gravité qui attire le joueur) ; musique en sol mineur à 100 BPM ; personnage Orbite (laser, +1 saut) débloqué par l'Hydre ; correctif : les personnages débloqués par un boss en cours de run s'affichent à l'écran de fin.
 - **Itération E5** (2026-09-25, évaluation n° 2) — Neon Bonk : fin des rafales de montées de niveau — XP des ennemis plafonnée en fin de run, courbe plus raide après le niveau 25, XP du boss (~3 niveaux) semée en anneau (1 fenêtre au lieu de 8 après la Sentinelle ; 4–5 fenêtres par minute dans le Vide au niveau 33 au lieu de ~17) ; option « choix automatique » dans la pause ; foule plafonnée (300, apparitions ≤ 22/s) ; plateformes flottantes entre la caméra et le joueur réduites à leurs arêtes ; anneaux de l'Archonte adoucis ; mobile : barre du boss sous les icônes, aide tactile au menu ; desktop : ❚❚ sous le radar ; « NIV · ÉTAPE » lisible.
 - **Itération E6** (2026-09-25, évaluation n° 2) — Star Forge : prix sous chaque amélioration (doré si abordable), bouton « Tout acheter (n) » (les moins chères d'abord) ; notifications en bas de l'écran sur mobile et sous le bandeau d'effets sur desktop ; étoile plus grande et orbites resserrées quand le cadre est bas, description de la Supernova masquée sur mobile ; Novae formatées.
+- **Itération E7** (2026-09-25, évaluation n° 2) — Bloc Party : bouton « 🗺️ Modes » sur l'écran de fin (fermer la carte y ramène, « Partie classique » relance) ; « +3 coups · 🪙 25 » une fois par tentative quand l'Aventure échoue faute de coups ; « RECORD » masqué tant qu'il n'y en a pas ; 🎯 au lieu de 📅 (qui affichait une date anglaise) ; messages du plateau jamais plus larges que la grille.
 
 ## À surveiller
 
