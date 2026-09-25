@@ -1,0 +1,24 @@
+# Recopie main sur la branche gh-pages, que GitHub Pages publie.
+# Même mécanique que les autres sites du compte : pas d'API Pages (actions/configure-pages),
+# le jeton des workflows n'a pas le droit de créer un site Pages.
+name: Publier sur gh-pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gh-pages
+  cancel-in-progress: true
+
+jobs:
+  publier:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Mettre gh-pages au niveau de main
+        run: git push --force origin HEAD:gh-pages

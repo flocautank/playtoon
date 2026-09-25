@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Playtoon</title>
+<meta name="description" content="Trois jeux jouables dans le navigateur : Bloc Party, Star Forge et Neon Bonk.">
+<meta name="theme-color" content="#0d0f1a">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='4' y='4' width='26' height='26' rx='6' fill='%23ff5d8f'/%3E%3Crect x='34' y='4' width='26' height='26' rx='6' fill='%23ffc94d'/%3E%3Crect x='4' y='34' width='26' height='26' rx='6' fill='%234dd4ff'/%3E%3Crect x='34' y='34' width='26' height='26' rx='6' fill='%237cff8a'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<nav id="nav">
+  <span class="brand">PLAYTOON</span>
+  <a href="#blocks" data-tab="blocks"><i style="background:#ff5d8f"></i>Bloc Party</a>
+  <a href="#forge" data-tab="forge"><i style="background:#ffc94d"></i>Star Forge</a>
+  <a href="#bonk" data-tab="bonk"><i style="background:#4dd4ff"></i>Neon Bonk</a>
+</nav>
+
+<main>
+  <!-- ============ JEU 1 : BLOC PARTY ============ -->
+  <section id="tab-blocks" class="tab">
+    <div class="bp-wrap">
+      <div class="bp-top">
+        <div class="bp-stat"><small>SCORE</small><b id="bp-score">0</b></div>
+        <div class="bp-stat"><small>MEILLEUR</small><b id="bp-best">0</b></div>
+        <button class="btn ghost" id="bp-restart" title="Nouvelle partie">↻</button>
+      </div>
+      <canvas id="bp-canvas"></canvas>
+      <div class="overlay hidden" id="bp-over">
+        <div class="card">
+          <h2>Plus de place !</h2>
+          <p>Score : <b id="bp-final">0</b></p>
+          <p class="muted" id="bp-newbest"></p>
+          <button class="btn" id="bp-again">Rejouer</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ JEU 2 : STAR FORGE ============ -->
+  <section id="tab-forge" class="tab">
+    <div class="sf-wrap">
+      <div class="sf-left">
+        <div class="sf-res">
+          <div class="sf-dust"><span id="sf-dust">0</span> <small>poussière d'étoile</small></div>
+          <div class="sf-rate"><span id="sf-rate">0</span> /s · <span id="sf-click">1</span> /clic</div>
+        </div>
+        <div class="sf-star-zone">
+          <canvas id="sf-canvas"></canvas>
+        </div>
+        <div class="sf-prestige" id="sf-prestige-box">
+          <div>
+            <b>Supernova</b>
+            <div class="muted small">Réinitialise la run, gagne des <span class="nova">Novae</span> permanentes.</div>
+            <div class="small">Gain : <b class="nova" id="sf-nova-gain">0</b> · Possédées : <b class="nova" id="sf-nova-have">0</b></div>
+          </div>
+          <button class="btn nova-btn" id="sf-prestige">Exploser</button>
+        </div>
+      </div>
+      <div class="sf-right">
+        <div class="sf-tabs">
+          <button data-sf="gen" class="on">Forges</button>
+          <button data-sf="upg">Améliorations</button>
+          <button data-sf="meta">Constellation</button>
+          <button data-sf="ach">Succès</button>
+          <button data-sf="opt">⚙</button>
+        </div>
+        <div class="sf-buy-mult" id="sf-buymult">
+          <button data-m="1" class="on">×1</button><button data-m="10">×10</button><button data-m="100">×100</button><button data-m="max">MAX</button>
+        </div>
+        <div class="sf-panel" id="sf-panel"></div>
+      </div>
+    </div>
+    <div class="toast-zone" id="sf-toasts"></div>
+  </section>
+
+  <!-- ============ JEU 3 : NEON BONK ============ -->
+  <section id="tab-bonk" class="tab">
+    <div class="nb-root" id="nb-root">
+      <canvas id="nb-canvas"></canvas>
+      <div class="nb-hud hidden" id="nb-hud">
+        <div class="nb-xp"><div id="nb-xpbar"></div><span id="nb-level">NIV 1</span></div>
+        <div class="nb-tl">
+          <div class="nb-hp"><div id="nb-hpbar"></div><span id="nb-hptext">100/100</span></div>
+          <div class="nb-gold">◆ <span id="nb-gold">0</span> <span class="muted">· ☠ <span id="nb-kills">0</span></span></div>
+          <div class="nb-weapons" id="nb-weapons"></div>
+        </div>
+        <div class="nb-timer" id="nb-timer">10:00</div>
+        <div class="nb-msg" id="nb-msg"></div>
+        <div class="nb-prompt" id="nb-prompt"></div>
+        <div class="nb-cross"></div>
+        <div class="nb-boss hidden" id="nb-boss"><span>SENTINELLE</span><div id="nb-bossbar"></div></div>
+      </div>
+      <div class="nb-joy hidden" id="nb-joy"><div id="nb-joyknob"></div></div>
+      <button class="nb-jump hidden" id="nb-jumpbtn">SAUT</button>
+      <button class="nb-act hidden" id="nb-actbtn">E</button>
+
+      <div class="overlay" id="nb-menu">
+        <div class="card wide">
+          <h1 class="neon">NEON BONK</h1>
+          <p class="muted">Survis 10 minutes sur la grille. Tes armes tirent seules : toi, tu cours, tu sautes, tu ramasses.<br>Ouvre les coffres, active les sanctuaires, puis abats la Sentinelle et prends le portail.</p>
+          <div class="nb-chars" id="nb-chars"></div>
+          <div class="nb-keys muted small">
+            <b>ZQSD / WASD</b> bouger · <b>Souris</b> caméra · <b>Espace</b> sauter (x2) · <b>Maj</b> glisser · <b>E</b> interagir · <b>Échap</b> pause
+          </div>
+          <button class="btn big" id="nb-start">Lancer la run</button>
+          <p class="muted small" id="nb-meta"></p>
+        </div>
+      </div>
+      <div class="overlay hidden" id="nb-levelup">
+        <div class="card wide">
+          <h2 class="neon">NIVEAU SUPÉRIEUR</h2>
+          <div class="nb-choices" id="nb-choices"></div>
+          <button class="btn ghost small" id="nb-reroll">Relancer (<span id="nb-rerolls">2</span>)</button>
+        </div>
+      </div>
+      <div class="overlay hidden" id="nb-pause">
+        <div class="card">
+          <h2>Pause</h2>
+          <div id="nb-build" class="nb-build"></div>
+          <label class="small"><input type="range" id="nb-sens" min="0.3" max="2.5" step="0.1" value="1"> Sensibilité</label>
+          <div class="row"><button class="btn" id="nb-resume">Reprendre</button><button class="btn ghost" id="nb-quit">Abandonner</button></div>
+        </div>
+      </div>
+      <div class="overlay hidden" id="nb-end">
+        <div class="card wide">
+          <h2 id="nb-endtitle">Fin de run</h2>
+          <div id="nb-endstats"></div>
+          <button class="btn big" id="nb-again">Menu</button>
+        </div>
+      </div>
+      <div class="overlay hidden" id="nb-click">
+        <div class="card"><p>Clique pour reprendre le contrôle de la caméra</p></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script type="module" src="js/blocks.js"></script>
+<script type="module" src="js/clicker.js"></script>
+<script type="module" src="js/bonk.js"></script>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
