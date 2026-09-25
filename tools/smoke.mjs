@@ -46,6 +46,26 @@ const sim = await page.evaluate(() => {
 });
 log('bonk 90 s simulées :', sim);
 await page.waitForTimeout(800); await shot(page, 'bonk-play');
+// parcours complet : boss 1 → portail → étape 2 → boss 2 → portail final
+const killBossAndEnter = () => page.evaluate(() => {
+  const nb = window.__nb, S = nb.S;
+  S.state = 'play'; S.pending = 0; S.time = 0.02; S.stats.hp = S.p.hp = 1e6; S.stats.dmg = 50;
+  for (let i = 0; i < 5; i++) nb.update(1 / 30);
+  if (!S.boss) return 'pas de boss';
+  const name = S.boss && document.querySelector('#nb-boss span').textContent;
+  for (let i = 0; i < 900 && S.boss; i++) { S.enemies.length = 0; S.p.x = S.boss.x + 5; S.p.z = S.boss.z; S.state = 'play'; S.pending = 0; nb.update(1 / 30); }
+  if (!S.portal) return 'boss vivant';
+  S.p.x = S.portal.x + 1; S.p.z = S.portal.z; S.p.y = S.portal.y;
+  nb.update(1 / 30); nb.interact();
+  return `${name} vaincu → étape=${S.stage + 1} état=${S.state} gagné=${S.won}`;
+});
+log('boss 1 :', await killBossAndEnter());
+await page.evaluate(() => { const nb = window.__nb; for (let i = 0; i < 30 * 20; i++) { if (nb.S.state === 'levelup') nb.pick(0); nb.S.state = 'play'; nb.update(1 / 30); } });
+await page.waitForTimeout(900); await shot(page, 'bonk-stage2');
+log('boss 2 :', await killBossAndEnter());
+await page.waitForTimeout(400); await shot(page, 'bonk-win');
+await page.click('#nb-again').catch(() => {}); await page.waitForTimeout(300);
+await page.click('#nb-start'); await page.waitForTimeout(800);
 await page.evaluate(() => { const S = window.__nb.S; if (S.state !== 'end') { S.state = 'play'; S.revives = 0; S.iframe = 0; S.stats.dodge = 0; S.stats.shield = 0; S.p.hp = 1; window.__nb.hurtTest && 0; } });
 await page.click('#nb-quit').catch(() => {});
 await page.evaluate(() => { const S = window.__nb.S; if (S.state !== 'end') { document.getElementById('nb-quit').click(); } });

@@ -87,6 +87,21 @@ const ETYPES = {
   gunner:{ geo: 'ico', size: 1.1, hp: 24, speed: 3.4, dmg: 10, xp: 3, col: 0x27e0ff, ranged: true },
 };
 
+// Étapes : la run enchaîne la Grille puis la Fournaise ; la victoire vient après le 2e boss.
+const STAGES = [
+  { name: 'LA GRILLE', fog: 0x1a0630, lineA: [1, 0.18, 0.85], lineB: [0.15, 0.85, 1], wall: [1, 0.2, 0.85],
+    sky: { top: [0.03, 0.01, 0.12], mid: [0.35, 0.05, 0.45], hor: [1, 0.25, 0.55], low: [0.1, 0.02, 0.19], sunA: [1, 0.15, 0.55], sunB: [1, 0.9, 0.3] },
+    boxes: [0x8a2ad0, 0x5a3ae0, 0x3a6ae0], block: 0x7a2ab0, pillar: 0x27e0ff, edge: 0x9ff7ff, amp: 1, time: 600, m0: 0, mRate: 1,
+    boss: { name: 'SENTINELLE', core: 0xff2d55, ring: 0xffc94d, ring2: 0xff3df0, hp: 1, speed: 1 } },
+  { name: 'LA FOURNAISE', fog: 0x2a0a04, lineA: [1, 0.3, 0.05], lineB: [1, 0.85, 0.25], wall: [1, 0.45, 0.1],
+    sky: { top: [0.07, 0.01, 0.02], mid: [0.45, 0.07, 0.04], hor: [1, 0.45, 0.12], low: [0.18, 0.03, 0.02], sunA: [1, 0.2, 0.05], sunB: [1, 0.95, 0.55] },
+    boxes: [0xc0381a, 0xd06a1a, 0xa02a4a], block: 0xb03a2a, pillar: 0xffb020, edge: 0xffe0a0, amp: 1.45, time: 480, m0: 8, mRate: 1.2,
+    boss: { name: 'HYDRE DE MAGMA', core: 0xffa020, ring: 0xff3050, ring2: 0xfff0a0, hp: 2.6, speed: 1.35 } },
+];
+const ST = () => STAGES[S.stage || 0];
+// minute de difficulté : l'étape 2 démarre comme la 8e minute et s'intensifie plus vite
+const diffMin = () => ST().m0 + (S.t - (S.stageT || 0)) / 60 * ST().mRate;
+
 // ============================================================ méta (sauvegarde)
 const META_KEY = 'neonbonk.meta.v1';
 let META = { totalKills: 0, bossKills: 0, maxLevel: 0, bestTime: 0, bestKills: 0, runs: 0, wins: 0, sel: 'glitch', sens: 1, credits: 0, shop: {} };
@@ -105,7 +120,7 @@ const SHOP = [
 ];
 const shopLvl = id => (META.shop && META.shop[id]) || 0;
 const shopCost = it => Math.round(it.base * Math.pow(1.8, shopLvl(it.id)));
-function runCredits(S) { return Math.floor(S.kills / 15 + S.t / 10 + S.level * 2 + (S.bossDead ? 100 : 0) + (S.won ? 50 : 0)); }
+function runCredits(S) { return Math.floor(S.kills / 15 + S.t / 10 + S.level * 2 + (S.stage || 0) * 120 + (S.bossDead ? 100 : 0) + (S.won ? 80 : 0)); }
 const saveMeta = () => { try { localStorage.setItem(META_KEY, JSON.stringify(META)); } catch (e) {} };
 const unlocked = c => !c.unlock || c.unlock.test(META);
 
@@ -145,13 +160,13 @@ function neonMat(color, core = 0.22) {
 const GROUND_VS = `varying vec3 vW; varying float vD;
 void main(){ vec4 wp = modelMatrix * vec4(position,1.0); vW = wp.xyz; vec4 mv = viewMatrix * wp; vD = -mv.z; gl_Position = projectionMatrix * mv; }`;
 const GROUND_FS = `
-uniform vec3 fogColor; uniform float fogNear; uniform float fogFar; uniform float uTime;
+uniform vec3 fogColor; uniform float fogNear; uniform float fogFar; uniform float uTime; uniform vec3 uLA; uniform vec3 uLB;
 varying vec3 vW; varying float vD;
 float grid(vec2 p, float s){ vec2 q = p / s; vec2 g = abs(fract(q - 0.5) - 0.5) / fwidth(q); return 1.0 - min(min(g.x, g.y), 1.0); }
 void main(){
   vec3 n = normalize(cross(dFdx(vW), dFdy(vW)));
   float h = clamp((vW.y + 3.0) / 11.0, 0.0, 1.0);
-  vec3 lc = mix(vec3(1.0, 0.18, 0.85), vec3(0.15, 0.85, 1.0), h);
+  vec3 lc = mix(uLA, uLB, h);
   float slope = clamp(abs(n.y), 0.0, 1.0);
   vec3 base = vec3(0.035, 0.01, 0.08) * (0.5 + 0.8 * slope) + lc * 0.03;
   float g1 = grid(vW.xz, 2.0), g2 = grid(vW.xz, 10.0);
@@ -161,22 +176,22 @@ void main(){
 }`;
 const SKY_VS = `varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); gl_Position.z = gl_Position.w; }`;
 const SKY_FS = `
-varying vec3 vDir; uniform float uTime;
+varying vec3 vDir; uniform float uTime; uniform vec3 uTop; uniform vec3 uMid; uniform vec3 uHor; uniform vec3 uLow; uniform vec3 uSunA; uniform vec3 uSunB;
 float hash(vec3 p){ p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
 void main(){
   vec3 d = normalize(vDir); float y = d.y;
-  vec3 top = vec3(0.03, 0.01, 0.12), mid = vec3(0.35, 0.05, 0.45), hor = vec3(1.0, 0.25, 0.55), low = vec3(0.10, 0.02, 0.19);
+  vec3 top = uTop, mid = uMid, hor = uHor, low = uLow;
   vec3 c = y > 0.0 ? mix(mix(hor, mid, smoothstep(0.0, 0.12, y)), top, smoothstep(0.1, 0.6, y)) : mix(hor * 0.4, low, smoothstep(0.0, 0.05, -y));
   vec3 sd = normalize(vec3(0.0, 0.1, -1.0));
   float a = acos(clamp(dot(d, sd), -1.0, 1.0));
   if (a < 0.24) {
     float t = (d.y - (sd.y - 0.24)) / 0.48;
-    vec3 sc = mix(vec3(1.0, 0.15, 0.55), vec3(1.0, 0.9, 0.3), clamp(t, 0.0, 1.0));
+    vec3 sc = mix(uSunA, uSunB, clamp(t, 0.0, 1.0));
     float stripes = step(0.5, fract(d.y * 60.0 + uTime * 0.2));
     float cut = (d.y < sd.y) ? stripes : 1.0;
     c = mix(c, sc, cut * smoothstep(0.24, 0.23, a));
   }
-  c += vec3(1.0, 0.3, 0.7) * 0.25 * exp(-a * 4.0);
+  c += uSunA * 0.3 * exp(-a * 4.0);
   vec3 q = d * 260.0; vec3 sp = floor(q); float s = hash(sp);
   float star = smoothstep(0.22, 0.0, length(fract(q) - 0.5));
   if (y > 0.1 && s > 0.992) c += vec3(0.85, 0.85, 1.0) * star * (0.55 + 0.45 * sin(uTime * 2.0 + s * 90.0)) * smoothstep(0.1, 0.35, y);
@@ -201,13 +216,13 @@ const tmpC = new THREE.Color();
 let TOUCH = matchMedia('(pointer:coarse)').matches;
 
 // terrain paramétré par run
-let TP = { a: 0, b: 0, c: 0 };
+let TP = { a: 0, b: 0, c: 0, amp: 1 };
 function terrainH(x, z) {
   let h = 2.8 * Math.sin(x * 0.042 + TP.a) * Math.cos(z * 0.037 - TP.b)
     + 1.7 * Math.sin(x * 0.093 + z * 0.071 + TP.c)
     + 1.0 * Math.cos(z * 0.13 + x * 0.02) * Math.sin(x * 0.11 + TP.a);
   const d = Math.hypot(x, z), f = Math.min(1, d / 20), sm = f * f * (3 - 2 * f);
-  h *= sm;
+  h *= sm * TP.amp;
   const e = Math.max(Math.abs(x), Math.abs(z));
   if (e > 82) h += (e - 82) * 0.35;
   return h;
@@ -222,20 +237,20 @@ function init() {
   camera = new THREE.PerspectiveCamera(70, 1, 0.1, 600);
   clock = new THREE.Clock();
 
-  skyMat = new THREE.ShaderMaterial({ uniforms: { uTime: { value: 0 } }, vertexShader: SKY_VS, fragmentShader: SKY_FS, side: THREE.BackSide, depthWrite: false });
+  skyMat = new THREE.ShaderMaterial({ uniforms: { uTime: { value: 0 }, uTop: { value: new V3() }, uMid: { value: new V3() }, uHor: { value: new V3() }, uLow: { value: new V3() }, uSunA: { value: new V3() }, uSunB: { value: new V3() } }, vertexShader: SKY_VS, fragmentShader: SKY_FS, side: THREE.BackSide, depthWrite: false });
   const sky = new THREE.Mesh(new THREE.SphereGeometry(500, 32, 16), skyMat);
   sky.renderOrder = -1; sky.frustumCulled = false; scene.add(sky); scene.userData.sky = sky;
 
-  groundMat = new THREE.ShaderMaterial({ uniforms: { ...fogU, uTime: { value: 0 } }, vertexShader: GROUND_VS, fragmentShader: GROUND_FS });
+  groundMat = new THREE.ShaderMaterial({ uniforms: { ...fogU, uTime: { value: 0 }, uLA: { value: new V3() }, uLB: { value: new V3() } }, vertexShader: GROUND_VS, fragmentShader: GROUND_FS });
   const tg = new THREE.PlaneGeometry(HALF * 2 + 40, HALF * 2 + 40, 170, 170); tg.rotateX(-Math.PI / 2);
   terrainMesh = new THREE.Mesh(tg, groundMat); terrainMesh.frustumCulled = false; scene.add(terrainMesh);
 
   // barrière d'énergie
   const wallMat = new THREE.ShaderMaterial({
     transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
-    uniforms: { uTime: { value: 0 } },
+    uniforms: { uTime: { value: 0 }, uWall: { value: new V3() } },
     vertexShader: 'varying vec2 vU; varying vec3 vW; void main(){ vU = uv; vW = (modelMatrix*vec4(position,1.)).xyz; gl_Position = projectionMatrix*viewMatrix*vec4(vW,1.); }',
-    fragmentShader: 'varying vec2 vU; varying vec3 vW; uniform float uTime; void main(){ float l = step(0.9, fract(vW.y*0.5 - uTime*0.4)) + step(0.96, fract((vW.x+vW.z)*0.25)); float a = (1.0-vU.y)*0.35 + l*0.25*(1.0-vU.y); gl_FragColor = vec4(vec3(1.0,0.2,0.85)*a, a); }',
+    fragmentShader: 'varying vec2 vU; varying vec3 vW; uniform float uTime; uniform vec3 uWall; void main(){ float l = step(0.9, fract(vW.y*0.5 - uTime*0.4)) + step(0.96, fract((vW.x+vW.z)*0.25)); float a = (1.0-vU.y)*0.35 + l*0.25*(1.0-vU.y); gl_FragColor = vec4(uWall*a, a); }',
   });
   scene.userData.wallMat = wallMat;
   for (let i = 0; i < 4; i++) {
@@ -304,11 +319,19 @@ function init() {
   fx2 = document.createElement('canvas'); fx2.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none';
   $('nb-canvas').after(fx2); g2 = fx2.getContext('2d');
 
+  applyStage(0);
   bindInput();
   onResize();
   window.addEventListener('resize', onResize);
 }
 
+function applyStage(i) {
+  const P = STAGES[i], u = skyMat.uniforms;
+  for (const k of ['top', 'mid', 'hor', 'low', 'sunA', 'sunB']) u['u' + k[0].toUpperCase() + k.slice(1)].value.set(...P.sky[k]);
+  groundMat.uniforms.uLA.value.set(...P.lineA); groundMat.uniforms.uLB.value.set(...P.lineB);
+  scene.userData.wallMat.uniforms.uWall.value.set(...P.wall);
+  fogU.fogColor.value.set(P.fog);
+}
 function onResize() {
   if (!renderer) return;
   const r = $('nb-root').getBoundingClientRect(); W = r.width; H = r.height;
@@ -320,7 +343,8 @@ function onResize() {
 
 // ============================================================ génération de niveau
 function buildLevel() {
-  TP = { a: rand(0, TAU), b: rand(0, TAU), c: rand(0, TAU) };
+  const P = ST();
+  TP = { a: rand(0, TAU), b: rand(0, TAU), c: rand(0, TAU), amp: P.amp };
   const pos = terrainMesh.geometry.attributes.position;
   for (let i = 0; i < pos.count; i++) pos.setY(i, terrainH(pos.getX(i), pos.getZ(i)));
   pos.needsUpdate = true; terrainMesh.geometry.computeBoundingSphere();
@@ -331,7 +355,7 @@ function buildLevel() {
   });
   levelGroup.clear();
   S.obst = []; S.chests = []; S.shrines = [];
-  const edgeMat = new THREE.LineBasicMaterial({ color: 0x9ff7ff });
+  const edgeMat = new THREE.LineBasicMaterial({ color: P.edge });
   const free = (x, z, r) => Math.hypot(x, z) > 14 && S.obst.every(o => Math.hypot(o.x - x, o.z - z) > (o.r || Math.max(o.hw, o.hd) * 1.42) + r);
   const addBox = (x, z, hw, hd, top, col) => {
     const bottom = Math.min(terrainH(x - hw, z - hd), terrainH(x + hw, z + hd), terrainH(x - hw, z + hd), terrainH(x + hw, z - hd)) - 2;
@@ -345,17 +369,17 @@ function buildLevel() {
   for (let i = 0; i < 9; i++) {
     let x, z, t = 0; do { x = rand(-HALF + 15, HALF - 15); z = rand(-HALF + 15, HALF - 15); } while (!free(x, z, 9) && ++t < 40);
     const base = terrainH(x, z), steps = 2 + (Math.random() * 2 | 0), s0 = rand(5, 7);
-    for (let k = 0; k < steps; k++) addBox(x, z, s0 - k * 1.7, s0 - k * 1.7, base + 1.6 + k * 1.6, [0x8a2ad0, 0x5a3ae0, 0x3a6ae0][k % 3]);
+    for (let k = 0; k < steps; k++) addBox(x, z, s0 - k * 1.7, s0 - k * 1.7, base + 1.6 + k * 1.6, P.boxes[k % 3]);
     if (Math.random() < 0.8) S.chests.push(mkChestData(x, z, base + 1.6 + (steps - 1) * 1.6));
   }
   // blocs isolés
   for (let i = 0; i < 16; i++) {
     let x, z, t = 0; do { x = rand(-HALF + 8, HALF - 8); z = rand(-HALF + 8, HALF - 8); } while (!free(x, z, 5) && ++t < 40);
     const hw = rand(1.5, 4), hd = rand(1.5, 4);
-    addBox(x, z, hw, hd, terrainH(x, z) + rand(1.4, 3.5), 0x7a2ab0);
+    addBox(x, z, hw, hd, terrainH(x, z) + rand(1.4, 3.5), P.block);
   }
   // piliers
-  const pillarMat = neonMat(0x27e0ff, 0.15);
+  const pillarMat = neonMat(P.pillar, 0.15);
   for (let i = 0; i < 26; i++) {
     let x, z, t = 0; do { x = rand(-HALF + 5, HALF - 5); z = rand(-HALF + 5, HALF - 5); } while (!free(x, z, 3) && ++t < 40);
     const r = rand(0.8, 1.8), top = terrainH(x, z) + rand(5, 14);
@@ -423,7 +447,7 @@ function baseStats(ch) {
 function newRun() {
   const ch = CHARS.find(c => c.id === META.sel && unlocked(c)) || CHARS[0];
   S = {
-    state: 'play', ch, t: 0, time: RUN_TIME, kills: 0, gold: 0, level: 1, xp: 0, need: xpNeed(1), pending: 0, rerolls: 2,
+    state: 'play', stage: 0, stageT: 0, ch, t: 0, time: RUN_TIME, kills: 0, gold: 0, level: 1, xp: 0, need: xpNeed(1), pending: 0, rerolls: 2,
     stats: null, weapons: [], tomes: [], items: {}, enemies: [], pickups: [], bolts: [], bullets: [], discs: [], rockets: [], rings: [], dmgNums: [],
     spawnAcc: 0, nextSwarm: 90, eliteAt: [420, 240], boss: null, portal: null, won: false, dmgDealt: 0, chestsOpened: 0,
     iframe: 0, shieldT: 0, hurtFlash: 0, msgT: 0, chestCost: 12, orbPos: [], orbCount: 0, magnetAll: 0, bossDead: false,
@@ -431,6 +455,7 @@ function newRun() {
     cam: { yaw: 0, pitch: 0.42 },
   };
   S.stats = baseStats(ch);
+  applyStage(0);
   for (const it of SHOP) if (shopLvl(it.id)) it.fx(S.stats, shopLvl(it.id));
   S.rerolls += shopLvl('reroll'); S.revives = shopLvl('revive');
   S.p.hp = S.stats.hp;
@@ -612,7 +637,7 @@ function near(x, z, r, cb) {
 // ============================================================ ennemis
 function spawnEnemy(type, x, z, elite = false) {
   if (S.enemies.length >= MAX_ENEMIES) return null;
-  const T = ETYPES[type], m = S.t / 60;
+  const T = ETYPES[type], m = diffMin();
   const hpMul = (1 + m * 0.3 + m * m * 0.035) * (elite ? 14 : 1);
   const e = {
     type, T, x, z, y: terrainH(x, z) + (T.fly ? 1.6 : 0), hp: T.hp * hpMul, max: T.hp * hpMul,
@@ -633,14 +658,14 @@ function spawnAround(type, dMin, dMax, elite) {
   return null;
 }
 function pickType() {
-  const m = S.t / 60, r = Math.random();
+  const m = diffMin(), r = Math.random();
   if (m > 4 && r < 0.12) return 'gunner';
   if (m > 2.2 && r < 0.26) return 'brute';
   if (m > 0.8 && r < 0.55) return 'spike';
   return 'drone';
 }
 function spawning(dt) {
-  const m = S.t / 60;
+  const m = diffMin();
   let rate = 0.9 + m * 0.55 + m * m * 0.045 + (S.time <= 0 ? 4 + (-S.time / 60) * 4 : 0);
   const cap = 70 + m * 36;
   if (S.boss) rate *= 0.5;
@@ -1115,7 +1140,7 @@ function updateInteract(dt) {
       txt = S.gold >= S.chestCost ? `[E] Ouvrir le coffre — ◆ ${S.chestCost}` : `Coffre — il faut ◆ ${S.chestCost} (tu as ${S.gold})`;
     }
   }
-  if (S.portal && Math.hypot(S.portal.x - p.x, S.portal.z - p.z) < 3.5) { promptTarget = S.portal; txt = '[E] Entrer dans le portail — victoire'; }
+  if (S.portal && Math.hypot(S.portal.x - p.x, S.portal.z - p.z) < 3.5) { promptTarget = S.portal; txt = S.stage < STAGES.length - 1 ? '[E] Entrer dans le portail — étape suivante' : '[E] Entrer dans le portail — victoire'; }
   const pr = $('nb-prompt'); pr.textContent = txt; pr.classList.toggle('show', !!txt);
   for (const s of S.shrines) {
     s.crystal.rotation.y += dt * 1.5; s.crystal.position.y = 3 + Math.sin(S.t * 2) * 0.3;
@@ -1132,7 +1157,7 @@ function updateInteract(dt) {
 }
 function interact() {
   const t = promptTarget; if (!t) return;
-  if (t === S.portal) { endRun(true); return; }
+  if (t === S.portal) { if (S.stage < STAGES.length - 1) nextStage(); else endRun(true); return; }
   if (S.gold < S.chestCost) { msg('Pas assez d\'or', 1); return; }
   S.gold -= S.chestCost; S.chestsOpened++;
   S.chestCost = Math.round(S.chestCost * 1.45 + 4);
@@ -1147,27 +1172,44 @@ function interact() {
   sfx('chest'); renderWeaponsHud();
 }
 
+// ============================================================ changement d'étape
+function nextStage() {
+  // Le portail absorbe l'XP qui traîne, puis on reconstruit l'arène suivante en gardant tout le build.
+  for (const k of S.pickups) if (k.type === 'gem') S.xp += k.v * S.stats.xp;
+  S.rings.forEach(r => { if (r.mesh) { scene.remove(r.mesh); r.mesh.material.dispose(); } });
+  S.enemies = []; S.pickups = []; S.bolts = []; S.bullets = []; S.discs = []; S.rockets = []; S.rings = []; S.dmgNums = [];
+  partSys.list.length = 0; scene.userData.lines.segs.length = 0;
+  S.stage++; S.stageT = S.t; S.time = ST().time; S.boss = null; S.bossDead = false; S.portal = null;
+  S.eliteAt = [ST().time - 120, ST().time - 300]; S.nextSwarm = S.t + 50; S.spawnAcc = 0;
+  applyStage(S.stage); buildLevel();
+  S.p.x = 0; S.p.z = 0; S.p.y = terrainH(0, 0) + 1; S.p.vx = S.p.vy = S.p.vz = 0; S.p.hp = S.stats.hp; S.iframe = 2;
+  camY = S.p.y + 5;
+  msg(`ÉTAPE ${S.stage + 1} — ${ST().name}`, 4, '#' + new THREE.Color(...ST().lineB).getHexString());
+  sfx('boss');
+}
+
 // ============================================================ boss
 function spawnBoss() {
   const p = S.p; const a = rand(0, TAU);
   const x = clamp(p.x + Math.cos(a) * 30, -HALF + 10, HALF - 10), z = clamp(p.z + Math.sin(a) * 30, -HALF + 10, HALF - 10);
   const g = new THREE.Group();
-  const core = new THREE.Mesh(new THREE.DodecahedronGeometry(3), neonMat(0xff2d55, 0.25)); g.add(core);
-  const ring = new THREE.Mesh(new THREE.TorusGeometry(4.6, 0.18, 6, 48), neonMat(0xffc94d, 1)); g.add(ring);
-  const ring2 = new THREE.Mesh(new THREE.TorusGeometry(5.4, 0.1, 6, 48), neonMat(0xff3df0, 1)); g.add(ring2);
+  const B = ST().boss;
+  const core = new THREE.Mesh(S.stage ? new THREE.IcosahedronGeometry(3.4, 0) : new THREE.DodecahedronGeometry(3), neonMat(B.core, 0.25)); g.add(core);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(4.6, 0.18, 6, 48), neonMat(B.ring, 1)); g.add(ring);
+  const ring2 = new THREE.Mesh(new THREE.TorusGeometry(5.4, 0.1, 6, 48), neonMat(B.ring2, 1)); g.add(ring2);
   const eye = new THREE.Mesh(new THREE.SphereGeometry(0.8, 12, 8), neonMat(0xffffff, 1.4)); eye.position.z = 2.7; core.add(eye);
   levelGroup.add(g);
-  const hp = 9000 + S.dmgDealt / Math.max(60, S.t) * 12;   // s'adapte à ta puissance de feu
+  const hp = (9000 + S.dmgDealt / Math.max(60, S.t) * 12) * B.hp;   // s'adapte à ta puissance de feu
   S.boss = { boss: true, x, z, y: terrainH(x, z) + 4, hp, max: hp, r: 3.2, size: 3, g, core, ring, ring2, atkT: 3, phase: 0, dash: 0, dvx: 0, dvz: 0, flash: 0 };
-  $('nb-boss').classList.remove('hidden');
-  msg('☠ LA SENTINELLE EST LÀ', 3, '#ff4d6a'); sfx('boss');
+  $('nb-boss').classList.remove('hidden'); $('nb-boss').querySelector('span').textContent = B.name;
+  msg(`☠ ${B.name} ARRIVE`, 3, '#ff4d6a'); sfx('boss');
 }
 function updateBoss(dt) {
   const b = S.boss; if (!b || b.hp <= 0) return;
   const p = S.p;
   let dx = p.x - b.x, dz = p.z - b.z; const d = Math.hypot(dx, dz) || 1; dx /= d; dz /= d;
   if (b.dash > 0) { b.dash -= dt; b.x += b.dvx * dt; b.z += b.dvz * dt; if (Math.random() < 0.8) burst(b.x, b.y, b.z, 3, [1, 0.2, 0.3], 3, 0.4); }
-  else if (d > 6) { b.x += dx * 3.8 * dt; b.z += dz * 3.8 * dt; }
+  else if (d > 6) { const sp = 3.8 * ST().boss.speed; b.x += dx * sp * dt; b.z += dz * sp * dt; }
   b.x = clamp(b.x, -HALF + 5, HALF - 5); b.z = clamp(b.z, -HALF + 5, HALF - 5);
   const gy = terrainH(b.x, b.z) + 4 + Math.sin(S.t * 1.5) * 0.5; b.y += (gy - b.y) * Math.min(1, dt * 3);
   b.g.position.set(b.x, b.y, b.z);
@@ -1176,12 +1218,13 @@ function updateBoss(dt) {
   b.flash = Math.max(0, b.flash - dt * 5);
   b.core.material.uniforms.uCore.value = 0.25 + b.flash * 1.5;
   const enraged = b.hp < b.max * 0.4;
-  b.atkT -= dt * (enraged ? 1.5 : 1);
+  b.atkT -= dt * (enraged ? 1.5 : 1) * ST().boss.speed;
   if (b.atkT <= 0) {
-    b.atkT = 2.6; b.phase = (b.phase + 1) % 3;
+    b.atkT = 2.6; b.phase = (b.phase + 1) % (S.stage ? 4 : 3);
     if (b.phase === 0) { const n = enraged ? 28 : 20, off = rand(0, TAU); for (let i = 0; i < n; i++) fireBullet(b.x, b.y - 1, b.z, off + i * TAU / n, 10, 14); }
     else if (b.phase === 1) { S.rings.push({ x: b.x, z: b.z, y: terrainH(b.x, b.z), r: 1, max: 45, sp: 16, dmg: 26, hostile: true, t: 0, col: [1, 0.2, 0.35], hitDone: false }); msg('SAUTE !', 1, '#ff4d6a'); }
-    else { b.dash = 0.75; b.dvx = dx * 30; b.dvz = dz * 30; }
+    else if (b.phase === 2) { b.dash = 0.75; b.dvx = dx * 30; b.dvz = dz * 30; }
+    else { for (let i = 0; i < 10; i++) { const a = i / 10 * TAU; spawnEnemy('spike', clamp(b.x + Math.cos(a) * 5, -HALF + 2, HALF - 2), clamp(b.z + Math.sin(a) * 5, -HALF + 2, HALF - 2)); } msg('LA HYDRE ENGENDRE…', 1, '#ffb020'); }
     sfx('boom');
   }
   if (d < b.r + 0.8 && Math.abs(p.y + 1 - b.y) < 4) hurt(26);
@@ -1194,7 +1237,7 @@ function bossDeath() {
   dropXp(b.x, b.y, b.z, 300);
   explode(b.x, b.y - 3, b.z, 12, 99999, [1, 0.3, 0.5]);
   levelGroup.remove(b.g); S.boss = null; S.bossDead = true;
-  META.bossKills++; saveMeta();
+  META.bossKills++; if (S.stage) META.hydraKills = (META.hydraKills || 0) + 1; saveMeta();
   $('nb-boss').classList.add('hidden');
   // portail
   const x = b.x, z = b.z, y = terrainH(x, z);
@@ -1203,7 +1246,7 @@ function bossDeath() {
   const disc = new THREE.Mesh(new THREE.CircleGeometry(2.3, 40), new THREE.MeshBasicMaterial({ color: 0xff3df0, transparent: true, opacity: 0.45, side: THREE.DoubleSide, blending: THREE.AdditiveBlending })); disc.position.y = 3; g.add(disc);
   g.position.set(x, y, z); levelGroup.add(g);
   S.portal = { x, y, z, g, ring };
-  msg('PORTAIL OUVERT — rejoins-le !', 4, '#27e0ff');
+  msg(S.stage < STAGES.length - 1 ? 'PORTAIL OUVERT — vers l\'étape suivante !' : 'PORTAIL FINAL — entre pour gagner !', 4, '#27e0ff');
 }
 
 // ============================================================ effets
@@ -1470,7 +1513,7 @@ let hudT = 0;
 function updateHUD(dt) {
   hudT -= dt; if (hudT > 0) return; hudT = 0.1;
   $('nb-xpbar').style.width = (S.xp / S.need * 100) + '%';
-  $('nb-level').textContent = 'NIV ' + S.level;
+  $('nb-level').textContent = 'NIV ' + S.level + ' · ÉTAPE ' + (S.stage + 1);
   $('nb-hpbar').style.width = (S.p.hp / S.stats.hp * 100) + '%';
   $('nb-hptext').textContent = `${Math.ceil(S.p.hp)}/${Math.round(S.stats.hp)}`;
   $('nb-gold').textContent = S.gold; $('nb-kills').textContent = S.kills;
@@ -1537,7 +1580,7 @@ function endRun(win) {
   $('nb-endtitle').innerHTML = win ? '<span class="neon" style="font-size:30px">VICTOIRE</span>' : 'Tu as été désintégré';
   const row = (a, b) => `<div><span class="muted">${a}</span><b>${b}</b></div>`;
   $('nb-endstats').innerHTML = row('Temps', `${Math.floor(surv / 60)}:${String(surv % 60).padStart(2, '0')}`) + row('Niveau', S.level) + row('Éliminations', S.kills) + row('Dégâts', Math.round(S.dmgDealt).toLocaleString('fr-FR'))
-    + row('Coffres', S.chestsOpened) + row('Personnage', S.ch.name)
+    + row('Coffres', S.chestsOpened) + row('Personnage', S.ch.name) + row('Étape atteinte', (S.stage + 1) + ' / ' + STAGES.length)
     + `<div style="grid-column:1/-1;color:#7ff6ff;justify-content:center">◈ +${cr} crédits pour la boutique</div>`
     + (newly.length ? `<div style="grid-column:1/-1;color:#ffc94d;justify-content:center">🔓 Débloqué : ${newly.map(c => c.name).join(', ')}</div>` : '');
   $('nb-end').classList.remove('hidden');
