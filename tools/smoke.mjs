@@ -220,7 +220,9 @@ const killBossAndEnter = () => page.evaluate(() => {
   for (let i = 0; i < 900 && S.boss; i++) { S.enemies.length = 0; S.p.x = S.boss.x + 5; S.p.z = S.boss.z; S.state = 'play'; S.pending = 0; nb.update(1 / 30); }
   if (!S.portal) return 'boss vivant';
   S.p.x = S.portal.x + 1; S.p.z = S.portal.z; S.p.y = S.portal.y;
-  nb.update(1 / 30); S.state = 'play'; S.pending = 0; nb.interact();   // l'XP du boss (semée en anneau) peut ouvrir un choix juste avant
+  // l'XP du boss (semée en anneau) peut ouvrir des choix de niveau : on les referme sur quelques images avant d'entrer
+  for (let i = 0; i < 10; i++) { S.state = 'play'; S.pending = 0; S.xp = 0; S.p.x = S.portal.x + 1; S.p.z = S.portal.z; S.p.y = S.portal.y; nb.update(1 / 30); }
+  S.state = 'play'; S.pending = 0; nb.interact();
   return `${name} vaincu → étape=${S.stage + 1} état=${S.state} gagné=${S.won}`;
 });
 log('boss 1 :', await killBossAndEnter());
