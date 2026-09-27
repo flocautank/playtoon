@@ -277,5 +277,5 @@ main{position:fixed;inset:var(--nav-h) 0 0 0}
 .bp-stat small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;display:block}
 .sf-adrow{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:4px}.sf-adrow .btn{font-size:12px;padding:5px 10px}
 /* onglets de Nova Foundry : icône + nom ; sur téléphone, seul l'onglet actif garde son nom */
-.sf-tabs button i{font-style:normal;margin-right:4px}
-@media (max-width:760px){.sf-tabs button{flex:1 1 0;min-width:0}.sf-tabs button span{display:none}.sf-tabs button i{margin:0;font-size:16px}.sf-tabs button.on{flex:2.6 1 0}.sf-tabs button.on span{display:inline;margin-left:4px}}
+.sf-tabs button i{font-style:normal;display:none}   /* ordinateur : les noms suffisent */
+@media (max-width:760px){.sf-tabs button{flex:1 1 0;min-width:0}.sf-tabs button span{display:none}.sf-tabs button i{display:inline;margin:0;font-size:16px}.sf-tabs button.on{flex:2.6 1 0}.sf-tabs button.on span{display:inline;margin-left:4px}}
