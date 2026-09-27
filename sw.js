@@ -1,7 +1,8 @@
 // Service worker Playtoon : le réseau d'abord (toujours la dernière version publiée),
 // le cache seulement quand on est hors-ligne. Aucune version périmée n'est servie en ligne.
-const CACHE = 'playtoon-v1';
+const CACHE = 'playtoon-v2';
 const CORE = ['./', 'index.html', 'css/style.css', 'js/main.js', 'js/blocks.js', 'js/clicker.js', 'js/bonk.js', 'js/synthwave.js',
+  'js/i18n.js', 'js/version.js', 'js/lang/shell.js', 'js/lang/forge.js', 'js/lang/forge-more.js',
   'vendor/three.module.min.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png'];
 
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)).then(() => self.skipWaiting())); });

@@ -1,8 +1,8 @@
 {
   "name": "Playtoon",
   "short_name": "Playtoon",
-  "description": "Trois jeux dans le navigateur : Block Quarry, Nova Foundry et Neon Bonk.",
-  "lang": "fr",
+  "description": "Three games to play in your browser: Block Quarry, Nova Foundry and Synth Horde.",
+  "lang": "en",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
@@ -17,6 +17,6 @@
   "shortcuts": [
     { "name": "Block Quarry", "url": "./#blocks" },
     { "name": "Nova Foundry", "url": "./#forge" },
-    { "name": "Neon Bonk", "url": "./#bonk" }
+    { "name": "Synth Horde", "url": "./#bonk" }
   ]
 }
