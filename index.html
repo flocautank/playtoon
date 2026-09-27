@@ -173,7 +173,7 @@
     <div class="nb-root" id="nb-root">
       <canvas id="nb-canvas"></canvas>
       <div class="nb-hud hidden" id="nb-hud">
-        <div class="nb-xp"><div id="nb-xpbar"></div><span id="nb-level">NIV 1</span></div>
+        <div class="nb-xp"><div id="nb-xpbar"></div><span id="nb-level">LV 1</span></div>
         <div class="nb-tl">
           <div class="nb-hp"><div id="nb-hpbar"></div><span id="nb-hptext">100/100</span></div>
           <div class="nb-gold">◆ <span id="nb-gold">0</span> <span class="muted">· ☠ <span id="nb-kills">0</span></span></div>
@@ -183,55 +183,53 @@
         <div class="nb-msg" id="nb-msg"></div>
         <div class="nb-prompt" id="nb-prompt"></div>
         <div class="nb-cross"></div>
-        <div class="nb-boss hidden" id="nb-boss"><span>SENTINELLE</span><div class="nb-bosstrack"><div id="nb-bossbar"></div></div></div>
+        <div class="nb-boss hidden" id="nb-boss"><span></span><div class="nb-bosstrack"><div id="nb-bossbar"></div></div></div>
       </div>
       <div class="nb-joy hidden" id="nb-joy"><div id="nb-joyknob"></div></div>
-      <button class="nb-jump hidden" id="nb-jumpbtn">SAUT</button>
+      <button class="nb-jump hidden" id="nb-jumpbtn" data-i18n="nb.jumpBtn">JUMP</button>
       <button class="nb-act hidden" id="nb-actbtn">E</button>
-      <button class="nb-slide hidden" id="nb-slidebtn">GLISSE</button>
+      <button class="nb-slide hidden" id="nb-slidebtn" data-i18n="nb.slideBtn">SLIDE</button>
       <button class="nb-pausebtn hidden" id="nb-pausebtn" aria-label="Pause">❚❚</button>
 
       <div class="overlay" id="nb-menu">
         <div class="card wide">
-          <h1 class="neon">NEON BONK</h1>
-          <p class="muted">Trois étapes : la Grille, la Fournaise, puis le Vide en gravité réduite. Tes armes tirent seules : toi, tu cours, tu sautes, tu ramasses.<br>Ouvre les coffres, active les sanctuaires, abats chaque boss et prends son portail.</p>
+          <h1 class="neon">SYNTH HORDE</h1>
+          <p class="muted" data-i18n-html="nb.intro"></p>
           <div class="nb-chars" id="nb-chars"></div>
-          <div class="nb-shop-h"><b>Boutique permanente</b><span>◈ <b id="nb-credits">0</b> crédits</span></div>
+          <div class="nb-shop-h"><b data-i18n="nb.shopTitle">Permanent upgrades</b><span>◈ <b id="nb-credits">0</b> <span data-i18n="nb.creditsWord">credits</span></span></div>
           <div class="nb-shop" id="nb-shop"></div>
-          <div class="nb-keys muted small">
-            <b>ZQSD / WASD</b> bouger · <b>Souris</b> caméra · <b>Espace</b> sauter (x2) · <b>Maj</b> glisser · <b>E</b> interagir · <b>Échap</b> pause
-          </div>
-          <button class="btn big" id="nb-start">Lancer la run</button>
+          <div class="nb-keys muted small"></div>
+          <button class="btn big" id="nb-start" data-i18n="nb.start">Start run</button>
           <p class="muted small" id="nb-meta"></p>
         </div>
       </div>
       <div class="overlay hidden" id="nb-levelup">
         <div class="card wide">
-          <h2 class="neon">NIVEAU SUPÉRIEUR</h2>
+          <h2 class="neon" data-i18n="nb.levelUp">LEVEL UP</h2>
           <div class="nb-choices" id="nb-choices"></div>
-          <button class="btn ghost small" id="nb-reroll">Relancer (<span id="nb-rerolls">2</span>)</button>
+          <button class="btn ghost small" id="nb-reroll"><span data-i18n="nb.reroll">Reroll</span> (<span id="nb-rerolls">2</span>)</button>
         </div>
       </div>
       <div class="overlay hidden" id="nb-pause">
         <div class="card">
-          <h2>Pause</h2>
+          <h2 data-i18n="nb.pause">Paused</h2>
           <div id="nb-build" class="nb-build"></div>
-          <label class="small"><input type="range" id="nb-sens" min="0.3" max="2.5" step="0.1" value="1"> Sensibilité</label>
-          <label class="small">Chiffres de dégâts <select id="nb-nums"><option value="merge">regroupés</option><option value="crit">critiques seulement</option><option value="off">aucun</option></select></label>
-          <label class="small">Montées de niveau <select id="nb-autolvl"><option value="">je choisis</option><option value="1">choix automatique</option></select></label>
-          <label class="small"><input type="checkbox" id="nb-music" checked> Musique <span class="muted">(réglage commun, aussi dans 🔊)</span></label>
-          <div class="row"><button class="btn" id="nb-resume">Reprendre</button><button class="btn ghost" id="nb-quit">Abandonner</button></div>
+          <label class="small"><input type="range" id="nb-sens" min="0.3" max="2.5" step="0.1" value="1"> <span data-i18n="nb.sens">Camera sensitivity</span></label>
+          <label class="small"><span data-i18n="nb.dmgNums">Damage numbers</span> <select id="nb-nums"><option value="merge" data-i18n="nb.numsMerge">grouped</option><option value="crit" data-i18n="nb.numsCrit">crits only</option><option value="off" data-i18n="nb.numsOff">off</option></select></label>
+          <label class="small"><span data-i18n="nb.autoLvl">Level-ups</span> <select id="nb-autolvl"><option value="" data-i18n="nb.autoManual">I choose</option><option value="1" data-i18n="nb.autoAuto">auto-pick</option></select></label>
+          <label class="small"><input type="checkbox" id="nb-music" checked> <span data-i18n="nb.music">Music</span> <span class="muted" data-i18n="nb.musicNote">(shared setting, also under 🔊)</span></label>
+          <div class="row"><button class="btn" id="nb-resume" data-i18n="nb.resume">Resume</button><button class="btn ghost" id="nb-quit" data-i18n="nb.quit">Give up</button></div>
         </div>
       </div>
       <div class="overlay hidden" id="nb-end">
         <div class="card wide">
-          <h2 id="nb-endtitle">Fin de run</h2>
+          <h2 id="nb-endtitle" data-i18n="nb.endTitle">Run over</h2>
           <div id="nb-endstats"></div>
-          <div class="row"><button class="btn big" id="nb-replay">Rejouer</button><button class="btn big ghost" id="nb-again">Menu</button></div>
+          <div class="row"><button class="btn big" id="nb-replay" data-i18n="nb.replay">Play again</button><button class="btn big ghost" id="nb-again" data-i18n="nb.menu">Menu</button></div>
         </div>
       </div>
       <div class="overlay hidden" id="nb-click">
-        <div class="card"><p>Clique pour reprendre le contrôle de la caméra</p></div>
+        <div class="card"><p data-i18n="nb.clickLock">Click to take back control of the camera</p></div>
       </div>
     </div>
   </section>

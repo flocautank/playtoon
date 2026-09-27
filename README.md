@@ -5,11 +5,11 @@ Une barre de navigation fine en haut permet de passer de l'un à l'autre ; le je
 
 | Onglet | Genre | En deux mots |
 |---|---|---|
-| **Bloc Party** | Puzzle casual, tout public | Pose les pièces sur une grille 8×8, complète lignes et colonnes, enchaîne les combos. Inspiré des puzzles de blocs du top des stores mobiles. |
-| **Star Forge** | Clicker / idle | Clique l'étoile, achète des forges, des améliorations et des paliers. Attrape les comètes dorées. Déclenche une **Supernova** pour gagner des Novae permanentes et développer la **Constellation** (méta-progression). Production hors-ligne. |
-| **Neon Bonk** | Survivor-like 3D | La boucle de Megabonk, en esthétique synthwave néon : à la troisième personne, cours, saute (double saut), glisse ; tes armes tirent seules. XP → choix d'améliorations à rareté, coffres payés en or, sanctuaires, élites, 10 minutes puis boss, portail. Personnages à débloquer. |
+| **Block Quarry** (ex-Bloc Party) | Puzzle casual, tout public | Pose les pièces sur une grille 8×8, complète lignes et colonnes, enchaîne les combos. Inspiré des puzzles de blocs du top des stores mobiles. |
+| **Nova Foundry** (ex-Star Forge) | Clicker / idle | Clique l'étoile, achète des forges, des améliorations et des paliers. Attrape les comètes dorées. Déclenche une **Supernova** pour gagner des Novae permanentes et développer la **Constellation** (méta-progression). Production hors-ligne. |
+| **Synth Horde** (ex-Neon Bonk) | Survivor-like 3D | La boucle de Megabonk, en esthétique synthwave néon : à la troisième personne, cours, saute (double saut), glisse ; tes armes tirent seules. XP → choix d'améliorations à rareté, coffres payés en or, sanctuaires, élites, 10 minutes puis boss, portail. Personnages à débloquer. |
 
-## Contrôles de Neon Bonk
+## Contrôles de Synth Horde
 
 - **ZQSD / WASD** (ou flèches) : se déplacer — la position des touches est lue physiquement, les deux dispositions de clavier marchent
 - **Souris** : caméra (clic dans le jeu pour capturer le pointeur)
@@ -20,9 +20,11 @@ Une barre de navigation fine en haut permet de passer de l'un à l'autre ; le je
 ## Technique
 
 - HTML, CSS et JavaScript natifs (modules ES), aucun build.
-- Neon Bonk utilise [three.js](https://threejs.org) r170, embarqué dans `vendor/` (licence MIT) : le site ne dépend d'aucun CDN.
+- Synth Horde utilise [three.js](https://threejs.org) r170, embarqué dans `vendor/` (licence MIT) : le site ne dépend d'aucun CDN.
 - Graphismes 100 % procéduraux (shaders néon, grille, ciel synthwave), sons synthétisés en WebAudio.
 - Progression sauvegardée dans le `localStorage` du navigateur.
+- Anglais par défaut, langue du navigateur détectée, 6 langues (`js/i18n.js`, dictionnaires par jeu dans `js/lang/`).
+- Applications Android (Capacitor) dans `apps/` — guide de publication : `apps/PUBLISHING.md`.
 
 ## Installer Playtoon
 
