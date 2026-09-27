@@ -128,18 +128,66 @@ function canPlaceAnywhere(p, board = S.board) {
   for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (fits(p, x, y, board)) return true;
   return false;
 }
-function fillTray() {
-  // Un peu de bienveillance : on réessaie pour qu'au moins une pièce rentre.
-  // En Aventure, on vise un plateau où les trois pièces rentrent (le niveau doit rester jouable).
-  let best = null;
-  const tries = S.mode === 'adv' ? 30 : 12;
-  for (let k = 0; k < tries; k++) {
-    const t = [makePiece(), makePiece(), makePiece()];
-    const ok = S.mode === 'adv' ? t.every(p => canPlaceAnywhere(p)) : t.some(p => canPlaceAnywhere(p));
-    if (ok) { best = t; break; }
-    if (!best || t.some(p => canPlaceAnywhere(p))) best = t;
+// Les trois pièces peuvent-elles toutes être posées, dans un ordre au moins (lignes effacées entre deux) ?
+function placeAll(tray, board) {
+  const orders = [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]];
+  for (const o of orders) {
+    let b = board.map(r => r.slice()), ok = true;
+    for (const i of o) {
+      const p = tray[i]; let done = false;
+      for (let y = 0; y < N && !done; y++) for (let x = 0; x < N && !done; x++) if (fits(p, x, y, b)) {
+        for (const [cx, cy] of p.cells) b[y + cy][x + cx] = 1;
+        const { rows, cols } = linesToClear(b);
+        rows.forEach(r => b[r].fill(null)); cols.forEach(c => { for (let r = 0; r < N; r++) b[r][c] = null; });
+        done = true;
+      }
+      if (!done) { ok = false; break; }
+    }
+    if (ok) return true;
   }
-  S.tray = best;
+  return false;
+}
+function clearsLine(p, board) {
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (fits(p, x, y, board)) {
+    const b = board.map(r => r.slice()); for (const [cx, cy] of p.cells) b[y + cy][x + cx] = 1;
+    const { rows, cols } = linesToClear(b); if (rows.length + cols.length) return true;
+  }
+  return false;
+}
+function fillTray() {
+  // Tirage équitable : les trois pièces doivent pouvoir être posées (dans un ordre au moins) ; plus la grille est
+  // pleine, plus on écarte les grosses pièces. À défaut, au moins une pièce qui rentre.
+  const filled = S.board.reduce((a, r) => a + r.filter(c => c).length, 0) / (N * N);
+  // Grille chargée : on cherche d'abord un tirage où une pièce complète une ligne (coup de pouce).
+  let best = null, fair = null;
+  for (let k = 0; k < 60; k++) {
+    const t = [makePiece(), makePiece(), makePiece()];
+    if (filled > 0.45 && k < 40 && t.some(p => p.cells.length >= 5 && rnd() < (filled - 0.35) * 2)) continue;
+    if (placeAll(t, S.board)) {
+      if (filled < 0.4 || k >= 40 || t.some(p => clearsLine(p, S.board))) { best = t; break; }
+      if (!fair) fair = t;
+    } else if (!best && t.some(p => canPlaceAnywhere(p))) best = t;
+  }
+  if (fair && (!best || !placeAll(best, S.board))) best = fair;
+  S.tray = best || [makePiece(), makePiece(), makePiece()];
+}
+// Tirage de secours garanti : trois pièces qui rentrent (en dernier recours, des petites pièces).
+function rescueTray() {
+  S.tray = [null, null, null]; fillTray();
+  if (placeAll(S.tray, S.board)) return true;
+  const small = [[[0, 0]], [[0, 0], [1, 0]], [[0, 0], [0, 1]]];
+  S.tray = small.map(cells => ({ cells, w: Math.max(...cells.map(c => c[0])) + 1, h: Math.max(...cells.map(c => c[1])) + 1, color: COLORS[(rnd() * COLORS.length) | 0] }));
+  return S.tray.some(p => canPlaceAnywhere(p));
+}
+// Reprise garantie : on dégage la zone 3×3 la plus remplie (gemmes récoltées), puis un tirage qui rentre.
+function clearSpace() {
+  let bx = 0, by = 0, bn = -1;
+  for (let y = 1; y < N - 1; y++) for (let x = 1; x < N - 1; x++) {
+    let n = 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (S.board[y + dy][x + dx]) n++;
+    if (n > bn) { bn = n; bx = x; by = y; }
+  }
+  smash([-1, 0, 1].flatMap(dy => [-1, 0, 1].map(dx => [bx + dx, by + dy])));
+  if (!S.over) rescueTray();
 }
 
 function newGame() {
@@ -155,7 +203,7 @@ function genLevel(n) {
   // Les pierres forment des lignes / colonnes à trous : on les complète pour libérer les gemmes.
   const r = mulberry32(n * 7919 + 13);
   const board = Array.from({ length: N }, () => Array(N).fill(null));
-  const bands = Math.min(1 + Math.floor(n / 4), 5), cells = [];
+  const bands = Math.min(1 + Math.floor(n / 4), 5) + (n > 24 ? 1 : 0) + (n > 34 ? 1 : 0), cells = [];
   const used = new Set();
   for (let k = 0; k < bands; k++) {
     let horiz, idx, t = 0;
@@ -176,13 +224,15 @@ function genLevel(n) {
   const gems = new Set();
   while (gems.size < gemsN) { const [x, y] = cells[(r() * cells.length) | 0]; gems.add(y * N + x); }
   const target = 3 + Math.floor(n / 5);
-  const moves = type === 'gems' ? 6 + Math.round(gemsN * 1.5) + bands * 2 : 6 + target * 3;
+  // au-delà du niveau 16, les coups se resserrent (−1,2 % par niveau, jusqu'à −28 %)
+  const tight = 1 - Math.min(0.28, Math.max(0, n - 16) * 0.012);
+  const moves = Math.round((type === 'gems' ? 6 + Math.round(gemsN * 1.5) + bands * 2 : 6 + target * 3) * tight);
   return { board, gems: type === 'gems' ? gems : new Set(), goal: { type, gems: type === 'gems' ? gemsN : 0, target, moves } };
 }
 function startLevel(n) {
   const L0 = genLevel(n);
-  S.mode = 'adv'; S.lvl = n; S.goal = L0.goal; S.moves = L0.goal.moves; S.gems = L0.gems; S.got = 0; S.lines = 0; S.rescue = 1; S.moreBought = false;
-  S.board = L0.board; S.score = 0; S.shown = 0; S.combo = 0; S.over = false; S.fx = []; S.pops = []; S.clearing = [];
+  S.mode = 'adv'; S.lvl = n; S.goal = L0.goal; S.moves = L0.goal.moves; S.gems = L0.gems; S.got = 0; S.lines = 0; S.rescue = 1; S.moreBought = false; S.toolsUsed = 0; S.gain = 0;
+  S.used = 0; S.board = L0.board; S.score = 0; S.shown = 0; S.combo = 0; S.over = false; S.fx = []; S.pops = []; S.clearing = [];
   rnd = mulberry32(n * 104729 + 7);
   fillTray();
   ['bp-over', 'bp-map', 'bp-res'].forEach(id => $(id).classList.add('hidden'));
@@ -193,19 +243,20 @@ function advResult(win) {
   S.over = true;
   let stars = 0;
   if (win) {
-    const used = S.goal.moves - S.moves, ratio = used / S.goal.moves;
+    const used = S.used, ratio = used / S.goal.moves;
     stars = ratio <= 0.6 ? 3 : ratio <= 0.8 ? 2 : 1;
     const prev = ADV.stars[S.lvl] || 0;
     ADV.stars[S.lvl] = Math.max(prev, stars); saveAdv();
-    if (stars > prev) { COINS += (stars - prev) * 10; saveCoins(); }
+    S.gain = stars > prev ? (stars - prev) * 10 : 0;
+    if (S.gain) { COINS += S.gain; saveCoins(); }
   }
   setTimeout(() => {
     const close = S.goal.type === 'gems' ? S.got >= S.goal.gems - 1 : S.lines >= S.goal.target - 1;
     $('bp-restitle').textContent = win ? t('bp.levelWon', { n: S.lvl }) : close ? t('bp.failClose') : t('bp.fail');
     $('bp-resstars').innerHTML = [1, 2, 3].map(k => k <= stars ? '★' : '<i>★</i>').join('');
-    $('bp-restext').textContent = win ? t('bp.resWin', { used: S.goal.moves - S.moves, total: S.goal.moves, coins: COINS }) : (S.moves <= 0 ? t('bp.noMoves') : t('bp.noRoom'));
+    $('bp-restext').textContent = win ? t('bp.resWin', { used: S.used, total: S.goal.moves, coins: COINS }) + (S.gain ? `  ·  +${S.gain} 🪙` : '') : (S.moves <= 0 ? t('bp.noMoves') : t('bp.noRoom'));
     $('bp-resnext').classList.toggle('hidden', !win || S.lvl >= LEVELS);
-    $('bp-rescont').classList.toggle('hidden', win || S.moves <= 0 || COINS < TOOLS.hammer);
+    $('bp-rescont').classList.toggle('hidden', win || S.moves <= 0 || COINS < CONT_COST);
     $('bp-resmore').classList.toggle('hidden', win || S.moves > 0 || S.moreBought || COINS < MORE_COST);   // seconde chance, une fois par tentative
     $('bp-resvid').classList.toggle('hidden', win || S.moves > 0 || S.moreBought || !MON.canReward());   // …ou contre une vidéo (application)
     $('bp-res').classList.remove('hidden');
@@ -256,6 +307,7 @@ function openThemes() {
     box.appendChild(d);
   }
   paintVidCoins();
+  $('bp-thcoins').textContent = num(COINS);
   $('bp-themes').classList.remove('hidden');
 }
 
@@ -284,6 +336,7 @@ function chronoEnd() {
 }
 
 function openMap() {
+  tool = null; paintBoost();
   $('bp-daily').innerHTML = `${t('bp.dailyBtn')}<small>${todayLabel()}${DAILY.day === dayKey() && DAILY.best ? t('bp.dailyBest', { n: num(DAILY.best) }) : ''}${DAILY.streak > 1 && DAILY.day === dayKey() ? t('bp.dailyStreak', { n: DAILY.streak }) : ''}</small>`;
   const box = $('bp-levels'); box.innerHTML = '';
   const open = unlockedLvl();
@@ -315,15 +368,17 @@ function smash(cells) {
   save(); updateHUD();
   return hit;
 }
+const ADV_TOOLS = 2;   // boosters par tentative de niveau
 function useTool(name, gx, gy) {
   const cost = S.freeTool && name === 'hammer' ? 0 : TOOLS[name];
   if (COINS < cost) return false;
+  if (S.mode === 'adv' && (S.toolsUsed || 0) >= ADV_TOOLS) { S.pops.length = 0; S.pops.push({ text: t('bp.toolLimit', { n: ADV_TOOLS }), sub: '', t: 0 }); tool = null; paintBoost(); return false; }
   if (name === 'shuffle') { S.tray = [null, null, null]; fillTray(); beep(700, 0.15, 'triangle', 0.05); }
   else {
     const cells = name === 'bomb' ? [-1, 0, 1].flatMap(dy => [-1, 0, 1].map(dx => [gx + dx, gy + dy])) : [[gx, gy]];
     if (!smash(cells)) return false;
   }
-  COINS -= cost; tool = null; S.freeTool = false; saveCoins(); save();
+  COINS -= cost; tool = null; S.freeTool = false; if (S.mode === 'adv') S.toolsUsed = (S.toolsUsed || 0) + 1; saveCoins(); save();
   // toujours bloqué après le booster ? la partie se termine
   if (!S.over && !S.tray.some(t => t && canPlaceAnywhere(t))) {
     if (S.mode === 'adv') advResult(false); else { S.over = true; setTimeout(gameOver, 600); }
@@ -379,13 +434,13 @@ function place(idx, gx, gy) {
   S.score += gained;
   if (S.tray.every(t => !t)) fillTray();
   if (S.mode === 'adv') {
-    S.moves--;
+    S.moves--; S.used = (S.used || 0) + 1;
     const win = S.goal.type === 'gems' ? S.gems.size === 0 : S.lines >= S.goal.target;
     if (win) advResult(true);
     else if (S.moves <= 0) advResult(false);
     else if (!S.tray.some(t => t && canPlaceAnywhere(t))) {
       // Filet de sécurité : un nouveau tirage offert par niveau, puis c'est perdu.
-      if (S.rescue > 0) { S.rescue--; S.tray = [null, null, null]; fillTray(); S.pops.push({ text: t('bp.newPieces'), sub: t('bp.newPiecesSub'), t: 0 }); beep(880, 0.15, 'triangle', 0.05); }
+      if (S.rescue > 0) { S.rescue--; rescueTray(); S.pops.push({ text: t('bp.newPieces'), sub: t('bp.newPiecesSub'), t: 0 }); beep(880, 0.15, 'triangle', 0.05); }
       if (!S.tray.some(t => t && canPlaceAnywhere(t))) advResult(false);
     }
     updateHUD(); return;
@@ -417,7 +472,7 @@ function gameOver() {
     top.innerHTML = TOP.map((e, i) => `<li class="${i === S.myRank ? 'me' : ''}">${num(e.s)} <span class="muted">· ${e.d}</span></li>`).join('');
   } else if (S.mode === 'daily') $('bp-newbest').textContent = t('bp.dailyEnd', { date: todayLabel(), best: num(DAILY.best), n: DAILY.streak });
   else $('bp-newbest').textContent = S.score >= S.best && S.score > 0 ? t('bp.newRecord') : t('bp.record', { n: num(S.best) });
-  $('bp-cont').classList.toggle('hidden', COINS < TOOLS.hammer || S.mode === 'chrono');
+  $('bp-cont').classList.toggle('hidden', COINS < CONT_COST || S.mode === 'chrono');
   $('bp-vidcont').classList.toggle('hidden', S.mode === 'chrono' || S.vidCont || !MON.canReward());
   $('bp-over').classList.remove('hidden');
   beep(300, 0.3, 'sawtooth', 0.04); setTimeout(() => beep(200, 0.4, 'sawtooth', 0.04), 200);
@@ -456,13 +511,14 @@ function resize() {
   canvas.width = W * DPR; canvas.height = H * DPR;
   const size = Math.min(W * 0.94, H * 0.66, 520);
   L.cs = size / N; L.bs = size;
-  L.bx = (W - size) / 2; L.by = Math.max(8, (H - size - size * 0.36) / 2 - 10);
+  L.bx = (W - size) / 2; L.by = Math.max(8, (H - size - size * 0.48) / 2 - 10);
   L.trayY = L.by + size + L.cs * 0.6;
   L.trayH = H - L.trayY;
   L.slotW = size / 3;
-  L.mini = Math.min(L.cs * 0.55, (L.trayH - 10) / 5.2);
+  L.mini = Math.min(L.cs * 0.72, (L.trayH - 10) / 5.2);
 }
 
+const pieceScale = (p, r) => Math.min(L.mini, r.w * 0.9 / p.w);
 function slotRect(i) {
   return { x: L.bx + i * L.slotW, y: L.trayY, w: L.slotW, h: Math.min(L.trayH, L.mini * 5.4) };
 }
@@ -605,7 +661,7 @@ function draw(dt) {
   // plateau de pièces
   for (let i = 0; i < 3; i++) {
     const p = S.tray[i]; if (!p || (S.drag && S.drag.idx === i) || (S.back && S.back.idx === i)) continue;
-    const r = slotRect(i), s = L.mini;
+    const r = slotRect(i), s = pieceScale(p, r);
     const ok = canPlaceAnywhere(p);
     const px = r.x + (r.w - p.w * s) / 2, py = r.y + (r.h - p.h * s) / 2;
     for (const [x, y] of p.cells) cell(px + x * s, py + y * s, s, ok ? p.color : '#555a72', ok ? 1 : 0.6);
@@ -617,7 +673,7 @@ function draw(dt) {
     const k = Math.min(1, b.t / 0.18), e = 1 - (1 - k) * (1 - k);
     if (!p || k >= 1) S.back = null;
     else {
-      const r = slotRect(b.idx), s2 = L.mini, sz = L.cs + (s2 - L.cs) * e;
+      const r = slotRect(b.idx), s2 = pieceScale(p, r), sz = L.cs + (s2 - L.cs) * e;
       const tx = r.x + (r.w - p.w * s2) / 2, ty = r.y + (r.h - p.h * s2) / 2;
       const x0 = b.x + (tx - b.x) * e, y0 = b.y + (ty - b.y) * e;
       for (const [x, y] of p.cells) cell(x0 + x * sz, y0 + y * sz, sz, p.color, 0.9);
@@ -700,7 +756,7 @@ function drop() {
   S.back = { idx, x: d.x - d.ox, y: d.y - d.oy, t: 0 };
   beep(180, 0.08, 'triangle', 0.03);
 }
-canvas.addEventListener('pointerup', drop);
+canvas.addEventListener('pointerup', e => { drop(); if (e.pointerType === 'touch') hover = null; });
 canvas.addEventListener('pointercancel', () => S.drag = null);
 
 $('bp-restart').onclick = () => {
@@ -715,22 +771,30 @@ $('bp-themebtn').onclick = openThemes;
 $('bp-themeclose').onclick = () => $('bp-themes').classList.add('hidden');
 applyTheme();
 // reprendre une grille bloquée : on ferme l'écran de fin et on arme le marteau
-const resume = id => { $(id).classList.add('hidden'); S.over = false; tool = 'hammer'; paintBoost(); S.pops.push({ text: t('bp.pickCell'), sub: t('bp.pickCellSub'), t: 0 }); };
-$('bp-cont').onclick = () => resume('bp-over');
-$('bp-rescont').onclick = () => resume('bp-res');
-const MORE_COST = 25;
+// reprendre une grille bloquée : zone 3×3 dégagée et pièces qui rentrent — la reprise marche à coup sûr
+const resume = id => {
+  $(id).classList.add('hidden'); S.over = false; tool = null; paintBoost();
+  clearSpace();
+  S.pops.length = 0; S.pops.push({ text: t('bp.spaceCleared'), sub: t('bp.keepGoing'), t: 0 }); updateHUD(); save();
+};
+const payResume = id => { if (COINS < CONT_COST) return; COINS -= CONT_COST; saveCoins(); resume(id); };
+$('bp-cont').onclick = () => payResume('bp-over');
+$('bp-rescont').onclick = () => payResume('bp-res');
+const MORE_COST = 25, CONT_COST = 15;
 $('bp-resmore').onclick = () => {
   if (COINS < MORE_COST || S.moreBought) return;
   COINS -= MORE_COST; saveCoins(); S.moreBought = true; S.moves += 3; S.over = false;
+  if (!S.tray.some(t => t && canPlaceAnywhere(t))) rescueTray();   // des coups sans place ne servent à rien
   $('bp-res').classList.add('hidden'); S.pops.push({ text: t('bp.plus3'), sub: t('bp.lastChance'), t: 0 }); updateHUD();
 };
 // vidéos récompensées (application uniquement) : toujours facultatives, jamais imposées
 $('bp-resvid').onclick = () => MON.reward('moves').then(ok => {
   if (!ok || S.moreBought) return;
   S.moreBought = true; S.moves += 3; S.over = false;
+  if (!S.tray.some(t => t && canPlaceAnywhere(t))) rescueTray();
   $('bp-res').classList.add('hidden'); S.pops.push({ text: t('bp.plus3'), sub: t('bp.lastChance'), t: 0 }); updateHUD();
 });
-$('bp-vidcont').onclick = () => MON.reward('continue').then(ok => { if (!ok) return; S.vidCont = true; S.freeTool = true; resume('bp-over'); });
+$('bp-vidcont').onclick = () => MON.reward('continue').then(ok => { if (!ok || !S.over) return; S.vidCont = true; resume('bp-over'); });
 const VID_DAY = 5, VID_COINS = 20;
 let VIDS = { day: 0, n: 0 };
 try { VIDS = Object.assign(VIDS, JSON.parse(localStorage.getItem('blocparty.vids') || '{}')); } catch (e) {}

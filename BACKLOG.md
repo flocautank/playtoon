@@ -13,6 +13,14 @@ headless (`node tools/smoke.mjs`, zéro erreur console, captures relues), pouss�
 
 ## À faire (ordre de priorité)
 
+*Évaluation n° 4 (un sous-agent joueur par jeu, web + appli Android, 2026-09-27).*
+
+- **Block Quarry — reste à faire** (après E10) : nouvelles mécaniques d'Aventure tous les ~8 niveaux (cases verrouillées,
+  pierres à deux coups, objectifs de couleur) et coffres d'étoiles sur la carte ; raisons de revenir (récompense de
+  connexion / série, défi du jour à un seul essai compté) ; retour de combo plus fort (jauge de série, effets croissants).
+- **Nova Foundry** : *(rapport attendu)*
+- **Synth Horde** : *(rapport attendu)*
+
 *Évaluation n° 3 (sous-agent joueur, 2026-09-25, desktop + iPhone 13) — un bloquant (joystick mobile), le reste en finitions ; corrections des évaluations 1 et 2 confirmées. Verdict : une fois le joystick corrigé, plus rien qui vaille une itération → fin de la boucle.*
 
 *(vide)*
@@ -23,6 +31,16 @@ headless (`node tools/smoke.mjs`, zéro erreur console, captures relues), pouss�
 
 ## Fait
 
+- **Itération E10** (2026-09-27, évaluation n° 4) — Block Quarry 1.1.0 : **reprises payantes garanties** — « +3 coups »
+  (pièces ou vidéo) redonne des pièces qui rentrent quand la grille est bloquée (la partie restait figée) ; « Continuer »
+  (15 🪙 ou vidéo) dégage la zone 3×3 la plus pleine et donne trois pièces qui rentrent, au lieu d'un marteau à viser qui
+  aidait rarement ; **tirage équitable** : les trois pièces doivent pouvoir être posées dans un ordre au moins, grosses
+  pièces écartées quand la grille est chargée, et une pièce qui complète une ligne au-delà de 40 % de remplissage
+  (bot glouton, 80 parties : médiane 17 → 41 coups, parties de ≤ 20 coups 52 → 18) ; Aventure qui se resserre après le
+  niveau 16 (coups −1,2 %/niveau, bandes de pierres en plus aux niveaux 25 et 35 ; bot : 36/40 réussis, moins de ★3),
+  2 boosters max par tentative ; coups réellement joués et « +10 🪙 » affichés en fin de niveau ; solde de pièces dans
+  la boutique de thèmes ; marteau désarmé en ouvrant la carte, plus de viseur fantôme au doigt ; pièces du plateau
+  plus grandes sur téléphone ; « Modes de jeu » comme titre de la carte ; allemand « Linien » au lieu de « Reihen ».
 - **v1** (2026-09-25) — les trois jeux jouables, nav fine à 3 onglets, publication GitHub Pages.
 - **Itération 1** (2026-09-25) — bouton son global dans la nav ; Neon Bonk : crédits gagnés à chaque run et boutique permanente (9 améliorations, dont relances et résurrection).
 - **Itération 2** (2026-09-25) — Neon Bonk : deuxième étape « La Fournaise » (palette braise, relief plus accidenté, difficulté qui démarre à la 8e minute, 8 min), boss 2 « Hydre de magma » (×2,6 PV, plus rapide, engendre des ennemis) ; la victoire vient après le 2e portail ; crédits d'étape.

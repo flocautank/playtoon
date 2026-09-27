@@ -86,7 +86,7 @@ export const SHELL = {
     'pt.export': 'Exportieren', 'pt.import': 'Importieren', 'pt.replace': 'Ersetzen',
     'pt.impQ': 'Den aktuellen Fortschritt <b>aller drei Spiele</b> durch diese Sicherung ersetzen?',
     'pt.badSave': 'Ungültige Sicherung.',
-    'pt.goal.bp_lines': '{n} Reihen abräumen', 'pt.goal.bp_pieces': '{n} Teile setzen',
+    'pt.goal.bp_lines': '{n} Linien abräumen', 'pt.goal.bp_pieces': '{n} Teile setzen',
     'pt.goal.sf_forges': '{n} Schmieden kaufen', 'pt.goal.sf_comets': '{n} goldene Kometen fangen', 'pt.goal.sf_clicks': '{n}-mal auf den Stern tippen',
     'pt.goal.nb_kills': '{n} Gegner besiegen', 'pt.goal.nb_chests': '{n} Truhen öffnen', 'pt.goal.nb_time': '{n} Minuten in einem Lauf überleben',
     'pt.rw.blocks': '+30 🪙 Münzen', 'pt.rw.forge': '+1 Nova ✦', 'pt.rw.bonk': '+40 ◈ Credits',
