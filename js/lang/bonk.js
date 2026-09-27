@@ -545,4 +545,12 @@ const pt = pack({
   },
 });
 
+// application Android : vidéos bonus facultatives (seconde chance, crédits doublés)
+Object.assign(en, {"nb.second": "Second chance?", "nb.secondTxt": "Watch a short video to come back with half your health and a shockwave. Once per run.", "nb.secondWatch": "📺 Watch & revive", "nb.secondNo": "No thanks", "nb.double": "📺 Double credits (+{n} ◈)", "nb.doubled": "Credits doubled!"});
+Object.assign(fr, {"nb.second": "Seconde chance ?", "nb.secondTxt": "Regarde une courte vidéo pour revenir avec la moitié de tes PV et une onde de choc. Une fois par run.", "nb.secondWatch": "📺 Regarder et revivre", "nb.secondNo": "Non merci", "nb.double": "📺 Doubler les crédits (+{n} ◈)", "nb.doubled": "Crédits doublés !"});
+Object.assign(es, {"nb.second": "¿Segunda oportunidad?", "nb.secondTxt": "Mira un vídeo corto para volver con la mitad de tu vida y una onda expansiva. Una vez por partida.", "nb.secondWatch": "📺 Ver y revivir", "nb.secondNo": "No, gracias", "nb.double": "📺 Duplicar créditos (+{n} ◈)", "nb.doubled": "¡Créditos duplicados!"});
+Object.assign(de, {"nb.second": "Zweite Chance?", "nb.secondTxt": "Sieh dir ein kurzes Video an und kehre mit halber Gesundheit und einer Schockwelle zurück. Einmal pro Lauf.", "nb.secondWatch": "📺 Ansehen & wiederbeleben", "nb.secondNo": "Nein, danke", "nb.double": "📺 Credits verdoppeln (+{n} ◈)", "nb.doubled": "Credits verdoppelt!"});
+Object.assign(it, {"nb.second": "Seconda possibilità?", "nb.secondTxt": "Guarda un breve video per tornare con metà della salute e un'onda d'urto. Una volta per partita.", "nb.secondWatch": "📺 Guarda e rinasci", "nb.secondNo": "No, grazie", "nb.double": "📺 Raddoppia i crediti (+{n} ◈)", "nb.doubled": "Crediti raddoppiati!"});
+Object.assign(pt, {"nb.second": "Segunda chance?", "nb.secondTxt": "Assista a um vídeo curto para voltar com metade da vida e uma onda de choque. Uma vez por partida.", "nb.secondWatch": "📺 Assistir e reviver", "nb.secondNo": "Não, obrigado", "nb.double": "📺 Dobrar créditos (+{n} ◈)", "nb.doubled": "Créditos dobrados!"});
+
 export default { en, fr, es, de, it, pt };

@@ -218,14 +218,22 @@
           <label class="small"><span data-i18n="nb.dmgNums">Damage numbers</span> <select id="nb-nums"><option value="merge" data-i18n="nb.numsMerge">grouped</option><option value="crit" data-i18n="nb.numsCrit">crits only</option><option value="off" data-i18n="nb.numsOff">off</option></select></label>
           <label class="small"><span data-i18n="nb.autoLvl">Level-ups</span> <select id="nb-autolvl"><option value="" data-i18n="nb.autoManual">I choose</option><option value="1" data-i18n="nb.autoAuto">auto-pick</option></select></label>
           <label class="small"><input type="checkbox" id="nb-music" checked> <span data-i18n="nb.music">Music</span> <span class="muted" data-i18n="nb.musicNote">(shared setting, also under 🔊)</span></label>
-          <div class="row"><button class="btn" id="nb-resume" data-i18n="nb.resume">Resume</button><button class="btn ghost" id="nb-quit" data-i18n="nb.quit">Give up</button></div>
+          <div class="row"><button class="btn" id="nb-resume" data-i18n="nb.resume" data-back>Resume</button><button class="btn ghost" id="nb-quit" data-i18n="nb.quit">Give up</button></div>
         </div>
       </div>
       <div class="overlay hidden" id="nb-end">
         <div class="card wide">
           <h2 id="nb-endtitle" data-i18n="nb.endTitle">Run over</h2>
           <div id="nb-endstats"></div>
-          <div class="row"><button class="btn big" id="nb-replay" data-i18n="nb.replay">Play again</button><button class="btn big ghost" id="nb-again" data-i18n="nb.menu">Menu</button></div>
+          <button class="btn small bp-vid hidden" id="nb-double"></button>
+          <div class="row"><button class="btn big" id="nb-replay" data-i18n="nb.replay">Play again</button><button class="btn big ghost" id="nb-again" data-i18n="nb.menu" data-back>Menu</button></div>
+        </div>
+      </div>
+      <div class="overlay hidden" id="nb-second">
+        <div class="card">
+          <h2 data-i18n="nb.second">Second chance?</h2>
+          <p class="muted" data-i18n="nb.secondTxt"></p>
+          <div class="row"><button class="btn" id="nb-secondyes" data-i18n="nb.secondWatch">📺 Watch &amp; revive</button><button class="btn ghost" id="nb-secondno" data-i18n="nb.secondNo" data-back>No thanks</button></div>
         </div>
       </div>
       <div class="overlay hidden" id="nb-click">

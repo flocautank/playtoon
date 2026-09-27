@@ -32,6 +32,7 @@ jobs:
         include:
           - { app: block-quarry, prefix: BQ, version: blocks, pkg: io.github.flocautank.blockquarry }
           - { app: nova-foundry, prefix: NF, version: forge, pkg: io.github.flocautank.novafoundry }
+          - { app: synth-horde, prefix: SH, version: bonk, pkg: io.github.flocautank.synthhorde }
     defaults:
       run:
         working-directory: apps/${{ matrix.app }}
@@ -119,6 +120,7 @@ jobs:
         include:
           - { app: block-quarry, pkg: io.github.flocautank.blockquarry }
           - { app: nova-foundry, pkg: io.github.flocautank.novafoundry }
+          - { app: synth-horde, pkg: io.github.flocautank.synthhorde }
     steps:
       - uses: actions/download-artifact@v4
         with:

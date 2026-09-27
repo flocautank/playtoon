@@ -70,7 +70,9 @@ export async function initShell(opts) {
   gear.onclick = openSettings;
   $('bq-close').onclick = () => { $('bq-settings').classList.add('hidden'); window.GAMES[opts.game].onSettings && window.GAMES[opts.game].onSettings(false); };
   $('bq-sfx').onchange = e => { window.PT_MUTE = !e.target.checked; try { localStorage.setItem('playtoon.mute', window.PT_MUTE ? '1' : '0'); } catch (err) {} window.dispatchEvent(new Event('pt-mute')); };
-  $('bq-mus').onchange = e => { window.PT_MUSIC = e.target.checked; try { localStorage.setItem('playtoon.music', window.PT_MUSIC ? '1' : '0'); } catch (err) {} window.dispatchEvent(new Event('pt-music')); };
+  // musique : réglage commun, aussi appelé par le jeu (case « Musique » de sa pause)
+  window.ptSetMusic = on => { window.PT_MUSIC = on; try { localStorage.setItem('playtoon.music', on ? '1' : '0'); } catch (err) {} $('bq-mus').checked = on; window.dispatchEvent(new Event('pt-music')); };
+  $('bq-mus').onchange = e => window.ptSetMusic(e.target.checked);
   langSelect($('bq-lang'));
   $('bq-restore').onclick = () => mon.restore().then(openSettings);
   $('bq-privacy').onclick = () => mon.privacyOptions();

@@ -282,3 +282,12 @@ main{position:fixed;inset:var(--nav-h) 0 0 0}
 /* Synth Horde : libellé du bouton de glissade traduit (RUTSCHEN, BARRIDA…) — tient dans le rond de 62 px */
 .nb-slide{padding:0;font-size:10px;letter-spacing:-.02em}
 #nb-endstats b{white-space:nowrap}
+/* Synth Horde sur téléphone en paysage (l'application Android est en paysage) : peu de hauteur */
+@media (max-height:500px) and (orientation:landscape){
+  #nb-levelup .card{padding:10px 14px;gap:6px;max-height:100%}
+  #nb-levelup h2{font-size:22px;margin:0}
+  .nb-choices{grid-template-columns:repeat(3,1fr);gap:8px}
+  .nb-choice{padding:8px 10px;gap:3px}.nb-choice .ic{font-size:20px}.nb-choice b{font-size:14px}.nb-choice p{font-size:11.5px}
+  .nb-pausebtn{top:8px;right:156px}
+  .nb-msg,.nb-root.bossing .nb-msg{top:auto;bottom:24%;font-size:17px}
+}

@@ -564,7 +564,7 @@ function newRun() {
   player.userData.body.material.uniforms.uColor.value.set(ch.col);
   player.visible = true;
   META.runs++; saveMeta();
-  ['nb-menu', 'nb-end', 'nb-levelup', 'nb-pause'].forEach(id => $(id).classList.add('hidden'));
+  ['nb-menu', 'nb-end', 'nb-levelup', 'nb-pause', 'nb-second'].forEach(id => $(id).classList.add('hidden'));
   $('nb-hud').classList.remove('hidden');
   $('nb-boss').classList.add('hidden');
   if (TOUCH) ['nb-joy', 'nb-jumpbtn', 'nb-actbtn', 'nb-slidebtn'].forEach(id => $(id).classList.remove('hidden'));
@@ -580,6 +580,7 @@ const xpNeed = l => Math.floor(3 + (l - 1) * 2.4 + Math.pow(l - 1, 1.55) * 0.7 +
 function addWeapon(id) {
   const b = WEAPONS[id];
   S.weapons.push({ id, lvl: 1, dmgM: 1, cdM: 1, count: 0, areaM: 1, speedM: 1, pierce: 0, chain: 0, t: 0.3, ang: 0, hitT: new Map() });
+  renderWeaponsHud();
 }
 const wStat = (w) => {
   const b = WEAPONS[w.id], s = S.stats;
@@ -900,15 +901,41 @@ function hurt(d, src = '?') {
   (S.hurtBy = S.hurtBy || {})[src] = (S.hurtBy[src] || 0) + d;   // statistiques d'équilibrage
   if (navigator.vibrate) navigator.vibrate(40);
   if (S.p.hp <= 0) {
-    if (S.revives > 0) {
-      // Seconde vie : soin à moitié, invulnérabilité, onde qui repousse tout
-      S.revives--; S.p.hp = S.stats.hp * 0.5; S.iframe = 2.5;
-      explode(S.p.x, S.p.y, S.p.z, 9, 50 * S.stats.dmg, [0.5, 1, 0.9]);
-      near(S.p.x, S.p.z, 14, e => { const dx = e.x - S.p.x, dz = e.z - S.p.z, d = Math.hypot(dx, dz) || 1; e.kx += dx / d * 30; e.kz += dz / d * 30; });
-      msg(tr('nb.revive'), 2, '#7cff8a');
-    } else { S.p.hp = 0; endRun(false); }
+    if (S.revives > 0) { S.revives--; revive(); }
+    else if (!S.adRevived && MON.canReward()) offerSecondChance();   // application : une seconde chance vidéo par run
+    else { S.p.hp = 0; endRun(false); }
   }
   return true;
+}
+
+// Seconde vie : soin à moitié, invulnérabilité, onde qui repousse tout
+function revive() {
+  S.p.hp = S.stats.hp * 0.5; S.iframe = 2.5;
+  explode(S.p.x, S.p.y, S.p.z, 9, 50 * S.stats.dmg, [0.5, 1, 0.9]);
+  near(S.p.x, S.p.z, 14, e => { const dx = e.x - S.p.x, dz = e.z - S.p.z, d = Math.hypot(dx, dz) || 1; e.kx += dx / d * 30; e.kz += dz / d * 30; });
+  msg(tr('nb.revive'), 2, '#7cff8a');
+}
+
+// ============================================================ monétisation (application Android seulement)
+// Le site n'a pas de window.PT_MON : aucune de ces offres n'y apparaît.
+const MON = {
+  canReward: () => !!(window.PT_MON && window.PT_MON.canReward()),
+  reward: kind => window.PT_MON ? window.PT_MON.reward(kind) : Promise.resolve(false),
+  pause: () => window.PT_MON ? window.PT_MON.pause() : Promise.resolve(),
+};
+function offerSecondChance() {
+  S.p.hp = 0; S.adRevived = true; S.state = 'offer';
+  music.stop(0.5);
+  if (document.pointerLockElement) document.exitPointerLock();
+  $('nb-second').classList.remove('hidden');
+}
+async function secondChance(watch) {
+  if (!S || S.state !== 'offer') return;
+  $('nb-second').classList.add('hidden');
+  if (watch && await MON.reward('revive')) {
+    S.state = 'play'; revive(); clock.getDelta();
+    if (window.PT_MUSIC !== false && active) music.start(S.stage);
+  } else { S.state = 'play'; endRun(false); }
 }
 
 // ============================================================ armes
@@ -1870,7 +1897,19 @@ function renderEnd() {
     + row('nb.eChests', S.chestsOpened) + row('nb.eChar', S.ch.name) + row('nb.eStage', (S.stage + 1) + ' / ' + STAGES.length)
     + `<div style="grid-column:1/-1;color:#7ff6ff;justify-content:center">${tr('nb.eCredits', { n: num(cr) })}</div>`
     + (newly.length ? `<div style="grid-column:1/-1;color:#ffc94d;justify-content:center">${tr('nb.eUnlocked', { list: newly.map(c => c.name).join(', ') })}</div>` : '');
+  const dbl = $('nb-double');
+  dbl.classList.toggle('hidden', !(cr > 0 && !S.doubled && MON.canReward()));
+  dbl.textContent = tr('nb.double', { n: num(cr) });
 }
+$('nb-double').onclick = async () => {
+  if (!S || S.doubled || !S.endInfo) return;
+  const ok = await MON.reward('credits');
+  if (!ok || S.doubled) return;
+  S.doubled = true; META.credits = (META.credits || 0) + S.endInfo.cr; S.endInfo.cr *= 2; saveMeta();
+  renderEnd(); msg(tr('nb.doubled'), 2, '#7ff6ff'); sfx('chest');
+};
+$('nb-secondyes').onclick = () => secondChance(true);
+$('nb-secondno').onclick = () => secondChance(false);
 function toMenu() {
   music.stop(0.3);
   if (S) {
@@ -1881,7 +1920,7 @@ function toMenu() {
     player.visible = false;
     S.state = 'menu';
   }
-  ['nb-end', 'nb-pause', 'nb-levelup'].forEach(id => $(id).classList.add('hidden'));
+  ['nb-end', 'nb-pause', 'nb-levelup', 'nb-second'].forEach(id => $(id).classList.add('hidden'));
   $('nb-hud').classList.add('hidden');
   renderMenu();
   if (g2) g2.clearRect(0, 0, W, H);
@@ -1915,15 +1954,16 @@ function renderMenu() {
 }
 
 $('nb-start').onclick = () => { S = null; newRun(); clock.getDelta(); };
-$('nb-again').onclick = toMenu;
-$('nb-replay').onclick = () => { toMenu(); $('nb-menu').classList.add('hidden'); S = null; newRun(); clock.getDelta(); };
+// entre deux runs : l'application peut placer une pause publicitaire (plafonnée, voir apps/synth-horde)
+$('nb-again').onclick = () => MON.pause().then(toMenu);
+$('nb-replay').onclick = () => MON.pause().then(() => { toMenu(); $('nb-menu').classList.add('hidden'); S = null; newRun(); clock.getDelta(); });
 $('nb-nums').onchange = e => { META.nums = e.target.value; saveMeta(); };
 $('nb-autolvl').onchange = e => { META.autoLvl = !!e.target.value; saveMeta(); };
 $('nb-resume').onclick = resume;
 $('nb-quit').onclick = () => endRun(false);
 $('nb-reroll').onclick = reroll;
 $('nb-sens').oninput = e => { META.sens = +e.target.value; saveMeta(); };
-$('nb-music').onchange = e => window.ptSetMusic(e.target.checked);
+$('nb-music').onchange = e => window.ptSetMusic && window.ptSetMusic(e.target.checked);
 window.addEventListener('pt-music', () => { if (window.PT_MUSIC && S && S.state === 'play' && active) music.start(S.stage); else if (!window.PT_MUSIC) music.stop(0.3); });
 
 // Boutons tactiles : pause via le timer
@@ -1945,7 +1985,7 @@ window.addEventListener('pt-lang', () => {
   else if (S.state === 'end') renderEnd();
 });
 // Accès de débogage (console) à l'état de la run.
-window.__nb = { get S() { return S; }, get camDist() { return camDist; }, update, pick, keys, interact, jump, damage, spawnEnemy, music, newRun, addWeapon, openLevelUp };
+window.__nb = { get S() { return S; }, get camDist() { return camDist; }, update, pick, keys, interact, jump, damage, hurt, spawnEnemy, spawnBoss, nextStage, music, newRun, addWeapon, openLevelUp };
 
 window.GAMES.bonk = {
   reward() { META.credits = (META.credits || 0) + 40; saveMeta(); if (!S || S.state === 'menu') try { renderMenu(); } catch (e) {} },   // objectif du jour
@@ -1957,6 +1997,12 @@ window.GAMES.bonk = {
       renderMenu();
     }
     requestAnimationFrame(() => { onResize(); clock.getDelta(); frame(); });
+  },
+  // bouton retour Android : pause en pleine run ; le choix de niveau attend une réponse
+  onBack() {
+    if (!S) return false;
+    if (S.state === 'play') { pause(); return true; }
+    return S.state === 'levelup';
   },
   hide() {
     active = false; cancelAnimationFrame(rafId); music.stop(0.2);

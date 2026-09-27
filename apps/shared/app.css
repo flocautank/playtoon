@@ -1,5 +1,5 @@
 /* Application Android : pas de barre Playtoon, marges de sécurité (encoche, barre de gestes) */
-.bq-app main { inset: env(safe-area-inset-top, 0) 0 env(safe-area-inset-bottom, 0) 0; }
+.bq-app main { inset: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0); }
 .bq-app .tab { display: block; }
 .bq-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; width: 100%; font-size: 15px; }
 .bq-row select { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; }
@@ -12,3 +12,7 @@
 .bq-gear-float { position: fixed; z-index: 150; top: calc(env(safe-area-inset-top, 0px) + 8px); right: 8px; width: 38px; height: 38px; border-radius: 10px; background: rgba(0,0,0,.45); border: 1px solid #555; }
 .bq-shop #bq-products { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%; }
 .sf-tabs #bq-gear{flex:0 0 auto;padding:10px 12px;font-size:15px;color:var(--muted)}
+/* Synth Horde : réglages dans le coin du menu ; la note « aussi sous 🔊 » ne vaut que pour le site */
+#nb-menu .card { position: relative; }
+#nb-menu #bq-gear { position: absolute; top: 8px; right: 8px; }
+.bq-app [data-i18n="nb.musicNote"] { display: none; }
