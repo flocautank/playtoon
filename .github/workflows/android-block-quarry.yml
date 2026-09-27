@@ -11,6 +11,7 @@ on:
       - 'apps/block-quarry/**'
       - 'js/blocks.js'
       - 'js/i18n.js'
+      - 'js/version.js'
       - 'css/style.css'
       - 'index.html'
       - '.github/workflows/android-block-quarry.yml'
@@ -52,7 +53,7 @@ jobs:
           npm ci
           node build.mjs
           npx cap sync android
-          echo "VERSION_NAME=$(node -p "require('./package.json').version")" >> "$GITHUB_ENV"
+          echo "VERSION_NAME=$(node --input-type=module -e "import('../../js/version.js').then(m => console.log(m.VERSIONS.blocks))")" >> "$GITHUB_ENV"
 
       - name: Clé d'envoi (si configurée)
         env:

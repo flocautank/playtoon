@@ -5,11 +5,11 @@ import { readFileSync, writeFileSync, mkdirSync, rmSync, copyFileSync } from 'fs
 import { build } from 'esbuild';
 
 const ROOT = new URL('../../', import.meta.url).pathname, HERE = new URL('./', import.meta.url).pathname, OUT = HERE + 'www/';
-const pkg = JSON.parse(readFileSync(HERE + 'package.json', 'utf8'));
+const { VERSIONS } = await import(ROOT + 'js/version.js');   // même numéro que le site
 const env = process.env;
 const TEST = { rewarded: 'ca-app-pub-3940256099942544/5224354917', interstitial: 'ca-app-pub-3940256099942544/1033173712' };
 const config = {
-  version: pkg.version,
+  version: VERSIONS.blocks,
   testAds: !(env.ADMOB_REWARDED_ID && env.ADMOB_INTERSTITIAL_ID) || env.ADMOB_TEST === '1',
   rewardedId: env.ADMOB_REWARDED_ID || TEST.rewarded,
   interstitialId: env.ADMOB_INTERSTITIAL_ID || TEST.interstitial,

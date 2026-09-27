@@ -1,3 +1,5 @@
+import { VERSIONS } from './version.js';
+const VKEY = { 'Block Quarry': 'blocks', 'Star Forge': 'forge', 'Neon Bonk': 'bonk' };
 // Onglets : un seul jeu actif à la fois, les autres sont mis en pause.
 const G = window.GAMES || {};
 const tabs = ['blocks', 'forge', 'bonk'];
@@ -122,7 +124,7 @@ function renderProfile() {
   const stars = Object.values(adv.stars || {}).reduce((a, b) => a + b, 0), lv = Object.keys(adv.stars || {}).length;
   const sf = readJ('starforge.save.v1'), nb = readJ('neonbonk.meta.v1');
   const row = (a, b) => `<div><span>${a}</span><b>${b}</b></div>`;
-  const card = (c, name, t, rows) => `<div class="pt-g" style="--c:${c}"><h3>${name}<small>⏱ ${dur(t)}</small></h3>${rows.join('')}</div>`;
+  const card = (c, name, t, rows) => `<div class="pt-g" style="--c:${c}"><h3>${name} <span class="muted small">v${VERSIONS[VKEY[name]] || ''}</span><small>⏱ ${dur(t)}</small></h3>${rows.join('')}</div>`;
   document.getElementById('pt-prof').innerHTML =
     card('#ff5d8f', 'Block Quarry', PLAY.blocks, [row('Record classique', big(+localStorage.getItem('blocparty.best') || 0)), row('Aventure', `${lv}/40 · ${stars} ★`), row('Défi du jour', daily.best ? `${big(daily.best)} · série ${daily.streak || 1}` : '—'), row('Pièces', big(+(localStorage.getItem('blocparty.coins') ?? 40))), row('Thèmes', `${(th.owned || ['classic']).length}/5`)]) +
     card('#ffc94d', 'Star Forge', PLAY.forge, [row('Poussière produite', big(sf.lifeTotal)), row('Supernovae', sf.prestiges || 0), row('Novae gagnées', sf.novaTotal || 0), row('Big Bangs · Singularités', `${sf.bigbangs || 0} · ${sf.sing || 0}`), row('Succès · défis', `${Object.keys(sf.ach || {}).length} · ${Object.keys(sf.chalDone || {}).length}/6`)]) +
