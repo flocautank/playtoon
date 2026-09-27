@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Playtoon</title>
-<meta name="description" content="Trois jeux jouables dans le navigateur : Block Quarry, Star Forge et Neon Bonk.">
+<meta name="description" content="Trois jeux jouables dans le navigateur : Block Quarry, Nova Foundry et Neon Bonk.">
 <meta name="theme-color" content="#0d0f1a">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -18,7 +18,7 @@
 <nav id="nav">
   <button class="brand" id="brand" title="Accueil et objectifs du jour">PLAYTOON</button>
   <a href="#blocks" data-tab="blocks"><i style="background:#ff5d8f"></i>Block Quarry</a>
-  <a href="#forge" data-tab="forge"><i style="background:#ffc94d"></i>Star Forge</a>
+  <a href="#forge" data-tab="forge"><i style="background:#ffc94d"></i>Nova Foundry</a>
   <a href="#bonk" data-tab="bonk"><i style="background:#4dd4ff"></i>Neon Bonk</a>
   <button id="profile" class="mute" title="Profil et statistiques" aria-label="Profil">👤</button>
   <button id="mute" class="mute" title="Couper / remettre le son" aria-label="Son">🔊</button>
@@ -35,7 +35,7 @@
     <p class="muted">Trois jeux, une seule page. Ta progression est sauvegardée dans ce navigateur.</p>
     <div class="pt-games">
       <a class="pt-game" href="#blocks" style="--c:#ff5d8f"><b>🧩 Block Quarry</b><span>Pose les pièces, complète lignes et colonnes. Aventure, défi du jour, Chrono.</span></a>
-      <a class="pt-game" href="#forge" style="--c:#ffc94d"><b>✨ Star Forge</b><span>Touche l'étoile, bâtis des forges qui produisent même quand tu es parti.</span></a>
+      <a class="pt-game" href="#forge" style="--c:#ffc94d"><b>✨ Nova Foundry</b><span>Touche l'étoile, bâtis des forges qui produisent même quand tu es parti.</span></a>
       <a class="pt-game" href="#bonk" style="--c:#4dd4ff"><b>🕹️ Neon Bonk</b><span>Survis aux hordes en 3D : cours, saute, tes armes tirent seules.</span></a>
     </div>
     <div class="pt-goals"><h3>🎯 Objectifs du jour</h3><div id="pt-goals"></div></div>
@@ -125,10 +125,10 @@
     <div class="sf-wrap">
       <div class="sf-left">
         <div class="sf-res">
-          <div class="sf-dust"><span id="sf-dust">0</span> <small>poussière d'étoile</small></div>
-          <div class="sf-rate"><span id="sf-rate">0</span> /s · <span id="sf-click">1</span> /clic</div>
+          <div class="sf-dust"><span id="sf-dust">0</span> <small data-i18n="sf.dust">stardust</small></div>
+          <div class="sf-rate"><span id="sf-rate">0</span> /s · <span id="sf-click">1</span> <span data-i18n="sf.perClick">/click</span></div>
           <div class="sf-buffs" id="sf-buffs"></div>
-          <div class="sf-chal hidden" id="sf-chal"><span id="sf-chal-txt"></span><button class="btn ghost small" id="sf-chal-quit">Abandonner</button></div>
+          <div class="sf-chal hidden" id="sf-chal"><span id="sf-chal-txt"></span><button class="btn ghost small" id="sf-chal-quit" data-i18n="sf.quit">Give up</button></div>
         </div>
         <div class="sf-star-zone">
           <canvas id="sf-canvas"></canvas>
@@ -136,19 +136,19 @@
         <div class="sf-prestige" id="sf-prestige-box">
           <div>
             <b>Supernova</b>
-            <div class="muted small sf-pdesc">Réinitialise la run, gagne des <span class="nova">Novae</span> permanentes.</div>
-            <div class="small">Gain : <b class="nova" id="sf-nova-gain">0</b> · Possédées : <b class="nova" id="sf-nova-have">0</b></div>
+            <div class="muted small sf-pdesc" data-i18n-html="sf.snDesc"></div>
+            <div class="small"><span data-i18n="sf.gain">Gain:</span> <b class="nova" id="sf-nova-gain">0</b> · <span data-i18n="sf.have">Owned:</span> <b class="nova" id="sf-nova-have">0</b></div>
           </div>
-          <button class="btn nova-btn" id="sf-prestige">Exploser</button>
+          <button class="btn nova-btn" id="sf-prestige" data-i18n="sf.explode">Explode</button>
         </div>
       </div>
       <div class="sf-right">
         <div class="sf-tabs">
-          <button data-sf="gen" class="on">Forges</button>
-          <button data-sf="upg">Améliorations</button>
-          <button data-sf="meta">Constellation</button>
-          <button data-sf="chal" id="sf-tab-chal" class="hidden">Défis</button>
-          <button data-sf="ach">Succès</button>
+          <button data-sf="gen" class="on" data-i18n="sf.tForges">Forges</button>
+          <button data-sf="upg" data-i18n="sf.tUpg">Upgrades</button>
+          <button data-sf="meta" data-i18n="sf.tMeta">Constellation</button>
+          <button data-sf="chal" id="sf-tab-chal" class="hidden" data-i18n="sf.tChal">Challenges</button>
+          <button data-sf="ach" data-i18n="sf.tAch">Achievements</button>
           <button data-sf="opt">⚙</button>
         </div>
         <div class="sf-buy-mult" id="sf-buymult">
@@ -160,9 +160,9 @@
     <div class="toast-zone" id="sf-toasts"></div>
     <div class="overlay hidden" id="sf-intro">
       <div class="card">
-        <h2>✨ Star Forge</h2>
-        <p style="text-align:left;line-height:1.55">1. <b>Touche l'étoile</b> pour récolter de la poussière d'étoile.<br>2. Achète des <b>forges</b> (à droite) : elles produisent toutes seules, même quand tu es parti.<br>3. Les <b>améliorations</b> multiplient la production. Attrape les ☄️ comètes dorées qui passent.<br>4. Plus tard, une <b class="nova">Supernova</b> te fait repartir de zéro, mais bien plus fort.</p>
-        <button class="btn" id="sf-intro-ok">C'est parti</button>
+        <h2 data-i18n="sf.introTitle">✨ Nova Foundry</h2>
+        <p style="text-align:left;line-height:1.55" data-i18n-html="sf.introTxt"></p>
+        <button class="btn" id="sf-intro-ok" data-i18n="sf.introOk">Let’s go</button>
       </div>
     </div>
   </section>

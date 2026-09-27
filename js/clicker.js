@@ -1,5 +1,9 @@
-// STAR FORGE — clicker à progression (forges, améliorations, paliers) et méta-progression
+// NOVA FOUNDRY (ex-Star Forge) — clicker à progression (forges, améliorations, paliers) et méta-progression
 // (Supernova → Novae → Constellation permanente, succès permanents).
+import { t, num, applyI18n, addStrings } from './i18n.js';
+import SF_EN_FR from './lang/forge.js';
+import SF_MORE from './lang/forge-more.js';
+addStrings(SF_EN_FR); addStrings(SF_MORE);
 window.GAMES = window.GAMES || {};
 
 const $ = id => document.getElementById(id);
@@ -10,88 +14,96 @@ try { SCI = localStorage.getItem('starforge.sci') === '1'; } catch (e) {}
 
 // ---------- données ----------
 const GENS = [
-  { id: 'spark',   name: 'Étincelle',            ic: '✨', cost: 15,     prod: 0.1,   col: '#ffe38a', desc: 'Une petite lueur qui ne demande qu\'à grandir.' },
-  { id: 'lantern', name: 'Lanterne cosmique',    ic: '🏮', cost: 100,    prod: 1,     col: '#ff9d5c', desc: 'Capte la lumière des étoiles voisines.' },
-  { id: 'comet',   name: 'Moulin à comètes',     ic: '☄️', cost: 1100,   prod: 8,     col: '#7fd6ff', desc: 'Les queues de comète font tourner les pales.' },
-  { id: 'moon',    name: 'Forge lunaire',        ic: '🌙', cost: 12000,  prod: 47,    col: '#c9d2ff', desc: 'Frappée à froid sur la face cachée.' },
-  { id: 'sun',     name: 'Réacteur solaire',     ic: '☀️', cost: 130000, prod: 260,   col: '#ffcf3d', desc: 'Un soleil en bouteille. Ne pas secouer.' },
-  { id: 'pulsar',  name: 'Pulsar domestiqué',    ic: '💫', cost: 1.4e6,  prod: 1400,  col: '#a0ffe0', desc: 'Il tourne sur lui-même 700 fois par seconde. Il est content.' },
-  { id: 'nebula',  name: 'Nébuleuse-usine',      ic: '🌌', cost: 2e7,    prod: 7800,  col: '#d58bff', desc: 'Une pouponnière d\'étoiles, à la chaîne.' },
-  { id: 'white',   name: 'Trou blanc',           ic: '⚪', cost: 3.3e8,  prod: 44000, col: '#ffffff', desc: 'L\'inverse d\'un trou noir : tout en sort.' },
-  { id: 'metro',   name: 'Métronome galactique', ic: '🌀', cost: 5.1e9,  prod: 2.6e5, col: '#6fa8ff', desc: 'Donne le tempo à cent milliards d\'étoiles.' },
-  { id: 'bang',    name: 'Moteur à Big Bang',    ic: '💥', cost: 7.5e10, prod: 1.6e6, col: '#ff5d8f', desc: 'Un univers neuf à chaque cycle.' },
+  { id: 'spark',            ic: '✨', cost: 15,     prod: 0.1,   col: '#ffe38a' },
+  { id: 'lantern',    ic: '🏮', cost: 100,    prod: 1,     col: '#ff9d5c' },
+  { id: 'comet',     ic: '☄️', cost: 1100,   prod: 8,     col: '#7fd6ff' },
+  { id: 'moon',        ic: '🌙', cost: 12000,  prod: 47,    col: '#c9d2ff' },
+  { id: 'sun',     ic: '☀️', cost: 130000, prod: 260,   col: '#ffcf3d' },
+  { id: 'pulsar',    ic: '💫', cost: 1.4e6,  prod: 1400,  col: '#a0ffe0' },
+  { id: 'nebula',      ic: '🌌', cost: 2e7,    prod: 7800,  col: '#d58bff' },
+  { id: 'white',           ic: '⚪', cost: 3.3e8,  prod: 44000, col: '#ffffff' },
+  { id: 'metro', ic: '🌀', cost: 5.1e9,  prod: 2.6e5, col: '#6fa8ff' },
+  { id: 'bang',    ic: '💥', cost: 7.5e10, prod: 1.6e6, col: '#ff5d8f' },
 ];
 const GEN_TIERS = [1, 5, 25, 50, 100, 150, 200, 250];
 const TIER_COST = [10, 50, 500, 5e4, 5e6, 5e8, 5e10, 5e12];
-const TIER_NAMES = ['Polissage', 'Alliage stellaire', 'Résonance', 'Surchauffe', 'Quintessence', 'Transcendance', 'Absolu', 'Omega'];
 const MILESTONES = [10, 25, 50, 100, 150, 200, 250, 300, 350, 400, 500];
 
 const UPGRADES = [];
-GENS.forEach((g, gi) => GEN_TIERS.forEach((t, ti) => UPGRADES.push({
-  id: `g${gi}t${ti}`, ic: g.ic, name: `${g.name} : ${TIER_NAMES[ti]}`, cost: g.cost * TIER_COST[ti],
-  desc: `Production des ${g.name} ×2.`, req: s => s.gens[gi] >= t, reqTxt: `${t} ${g.name}`, fx: { gen: gi, mult: 2 },
+// noms et descriptions calculés à la lecture : ils suivent la langue choisie
+GENS.forEach((g, gi) => GEN_TIERS.forEach((th, ti) => UPGRADES.push({
+  id: `g${gi}t${ti}`, ic: g.ic, cost: g.cost * TIER_COST[ti],
+  get name() { return t('sf.upgName', { gen: g.name, tier: t('sf.tiers')[ti] }); }, get desc() { return t('sf.upgDesc', { gen: g.name }); },
+  req: s => s.gens[gi] >= th, get reqTxt() { return `${th} ${g.name}`; }, fx: { gen: gi, mult: 2 },
 })));
 [[100, 1], [500, 5], [1e4, 10], [1e5, 0], [1e7, 0], [1e9, 0], [1e11, 0], [1e13, 0]].forEach(([c, n], i) => UPGRADES.push({
-  id: 'click' + i, ic: i < 3 ? '🧤' : '👆', name: i < 3 ? `Gants de plasma ${'I'.repeat(i + 1)}` : `Doigts d'étoile ${i - 2}`, cost: c,
-  desc: i < 3 ? 'Les clics et les Étincelles ×2.' : 'Chaque clic rapporte en plus 1 % de ta production par seconde.',
+  id: 'click' + i, ic: i < 3 ? '🧤' : '👆', cost: c,
+  get name() { return i < 3 ? t('sf.gloves', { r: 'I'.repeat(i + 1) }) : t('sf.fingers', { n: i - 2 }); },
+  get desc() { return i < 3 ? t('sf.glovesDesc') : t('sf.fingersDesc'); },
   req: s => i < 3 ? s.gens[0] >= n || s.clicks >= 10 * (i + 1) : s.gens.reduce((a, b) => a + b, 0) >= 25 * (i - 2),
-  reqTxt: i < 3 ? `${10 * (i + 1)} clics` : `${25 * (i - 2)} forges`, fx: i < 3 ? { click: 2, gen: 0, mult: 2 } : { clickPct: 0.01 },
+  get reqTxt() { return i < 3 ? t('sf.reqClicks', { n: 10 * (i + 1) }) : t('sf.reqForges', { n: 25 * (i - 2) }); }, fx: i < 3 ? { click: 2, gen: 0, mult: 2 } : { clickPct: 0.01 },
 }));
-[[1e6, 'Harmonie des sphères'], [1e8, 'Chœur céleste'], [1e10, 'Symphonie cosmique'], [1e12, 'Loi universelle'], [1e14, 'Constante de Planck'], [1e16, 'Fin des temps']].forEach(([c, n], i) => UPGRADES.push({
-  id: 'glob' + i, ic: '🎼', name: n, cost: c, desc: 'Toute la production +25 %.', req: s => s.runTotal >= c / 4, reqTxt: `${fmt(c / 4)} produits`, fx: { global: 1.25 },
+[1e6, 1e8, 1e10, 1e12, 1e14, 1e16].forEach((c, i) => UPGRADES.push({
+  id: 'glob' + i, ic: '🎼', cost: c, get name() { return t('sf.glob')[i]; }, get desc() { return t('sf.globDesc'); }, req: s => s.runTotal >= c / 4, get reqTxt() { return t('sf.reqProduced', { n: fmt(c / 4) }); }, fx: { global: 1.25 },
 }));
-[[7.7e4, 'Télescope'], [7.7e7, 'Radar à comètes'], [7.7e10, 'Aimant à météores']].forEach(([c, n], i) => UPGRADES.push({
-  id: 'luck' + i, ic: '🔭', name: n, cost: c, desc: 'Les comètes dorées apparaissent 15 % plus souvent et durent plus longtemps.', req: s => s.cometsTotal >= i, reqTxt: `${i} comète(s) attrapée(s)`, fx: { luck: 0.15 },
+[7.7e4, 7.7e7, 7.7e10].forEach((c, i) => UPGRADES.push({
+  id: 'luck' + i, ic: '🔭', cost: c, get name() { return t('sf.luck')[i]; }, get desc() { return t('sf.luckDesc'); }, req: s => s.cometsTotal >= i, get reqTxt() { return t('sf.reqComets', { n: i }); }, fx: { luck: 0.15 },
 }));
 
 // Constellation (méta-progression, payée en Novae, survit aux Supernovae)
 const META = [
-  { id: 'm_click', ic: '👆', name: 'Mémoire stellaire', cost: 1, x: 50, y: 8, req: [], desc: 'Clics ×3, pour toujours.' },
-  { id: 'm_start', ic: '🎁', name: 'Héritage', cost: 3, x: 22, y: 22, req: ['m_click'], desc: 'Chaque run démarre avec 10 Étincelles et 5 Lanternes.' },
-  { id: 'm_auto', ic: '🤖', name: 'Automate', cost: 5, x: 50, y: 24, req: ['m_click'], desc: 'Un automate clique 5 fois par seconde pour toi.' },
-  { id: 'm_cheap', ic: '🏷️', name: 'Marchandage', cost: 5, x: 78, y: 22, req: ['m_click'], desc: 'Les forges coûtent 10 % de moins.' },
-  { id: 'm_off', ic: '🌙', name: 'Veille nocturne', cost: 10, x: 12, y: 40, req: ['m_start'], desc: 'Production hors-ligne 25 % → 100 %.' },
-  { id: 'm_keep', ic: '📜', name: 'Archives', cost: 20, x: 32, y: 42, req: ['m_start'], desc: 'Les améliorations « Gants de plasma » sont conservées.' },
-  { id: 'm_comet', ic: '☄️', name: 'Pluie d\'étoiles', cost: 10, x: 50, y: 42, req: ['m_auto'], desc: 'Comètes dorées deux fois plus fréquentes.' },
-  { id: 'm_econ', ic: '📉', name: 'Économie d\'échelle', cost: 20, x: 76, y: 40, req: ['m_cheap'], desc: 'Croissance des prix 15 % → 14 %.' },
-  { id: 'm_long', ic: '⏳', name: 'Éternité', cost: 25, x: 50, y: 58, req: ['m_comet'], desc: 'Les effets de comète durent deux fois plus longtemps.' },
-  { id: 'm_ach', ic: '🏆', name: 'Panthéon', cost: 40, x: 22, y: 60, req: ['m_off', 'm_keep'], desc: 'Chaque succès donne +3 % au lieu de +1 %.' },
-  { id: 'm_upg', ic: '🛠️', name: 'Ingénierie', cost: 40, x: 80, y: 58, req: ['m_econ'], desc: 'Les améliorations coûtent 25 % de moins.' },
-  { id: 'm_nova', ic: '🌟', name: 'Novae brillantes', cost: 80, x: 50, y: 74, req: ['m_long', 'm_ach', 'm_upg'], desc: 'Chaque Nova gagnée donne +8 % au lieu de +5 %.' },
-  { id: 'm_sing', ic: '🕳️', name: 'Singularité', cost: 250, x: 32, y: 90, req: ['m_nova'], desc: 'Toute la production ×3.' },
-  { id: 'm_crunch', ic: '♾️', name: 'Big Crunch', cost: 600, x: 68, y: 90, req: ['m_nova'], desc: 'Les Supernovae rapportent deux fois plus de Novae.' },
+  { id: 'm_click', ic: '👆', cost: 1, x: 50, y: 8, req: [] },
+  { id: 'm_start', ic: '🎁', cost: 3, x: 22, y: 22, req: ['m_click'] },
+  { id: 'm_auto', ic: '🤖', cost: 5, x: 50, y: 24, req: ['m_click'] },
+  { id: 'm_cheap', ic: '🏷️', cost: 5, x: 78, y: 22, req: ['m_click'] },
+  { id: 'm_off', ic: '🌙', cost: 10, x: 12, y: 40, req: ['m_start'] },
+  { id: 'm_keep', ic: '📜', cost: 20, x: 32, y: 42, req: ['m_start'] },
+  { id: 'm_comet', ic: '☄️', cost: 10, x: 50, y: 42, req: ['m_auto'] },
+  { id: 'm_econ', ic: '📉', cost: 20, x: 76, y: 40, req: ['m_cheap'] },
+  { id: 'm_long', ic: '⏳', cost: 25, x: 50, y: 58, req: ['m_comet'] },
+  { id: 'm_ach', ic: '🏆', cost: 40, x: 22, y: 60, req: ['m_off', 'm_keep'] },
+  { id: 'm_upg', ic: '🛠️', cost: 40, x: 80, y: 58, req: ['m_econ'] },
+  { id: 'm_nova', ic: '🌟', cost: 80, x: 50, y: 74, req: ['m_long', 'm_ach', 'm_upg'] },
+  { id: 'm_sing', ic: '🕳️', cost: 250, x: 32, y: 90, req: ['m_nova'] },
+  { id: 'm_crunch', ic: '♾️', cost: 600, x: 68, y: 90, req: ['m_nova'] },
 ];
 
 const ACH = [];
-[[1e3, 'Premières lueurs'], [1e6, 'Millionnaire stellaire'], [1e9, 'Milliardaire'], [1e12, 'Tera-forgeur'], [1e15, 'Péta-forgeur'], [1e18, 'Exa-forgeur'], [1e21, 'Zetta-forgeur']].forEach(([n, name]) =>
-  ACH.push({ id: 'tot' + n, ic: '💰', name, desc: `Produire ${fmt(n)} au total`, test: s => s.lifeTotal >= n }));
-[[100, '🖱️'], [1000, '🖱️'], [10000, '🖱️']].forEach(([n, ic]) => ACH.push({ id: 'clk' + n, ic, name: `${n} clics`, desc: `Cliquer ${n} fois`, test: s => s.lifeClicks >= n }));
-GENS.forEach((g, i) => ACH.push({ id: 'own' + i, ic: g.ic, name: `Collection : ${g.name}`, desc: `Posséder 50 ${g.name}`, test: s => s.gens[i] >= 50 }));
-ACH.push({ id: 'bigbang', ic: '🌌', name: 'Big Bang', desc: 'Déclencher un Big Bang', test: s => (s.bigbangs || 0) >= 1 });
-[[1, '💥'], [5, '🌠'], [20, '🌌']].forEach(([n, ic]) => ACH.push({ id: 'pre' + n, ic, name: `${n} Supernova${n > 1 ? 'e' : ''}`, desc: `Déclencher ${n} Supernova${n > 1 ? 'e' : ''}`, test: s => s.prestiges >= n }));
-[[1, '⭐'], [10, '🌟'], [50, '🎇']].forEach(([n, ic]) => ACH.push({ id: 'com' + n, ic, name: `Chasseur de comètes ${n}`, desc: `Attraper ${n} comète(s) dorée(s)`, test: s => s.lifeComets >= n }));
-[[1e3, '⚡'], [1e6, '⚡'], [1e9, '⚡']].forEach(([n, ic]) => ACH.push({ id: 'dps' + n, ic, name: `${fmt(n)} /s`, desc: `Atteindre ${fmt(n)} par seconde`, test: s => dps() >= n }));
+[1e3, 1e6, 1e9, 1e12, 1e15, 1e18, 1e21].forEach((n, i) =>
+  ACH.push({ id: 'tot' + n, ic: '💰', get name() { return t('sf.ach')[i]; }, get desc() { return t('sf.aTotDesc', { n: fmt(n) }); }, test: s => s.lifeTotal >= n }));
+[100, 1000, 10000].forEach(n => ACH.push({ id: 'clk' + n, ic: '🖱️', get name() { return t('sf.reqClicks', { n: num(n) }); }, get desc() { return t('sf.aClkDesc', { n: num(n) }); }, test: s => s.lifeClicks >= n }));
+GENS.forEach((g, i) => ACH.push({ id: 'own' + i, ic: g.ic, get name() { return t('sf.aOwn', { gen: g.name }); }, get desc() { return t('sf.aOwnDesc', { gen: g.name }); }, test: s => s.gens[i] >= 50 }));
+ACH.push({ id: 'bigbang', ic: '🌌', get desc() { return t('sf.aBBDesc'); }, test: s => (s.bigbangs || 0) >= 1 });
+[[1, '💥'], [5, '🌠'], [20, '🌌']].forEach(([n, ic]) => ACH.push({ id: 'pre' + n, ic, get name() { return t('sf.aPre', { n }); }, get desc() { return t('sf.aPreDesc', { n }); }, test: s => s.prestiges >= n }));
+[[1, '⭐'], [10, '🌟'], [50, '🎇']].forEach(([n, ic]) => ACH.push({ id: 'com' + n, ic, get name() { return t('sf.aCom', { n }); }, get desc() { return t('sf.aComDesc', { n }); }, test: s => s.lifeComets >= n }));
+[1e3, 1e6, 1e9].forEach(n => ACH.push({ id: 'dps' + n, ic: '⚡', name: `${fmt(n)} /s`, get desc() { return t('sf.aDpsDesc', { n: fmt(n) }); }, test: s => dps() >= n }));
 
 // Défis : une run sous contrainte (entrer = repartir de zéro, sans Novae), objectif en poussière
 // produite ; la réussite débloque une récompense permanente et lève la contrainte.
 const CHALS = [
-  { id: 'c_hands', ic: '🙌', name: 'Sans les mains', desc: 'Les clics (et l\'Automate) ne rapportent rien.', goal: 1e6, need: 1, reward: 'Production ×1,5' },
-  { id: 'c_short', ic: '🧱', name: 'Pénurie', desc: 'Seules les trois premières forges sont disponibles.', goal: 1e6, need: 1, reward: 'Étincelles, Lanternes et Moulins ×3' },
-  { id: 'c_noupg', ic: '🚫', name: 'Ascète', desc: 'Impossible d\'acheter des améliorations.', goal: 3e6, need: 2, reward: 'Améliorations 15 % moins chères' },
-  { id: 'c_infl', ic: '📈', name: 'Inflation', desc: 'Le prix des forges grimpe de 25 % par achat au lieu de 15 %.', goal: 1e7, need: 2, reward: 'Croissance des prix −0,5 point' },
-  { id: 'c_dim', ic: '🌑', name: 'Étoile pâle', desc: 'Toute la production est divisée par 10, pas de comètes.', goal: 1e7, need: 3, reward: 'Supernovae : +25 % de Novae' },
-  { id: 'c_rush', ic: '⏱️', name: 'Contre la montre', desc: 'Le chrono tourne, hors-ligne compris.', goal: 1e8, need: 4, time: 900, reward: 'Comètes +25 % plus fréquentes et plus longues' },
+  { id: 'c_hands', ic: '🙌', goal: 1e6, need: 1 },
+  { id: 'c_short', ic: '🧱', goal: 1e6, need: 1 },
+  { id: 'c_noupg', ic: '🚫', goal: 3e6, need: 2 },
+  { id: 'c_infl', ic: '📈', goal: 1e7, need: 2 },
+  { id: 'c_dim', ic: '🌑', goal: 1e7, need: 3 },
+  { id: 'c_rush', ic: '⏱️', goal: 1e8, need: 4, time: 900 },
 ];
 // Big Bang : 2e couche de prestige. Réinitialise Novae et Constellation contre des Singularités
 // (gain de Novae +50 % et production +10 % chacune), à dépenser dans la Galaxie (automatisations).
 const BIGBANG_MIN = 200;
 const GALAXY = [
-  { id: 'g_auto', ic: '🤖', name: 'Contremaître', cost: 1, desc: 'Achète automatiquement la forge la moins chère, chaque seconde.' },
-  { id: 'g_comet', ic: '🧲', name: 'Filet à comètes', cost: 1, desc: 'Les comètes dorées sont attrapées toutes seules.' },
-  { id: 'g_nova', ic: '🌟', name: 'Braises', cost: 2, desc: 'Chaque Big Bang démarre avec 10 Novae (et la Constellation de départ).' },
-  { id: 'g_upg', ic: '🛠️', name: 'Ingénieur', cost: 3, desc: 'Achète automatiquement les améliorations abordables.' },
-  { id: 'g_big', ic: '🌌', name: 'Expansion', cost: 5, desc: 'Chaque Singularité donne +20 % de production au lieu de +10 %.' },
+  { id: 'g_auto', ic: '🤖', cost: 1 },
+  { id: 'g_comet', ic: '🧲', cost: 1 },
+  { id: 'g_nova', ic: '🌟', cost: 2 },
+  { id: 'g_upg', ic: '🛠️', cost: 3 },
+  { id: 'g_big', ic: '🌌', cost: 5 },
 ];
+// textes des données : dictionnaires js/lang/forge*.js (ils suivent la langue choisie)
+const i18nProps = (arr, key, fields) => arr.forEach((o, i) => fields.forEach((f, k) => Object.defineProperty(o, f, { get: () => t(key)[i][k], configurable: true })));
+i18nProps(GENS, 'sf.gens', ['name', 'desc']);
+i18nProps(META, 'sf.meta', ['name', 'desc']);
+i18nProps(CHALS, 'sf.chal', ['name', 'desc', 'reward']);
+i18nProps(GALAXY, 'sf.gal', ['name', 'desc']);
 const gal = id => !!(S.gal && S.gal[id]);
 const singGain = () => Math.floor(Math.sqrt(S.novaTotal / 50));
 const inChal = id => S.chal === id;
@@ -111,7 +123,7 @@ function fmt(n) {
   if (!isFinite(n)) return '∞';
   if (SCI && n >= 1e6) return n.toExponential(2).replace('e+', 'e');
   if (n < 1000) return n < 10 && n % 1 ? n.toFixed(1) : Math.floor(n).toString();
-  if (n < 1e6) return Math.floor(n).toLocaleString('fr-FR');
+  if (n < 1e6) return num(Math.floor(n));
   const units = ['M', 'G', 'T', 'P', 'E', 'Z', 'Y', 'R', 'Q'];
   const e = Math.floor(Math.log10(n) / 3) - 2;
   if (e >= units.length) return n.toExponential(2).replace('+', '');
@@ -183,16 +195,16 @@ function affordableUpg() {
   return out;
 }
 function buyAllUpg() {
-  if (inChal('c_noupg')) { toast('🚫 Défi Ascète : pas d\'améliorations'); return; }
+  if (inChal('c_noupg')) { toast(t('sf.ascetic')); return; }
   const l = affordableUpg(); if (!l.length) return;
   for (const u of l) { S.dust -= upgCost(u); S.upg[u.id] = 1; }
   sfx(880, 0.12, 'triangle'); sfx(1320, 0.12, 'triangle', 0.08); sfx(1760, 0.14, 'triangle', 0.16);
-  toast(`✅ ${l.length} amélioration${l.length > 1 ? 's' : ''} achetée${l.length > 1 ? 's' : ''}`);
+  toast(t('sf.boughtN', { n: l.length }));
   refresh(true);
 }
 function buyUpg(u) {
   const c = upgCost(u);
-  if (inChal('c_noupg')) { toast('🚫 Défi Ascète : pas d\'améliorations'); return; }
+  if (inChal('c_noupg')) { toast(t('sf.ascetic')); return; }
   if (S.upg[u.id] || c > S.dust || !u.req(S)) return;
   S.dust -= c; S.upg[u.id] = 1;
   sfx(880, 0.12, 'triangle'); sfx(1320, 0.12, 'triangle', 0.08);
@@ -201,7 +213,7 @@ function buyUpg(u) {
 function buyMeta(m) {
   if (S.meta[m.id] || S.novaBank < m.cost || !m.req.every(r => S.meta[r])) return;
   S.novaBank -= m.cost; S.meta[m.id] = 1;
-  toast(`${m.ic} ${m.name} débloqué`);
+  toast(t('sf.unlocked', { ic: m.ic, name: m.name }));
   sfx(660, 0.2, 'sine'); sfx(990, 0.3, 'sine', 0.1);
   refresh(true);
 }
@@ -215,56 +227,56 @@ function resetRun(extra) {
 }
 async function startChal(c) {
   if (S.chal || chalDone(c.id) || S.prestiges < c.need) return;
-  if (!await ptConfirm(`<b>${c.ic} Défi « ${c.name} »</b><br>${c.desc}<br>Objectif : produire <b>${fmt(c.goal)}</b>${c.time ? ' en ' + c.time / 60 + ' min' : ''}.<br>Récompense permanente : <b>${c.reward}</b>.<br><br>Ta run actuelle repart de zéro (sans Novae).`, 'Lancer le défi')) return;
+  if (!await ptConfirm(t('sf.chalConfirm', { ic: c.ic, name: c.name, desc: c.desc, goal: fmt(c.goal), time: c.time ? t('sf.inMin', { n: c.time / 60 }) : '', reward: c.reward }), t('sf.chalStart'))) return;
   resetRun({ chal: c.id, chalT: 0 });
-  comet = null; flash = 0.6; toast(`${c.ic} Défi lancé : ${c.name}`); sfx(330, 0.4, 'square', 0.05);
+  comet = null; flash = 0.6; toast(t('sf.chalStarted', { ic: c.ic, name: c.name })); sfx(330, 0.4, 'square', 0.05);
   save(); refresh(true);
 }
 async function quitChal(silent) {
   if (!S.chal) return;
-  if (!silent && !await ptConfirm('Abandonner le défi ? La run repart de zéro.', 'Abandonner')) return;
+  if (!silent && !await ptConfirm(t('sf.chalQuitQ'), t('sf.giveUp'))) return;
   resetRun({ chal: null }); save(); refresh(true);
 }
 function checkChal(dt) {
   if (!S.chal) return;
   const c = CHALS.find(x => x.id === S.chal);
   S.chalT += dt;
-  if (c.time && S.chalT > c.time) { toast(`⏱️ Temps écoulé : défi « ${c.name} » raté`); quitChal(true); return; }
+  if (c.time && S.chalT > c.time) { toast(t('sf.chalTimeUp', { name: c.name })); quitChal(true); return; }
   if (S.runTotal >= c.goal) {
     S.chalDone[c.id] = 1; S.chal = null;
-    toast(`🏅 Défi réussi : ${c.name} — ${c.reward}`); flash = 0.8;
+    toast(t('sf.chalWin', { name: c.name, reward: c.reward })); flash = 0.8;
     sfx(660, 0.3, 'triangle', 0.08); sfx(990, 0.4, 'triangle', 0.06);
     save(); refresh(true);
   }
 }
 
 async function bigBang() {
-  if (S.chal) { toast('Termine ou abandonne le défi avant un Big Bang'); return; }
+  if (S.chal) { toast(t('sf.bbChal')); return; }
   const g = singGain();
   if (S.novaTotal < BIGBANG_MIN || g < 1) return;
-  if (!await ptConfirm(`<b>🌌 BIG BANG</b><br>Tu perds tes Novae (${S.novaTotal}) et toute ta Constellation,<br>mais tu gagnes <b>${g} Singularité(s)</b> : Novae +${g * 50} %, production +${g * (gal('g_big') ? 20 : 10)} %, et de quoi automatiser ta Galaxie.<br>Succès et défis sont conservés.`, 'Big Bang !')) return;
+  if (!await ptConfirm(t('sf.bbConfirm', { nova: num(S.novaTotal), g, np: g * 50, pp: g * (gal('g_big') ? 20 : 10) }), t('sf.bbOk'))) return;
   const start = gal('g_nova') ? 10 : 0;
   resetRun({ novaTotal: start, novaBank: start, meta: {}, sing: (S.sing || 0) + g, singBank: (S.singBank || 0) + g, bigbangs: (S.bigbangs || 0) + 1 });
   if (gal('g_nova')) S.meta = { m_click: 1 };
   flash = 1.5; sfx(60, 2, 'sawtooth', 0.1); sfx(90, 2, 'triangle', 0.08);
-  toast(`🌌 Big Bang ! +${g} Singularité${g > 1 ? 's' : ''}`);
+  toast(t('sf.bbToast', { n: g }));
   checkAch(); save(); refresh(true);
 }
 function buyGal(x) {
   if (gal(x.id) || (S.singBank || 0) < x.cost) return;
-  S.singBank -= x.cost; S.gal[x.id] = 1; toast(`${x.ic} ${x.name} débloqué`); sfx(660, 0.3, 'triangle', 0.08); refresh(true);
+  S.singBank -= x.cost; S.gal[x.id] = 1; toast(t('sf.unlocked', { ic: x.ic, name: x.name })); sfx(660, 0.3, 'triangle', 0.08); refresh(true);
 }
 
 async function prestige() {
-  if (S.chal) { toast('Termine ou abandonne le défi avant une Supernova'); return; }
+  if (S.chal) { toast(t('sf.snChal')); return; }
   const g = novaGain();
   if (g < 1) return;
-  const warn = g <= 3 ? `<br><br>⚠️ <b>C'est encore peu.</b> Le gain grimpe vite : en continuant quelques minutes, tu pourrais en obtenir ${novaGainAt(S.runTotal * 4)}.` : '';
-  if (!await ptConfirm(`<b>💥 Supernova</b><br>Tu perds ta poussière, tes forges et tes améliorations,<br>mais tu gagnes <b class="nova">${fmt(g)} Nova${g > 1 ? 'e' : ''}</b> : +${Math.round(g * novaPct() * 100)} % de production permanente et de quoi développer ta Constellation.${warn}`, 'Exploser')) return;
+  const warn = g <= 3 ? t('sf.snWarn', { n: novaGainAt(S.runTotal * 4) }) : '';
+  if (!await ptConfirm(t('sf.snConfirm', { g: fmt(g), n: g, pct: Math.round(g * novaPct() * 100), warn }), t('sf.snOk'))) return;
   resetRun({ novaTotal: S.novaTotal + g, novaBank: S.novaBank + g, prestiges: S.prestiges + 1 });
   flash = 1;
   sfx(110, 1.2, 'sawtooth', 0.08);
-  toast(`💥 Supernova ! +${g} Novae`);
+  toast(t('sf.snToast', { n: g }));
   checkAch(); save(); refresh(true);
 }
 
@@ -281,14 +293,14 @@ function catchComet() {
   S.cometsTotal++; S.lifeComets++;
   const r = Math.random();
   if (comet.meteor) {
-    S.buffs.push({ type: 'meteor', t: 7 * buffDur(), max: 7 * buffDur() }); toast(`🌠 MÉTÉORE : production ×77 pendant ${7 * buffDur()} s !`); flash = 0.5;
+    S.buffs.push({ type: 'meteor', t: 7 * buffDur(), max: 7 * buffDur() }); toast(t('sf.meteorT', { s: 7 * buffDur() })); flash = 0.5;
   } else if (r < 0.45) {
     const v = Math.min(S.dust * 0.15, dps() * 900) + 13;
-    earn(v); toast(`☄️ Pluie d'or : +${fmt(v)}`);
+    earn(v); toast(t('sf.goldRain', { v: fmt(v) }));
   } else if (r < 0.85) {
-    S.buffs.push({ type: 'frenzy', t: 60 * buffDur(), max: 60 * buffDur() }); toast('☄️ Frénésie : production ×7 pendant ' + 60 * buffDur() + ' s');
+    S.buffs.push({ type: 'frenzy', t: 60 * buffDur(), max: 60 * buffDur() }); toast(t('sf.frenzyT', { s: 60 * buffDur() }));
   } else {
-    S.buffs.push({ type: 'click', t: 13 * buffDur(), max: 13 * buffDur() }); toast('☄️ Frappe divine : clics ×777 pendant ' + 13 * buffDur() + ' s');
+    S.buffs.push({ type: 'click', t: 13 * buffDur(), max: 13 * buffDur() }); toast(t('sf.strikeT', { s: 13 * buffDur() }));
   }
   sfx(1200, 0.3, 'sine', 0.1); sfx(1600, 0.3, 'sine', 0.08);
   for (let k = 0; k < 40; k++) parts.push({ x: comet.x * cw, y: comet.y * ch, vx: (Math.random() - .5) * 8, vy: (Math.random() - .5) * 8, life: 1, col: comet.meteor ? '#d9a8ff' : '#ffd84d', s: 3 });
@@ -421,7 +433,7 @@ function tipify(el, fn, action) {
   el.onmouseenter = () => { if (lastPT === 'mouse') showTip(el, fn); };
   el.onmouseleave = () => { if (lastPT === 'mouse') hideTip(); };
   el.onclick = () => {
-    if (lastPT !== 'mouse' && !(tip && tip.el === el)) { showTip(el, () => fn() + (action ? '<br><i class="muted">Touche encore pour acheter</i>' : '')); return; }
+    if (lastPT !== 'mouse' && !(tip && tip.el === el)) { showTip(el, () => fn() + (action ? `<br><i class="muted">${t('sf.tapAgain')}</i>` : '')); return; }
     if (action) { action(); if (lastPT !== 'mouse') hideTip(); }
   };
 }
@@ -434,12 +446,12 @@ function build() {
       const b = document.createElement('button'); b.className = 'sf-item'; b.dataset.i = i;
       b.innerHTML = `<div class="ic" style="background:${g.col}22">${g.ic}</div><div class="mid"><b>${g.name}</b><span class="d"></span></div><div class="rt"><b class="n">0</b><span class="c"></span></div>`;
       b.onclick = () => buyGen(i);   // au doigt, achat direct : la ligne affiche déjà l'essentiel
-      b.onmouseenter = () => { if (lastPT === 'mouse') showTip(b, () => `<b>${g.name}</b><br>${g.desc}<br><br>Chacun : ${fmt(g.prod * genMult(i) * globalMult())} /s<br>Total : ${fmt(S.gens[i] * g.prod * genMult(i) * globalMult())} /s<br>Prochain palier (×2) : ${MILESTONES.find(t => t > S.gens[i]) || '—'}`); };
+      b.onmouseenter = () => { if (lastPT === 'mouse') showTip(b, () => t('sf.genTip', { name: g.name, desc: g.desc, each: fmt(g.prod * genMult(i) * globalMult()), total: fmt(S.gens[i] * g.prod * genMult(i) * globalMult()), next: MILESTONES.find(m => m > S.gens[i]) || '—' })); };
       b.onmouseleave = () => { if (lastPT === 'mouse') hideTip(); };
       panel.appendChild(b);
     });
   } else if (tab === 'upg') {
-    const h = document.createElement('div'); h.className = 'sf-h sf-h-row'; h.innerHTML = '<span>Disponibles</span><button class="btn small" id="sf-buyall">Tout acheter</button>'; panel.appendChild(h);
+    const h = document.createElement('div'); h.className = 'sf-h sf-h-row'; h.innerHTML = `<span>${t('sf.available')}</span><button class="btn small" id="sf-buyall">${t('sf.buyAll')}</button>`; panel.appendChild(h);
     h.querySelector('button').onclick = buyAllUpg;
     const grid = document.createElement('div'); grid.className = 'sf-grid'; grid.id = 'sf-upg-grid'; panel.appendChild(grid);
     const h2 = document.createElement('div'); h2.className = 'sf-h'; h2.id = 'sf-upg-owned-h'; panel.appendChild(h2);
@@ -452,7 +464,7 @@ function build() {
     META.forEach(m => m.req.forEach(r => { const p = META.find(q => q.id === r); svg += `<line x1="${p.x}" y1="${p.y}" x2="${m.x}" y2="${m.y}" stroke="#4a3a78" stroke-width="0.6" vector-effect="non-scaling-stroke" data-l="${m.id}" />`; }));
     tree.innerHTML = svg + '</svg>';
     const bb = document.createElement('div'); bb.id = 'sf-bigbang'; bb.className = 'sf-bb';
-    bb.innerHTML = `<div class="sf-h">Big Bang</div><p class="muted small" id="sf-bb-info"></p><button class="btn nova-btn" id="sf-bb-btn">Déclencher le Big Bang</button><div class="sf-h">Galaxie</div><div id="sf-gal"></div>`;
+    bb.innerHTML = `<div class="sf-h">${t('sf.bbTitle')}</div><p class="muted small" id="sf-bb-info"></p><button class="btn nova-btn" id="sf-bb-btn">${t('sf.bbBtn')}</button><div class="sf-h">${t('sf.galaxy')}</div><div id="sf-gal"></div>`;
     setTimeout(() => {
       const gl = $('sf-gal'); if (!gl) return;
       GALAXY.forEach(x => { const d = document.createElement('button'); d.className = 'sf-item'; d.dataset.id = x.id; d.innerHTML = `<div class="ic" style="background:#2b1f4a">${x.ic}</div><div class="mid"><b>${x.name}</b><span>${x.desc}</span></div><div class="rt"><b class="nova">${x.cost}✧</b></div>`; d.onclick = () => buyGal(x); gl.appendChild(d); });
@@ -462,16 +474,16 @@ function build() {
       const n = document.createElement('button'); n.className = 'sf-node'; n.dataset.id = m.id;
       n.style.left = m.x + '%'; n.style.top = m.y + '%';
       n.innerHTML = `${m.ic}<small>${m.cost}✦</small>`;
-      tipify(n, () => `<b>${m.name}</b> — <span class="nova">${m.cost} Novae</span>${S.meta[m.id] ? ' ✓' : ''}<br>${m.desc}${m.req.length ? '<br><span class="muted">Requiert : ' + m.req.map(r => META.find(q => q.id === r).name).join(', ') + '</span>' : ''}`, () => buyMeta(m));
+      tipify(n, () => `<b>${m.name}</b> — <span class="nova">${t('sf.novaeN', { n: m.cost })}</span>${S.meta[m.id] ? ' ✓' : ''}<br>${m.desc}${m.req.length ? '<br><span class="muted">' + t('sf.requires', { list: m.req.map(r => META.find(q => q.id === r).name).join(', ') }) + '</span>' : ''}`, () => buyMeta(m));
       tree.appendChild(n);
     });
     panel.appendChild(tree);
     panel.appendChild(bb);
   } else if (tab === 'chal') {
-    const info = document.createElement('div'); info.className = 'muted small'; info.textContent = 'Un défi relance la run sous contrainte, sans Novae. Réussis l\'objectif pour gagner une récompense permanente ; la contrainte disparaît aussitôt et la run continue.'; panel.appendChild(info);
+    const info = document.createElement('div'); info.className = 'muted small'; info.textContent = t('sf.chalInfo'); panel.appendChild(info);
     CHALS.forEach(c => {
       const d = document.createElement('div'); d.className = 'sf-ch'; d.dataset.id = c.id;
-      d.innerHTML = `<div class="ic">${c.ic}</div><div class="mid"><b>${c.name}</b><span>${c.desc} Objectif : ${fmt(c.goal)}${c.time ? ' en ' + c.time / 60 + ' min' : ''}.</span><span class="rw">🏅 ${c.reward}</span></div><button class="btn small">Lancer</button>`;
+      d.innerHTML = `<div class="ic">${c.ic}</div><div class="mid"><b>${c.name}</b><span>${c.desc} ${t('sf.goalTxt', { n: fmt(c.goal), time: c.time ? t('sf.inMin', { n: c.time / 60 }) : '' })}</span><span class="rw">🏅 ${c.reward}</span></div><button class="btn small">${t('sf.launch')}</button>`;
       d.querySelector('button').onclick = () => startChal(c);
       panel.appendChild(d);
     });
@@ -482,19 +494,19 @@ function build() {
     panel.appendChild(g);
     const st = document.createElement('div'); st.className = 'muted small'; st.id = 'sf-stats'; st.style.marginTop = '12px'; panel.appendChild(st);
   } else if (tab === 'opt') {
-    panel.innerHTML = `<div class="sf-h">Sauvegarde</div>
-      <p class="muted small">Sauvegarde automatique dans ton navigateur toutes les 10 secondes.</p>
-      <div class="row" style="justify-content:flex-start"><button class="btn ghost small" id="sf-exp">Exporter</button><button class="btn ghost small" id="sf-imp">Importer</button><button class="btn small" id="sf-wipe" style="background:#a0304a">Tout effacer</button></div>
+    panel.innerHTML = `<div class="sf-h">${t('sf.optSave')}</div>
+      <p class="muted small">${t('sf.optSaveTxt')}</p>
+      <div class="row" style="justify-content:flex-start"><button class="btn ghost small" id="sf-exp">${t('sf.export')}</button><button class="btn ghost small" id="sf-imp">${t('sf.import')}</button><button class="btn small" id="sf-wipe" style="background:#a0304a">${t('sf.wipe')}</button></div>
       <textarea id="sf-io" style="width:100%;height:90px;margin-top:8px;background:#0a0c16;color:#ccd;border:1px solid #2a3050;border-radius:8px;padding:6px;font-size:11px"></textarea>
-      <div class="sf-h">Affichage</div>
-      <label class="small"><input type="checkbox" id="sf-sci"> Notation scientifique (1.23e9 au lieu de 1.23 G)</label>
-      <div class="sf-h">Comment jouer</div>
-      <p class="small muted">Clique l'étoile pour récolter de la poussière. Achète des forges qui produisent seules, puis des améliorations qui les multiplient. Chaque palier de 25, 50, 100… forges double leur production. Attrape les comètes dorées qui traversent le ciel. Quand la progression ralentit, déclenche une <b class="nova">Supernova</b> : tu repars de zéro, mais avec des Novae qui boostent tout et débloquent la Constellation.</p>`;
+      <div class="sf-h">${t('sf.optDisplay')}</div>
+      <label class="small"><input type="checkbox" id="sf-sci"> ${t('sf.optSci')}</label>
+      <div class="sf-h">${t('sf.optHow')}</div>
+      <p class="small muted">${t('sf.optHowTxt')}</p>`;
     $('sf-sci').checked = SCI;
     $('sf-sci').onchange = e => { SCI = e.target.checked; try { localStorage.setItem('starforge.sci', SCI ? '1' : '0'); } catch (x) {} refresh(true); };
     $('sf-exp').onclick = () => { save(); $('sf-io').value = btoa(unescape(encodeURIComponent(JSON.stringify(S)))); };
-    $('sf-imp').onclick = () => { try { const d = JSON.parse(decodeURIComponent(escape(atob($('sf-io').value.trim())))); S = Object.assign(fresh(), d); save(); toast('Sauvegarde importée'); refresh(true); } catch (e) { toast('Sauvegarde invalide'); } };
-    $('sf-wipe').onclick = async () => { if (await ptConfirm('Effacer <b>définitivement</b> toute ta progression de Star Forge, Novae et Singularités comprises ?', 'Tout effacer')) { S = fresh(); save(); refresh(true); } };
+    $('sf-imp').onclick = () => { try { const d = JSON.parse(decodeURIComponent(escape(atob($('sf-io').value.trim())))); S = Object.assign(fresh(), d); save(); toast(t('sf.imported')); refresh(true); } catch (e) { toast(t('sf.invalid')); } };
+    $('sf-wipe').onclick = async () => { if (await ptConfirm(t('sf.wipeQ'), t('sf.wipe'))) { S = fresh(); save(); refresh(true); } };
   }
   refresh();
 }
@@ -502,14 +514,14 @@ function fillUpgrades() {
   const grid = $('sf-upg-grid'), grid2 = $('sf-upg-owned'); if (!grid) return;
   grid.innerHTML = ''; grid2.innerHTML = '';
   const av = UPGRADES.filter(u => !S.upg[u.id] && u.req(S)).sort((a, b) => upgCost(a) - upgCost(b));
-  if (!av.length) grid.innerHTML = '<p class="muted small" style="grid-column:1/-1">Rien pour l\'instant — continue à forger.</p>';
+  if (!av.length) grid.innerHTML = `<p class="muted small" style="grid-column:1/-1">${t('sf.nothing')}</p>`;
   av.forEach(u => {
     const b = document.createElement('button'); b.className = 'sf-upg'; b.dataset.id = u.id; b.innerHTML = `<span>${u.ic}</span><small>${fmt(upgCost(u))}</small>`;
-    tipify(b, () => `<b>${u.name}</b><br>${u.desc}<br><span style="color:var(--gold)">${fmt(upgCost(u))}</span>${S.dust < upgCost(u) ? ' <span class="muted">(pas assez)</span>' : ''}`, () => buyUpg(u));
+    tipify(b, () => `<b>${u.name}</b><br>${u.desc}<br><span style="color:var(--gold)">${fmt(upgCost(u))}</span>${S.dust < upgCost(u) ? ` <span class="muted">${t('sf.notEnough')}</span>` : ''}`, () => buyUpg(u));
     grid.appendChild(b);
   });
   const owned = UPGRADES.filter(u => S.upg[u.id]);
-  $('sf-upg-owned-h').textContent = `Achetées (${owned.length}/${UPGRADES.length})`;
+  $('sf-upg-owned-h').textContent = t('sf.boughtHdr', { n: owned.length, t: UPGRADES.length });
   owned.forEach(u => { const d = document.createElement('div'); d.className = 'sf-upg'; d.style.opacity = .6; d.textContent = u.ic; tipify(d, () => `<b>${u.name}</b> ✓<br>${u.desc}`); grid2.appendChild(d); });
   upgSig = sigUpg();
 }
@@ -521,11 +533,11 @@ function refresh(structural) {
   if (tip) { if (!tip.el.isConnected) hideTip(); else tip.innerHTML = tip.fn(); }
   $('sf-dust').textContent = fmt(S.dust);
   $('sf-rate').textContent = fmt(dps());
-  const BN = { frenzy: ['☄️ Frénésie ×7', ''], click: ['👆 Frappe ×777', ''], meteor: ['🌠 Météore ×77', 'met'], eclipse: ['🌑 Éclipse : ×2, clics nuls', 'ecl'] };
+  const BN = { frenzy: [t('sf.bFrenzy'), ''], click: [t('sf.bClick'), ''], meteor: [t('sf.bMeteor'), 'met'], eclipse: [t('sf.bEclipse'), 'ecl'] };
   $('sf-buffs').innerHTML = S.buffs.map(b => `<span class="${BN[b.type][1]}">${BN[b.type][0]} · ${Math.ceil(b.t)} s</span>`).join('');
   $('sf-click').textContent = fmt(clickValue());
   const g = novaGain();
-  $('sf-nova-gain').textContent = fmt(g); $('sf-nova-have').textContent = fmt(S.novaBank) + (S.novaTotal !== S.novaBank ? ` (${fmt(S.novaTotal)} gagnées)` : '');
+  $('sf-nova-gain').textContent = fmt(g); $('sf-nova-have').textContent = fmt(S.novaBank) + (S.novaTotal !== S.novaBank ? t('sf.earned', { n: fmt(S.novaTotal) }) : '');
   $('sf-prestige').disabled = g < 1;
   $('sf-prestige-box').classList.toggle('idle', g < 1);
   $('sf-prestige-box').style.display = S.runTotal >= 1e5 || S.novaTotal > 0 ? '' : 'none';
@@ -550,10 +562,10 @@ function refresh(structural) {
       b.classList.toggle('locked', !known);
       b.querySelector('.n').textContent = S.gens[i];
       b.querySelector('.c').textContent = (n > 1 ? `×${n} · ` : '') + fmt(c);
-      const next = MILESTONES.find(t => t > S.gens[i]);
-      b.querySelector('.d').textContent = known ? `${fmt(gen.prod * genMult(i) * globalMult())} /s chacun${next ? ` · palier ${next}` : ''}` : '???';
+      const next = MILESTONES.find(m => m > S.gens[i]);
+      b.querySelector('.d').textContent = known ? t('sf.each', { v: fmt(gen.prod * genMult(i) * globalMult()) }) + (next ? t('sf.nextTier', { n: next }) : '') : '???';
       const banned = inChal('c_short') && i > 2;
-      if (banned) b.querySelector('.d').textContent = '🧱 indisponible pendant le défi Pénurie';
+      if (banned) b.querySelector('.d').textContent = t('sf.banned');
       b.classList.toggle('can', known && !banned && S.dust >= c);
       b.classList.toggle('no', !known || banned || S.dust < c);
     });
@@ -564,15 +576,15 @@ function refresh(structural) {
       b.classList.toggle('can', S.dust >= upgCost(u)); b.classList.toggle('no', S.dust < upgCost(u));
     });
     const n = affordableUpg().length, ba = $('sf-buyall');
-    if (ba) { ba.textContent = n ? `Tout acheter (${n})` : 'Tout acheter'; ba.disabled = !n || inChal('c_noupg'); }
+    if (ba) { ba.textContent = n ? t('sf.buyAllN', { n }) : t('sf.buyAll'); ba.disabled = !n || inChal('c_noupg'); }
   } else if (tab === 'meta') {
     const g = singGain(), bbi = $('sf-bb-info');
     if (bbi) {
-      bbi.innerHTML = S.novaTotal >= BIGBANG_MIN || S.sing ? `Novae gagnées : <b class="nova">${S.novaTotal}</b> → <b>${g}</b> Singularité${g > 1 ? 's' : ''} ✧ · possédées : <b>${S.singBank || 0}</b> (${S.sing || 0} au total : Novae +${(S.sing || 0) * 50} %, production +${(S.sing || 0) * (gal('g_big') ? 20 : 10)} %)` : `Se débloque à ${BIGBANG_MIN} Novae gagnées (tu en as ${S.novaTotal}). Réinitialise Novae et Constellation contre des Singularités.`;
+      bbi.innerHTML = S.novaTotal >= BIGBANG_MIN || S.sing ? t('sf.bbInfo', { nova: num(S.novaTotal), g, bank: S.singBank || 0, sing: S.sing || 0, np: (S.sing || 0) * 50, pp: (S.sing || 0) * (gal('g_big') ? 20 : 10) }) : t('sf.bbLocked', { min: BIGBANG_MIN, n: num(S.novaTotal) });
       $('sf-bb-btn').disabled = S.novaTotal < BIGBANG_MIN || g < 1 || !!S.chal;
-      document.querySelectorAll('#sf-gal .sf-item').forEach(d => { const x = GALAXY.find(y => y.id === d.dataset.id); d.classList.toggle('done', gal(x.id)); d.querySelector('.rt b').textContent = gal(x.id) ? '✓ acquis' : x.cost + '✧'; d.classList.toggle('can', !gal(x.id) && (S.singBank || 0) >= x.cost); d.classList.toggle('no', !gal(x.id) && (S.singBank || 0) < x.cost); });
+      document.querySelectorAll('#sf-gal .sf-item').forEach(d => { const x = GALAXY.find(y => y.id === d.dataset.id); d.classList.toggle('done', gal(x.id)); d.querySelector('.rt b').textContent = gal(x.id) ? t('sf.owned') : x.cost + '✧'; d.classList.toggle('can', !gal(x.id) && (S.singBank || 0) >= x.cost); d.classList.toggle('no', !gal(x.id) && (S.singBank || 0) < x.cost); });
     }
-    $('sf-meta-info').innerHTML = `Novae disponibles : <b class="nova">${S.novaBank}</b> · Bonus passif : <b>+${Math.round(S.novaTotal * novaPct() * 100)} %</b> de production. Les nœuds de la Constellation survivent à toutes les Supernovae.`;
+    $('sf-meta-info').innerHTML = t('sf.metaInfo', { bank: num(S.novaBank), pct: num(Math.round(S.novaTotal * novaPct() * 100)) });
     panel.querySelectorAll('.sf-node').forEach(n => {
       const m = META.find(q => q.id === n.dataset.id);
       const open = m.req.every(r => S.meta[r]);
@@ -586,14 +598,14 @@ function refresh(structural) {
       const c = CHALS.find(x => x.id === d.dataset.id), b = d.querySelector('button');
       const done = chalDone(c.id), lock = S.prestiges < c.need, cur = inChal(c.id);
       d.classList.toggle('done', done); d.classList.toggle('lock', lock && !done); d.classList.toggle('cur', cur);
-      b.textContent = done ? 'Réussi ✓' : cur ? 'En cours' : lock ? `${c.need} Supernova${c.need > 1 ? 'e' : ''}` : 'Lancer';
+      b.textContent = done ? t('sf.done') : cur ? t('sf.running') : lock ? t('sf.needSN', { n: c.need }) : t('sf.launch');
       b.disabled = done || cur || lock || !!S.chal;
     });
   } else if (tab === 'ach') {
     const got = Object.keys(S.ach).length;
-    $('sf-ach-info').textContent = `${got}/${ACH.length} succès — chacun donne +${has('m_ach') ? 3 : 1} % de production, pour toujours.`;
+    $('sf-ach-info').textContent = t('sf.achInfo', { got, tot: ACH.length, p: has('m_ach') ? 3 : 1 });
     panel.querySelectorAll('.sf-ach div').forEach(d => d.classList.toggle('got', !!S.ach[d.dataset.id]));
-    $('sf-stats').innerHTML = `Produit (run) : ${fmt(S.runTotal)}<br>Produit (total) : ${fmt(S.lifeTotal)}<br>Clics : ${fmt(S.lifeClicks)}<br>Comètes : ${S.lifeComets}<br>Supernovae : ${S.prestiges}`;
+    $('sf-stats').innerHTML = t('sf.stats', { run: fmt(S.runTotal), life: fmt(S.lifeTotal), clicks: fmt(S.lifeClicks), comets: num(S.lifeComets), sn: num(S.prestiges) });
   }
 }
 
@@ -603,7 +615,7 @@ function toast(t) {
   while (z.children.length > 3) z.firstChild.remove();
 }
 function checkAch() {
-  for (const a of ACH) if (!S.ach[a.id] && a.test(S)) { S.ach[a.id] = 1; toast(`🏆 Succès : ${a.name}`); }
+  for (const a of ACH) if (!S.ach[a.id] && a.test(S)) { S.ach[a.id] = 1; toast(t('sf.achToast', { name: a.name })); }
 }
 
 document.querySelectorAll('.sf-tabs button').forEach(b => b.onclick = () => {
@@ -617,6 +629,9 @@ document.querySelectorAll('#sf-buymult button').forEach(b => b.onclick = () => {
 $('sf-prestige').onclick = prestige;
 $('sf-intro-ok').onclick = () => { $('sf-intro').classList.add('hidden'); try { localStorage.setItem('starforge.intro', '1'); } catch (e) {} };
 $('sf-chal-quit').onclick = () => quitChal(false);
+// langue : le HTML se traduit tout seul, le panneau ouvert est reconstruit
+applyI18n();
+window.addEventListener('pt-lang', () => { if (built) build(); });
 
 // ---------- boucle ----------
 function tick(dt) {
@@ -625,7 +640,7 @@ function tick(dt) {
   if (has('m_auto') && !inChal('c_hands')) { autoAcc += dt * 5; while (autoAcc >= 1) { autoAcc--; const v = clickValue(); earn(v); S.clicks++; } }
   S.buffs.forEach(b => b.t -= dt); S.buffs = S.buffs.filter(b => b.t > 0);
   // éclipse : de temps en temps, production ×2 mais clics sans effet pendant 45 s
-  if (visible && !S.chal) { nextEclipse -= dt * luck(); if (nextEclipse <= 0) { nextEclipse = 480 + Math.random() * 480; S.buffs.push({ type: 'eclipse', t: 45, max: 45 }); toast('🌑 Éclipse : production ×2, mais tes clics sont sans effet (45 s)'); sfx(90, 1, 'sine', 0.08); } }
+  if (visible && !S.chal) { nextEclipse -= dt * luck(); if (nextEclipse <= 0) { nextEclipse = 480 + Math.random() * 480; S.buffs.push({ type: 'eclipse', t: 45, max: 45 }); toast(t('sf.eclipseT')); sfx(90, 1, 'sine', 0.08); } }
   galAcc += dt;
   if (galAcc >= 1) {
     galAcc = 0;
@@ -656,7 +671,7 @@ function load() {
     const away = Math.min(8 * 3600, (Date.now() - (d.last || Date.now())) / 1000);
     if (away > 30) {
       const v = dps() * away * (has('m_off') ? 1 : 0.25);
-      if (v > 0) { earn(v); setTimeout(() => toast(`🌙 Pendant ton absence : +${fmt(v)}`), 300); }
+      if (v > 0) { earn(v); setTimeout(() => toast(t('sf.away', { v: fmt(v) })), 300); }
     }
   } catch (e) {}
 }

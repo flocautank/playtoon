@@ -1,5 +1,5 @@
 import { VERSIONS } from './version.js';
-const VKEY = { 'Block Quarry': 'blocks', 'Star Forge': 'forge', 'Neon Bonk': 'bonk' };
+const VKEY = { 'Block Quarry': 'blocks', 'Nova Foundry': 'forge', 'Neon Bonk': 'bonk' };
 // Onglets : un seul jeu actif à la fois, les autres sont mis en pause.
 const G = window.GAMES || {};
 const tabs = ['blocks', 'forge', 'bonk'];
@@ -55,7 +55,7 @@ const GOALS = {
   bonk: [['nb_kills', 300, 'Éliminer 300 ennemis'], ['nb_chests', 2, 'Ouvrir 2 coffres'], ['nb_time', 300, 'Survivre 5 minutes dans une run']],
 };
 const REWARD = { blocks: ['+30 🪙 pièces', '#ff5d8f'], forge: ['+1 Nova ✦', '#ffc94d'], bonk: ['+40 ◈ crédits', '#4dd4ff'] };
-const NAMES = { blocks: 'Block Quarry', forge: 'Star Forge', bonk: 'Neon Bonk' };
+const NAMES = { blocks: 'Block Quarry', forge: 'Nova Foundry', bonk: 'Neon Bonk' };
 const today = () => { const d = new Date(); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); };
 function todayGoals() {
   let seed = today();
@@ -127,7 +127,7 @@ function renderProfile() {
   const card = (c, name, t, rows) => `<div class="pt-g" style="--c:${c}"><h3>${name} <span class="muted small">v${VERSIONS[VKEY[name]] || ''}</span><small>⏱ ${dur(t)}</small></h3>${rows.join('')}</div>`;
   document.getElementById('pt-prof').innerHTML =
     card('#ff5d8f', 'Block Quarry', PLAY.blocks, [row('Record classique', big(+localStorage.getItem('blocparty.best') || 0)), row('Aventure', `${lv}/40 · ${stars} ★`), row('Défi du jour', daily.best ? `${big(daily.best)} · série ${daily.streak || 1}` : '—'), row('Pièces', big(+(localStorage.getItem('blocparty.coins') ?? 40))), row('Thèmes', `${(th.owned || ['classic']).length}/5`)]) +
-    card('#ffc94d', 'Star Forge', PLAY.forge, [row('Poussière produite', big(sf.lifeTotal)), row('Supernovae', sf.prestiges || 0), row('Novae gagnées', sf.novaTotal || 0), row('Big Bangs · Singularités', `${sf.bigbangs || 0} · ${sf.sing || 0}`), row('Succès · défis', `${Object.keys(sf.ach || {}).length} · ${Object.keys(sf.chalDone || {}).length}/6`)]) +
+    card('#ffc94d', 'Nova Foundry', PLAY.forge, [row('Poussière produite', big(sf.lifeTotal)), row('Supernovae', sf.prestiges || 0), row('Novae gagnées', sf.novaTotal || 0), row('Big Bangs · Singularités', `${sf.bigbangs || 0} · ${sf.sing || 0}`), row('Succès · défis', `${Object.keys(sf.ach || {}).length} · ${Object.keys(sf.chalDone || {}).length}/6`)]) +
     card('#4dd4ff', 'Neon Bonk', PLAY.bonk, [row('Runs · victoires', `${nb.runs || 0} · ${nb.wins || 0}`), row('Record de survie', nb.bestTime ? `${Math.floor(nb.bestTime / 60)}:${String(nb.bestTime % 60).padStart(2, '0')}` : '—'), row('Niveau max', nb.maxLevel || 0), row('Éliminations', big(nb.totalKills)), row('Boss vaincus', nb.bossKills || 0)]);
 }
 const KEYS = () => Object.keys(localStorage).filter(k => /^(blocparty|starforge|neonbonk|playtoon)\./.test(k));
