@@ -9,6 +9,7 @@ on:
     branches: [main]
     paths:
       - 'apps/block-quarry/**'
+      - 'apps/shared/**'
       - 'js/blocks.js'
       - 'js/i18n.js'
       - 'js/version.js'

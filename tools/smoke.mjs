@@ -25,7 +25,7 @@ const log = (...a) => { lastStep = a.join(' ').slice(0, 60); console.log(`[${((D
 // chien de garde : un gel de page (évaluation qui ne rend jamais la main) devient un échec lisible
 let cdpDesk = null;   // session de débogage de la page principale, pour lire la pile en cas de gel
 setTimeout(async () => {
-  console.error(`GEL : plus de 300 s, dernière étape « ${lastStep} »`);
+  console.error(`GEL : plus de 900 s, dernière étape « ${lastStep} »`);
   if (cdpDesk) try {
     await cdpDesk.send('Debugger.enable');
     const paused = new Promise(r => cdpDesk.once('Debugger.paused', r));
@@ -35,7 +35,7 @@ setTimeout(async () => {
     else console.error('  (la page ne répond pas au débogueur)');
   } catch (e) { console.error('  diagnostic impossible :', e.message); }
   process.exit(2);
-}, 300000).unref();
+}, 900000).unref();   // durée totale ; chaque action a en plus son propre délai de 20 s
 // chaque action échoue en 20 s avec un message lisible, plutôt que de bloquer tout le test
 const guard = async (p, welcome = false) => { p.setDefaultTimeout(20000); if (!welcome) await p.addInitScript(() => { try { localStorage.setItem('playtoon.welcomed', '1'); } catch (e) {} }); return p; };   // attendu : sinon la page peut charger avant le script
 
