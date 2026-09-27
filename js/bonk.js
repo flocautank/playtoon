@@ -1,8 +1,13 @@
-// NEON BONK — survivor-like 3D à la troisième personne (même boucle que Megabonk :
+// SYNTH HORDE (ex-Neon Bonk) — survivor-like 3D à la troisième personne (même boucle que Megabonk :
 // courir/sauter/glisser, armes automatiques, XP → choix d'upgrades à rareté, coffres payés en or,
 // sanctuaires, timer de 10 min, boss, portail), dans une esthétique synthwave néon.
+// Textes : js/lang/bonk.js (clés nb.*). `tr` et non `t` : trop de variables locales s'appellent t ici.
 import * as THREE from '../vendor/three.module.min.js';
 import { Synthwave } from './synthwave.js';
+import { t as tr, num, applyI18n, addStrings, lang } from './i18n.js';
+import NB_TEXT from './lang/bonk.js';
+addStrings(NB_TEXT);
+const dec = x => x.toLocaleString(lang);   // décimales dans la langue choisie (0.4 → « 0,4 » en français)
 const music = new Synthwave();
 window.GAMES = window.GAMES || {};
 
@@ -17,89 +22,89 @@ const MAX_ENEMIES = 420;
 
 // ============================================================ données
 const RAR = [
-  { id: 'common', name: 'COMMUN', cls: 'r-common', col: '#aab0cc' },
-  { id: 'rare', name: 'RARE', cls: 'r-rare', col: '#58a6ff' },
-  { id: 'epic', name: 'ÉPIQUE', cls: 'r-epic', col: '#c98bff' },
-  { id: 'legend', name: 'LÉGENDAIRE', cls: 'r-legend', col: '#ffc94d' },
+  { id: 'common', cls: 'r-common', col: '#aab0cc' },
+  { id: 'rare', cls: 'r-rare', col: '#58a6ff' },
+  { id: 'epic', cls: 'r-epic', col: '#c98bff' },
+  { id: 'legend', cls: 'r-legend', col: '#ffc94d' },
 ];
 
 const WEAPONS = {
-  blaster: { name: 'Blaster', ic: '🔫', desc: 'Tire des traits laser sur les ennemis les plus proches.', cd: 0.6, dmg: 12, count: 1, area: 1, speed: 34, pierce: 0, ups: ['dmg', 'cd', 'count', 'pierce', 'speed'] },
-  orbit:   { name: 'Satellites', ic: '🪐', desc: 'Des orbes tournent autour de toi et broient tout.', cd: 0, dmg: 9, count: 2, area: 1, speed: 3.2, ups: ['dmg', 'count', 'area', 'speed'] },
-  pulse:   { name: 'Onde de choc', ic: '💠', desc: 'Une onde repousse et blesse tout ce qui t\'entoure.', cd: 2.4, dmg: 16, count: 1, area: 5.5, ups: ['dmg', 'cd', 'area'] },
-  arc:     { name: 'Foudre', ic: '⚡', desc: 'La foudre frappe des ennemis au hasard et se propage.', cd: 1.5, dmg: 24, count: 2, area: 1.8, chain: 1, ups: ['dmg', 'cd', 'count', 'chain', 'area'] },
-  disc:    { name: 'Disque', ic: '🥏', desc: 'Un disque boomerang qui traverse tout, aller et retour.', cd: 1.9, dmg: 18, count: 1, area: 1.3, speed: 20, ups: ['dmg', 'cd', 'count', 'area', 'speed'] },
-  blade:   { name: 'Lame néon', ic: '🗡️', desc: 'Un large coup de lame devant toi.', cd: 1.0, dmg: 28, count: 1, area: 4, ups: ['dmg', 'cd', 'area', 'count'] },
-  beam:    { name: 'Laser', ic: '🔦', desc: 'Un rayon continu qui suit l\'ennemi le plus proche et traverse tout.', cd: 0.18, dmg: 4.5, count: 1, area: 1, ups: ['dmg', 'cd', 'area', 'count'] },
-  mine:    { name: 'Mines', ic: '🧨', desc: 'Sème des mines sous tes pas, qui explosent au contact.', cd: 1.3, dmg: 42, count: 1, area: 3, ups: ['dmg', 'cd', 'count', 'area'] },
-  rocket:  { name: 'Missiles', ic: '🚀', desc: 'Des missiles à tête chercheuse qui explosent en zone.', cd: 2.6, dmg: 34, count: 1, area: 3.6, speed: 18, ups: ['dmg', 'cd', 'count', 'area'] },
+  blaster: { ic: '🔫', cd: 0.6, dmg: 12, count: 1, area: 1, speed: 34, pierce: 0, ups: ['dmg', 'cd', 'count', 'pierce', 'speed'] },
+  orbit:   { ic: '🪐', cd: 0, dmg: 9, count: 2, area: 1, speed: 3.2, ups: ['dmg', 'count', 'area', 'speed'] },
+  pulse:   { ic: '💠', cd: 2.4, dmg: 16, count: 1, area: 5.5, ups: ['dmg', 'cd', 'area'] },
+  arc:     { ic: '⚡', cd: 1.5, dmg: 24, count: 2, area: 1.8, chain: 1, ups: ['dmg', 'cd', 'count', 'chain', 'area'] },
+  disc:    { ic: '🥏', cd: 1.9, dmg: 18, count: 1, area: 1.3, speed: 20, ups: ['dmg', 'cd', 'count', 'area', 'speed'] },
+  blade:   { ic: '🗡️', cd: 1.0, dmg: 28, count: 1, area: 4, ups: ['dmg', 'cd', 'area', 'count'] },
+  beam:    { ic: '🔦', cd: 0.18, dmg: 4.5, count: 1, area: 1, ups: ['dmg', 'cd', 'area', 'count'] },
+  mine:    { ic: '🧨', cd: 1.3, dmg: 42, count: 1, area: 3, ups: ['dmg', 'cd', 'count', 'area'] },
+  rocket:  { ic: '🚀', cd: 2.6, dmg: 34, count: 1, area: 3.6, speed: 18, ups: ['dmg', 'cd', 'count', 'area'] },
 };
 // Évolutions : arme au niveau 8+ et tome associé possédé → le prochain coffre fait évoluer l'arme.
 const EVO_LVL = 8;
 const EVOS = {
-  blaster: { tome: 'multi', name: 'Canon à rafales', ic: '💥', desc: 'dégâts ×2, +2 traits, +3 perforations', fx: w => { w.dmgM *= 2; w.count += 2; w.pierce += 3; } },
-  orbit:   { tome: 'area', name: 'Anneau de Saturne', ic: '💫', desc: 'dégâts ×2, +3 orbes, +40 % de rayon', fx: w => { w.dmgM *= 2; w.count += 3; w.areaM += 0.4; } },
-  pulse:   { tome: 'vital', name: 'Cœur pulsar', ic: '💗', desc: 'dégâts ×2, +40 % de zone, soigne 1 PV par ennemi touché', fx: w => { w.dmgM *= 2; w.areaM += 0.4; } },
-  arc:     { tome: 'crit', name: 'Tempête', ic: '🌩️', desc: 'dégâts ×1,8, +2 éclairs, +3 rebonds', fx: w => { w.dmgM *= 1.8; w.count += 2; w.chain += 3; } },
-  disc:    { tome: 'agile', name: 'Scie stellaire', ic: '⚙️', desc: 'dégâts ×2, +2 disques, +50 % de vitesse', fx: w => { w.dmgM *= 2; w.count += 2; w.speedM += 0.5; } },
-  blade:   { tome: 'power', name: 'Lame d\'Oméga', ic: '⚔️', desc: 'dégâts ×2,5, frappe devant et derrière, +40 % de portée', fx: w => { w.dmgM *= 2.5; w.count += 1; w.areaM += 0.4; } },
-  beam:    { tome: 'wisdom', name: 'Rayon de la mort', ic: '☄️', desc: 'dégâts ×2, +1 rayon, +50 % de portée et d\'épaisseur', fx: w => { w.dmgM *= 2; w.count += 1; w.areaM += 0.5; } },
-  mine:    { tome: 'armor', name: 'Champ de mines', ic: '💣', desc: 'dégâts ×2, +2 mines par salve, +40 % d\'explosion', fx: w => { w.dmgM *= 2; w.count += 2; w.areaM += 0.4; } },
-  rocket:  { tome: 'haste', name: 'Barrage', ic: '🎆', desc: 'dégâts ×1,6, +3 missiles, +30 % d\'explosion', fx: w => { w.dmgM *= 1.6; w.count += 3; w.areaM += 0.3; } },
+  blaster: { tome: 'multi', ic: '💥', fx: w => { w.dmgM *= 2; w.count += 2; w.pierce += 3; } },
+  orbit:   { tome: 'area', ic: '💫', fx: w => { w.dmgM *= 2; w.count += 3; w.areaM += 0.4; } },
+  pulse:   { tome: 'vital', ic: '💗', fx: w => { w.dmgM *= 2; w.areaM += 0.4; } },
+  arc:     { tome: 'crit', ic: '🌩️', fx: w => { w.dmgM *= 1.8; w.count += 2; w.chain += 3; } },
+  disc:    { tome: 'agile', ic: '⚙️', fx: w => { w.dmgM *= 2; w.count += 2; w.speedM += 0.5; } },
+  blade:   { tome: 'power', ic: '⚔️', fx: w => { w.dmgM *= 2.5; w.count += 1; w.areaM += 0.4; } },
+  beam:    { tome: 'wisdom', ic: '☄️', fx: w => { w.dmgM *= 2; w.count += 1; w.areaM += 0.5; } },
+  mine:    { tome: 'armor', ic: '💣', fx: w => { w.dmgM *= 2; w.count += 2; w.areaM += 0.4; } },
+  rocket:  { tome: 'haste', ic: '🎆', fx: w => { w.dmgM *= 1.6; w.count += 3; w.areaM += 0.3; } },
 };
 const wName = w => w.evo ? EVOS[w.id].name : WEAPONS[w.id].name;
 const wIc = w => w.evo ? EVOS[w.id].ic : WEAPONS[w.id].ic;
 const evoReady = () => S.weapons.find(w => !w.evo && w.lvl >= EVO_LVL && S.tomes.some(t => t.id === EVOS[w.id].tome));
 
 const UPV = {
-  dmg:    { v: [0.18, 0.28, 0.42, 0.65], txt: v => `+${Math.round(v * 100)} % dégâts` },
-  cd:     { v: [0.06, 0.09, 0.13, 0.18], txt: v => `−${Math.round(v * 100)} % recharge` },
-  count:  { v: [1, 1, 1, 2], txt: v => `+${v} projectile${v > 1 ? 's' : ''}` },
-  area:   { v: [0.12, 0.18, 0.26, 0.38], txt: v => `+${Math.round(v * 100)} % taille` },
-  speed:  { v: [0.12, 0.18, 0.26, 0.38], txt: v => `+${Math.round(v * 100)} % vitesse` },
-  pierce: { v: [1, 1, 2, 3], txt: v => `+${v} perforation` },
-  chain:  { v: [1, 1, 2, 2], txt: v => `+${v} rebond` },
+  dmg:    { v: [0.18, 0.28, 0.42, 0.65], txt: v => tr('nb.up.dmg', { n: Math.round(v * 100) }) },
+  cd:     { v: [0.06, 0.09, 0.13, 0.18], txt: v => tr('nb.up.cd', { n: Math.round(v * 100) }) },
+  count:  { v: [1, 1, 1, 2], txt: v => tr('nb.up.count', { n: v }) },
+  area:   { v: [0.12, 0.18, 0.26, 0.38], txt: v => tr('nb.up.area', { n: Math.round(v * 100) }) },
+  speed:  { v: [0.12, 0.18, 0.26, 0.38], txt: v => tr('nb.up.speed', { n: Math.round(v * 100) }) },
+  pierce: { v: [1, 1, 2, 3], txt: v => tr('nb.up.pierce', { n: v }) },
+  chain:  { v: [1, 1, 2, 2], txt: v => tr('nb.up.chain', { n: v }) },
 };
 
 const TOMES = {
-  power:  { name: 'Tome de Puissance', ic: '📕', stat: 'dmg', v: [0.1, 0.15, 0.22, 0.32], txt: v => `+${Math.round(v * 100)} % dégâts` },
-  haste:  { name: 'Tome de Célérité', ic: '📗', stat: 'cd', v: [0.05, 0.08, 0.11, 0.15], txt: v => `−${Math.round(v * 100)} % recharge` },
-  agile:  { name: 'Tome d\'Agilité', ic: '👟', stat: 'speed', v: [0.07, 0.1, 0.14, 0.2], txt: v => `+${Math.round(v * 100)} % vitesse` },
-  vital:  { name: 'Tome de Vitalité', ic: '❤️', stat: 'hp', v: [15, 25, 35, 50], txt: v => `+${v} PV max` },
-  regen:  { name: 'Tome de Régénération', ic: '💚', stat: 'regen', v: [0.4, 0.7, 1, 1.6], txt: v => `+${v} PV/s` },
-  magnet: { name: 'Tome d\'Attraction', ic: '🧲', stat: 'magnet', v: [0.25, 0.35, 0.5, 0.7], txt: v => `+${Math.round(v * 100)} % portée de ramassage` },
-  area:   { name: 'Tome d\'Expansion', ic: '🌀', stat: 'area', v: [0.08, 0.12, 0.18, 0.26], txt: v => `+${Math.round(v * 100)} % zone` },
-  multi:  { name: 'Tome de Multiplicité', ic: '✳️', stat: 'proj', v: [1, 1, 1, 2], txt: v => `+${v} projectile à toutes les armes` },
-  luck:   { name: 'Tome de Chance', ic: '🍀', stat: 'luck', v: [6, 9, 13, 20], txt: v => `+${v} chance` },
-  wisdom: { name: 'Tome de Savoir', ic: '📘', stat: 'xp', v: [0.1, 0.15, 0.22, 0.32], txt: v => `+${Math.round(v * 100)} % XP` },
-  crit:   { name: 'Tome de Précision', ic: '🎯', stat: 'crit', v: [0.04, 0.06, 0.09, 0.13], txt: v => `+${Math.round(v * 100)} % critique` },
-  armor:  { name: 'Tome d\'Armure', ic: '🛡️', stat: 'armor', v: [0.04, 0.06, 0.09, 0.12], txt: v => `+${Math.round(v * 100)} % armure` },
+  power:  { ic: '📕', stat: 'dmg', v: [0.1, 0.15, 0.22, 0.32], txt: v => tr('nb.tt.power', { n: Math.round(v * 100) }) },
+  haste:  { ic: '📗', stat: 'cd', v: [0.05, 0.08, 0.11, 0.15], txt: v => tr('nb.tt.haste', { n: Math.round(v * 100) }) },
+  agile:  { ic: '👟', stat: 'speed', v: [0.07, 0.1, 0.14, 0.2], txt: v => tr('nb.tt.agile', { n: Math.round(v * 100) }) },
+  vital:  { ic: '❤️', stat: 'hp', v: [15, 25, 35, 50], txt: v => tr('nb.tt.vital', { n: v }) },
+  regen:  { ic: '💚', stat: 'regen', v: [0.4, 0.7, 1, 1.6], txt: v => tr('nb.tt.regen', { n: dec(v) }) },
+  magnet: { ic: '🧲', stat: 'magnet', v: [0.25, 0.35, 0.5, 0.7], txt: v => tr('nb.tt.magnet', { n: Math.round(v * 100) }) },
+  area:   { ic: '🌀', stat: 'area', v: [0.08, 0.12, 0.18, 0.26], txt: v => tr('nb.tt.area', { n: Math.round(v * 100) }) },
+  multi:  { ic: '✳️', stat: 'proj', v: [1, 1, 1, 2], txt: v => tr('nb.tt.multi', { n: v }) },
+  luck:   { ic: '🍀', stat: 'luck', v: [6, 9, 13, 20], txt: v => tr('nb.tt.luck', { n: v }) },
+  wisdom: { ic: '📘', stat: 'xp', v: [0.1, 0.15, 0.22, 0.32], txt: v => tr('nb.tt.wisdom', { n: Math.round(v * 100) }) },
+  crit:   { ic: '🎯', stat: 'crit', v: [0.04, 0.06, 0.09, 0.13], txt: v => tr('nb.tt.crit', { n: Math.round(v * 100) }) },
+  armor:  { ic: '🛡️', stat: 'armor', v: [0.04, 0.06, 0.09, 0.12], txt: v => tr('nb.tt.armor', { n: Math.round(v * 100) }) },
 };
 
 const ITEMS = [
-  { id: 'boots', r: 1, ic: '🥾', name: 'Bottes à ressort', desc: '+1 saut en l\'air', fx: s => s.jumps++ },
-  { id: 'clover', r: 0, ic: '☘️', name: 'Trèfle', desc: '+10 chance', fx: s => s.luck += 10 },
-  { id: 'battery', r: 0, ic: '🔋', name: 'Batterie', desc: '−7 % recharge', fx: s => s.cd *= 0.93 },
-  { id: 'lens', r: 0, ic: '🔍', name: 'Lentille', desc: '+35 % dégâts critiques', fx: s => s.critMul += 0.35 },
-  { id: 'heart', r: 0, ic: '💗', name: 'Cœur de néon', desc: '+20 PV max, soin complet', fx: (s, p) => { s.hp += 20; p.hp = s.hp; } },
-  { id: 'coin', r: 0, ic: '🪙', name: 'Pièce porte-bonheur', desc: '+30 % or ramassé', fx: s => s.gold += 0.3 },
-  { id: 'fang', r: 1, ic: '🦷', name: 'Croc de vampire', desc: '8 % de chance de soigner 2 PV par élimination', fx: s => s.vamp += 0.08 },
-  { id: 'shield', r: 1, ic: '🔰', name: 'Bouclier prismatique', desc: 'Bloque un coup toutes les 12 s (cumul : plus souvent)', fx: s => s.shield = s.shield ? s.shield * 0.75 : 12 },
-  { id: 'thorns', r: 1, ic: '🌵', name: 'Épines', desc: 'Renvoie 40 dégâts à qui te touche', fx: s => s.thorns += 40 },
-  { id: 'cloak', r: 2, ic: '🧥', name: 'Cape de phase', desc: '+8 % d\'esquive', fx: s => s.dodge = Math.min(0.6, s.dodge + 0.08) },
-  { id: 'bomb', r: 2, ic: '💣', name: 'Détonateur', desc: '12 % des ennemis explosent en mourant', fx: s => s.boom += 0.12 },
-  { id: 'reactor', r: 3, ic: '☢️', name: 'Réacteur', desc: '+1 projectile, +10 % dégâts', fx: s => { s.proj++; s.dmg += 0.1; } },
-  { id: 'crown', r: 3, ic: '👑', name: 'Couronne néon', desc: '+20 % dégâts, +20 % XP, +10 chance', fx: s => { s.dmg += 0.2; s.xp += 0.2; s.luck += 10; } },
-  { id: 'wings', r: 2, ic: '🪽', name: 'Ailes', desc: '+15 % vitesse, +20 % hauteur de saut', fx: s => { s.speed += 0.15; s.jumpV *= 1.2; } },
+  { id: 'boots', r: 1, ic: '🥾', fx: s => s.jumps++ },
+  { id: 'clover', r: 0, ic: '☘️', fx: s => s.luck += 10 },
+  { id: 'battery', r: 0, ic: '🔋', fx: s => s.cd *= 0.93 },
+  { id: 'lens', r: 0, ic: '🔍', fx: s => s.critMul += 0.35 },
+  { id: 'heart', r: 0, ic: '💗', fx: (s, p) => { s.hp += 20; p.hp = s.hp; } },
+  { id: 'coin', r: 0, ic: '🪙', fx: s => s.gold += 0.3 },
+  { id: 'fang', r: 1, ic: '🦷', fx: s => s.vamp += 0.08 },
+  { id: 'shield', r: 1, ic: '🔰', fx: s => s.shield = s.shield ? s.shield * 0.75 : 12 },
+  { id: 'thorns', r: 1, ic: '🌵', fx: s => s.thorns += 40 },
+  { id: 'cloak', r: 2, ic: '🧥', fx: s => s.dodge = Math.min(0.6, s.dodge + 0.08) },
+  { id: 'bomb', r: 2, ic: '💣', fx: s => s.boom += 0.12 },
+  { id: 'reactor', r: 3, ic: '☢️', fx: s => { s.proj++; s.dmg += 0.1; } },
+  { id: 'crown', r: 3, ic: '👑', fx: s => { s.dmg += 0.2; s.xp += 0.2; s.luck += 10; } },
+  { id: 'wings', r: 2, ic: '🪽', fx: s => { s.speed += 0.15; s.jumpV *= 1.2; } },
 ];
 
 const CHARS = [
-  { id: 'glitch', name: 'Glitch', col: '#27e0ff', weapon: 'blaster', desc: 'Équilibré. Démarre avec le Blaster.', bonus: () => {} },
-  { id: 'ronin', name: 'Ronin', col: '#ff3df0', weapon: 'blade', desc: 'Lame néon, +10 % vitesse.', bonus: s => s.speed += 0.1, unlock: { txt: 'Tuer 1 000 ennemis au total', test: m => m.totalKills >= 1000 } },
-  { id: 'volt', name: 'Volt', col: '#ffe04d', weapon: 'arc', desc: 'Foudre, +15 chance.', bonus: s => s.luck += 15, unlock: { txt: 'Atteindre le niveau 15', test: m => m.maxLevel >= 15 } },
-  { id: 'bastion', name: 'Bastion', col: '#7cff8a', weapon: 'pulse', desc: 'Onde de choc, +40 PV, +5 % armure.', bonus: s => { s.hp += 40; s.armor += 0.05; }, unlock: { txt: 'Survivre 5 minutes', test: m => m.bestTime >= 300 } },
-  { id: 'nova', name: 'Nova', col: '#ff8a4d', weapon: 'rocket', desc: 'Missiles, +15 % zone.', bonus: s => s.area += 0.15, unlock: { txt: 'Vaincre la Sentinelle', test: m => m.bossKills >= 1 } },
-  { id: 'orbit', name: 'Orbite', col: '#b98bff', weapon: 'beam', desc: 'Laser, +1 saut, +20 % aimant.', bonus: s => { s.jumps += 1; s.magnet += 0.2; }, unlock: { txt: "Vaincre l'Hydre de magma", test: m => (m.hydraKills || 0) >= 1 } },
+  { id: 'glitch', col: '#27e0ff', weapon: 'blaster', bonus: () => {} },
+  { id: 'ronin', col: '#ff3df0', weapon: 'blade', bonus: s => s.speed += 0.1, unlock: { test: m => m.totalKills >= 1000 } },
+  { id: 'volt', col: '#ffe04d', weapon: 'arc', bonus: s => s.luck += 15, unlock: { test: m => m.maxLevel >= 15 } },
+  { id: 'bastion', col: '#7cff8a', weapon: 'pulse', bonus: s => { s.hp += 40; s.armor += 0.05; }, unlock: { test: m => m.bestTime >= 300 } },
+  { id: 'nova', col: '#ff8a4d', weapon: 'rocket', bonus: s => s.area += 0.15, unlock: { test: m => m.bossKills >= 1 } },
+  { id: 'orbit', col: '#b98bff', weapon: 'beam', bonus: s => { s.jumps += 1; s.magnet += 0.2; }, unlock: { test: m => (m.hydraKills || 0) >= 1 } },
 ];
 
 const ETYPES = {
@@ -119,19 +124,19 @@ const SHRINES = {
 
 // Étapes : la run enchaîne la Grille, la Fournaise puis le Vide ; la victoire vient après le 3e boss.
 const STAGES = [
-  { name: 'LA GRILLE', fog: 0x1a0630, lineA: [1, 0.18, 0.85], lineB: [0.15, 0.85, 1], wall: [1, 0.2, 0.85],
+  { fog: 0x1a0630, lineA: [1, 0.18, 0.85], lineB: [0.15, 0.85, 1], wall: [1, 0.2, 0.85],
     sky: { top: [0.03, 0.01, 0.12], mid: [0.35, 0.05, 0.45], hor: [1, 0.25, 0.55], low: [0.1, 0.02, 0.19], sunA: [1, 0.15, 0.55], sunB: [1, 0.9, 0.3] },
     boxes: [0x8a2ad0, 0x5a3ae0, 0x3a6ae0], block: 0x7a2ab0, pillar: 0x27e0ff, edge: 0x9ff7ff, amp: 1, time: 600, m0: 0, mRate: 1,
-    boss: { name: 'SENTINELLE', core: 0xff2d55, ring: 0xffc94d, ring2: 0xff3df0, hp: 1, speed: 1 } },
-  { name: 'LA FOURNAISE', fog: 0x2a0a04, lineA: [1, 0.3, 0.05], lineB: [1, 0.85, 0.25], wall: [1, 0.45, 0.1],
+    boss: { core: 0xff2d55, ring: 0xffc94d, ring2: 0xff3df0, hp: 1, speed: 1 } },
+  { fog: 0x2a0a04, lineA: [1, 0.3, 0.05], lineB: [1, 0.85, 0.25], wall: [1, 0.45, 0.1],
     sky: { top: [0.07, 0.01, 0.02], mid: [0.45, 0.07, 0.04], hor: [1, 0.45, 0.12], low: [0.18, 0.03, 0.02], sunA: [1, 0.2, 0.05], sunB: [1, 0.95, 0.55] },
     boxes: [0xc0381a, 0xd06a1a, 0xa02a4a], block: 0xb03a2a, pillar: 0xffb020, edge: 0xffe0a0, amp: 1.45, time: 480, m0: 8, mRate: 1.2,
-    boss: { name: 'HYDRE DE MAGMA', core: 0xffa020, ring: 0xff3050, ring2: 0xfff0a0, hp: 2.6, speed: 1.35 } },
+    boss: { core: 0xffa020, ring: 0xff3050, ring2: 0xfff0a0, hp: 2.6, speed: 1.35 } },
   // le Vide : gravité réduite, relief doux, plateformes flottantes (float) où grimper de saut en saut
-  { name: 'LE VIDE', fog: 0x05061a, lineA: [0.55, 0.4, 1], lineB: [0.85, 0.95, 1], wall: [0.6, 0.5, 1],
+  { fog: 0x05061a, lineA: [0.55, 0.4, 1], lineB: [0.85, 0.95, 1], wall: [0.6, 0.5, 1],
     sky: { top: [0, 0, 0.03], mid: [0.06, 0.04, 0.2], hor: [0.45, 0.35, 0.95], low: [0.02, 0.01, 0.08], sunA: [0.6, 0.4, 1], sunB: [0.9, 0.95, 1] },
     boxes: [0x4a3ad0, 0x2a5ad0, 0x6a3ab0], block: 0x3a2a90, pillar: 0xb98bff, edge: 0xe0e8ff, amp: 0.7, time: 420, m0: 16, mRate: 1.3, grav: 0.5, float: true,
-    boss: { name: 'ARCHONTE DU VIDE', core: 0xb98bff, ring: 0xc8b8ff, ring2: 0x27e0ff, hp: 4, speed: 1.2, glow: 0.45 } },
+    boss: { core: 0xb98bff, ring: 0xc8b8ff, ring2: 0x27e0ff, hp: 4, speed: 1.2, glow: 0.45 } },
 ];
 const ST = () => STAGES[S.stage || 0];
 // minute de difficulté : l'étape 2 démarre comme la 8e minute et s'intensifie plus vite
@@ -143,21 +148,35 @@ let META = { totalKills: 0, bossKills: 0, maxLevel: 0, bestTime: 0, bestKills: 0
 try { Object.assign(META, JSON.parse(localStorage.getItem(META_KEY) || '{}')); } catch (e) {}
 // Boutique permanente : crédits gagnés à chaque run, améliorations conservées d'une run à l'autre.
 const SHOP = [
-  { id: 'hp', ic: '❤️', name: 'Blindage', max: 5, base: 30, desc: l => `+${10 * l} PV max`, fx: (s, l) => s.hp += 10 * l },
-  { id: 'dmg', ic: '💥', name: 'Surcharge', max: 5, base: 40, desc: l => `+${5 * l} % dégâts`, fx: (s, l) => s.dmg += 0.05 * l },
-  { id: 'speed', ic: '👟', name: 'Servomoteurs', max: 5, base: 30, desc: l => `+${3 * l} % vitesse`, fx: (s, l) => s.speed += 0.03 * l },
-  { id: 'magnet', ic: '🧲', name: 'Champ magnétique', max: 5, base: 25, desc: l => `+${10 * l} % ramassage`, fx: (s, l) => s.magnet += 0.1 * l },
-  { id: 'xp', ic: '📘', name: 'Mémoire', max: 5, base: 40, desc: l => `+${5 * l} % XP`, fx: (s, l) => s.xp += 0.05 * l },
-  { id: 'luck', ic: '🍀', name: 'Fortune', max: 5, base: 40, desc: l => `+${4 * l} chance`, fx: (s, l) => s.luck += 4 * l },
-  { id: 'gold', ic: '🪙', name: 'Dividendes', max: 5, base: 35, desc: l => `+${20 * l} % or`, fx: (s, l) => s.gold += 0.2 * l },
-  { id: 'reroll', ic: '🎲', name: 'Relances', max: 3, base: 60, desc: l => `+${l} relance${l > 1 ? 's' : ''} par run`, fx: () => {} },
-  { id: 'revive', ic: '✚', name: 'Seconde vie', max: 1, base: 200, desc: () => 'Ressuscite une fois par run', fx: () => {} },
+  { id: 'hp', ic: '❤️', max: 5, base: 30, desc: l => tr('nb.shd.hp', { n: 10 * l }), fx: (s, l) => s.hp += 10 * l },
+  { id: 'dmg', ic: '💥', max: 5, base: 40, desc: l => tr('nb.shd.dmg', { n: 5 * l }), fx: (s, l) => s.dmg += 0.05 * l },
+  { id: 'speed', ic: '👟', max: 5, base: 30, desc: l => tr('nb.shd.speed', { n: 3 * l }), fx: (s, l) => s.speed += 0.03 * l },
+  { id: 'magnet', ic: '🧲', max: 5, base: 25, desc: l => tr('nb.shd.magnet', { n: 10 * l }), fx: (s, l) => s.magnet += 0.1 * l },
+  { id: 'xp', ic: '📘', max: 5, base: 40, desc: l => tr('nb.shd.xp', { n: 5 * l }), fx: (s, l) => s.xp += 0.05 * l },
+  { id: 'luck', ic: '🍀', max: 5, base: 40, desc: l => tr('nb.shd.luck', { n: 4 * l }), fx: (s, l) => s.luck += 4 * l },
+  { id: 'gold', ic: '🪙', max: 5, base: 35, desc: l => tr('nb.shd.gold', { n: 20 * l }), fx: (s, l) => s.gold += 0.2 * l },
+  { id: 'reroll', ic: '🎲', max: 3, base: 60, desc: l => tr('nb.shd.reroll', { n: l }), fx: () => {} },
+  { id: 'revive', ic: '✚', max: 1, base: 200, desc: () => tr('nb.shd.revive'), fx: () => {} },
 ];
 const shopLvl = id => (META.shop && META.shop[id]) || 0;
 const shopCost = it => Math.round(it.base * Math.pow(1.8, shopLvl(it.id)));
 function runCredits(S) { return Math.floor(S.kills / 15 + S.t / 10 + S.level * 2 + (S.stage || 0) * 120 + (S.bossDead ? 100 : 0) + (S.won ? 80 : 0)); }
 const saveMeta = () => { if (window.PT_NOSAVE) return; try { localStorage.setItem(META_KEY, JSON.stringify(META)); } catch (e) {} };
 const unlocked = c => !c.unlock || c.unlock.test(META);
+
+// ============================================================ textes (traduits à la lecture : la langue peut changer en cours de run)
+const tget = (o, prop, key) => Object.defineProperty(o, prop, { get: () => tr(key), configurable: true });
+RAR.forEach(r => tget(r, 'name', 'nb.rar.' + r.id));
+for (const id in WEAPONS) { tget(WEAPONS[id], 'name', 'nb.w.' + id); tget(WEAPONS[id], 'desc', 'nb.wd.' + id); }
+for (const id in EVOS) { tget(EVOS[id], 'name', 'nb.evo.' + id); tget(EVOS[id], 'desc', 'nb.evod.' + id); }
+for (const id in TOMES) { tget(TOMES[id], 'name', 'nb.tome.' + id); tget(TOMES[id], 'bless', 'nb.bless.' + id); }
+ITEMS.forEach(it => { tget(it, 'name', 'nb.it.' + it.id); tget(it, 'desc', 'nb.itd.' + it.id); });
+CHARS.forEach(c => {
+  tget(c, 'name', 'nb.ch.' + c.id); tget(c, 'desc', 'nb.chd.' + c.id);
+  if (c.unlock) Object.defineProperty(c.unlock, 'txt', { get: () => tr('nb.chu.' + c.id, { n: num(1000) }) });
+});
+STAGES.forEach((st, i) => { tget(st, 'name', 'nb.st.' + i); tget(st.boss, 'name', 'nb.boss.' + i); });
+SHOP.forEach(it => tget(it, 'name', 'nb.sh.' + it.id));
 
 // ============================================================ rendu : shaders
 const fogU = { fogColor: { value: new THREE.Color(0x1a0630) }, fogNear: { value: 40 }, fogFar: { value: 115 } };
@@ -493,7 +512,7 @@ function shrineReward(s) {
   const c = { x: s.x, y: s.y, z: s.z, open: false, free: true };
   addChestMesh(c); S.chests.push(c);
   burst(s.x, s.y + 2, s.z, 60, [1, 0.3, 0.4], 8, 0.7);
-  msg('☠ Défi réussi : coffre gratuit au sanctuaire !', 3, '#7ff6ff'); sfx('chest');
+  msg(tr('nb.chalWin'), 3, '#7ff6ff'); sfx('chest');
 }
 function mkChestData(x, z, y) { return { x, y, z, open: false }; }
 function insideObs(o, x, z, r) {
@@ -552,7 +571,7 @@ function newRun() {
   $('nb-pausebtn').classList.remove('hidden');
   camY = S.p.y + 5;
   if (window.PT_MUSIC !== false) music.start(0);
-  msg('Survis. Ramasse l\'XP. Ouvre les coffres.', 3.5);
+  msg(tr('nb.go'), 3.5);
   lockPointer();
   renderWeaponsHud();
 }
@@ -763,12 +782,12 @@ function spawning(dt) {
     S.nextSwarm += 75;
     const n = Math.min(60, 18 + m * 5), type = m > 3 ? 'spike' : 'drone';
     for (let i = 0; i < n; i++) { const a = i / n * TAU; const x = S.p.x + Math.cos(a) * 24, z = S.p.z + Math.sin(a) * 24; if (Math.abs(x) < HALF - 2 && Math.abs(z) < HALF - 2) spawnEnemy(type, x, z); }
-    msg('⚠ ENCERCLEMENT', 2);
+    msg(tr('nb.swarm'), 2);
   }
   if (S.eliteAt.length && S.time <= S.eliteAt[0]) {
     S.eliteAt.shift();
     spawnAround(Math.random() < 0.5 ? 'brute' : 'gunner', 22, 28, true);
-    msg('★ UNE ÉLITE APPROCHE', 2.5);
+    msg(tr('nb.elite'), 2.5);
   }
 }
 
@@ -817,7 +836,7 @@ function updateEnemies(dt) {
     // contact joueur
     const dy = (p.y + 0.9) - (e.y + (e.T.fly ? 0 : e.size * 0.4));
     if (d < e.r + 0.6 && Math.abs(dy) < e.size * 0.6 + 1) {
-      if (hurt(e.dmg, e.elite ? 'élite' : e.type) && S.stats.thorns) damage(e, S.stats.thorns, false);
+      if (hurt(e.dmg, e.elite ? 'elite' : e.type) && S.stats.thorns) damage(e, S.stats.thorns, false);
     }
   }
 }
@@ -874,8 +893,8 @@ function explode(x, y, z, r, dmg, col) {
 function hurt(d, src = '?') {
   if (S.iframe > 0 || S.state !== 'play') return false;
   const s = S.stats;
-  if (s.shield && S.shieldT <= 0) { S.shieldT = s.shield; S.iframe = 0.5; addNum(S.p.x, S.p.y + 2.2, S.p.z, 'BLOQUÉ', true); return true; }
-  if (s.dodge && Math.random() < s.dodge) { S.iframe = 0.3; addNum(S.p.x, S.p.y + 2.2, S.p.z, 'ESQUIVE', false); return false; }
+  if (s.shield && S.shieldT <= 0) { S.shieldT = s.shield; S.iframe = 0.5; addNum(S.p.x, S.p.y + 2.2, S.p.z, tr('nb.blocked'), true); return true; }
+  if (s.dodge && Math.random() < s.dodge) { S.iframe = 0.3; addNum(S.p.x, S.p.y + 2.2, S.p.z, tr('nb.dodge'), false); return false; }
   d *= 1 - Math.min(0.75, s.armor);
   S.p.hp -= d; S.iframe = 0.7; S.hurtFlash = 1; sfx('hurt');
   (S.hurtBy = S.hurtBy || {})[src] = (S.hurtBy[src] || 0) + d;   // statistiques d'équilibrage
@@ -886,7 +905,7 @@ function hurt(d, src = '?') {
       S.revives--; S.p.hp = S.stats.hp * 0.5; S.iframe = 2.5;
       explode(S.p.x, S.p.y, S.p.z, 9, 50 * S.stats.dmg, [0.5, 1, 0.9]);
       near(S.p.x, S.p.z, 14, e => { const dx = e.x - S.p.x, dz = e.z - S.p.z, d = Math.hypot(dx, dz) || 1; e.kx += dx / d * 30; e.kz += dz / d * 30; });
-      msg('✚ SECONDE VIE', 2, '#7cff8a');
+      msg(tr('nb.revive'), 2, '#7cff8a');
     } else { S.p.hp = 0; endRun(false); }
   }
   return true;
@@ -1134,7 +1153,7 @@ function updateProjectiles(dt) {
     b.x += b.vx * dt; b.z += b.vz * dt; b.y += b.vy * dt;
     const g = terrainH(b.x, b.z); if (b.y < g + 0.4) b.y = g + 0.4;
     let dead = b.life <= 0;
-    if (Math.hypot(b.x - p.x, b.z - p.z) < 0.9 && Math.abs(b.y - (p.y + 0.9)) < 1.1) { hurt(b.dmg, 'balle'); dead = true; }
+    if (Math.hypot(b.x - p.x, b.z - p.z) < 0.9 && Math.abs(b.y - (p.y + 0.9)) < 1.1) { hurt(b.dmg, 'bullet'); dead = true; }
     if (dead) { S.bullets[i] = S.bullets[S.bullets.length - 1]; S.bullets.pop(); }
   }
 }
@@ -1157,8 +1176,8 @@ function updatePickups(dt) {
     if (d < 0.9) {
       if (k.type === 'gem') { S.xp += k.v * S.stats.xp; sfx('xp'); }
       else if (k.type === 'coin') { S.gold += k.v; }
-      else if (k.type === 'heart') { S.p.hp = Math.min(S.stats.hp, S.p.hp + k.v); addNum(p.x, p.y + 2, p.z, '+' + k.v + ' PV', false, '#7cff8a'); }
-      else if (k.type === 'magnetp') { S.magnetAll = 1.5; msg('🧲 Aimant !', 1.2); }
+      else if (k.type === 'heart') { S.p.hp = Math.min(S.stats.hp, S.p.hp + k.v); addNum(p.x, p.y + 2, p.z, tr('nb.hpGain', { n: k.v }), false, '#7cff8a'); }
+      else if (k.type === 'magnetp') { S.magnetAll = 1.5; msg(tr('nb.magnet'), 1.2); }
       S.pickups[i] = S.pickups[S.pickups.length - 1]; S.pickups.pop();
     }
   }
@@ -1213,17 +1232,17 @@ function buildChoices(mode) {
 function choiceHTML(c) {
   const R = RAR[c.rar];
   let ic, title, lines;
-  if (c.kind === 'wnew') { const b = WEAPONS[c.id]; ic = b.ic; title = b.name; lines = ['Nouvelle arme', b.desc, `<span class="muted small">⭐ évolue avec ${TOMES[EVOS[c.id].tome].name}</span>`]; }
-  else if (c.kind === 'wup') { const w = S.weapons.find(x => x.id === c.id); ic = wIc(w); title = `${wName(w)} → Nv ${w.lvl + 1}`; lines = c.ups.map(u => UPV[u.k].txt(u.v)); }
+  if (c.kind === 'wnew') { const b = WEAPONS[c.id]; ic = b.ic; title = b.name; lines = [tr('nb.newWeapon'), b.desc, `<span class="muted small">${tr('nb.evolvesWith', { tome: TOMES[EVOS[c.id].tome].name })}</span>`]; }
+  else if (c.kind === 'wup') { const w = S.weapons.find(x => x.id === c.id); ic = wIc(w); title = tr('nb.wLvl', { w: wName(w), n: w.lvl + 1 }); lines = c.ups.map(u => UPV[u.k].txt(u.v)); }
   else if (c.kind === 'tnew' || c.kind === 'tup' || c.kind === 'stat') {
     const t = TOMES[c.key || c.id]; ic = t.ic; const tt = S.tomes.find(x => x.id === c.id);
-    title = c.kind === 'stat' ? t.name.replace('Tome', 'Bénédiction') : c.kind === 'tnew' ? t.name : `${t.name} → Nv ${tt.lvl + 1}`;
+    title = c.kind === 'stat' ? t.bless : c.kind === 'tnew' ? t.name : tr('nb.wLvl', { w: t.name, n: tt.lvl + 1 });
     lines = [t.txt(t.v[c.rar])];
-    if (c.kind === 'tnew') lines.unshift('Nouveau tome');
+    if (c.kind === 'tnew') lines.unshift(tr('nb.newTome'));
     const evoW = Object.keys(EVOS).find(k => EVOS[k].tome === (c.key || c.id));
-    if (c.kind === 'tnew' && evoW) lines.push(`<span class="muted small">⭐ fait évoluer ${WEAPONS[evoW].name}</span>`);
-  } else if (c.kind === 'gold') { ic = '◆'; title = 'Bourse'; lines = ['+25 or']; }
-  else { ic = '💗'; title = 'Soin'; lines = ['Restaure 50 % des PV']; }
+    if (c.kind === 'tnew' && evoW) lines.push(`<span class="muted small">${tr('nb.evolvesW', { w: WEAPONS[evoW].name })}</span>`);
+  } else if (c.kind === 'gold') { ic = '◆'; title = tr('nb.purse'); lines = [tr('nb.purseTxt')]; }
+  else { ic = '💗'; title = tr('nb.heal'); lines = [tr('nb.healTxt')]; }
   return `<div class="ic">${ic}</div><span class="tag">${R.name}</span><b>${title}</b>${lines.map(l => `<p>${l}</p>`).join('')}`;
 }
 function bestChoice() {
@@ -1234,8 +1253,8 @@ function bestChoice() {
 function openLevelUp(mode = 'level') {
   if (mode === 'level' && META.autoLvl) {   // choix automatique (réglage de la pause) : pas de fenêtre, un message
     choiceMode = 'level'; curChoices = buildChoices('level');
-    const i = bestChoice(), c = curChoices[i], t = (choiceHTML(c).match(/<b>(.*?)<\/b>/) || [])[1] || '';
-    msg(`▲ NIV ${S.level - S.pending + 1} : ${t}`, 1.6, RAR[c.rar].col);
+    const i = bestChoice(), c = curChoices[i], title = (choiceHTML(c).match(/<b>(.*?)<\/b>/) || [])[1] || '';
+    msg(tr('nb.autoPick', { n: S.level - S.pending + 1, title }), 1.6, RAR[c.rar].col);
     sfx('level'); pick(i); return;
   }
   choiceMode = mode;
@@ -1243,10 +1262,13 @@ function openLevelUp(mode = 'level') {
   if (document.pointerLockElement) document.exitPointerLock();
   curChoices = buildChoices(mode);
   renderChoices();
-  $('nb-levelup').querySelector('h2').textContent = mode === 'shrine' ? 'SANCTUAIRE' : `NIVEAU ${S.level - S.pending + 1}`;
+  levelUpTitle();
   $('nb-reroll').style.display = mode === 'shrine' ? 'none' : '';
   $('nb-levelup').classList.remove('hidden');
   sfx('level');
+}
+function levelUpTitle() {
+  $('nb-levelup').querySelector('h2').textContent = choiceMode === 'shrine' ? tr('nb.shrineTitle') : tr('nb.lvlTitle', { n: S.level - S.pending + 1 });
 }
 function renderChoices() {
   const box = $('nb-choices'); box.innerHTML = '';
@@ -1283,7 +1305,7 @@ function pick(i) {
   else S.p.hp = Math.min(S.stats.hp, S.p.hp + S.stats.hp * 0.5);
   if (choiceMode === 'level') S.pending--;
   const rdy = evoReady();
-  if (rdy && !rdy.told) { rdy.told = true; setTimeout(() => msg(`⭐ ${WEAPONS[rdy.id].name} peut évoluer : ouvre un coffre !`, 4, '#ffc94d'), 300); }
+  if (rdy && !rdy.told) { rdy.told = true; setTimeout(() => msg(tr('nb.evoReady', { w: WEAPONS[rdy.id].name }), 4, '#ffc94d'), 300); }
   renderWeaponsHud();
   if (choiceMode === 'level' && S.pending > 0) { openLevelUp('level'); return; }
   $('nb-levelup').classList.add('hidden');
@@ -1299,15 +1321,15 @@ function updateInteract(dt) {
     if (c.open) continue;
     if (Math.hypot(c.x - p.x, c.z - p.z) < 2.2 && Math.abs(c.y - p.y) < 2) {
       promptTarget = c;
-      txt = c.free ? '[E] Ouvrir le coffre — gratuit' : S.gold >= S.chestCost ? `[E] Ouvrir le coffre — ◆ ${S.chestCost}` : `Coffre — il faut ◆ ${S.chestCost} (tu as ${S.gold})`;
+      txt = c.free ? tr('nb.pChestFree') : S.gold >= S.chestCost ? tr('nb.pChest', { n: S.chestCost }) : tr('nb.pChestNo', { n: S.chestCost, g: S.gold });
     }
   }
-  if (S.portal && Math.hypot(S.portal.x - p.x, S.portal.z - p.z) < 3.5) { promptTarget = S.portal; txt = S.stage < STAGES.length - 1 ? '[E] Entrer dans le portail — étape suivante' : '[E] Entrer dans le portail — victoire'; }
+  if (S.portal && Math.hypot(S.portal.x - p.x, S.portal.z - p.z) < 3.5) { promptTarget = S.portal; txt = tr(S.stage < STAGES.length - 1 ? 'nb.pPortal' : 'nb.pPortalWin'); }
   for (const s of S.shrines) {
     if (s.used || s.kind === 'charge') continue;
     if (Math.hypot(s.x - p.x, s.z - p.z) < 3.3 && Math.abs(s.y - p.y) < 3) {
       promptTarget = s;
-      txt = s.kind === 'chal' ? '[E] Sanctuaire du défi — 2 élites, un coffre gratuit' : '[E] Sanctuaire d\'avarice — +50 % d\'or, +25 % d\'ennemis';
+      txt = tr(s.kind === 'chal' ? 'nb.pChal' : 'nb.pGreed');
     }
   }
   // jarres
@@ -1344,15 +1366,15 @@ function interact() {
         const a = rand(0, TAU), e = spawnEnemy(Math.random() < 0.5 ? 'brute' : 'charger', clamp(t.x + Math.cos(a) * 12, -HALF + 2, HALF - 2), clamp(t.z + Math.sin(a) * 12, -HALF + 2, HALF - 2), true);
         if (e) { e.chal = t; t.left++; }
       }
-      if (!t.left) shrineReward(t); else msg('☠ Deux élites arrivent !', 2.5, '#ff3050');
+      if (!t.left) shrineReward(t); else msg(tr('nb.chalGo'), 2.5, '#ff3050');
     } else {
       S.greed = (S.greed || 0) + 1;
-      msg(`🪙 Avarice ×${S.greed} : +50 % d'or, +25 % d'ennemis`, 3, '#ffc94d');
+      msg(tr('nb.greed', { n: S.greed }), 3, '#ffc94d');
     }
     burst(t.x, t.y + 2, t.z, 40, t.kind === 'chal' ? [1, 0.2, 0.3] : [1, 0.8, 0.3], 7, 0.6); sfx('boss');
     return;
   }
-  if (!t.free && S.gold < S.chestCost) { msg('Pas assez d\'or', 1); return; }
+  if (!t.free && S.gold < S.chestCost) { msg(tr('nb.noGold'), 1); return; }
   S.chestsOpened++; window.ptEvent && window.ptEvent('nb_chests', 1);
   if (!t.free) { S.gold -= S.chestCost; S.chestCost = Math.round(S.chestCost * 1.45 + 4); }
   t.open = true; t.lid.rotation.x = -1.2; t.lid.position.z = -0.4; t.lid.position.y = 1.1;
@@ -1360,7 +1382,7 @@ function interact() {
   if (ev) {
     const E = EVOS[ev.id]; ev.evo = true; E.fx(ev);
     burst(t.x, t.y + 1, t.z, 120, [1, 0.85, 0.3], 10, 0.9); addRing(t.x, t.y + 0.3, t.z, 8, [1, 0.8, 0.3], 0.6);
-    msg(`⭐ ÉVOLUTION : ${WEAPONS[ev.id].name} → ${E.ic} ${E.name}`, 4.5, '#ffc94d');
+    msg(tr('nb.evolved', { w: WEAPONS[ev.id].name, e: `${E.ic} ${E.name}` }), 4.5, '#ffc94d');
     sfx('level'); sfx('chest'); renderWeaponsHud(); return;
   }
   let rar = rollRarity(10), pool = ITEMS.filter(i => i.r === rar);
@@ -1386,7 +1408,7 @@ function nextStage() {
   S.p.x = 0; S.p.z = 0; S.p.y = terrainH(0, 0) + 1; S.p.vx = S.p.vy = S.p.vz = 0; S.p.hp = S.stats.hp; S.iframe = 2;
   camY = S.p.y + 5;
   if (window.PT_MUSIC !== false) music.start(S.stage);
-  msg(`ÉTAPE ${S.stage + 1} — ${ST().name}` + (ST().float ? ' · gravité réduite, grimpe sur les plateformes' : ''), 4, '#' + new THREE.Color(...ST().lineB).getHexString());
+  msg(tr('nb.stageMsg', { n: S.stage + 1, name: ST().name }) + (ST().float ? tr('nb.lowGrav') : ''), 4, '#' + new THREE.Color(...ST().lineB).getHexString());
   sfx('boss');
 }
 
@@ -1405,7 +1427,7 @@ function spawnBoss() {
   const hp = (9000 + S.dmgDealt / Math.max(60, S.t) * 12) * B.hp;   // s'adapte à ta puissance de feu
   S.boss = { boss: true, x, z, y: terrainH(x, z) + 4, hp, max: hp, r: 3.2, size: 3, g, core, ring, ring2, atkT: 3, phase: 0, dash: 0, dvx: 0, dvz: 0, flash: 0, pull: 0 };
   $('nb-boss').classList.remove('hidden'); $('nb-boss').querySelector('span').textContent = B.name;
-  msg(`☠ ${B.name} ARRIVE`, 3, '#ff4d6a'); sfx('boss');
+  msg(tr('nb.bossComes', { name: B.name }), 3, '#ff4d6a'); sfx('boss');
 }
 function updateBoss(dt) {
   const b = S.boss; if (!b || b.hp <= 0) return;
@@ -1430,14 +1452,14 @@ function updateBoss(dt) {
   if (b.atkT <= 0) {
     b.atkT = 2.6; b.phase = (b.phase + 1) % (3 + S.stage);
     if (b.phase === 0) { const n = enraged ? 28 : 20, off = rand(0, TAU); for (let i = 0; i < n; i++) fireBullet(b.x, b.y - 1, b.z, off + i * TAU / n, 10, 14); }
-    else if (b.phase === 1) { S.rings.push({ x: b.x, z: b.z, y: terrainH(b.x, b.z), r: 1, max: 45, sp: 16, dmg: 26, hostile: true, t: 0, col: [1, 0.2, 0.35], hitDone: false }); msg('SAUTE !', 1, '#ff4d6a'); }
+    else if (b.phase === 1) { S.rings.push({ x: b.x, z: b.z, y: terrainH(b.x, b.z), r: 1, max: 45, sp: 16, dmg: 26, hostile: true, t: 0, col: [1, 0.2, 0.35], hitDone: false }); msg(tr('nb.jumpNow'), 1, '#ff4d6a'); }
     else if (b.phase === 2) { b.dash = 0.75; b.dvx = dx * 30; b.dvz = dz * 30; }
     else if (b.phase === 3) {
       const type = S.stage === 2 ? 'drone' : 'spike';
       for (let i = 0; i < 10; i++) { const a = i / 10 * TAU; spawnEnemy(type, clamp(b.x + Math.cos(a) * 5, -HALF + 2, HALF - 2), clamp(b.z + Math.sin(a) * 5, -HALF + 2, HALF - 2)); }
-      msg(S.stage === 2 ? "L'ARCHONTE APPELLE LE VIDE…" : 'LA HYDRE ENGENDRE…', 1, S.stage === 2 ? '#b98bff' : '#ffb020');
+      msg(tr(S.stage === 2 ? 'nb.archonCall' : 'nb.hydraSpawn'), 1, S.stage === 2 ? '#b98bff' : '#ffb020');
     }
-    else { b.pull = enraged ? 3 : 2.2; b.atkT = 3.4; msg('PUITS DE GRAVITÉ — COURS !', 1.5, '#b98bff'); }
+    else { b.pull = enraged ? 3 : 2.2; b.atkT = 3.4; msg(tr('nb.gravWell'), 1.5, '#b98bff'); }
     sfx('boom');
   }
   if (d < b.r + 0.8 && Math.abs(p.y + 1 - b.y) < 4) hurt(26, 'boss');
@@ -1464,7 +1486,7 @@ function bossDeath() {
   const disc = new THREE.Mesh(new THREE.CircleGeometry(2.3, 40), new THREE.MeshBasicMaterial({ color: 0xff3df0, transparent: true, opacity: 0.45, side: THREE.DoubleSide, blending: THREE.AdditiveBlending })); disc.position.y = 3; g.add(disc);
   g.position.set(x, y, z); levelGroup.add(g);
   S.portal = { x, y, z, g, ring };
-  msg(S.stage < STAGES.length - 1 ? 'PORTAIL OUVERT — vers l\'étape suivante !' : 'PORTAIL FINAL — entre pour gagner !', 4, '#27e0ff');
+  msg(tr(S.stage < STAGES.length - 1 ? 'nb.portalOpen' : 'nb.portalFinal'), 4, '#27e0ff');
 }
 
 // ============================================================ effets
@@ -1576,7 +1598,7 @@ function update(dt) {
       if (!r.mesh) { r.mesh = new THREE.Mesh(scene.userData.ringGeo, new THREE.MeshBasicMaterial({ color: 0xff2d55, transparent: true, opacity: 0.9, side: THREE.DoubleSide, blending: THREE.AdditiveBlending })); scene.add(r.mesh); }
       r.mesh.scale.set(r.r, 1, r.r); r.mesh.position.set(r.x, terrainH(p.x, p.z) + 0.3, r.z);
       const dp = Math.hypot(p.x - r.x, p.z - r.z);
-      if (!r.hitDone && Math.abs(dp - r.r) < 0.9 && p.y - terrainH(p.x, p.z) < 0.9) { r.hitDone = true; hurt(r.dmg, 'onde'); }
+      if (!r.hitDone && Math.abs(dp - r.r) < 0.9 && p.y - terrainH(p.x, p.z) < 0.9) { r.hitDone = true; hurt(r.dmg, 'wave'); }
       if (r.r > r.max) { scene.remove(r.mesh); r.mesh.material.dispose(); S.rings.splice(i, 1); }
     } else {
       r.life -= dt; const k = 1 - r.life / r.max;
@@ -1757,10 +1779,10 @@ function updateHUD(dt) {
   $('nb-root').classList.toggle('bossing', !!S.boss);   // les annonces passent sous la barre du boss
   hudT -= dt; if (hudT > 0) return; hudT = 0.1;
   $('nb-xpbar').style.width = (S.xp / S.need * 100) + '%';
-  $('nb-level').textContent = 'NIV ' + S.level + ' · ÉTAPE ' + (S.stage + 1);
+  $('nb-level').textContent = tr('nb.hudLvl', { n: S.level, s: S.stage + 1 });
   $('nb-hpbar').style.width = (S.p.hp / S.stats.hp * 100) + '%';
   $('nb-hptext').textContent = `${Math.ceil(S.p.hp)}/${Math.round(S.stats.hp)}`;
-  $('nb-gold').textContent = S.gold; $('nb-kills').textContent = S.kills;
+  $('nb-gold').textContent = num(S.gold); $('nb-kills').textContent = num(S.kills);
   const tm = $('nb-timer');
   const tt = Math.abs(S.time), mm = Math.floor(tt / 60), ss = Math.floor(tt % 60);
   tm.textContent = (S.time < 0 ? '+' : '') + mm + ':' + String(ss).padStart(2, '0');
@@ -1771,9 +1793,9 @@ function updateHUD(dt) {
 }
 function renderWeaponsHud() {
   const box = $('nb-weapons'); box.innerHTML = '';
-  S.weapons.forEach(w => { const d = document.createElement('div'); d.innerHTML = `${wIc(w)}<small>${w.lvl}</small>`; d.title = `${wName(w)} — niveau ${w.lvl}`; d.style.borderColor = w.evo ? '#ffc94d' : '#ff3df0'; if (w.evo) d.style.boxShadow = '0 0 8px #ffc94d'; box.appendChild(d); });
-  S.tomes.forEach(t => { const d = document.createElement('div'); d.innerHTML = `${TOMES[t.id].ic}<small>${t.lvl}</small>`; d.title = `${TOMES[t.id].name} — niveau ${t.lvl}`; d.style.borderColor = '#27e0ff'; box.appendChild(d); });
-  Object.entries(S.items).forEach(([id, n]) => { const it = ITEMS.find(i => i.id === id); const d = document.createElement('div'); d.innerHTML = `${it.ic}<small>${n > 1 ? n : ''}</small>`; d.style.borderColor = RAR[it.r].col; box.appendChild(d); });
+  S.weapons.forEach(w => { const d = document.createElement('div'); d.innerHTML = `${wIc(w)}<small>${w.lvl}</small>`; d.title = tr('nb.tipLvl', { name: wName(w), n: w.lvl }); d.style.borderColor = w.evo ? '#ffc94d' : '#ff3df0'; if (w.evo) d.style.boxShadow = '0 0 8px #ffc94d'; box.appendChild(d); });
+  S.tomes.forEach(t => { const d = document.createElement('div'); d.innerHTML = `${TOMES[t.id].ic}<small>${t.lvl}</small>`; d.title = tr('nb.tipLvl', { name: TOMES[t.id].name, n: t.lvl }); d.style.borderColor = '#27e0ff'; box.appendChild(d); });
+  Object.entries(S.items).forEach(([id, n]) => { const it = ITEMS.find(i => i.id === id); const d = document.createElement('div'); d.innerHTML = `${it.ic}<small>${n > 1 ? n : ''}</small>`; d.title = `${it.name} — ${it.desc}`; d.style.borderColor = RAR[it.r].col; box.appendChild(d); });
 }
 
 function frame() {
@@ -1805,16 +1827,19 @@ function frame() {
 function pause() {
   if (!S || S.state !== 'play') return;
   S.state = 'pause';
-  const b = $('nb-build'); b.innerHTML = '';
-  S.weapons.forEach(w => b.insertAdjacentHTML('beforeend', `<span>${wIc(w)} ${wName(w)} Nv${w.lvl}${!w.evo ? ` <span class="muted">— évolue au Nv ${EVO_LVL} avec ${TOMES[EVOS[w.id].tome].ic} ${TOMES[EVOS[w.id].tome].name}, puis un coffre</span>` : ' ⭐'}</span>`));
-  S.tomes.forEach(t => b.insertAdjacentHTML('beforeend', `<span>${TOMES[t.id].ic} ${TOMES[t.id].name} Nv${t.lvl}</span>`));
-  Object.entries(S.items).forEach(([id, n]) => { const it = ITEMS.find(i => i.id === id); b.insertAdjacentHTML('beforeend', `<span>${it.ic} ${it.name}${n > 1 ? ' ×' + n : ''}</span>`); });
+  renderBuild();
   $('nb-pause').classList.remove('hidden');
   $('nb-music').checked = window.PT_MUSIC !== false;
   $('nb-nums').value = META.nums || 'merge';
   $('nb-autolvl').value = META.autoLvl ? '1' : '';
   music.stop(0.3);
   if (document.pointerLockElement) document.exitPointerLock();
+}
+function renderBuild() {
+  const b = $('nb-build'); b.innerHTML = '';
+  S.weapons.forEach(w => b.insertAdjacentHTML('beforeend', `<span>${wIc(w)} ${wName(w)} ${tr('nb.lvShort', { n: w.lvl })}${!w.evo ? ` <span class="muted">${tr('nb.evoHint', { n: EVO_LVL, tome: `${TOMES[EVOS[w.id].tome].ic} ${TOMES[EVOS[w.id].tome].name}` })}</span>` : ' ⭐'}</span>`));
+  S.tomes.forEach(t => b.insertAdjacentHTML('beforeend', `<span>${TOMES[t.id].ic} ${TOMES[t.id].name} ${tr('nb.lvShort', { n: t.lvl })}</span>`));
+  Object.entries(S.items).forEach(([id, n]) => { const it = ITEMS.find(i => i.id === id); b.insertAdjacentHTML('beforeend', `<span>${it.ic} ${it.name}${n > 1 ? ' ×' + n : ''}</span>`); });
 }
 function resume() { if (!S || S.state !== 'pause') return; $('nb-pause').classList.add('hidden'); S.state = 'play'; clock.getDelta(); lockPointer(); if (window.PT_MUSIC !== false) music.start(S.stage); }
 function endRun(win) {
@@ -1829,17 +1854,22 @@ function endRun(win) {
   const cr = runCredits(S); META.credits = (META.credits || 0) + cr;
   window.ptEvent && window.ptEvent('nb_time', surv);
   saveMeta();
-  const newly = CHARS.filter(c => unlocked(c) && !before.includes(c.id));
-  $('nb-endtitle').innerHTML = win ? '<span class="neon" style="font-size:30px">VICTOIRE</span>' : 'Tu as été désintégré';
-  const row = (a, b) => `<div><span class="muted">${a}</span><b>${b}</b></div>`;
-  $('nb-endstats').innerHTML = row('Temps', `${Math.floor(surv / 60)}:${String(surv % 60).padStart(2, '0')}`) + row('Niveau', S.level) + row('Éliminations', S.kills) + row('Dégâts', Math.round(S.dmgDealt).toLocaleString('fr-FR'))
-    + row('Coffres', S.chestsOpened) + row('Personnage', S.ch.name) + row('Étape atteinte', (S.stage + 1) + ' / ' + STAGES.length)
-    + `<div style="grid-column:1/-1;color:#7ff6ff;justify-content:center">◈ +${cr} crédits pour la boutique</div>`
-    + (newly.length ? `<div style="grid-column:1/-1;color:#ffc94d;justify-content:center">🔓 Débloqué : ${newly.map(c => c.name).join(', ')}</div>` : '');
+  S.endInfo = { surv, cr, newly: CHARS.filter(c => unlocked(c) && !before.includes(c.id)) };
+  renderEnd();
+  $('nb-pause').classList.add('hidden');   // « Abandonner » depuis la pause : l'écran de fin la remplace
   $('nb-end').classList.remove('hidden');
   $('nb-hud').classList.add('hidden');
   ['nb-joy', 'nb-jumpbtn', 'nb-actbtn', 'nb-slidebtn', 'nb-pausebtn'].forEach(id => $(id).classList.add('hidden'));
   $('nb-prompt').classList.remove('show');
+}
+function renderEnd() {
+  const { surv, cr, newly } = S.endInfo;
+  $('nb-endtitle').innerHTML = S.won ? `<span class="neon" style="font-size:30px">${tr('nb.victory')}</span>` : tr('nb.dead');
+  const row = (a, b) => `<div><span class="muted">${tr(a)}</span><b>${b}</b></div>`;
+  $('nb-endstats').innerHTML = row('nb.eTime', `${Math.floor(surv / 60)}:${String(surv % 60).padStart(2, '0')}`) + row('nb.eLevel', S.level) + row('nb.eKills', num(S.kills)) + row('nb.eDmg', num(S.dmgDealt))
+    + row('nb.eChests', S.chestsOpened) + row('nb.eChar', S.ch.name) + row('nb.eStage', (S.stage + 1) + ' / ' + STAGES.length)
+    + `<div style="grid-column:1/-1;color:#7ff6ff;justify-content:center">${tr('nb.eCredits', { n: num(cr) })}</div>`
+    + (newly.length ? `<div style="grid-column:1/-1;color:#ffc94d;justify-content:center">${tr('nb.eUnlocked', { list: newly.map(c => c.name).join(', ') })}</div>` : '');
 }
 function toMenu() {
   music.stop(0.3);
@@ -1859,7 +1889,7 @@ function toMenu() {
   $('nb-menu').querySelector('.card').scrollTop = 0;
 }
 function renderMenu() {
-  if (TOUCH) document.querySelector('#nb-menu .nb-keys').innerHTML = '<b>Joystick</b> à gauche pour courir · <b>glisse</b> à droite pour la caméra · <b>SAUT</b> (x2) · <b>GLISSE</b> · <b>E</b> interagir · <b>❚❚</b> pause';
+  document.querySelector('#nb-menu .nb-keys').innerHTML = tr(TOUCH ? 'nb.keysTouch' : 'nb.keys');
   const box = $('nb-chars'); box.innerHTML = '';
   if (!CHARS.find(c => c.id === META.sel && unlocked(c))) META.sel = 'glitch';
   CHARS.forEach(c => {
@@ -1869,15 +1899,15 @@ function renderMenu() {
     b.onclick = () => { if (!u) return; META.sel = c.id; saveMeta(); renderMenu(); };
     box.appendChild(b);
   });
-  $('nb-meta').textContent = META.runs ? `Runs : ${META.runs} · Victoires : ${META.wins} · Record : ${Math.floor(META.bestTime / 60)}:${String(META.bestTime % 60).padStart(2, '0')} · Niveau max : ${META.maxLevel} · Éliminations totales : ${META.totalKills}` : '';
+  $('nb-meta').textContent = META.runs ? tr('nb.metaLine', { runs: num(META.runs), wins: num(META.wins), best: `${Math.floor(META.bestTime / 60)}:${String(META.bestTime % 60).padStart(2, '0')}`, lvl: META.maxLevel, kills: num(META.totalKills) }) : '';
   $('nb-sens').value = META.sens;
-  $('nb-credits').textContent = META.credits || 0;
+  $('nb-credits').textContent = num(META.credits || 0);
   const sh = $('nb-shop'); sh.innerHTML = '';
   for (const it of SHOP) {
     const l = shopLvl(it.id), c = shopCost(it), max = l >= it.max;
     const b = document.createElement('button');
     b.className = 'nb-sh ' + (max ? 'max' : (META.credits || 0) >= c ? 'can' : 'no');
-    b.innerHTML = `<b>${it.ic} ${it.name} <span class="pips">${'■'.repeat(l)}${'□'.repeat(it.max - l)}</span></b><span class="cost">${max ? 'MAX' : '◈ ' + c}</span>`
+    b.innerHTML = `<b>${it.ic} ${it.name} <span class="pips">${'■'.repeat(l)}${'□'.repeat(it.max - l)}</span></b><span class="cost">${max ? tr('nb.max') : '◈ ' + num(c)}</span>`
       + `<span class="muted">${max ? it.desc(l) : (l ? it.desc(l) + ' → ' : '') + it.desc(l + 1)}</span>`;
     b.onclick = () => { if (max || (META.credits || 0) < c) return; META.credits -= c; META.shop[it.id] = l + 1; saveMeta(); sfx('chest'); renderMenu(); };
     sh.appendChild(b);
@@ -1901,6 +1931,19 @@ $('nb-timer').style.pointerEvents = 'auto';
 $('nb-timer').addEventListener('click', () => pause());
 
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
+// Langue changée en direct (sélecteur du site) : on redessine tout ce qui est construit en JS.
+let glFail = false;
+applyI18n($('tab-bonk'));
+window.addEventListener('pt-lang', () => {
+  if (!inited || glFail) return;
+  renderMenu();
+  if (!S) return;
+  renderWeaponsHud(); hudT = 0; updateHUD(0);
+  if (S.boss) $('nb-boss').querySelector('span').textContent = ST().boss.name;
+  if (S.state === 'levelup') { renderChoices(); levelUpTitle(); }
+  else if (S.state === 'pause') renderBuild();
+  else if (S.state === 'end') renderEnd();
+});
 // Accès de débogage (console) à l'état de la run.
 window.__nb = { get S() { return S; }, get camDist() { return camDist; }, update, pick, keys, interact, jump, damage, spawnEnemy, music, newRun, addWeapon, openLevelUp };
 
@@ -1910,7 +1953,7 @@ window.GAMES.bonk = {
     active = true;
     if (!inited) {
       inited = true;
-      try { init(); } catch (e) { $('nb-menu').querySelector('.card').innerHTML = '<h2>WebGL indisponible</h2><p class="muted">Ce jeu a besoin de WebGL. Essaie un navigateur récent.</p>'; console.error(e); return; }
+      try { init(); } catch (e) { glFail = true; $('nb-menu').querySelector('.card').innerHTML = `<h2>${tr('nb.noGl')}</h2><p class="muted">${tr('nb.noGlTxt')}</p>`; console.error(e); return; }
       renderMenu();
     }
     requestAnimationFrame(() => { onResize(); clock.getDelta(); frame(); });

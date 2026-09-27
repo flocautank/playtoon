@@ -275,3 +275,6 @@ main{position:fixed;inset:var(--nav-h) 0 0 0}
 .pt-lang{display:flex;gap:6px;align-items:center;justify-content:center}.pt-lang select{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:3px 6px}
 .bp-vid{background:linear-gradient(135deg,#27c26a,#1a9b8f)}.bp-vid small{display:block;font-size:11px;opacity:.85}
 .bp-stat small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;display:block}
+/* Synth Horde : libellé du bouton de glissade traduit (RUTSCHEN, BARRIDA…) — tient dans le rond de 62 px */
+.nb-slide{padding:0;font-size:10px;letter-spacing:-.02em}
+#nb-endstats b{white-space:nowrap}

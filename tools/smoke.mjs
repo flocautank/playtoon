@@ -116,7 +116,7 @@ log('intro Star Forge affichée au 1er lancement :', intro);
 for (let i = 0; i < 40; i++) await page.mouse.click(360, 390);
 await page.waitForTimeout(300); await shot(page, 'forge');
 for (const t of ['upg', 'meta', 'ach', 'opt', 'gen']) { await page.click(`[data-sf=${t}]`); await page.waitForTimeout(150); }
-log('étape : Neon Bonk'); await page.goto(base + '#bonk'); await page.waitForTimeout(1200); await shot(page, 'bonk-menu');
+log('étape : Synth Horde'); await page.goto(base + '#bonk'); await page.waitForTimeout(1200); await shot(page, 'bonk-menu');
 await page.click('#nb-start'); await page.waitForTimeout(1500);
 log('musique :', await page.evaluate(async () => {
   const m = window.__nb.music; if (!m.ctx) return 'pas de contexte audio';
@@ -426,7 +426,7 @@ const visibleCards = await m.$$eval('.nb-choice', els => els.filter(e => { const
 const rerollVisible = await m.$eval('#nb-reroll', e => { const r = e.getBoundingClientRect(); return r.bottom <= innerHeight; });
 await m.tap('.nb-choice'); await m.waitForTimeout(300);
 await m.tap('#nb-pausebtn'); await m.waitForTimeout(300);
-log(`mobile Neon Bonk : cartes visibles=${visibleCards}/3 · « Relancer » visible=${rerollVisible} · pause au bouton=${await m.evaluate(() => window.__nb.S.state)}`);
+log(`mobile Synth Horde : cartes visibles=${visibleCards}/3 · « Reroll » visible=${rerollVisible} · pause au bouton=${await m.evaluate(() => window.__nb.S.state)}`);
 await shot(m, 'm-bonk-pause');
 
 await browser.close(); srv.close();
