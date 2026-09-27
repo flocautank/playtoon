@@ -20,7 +20,7 @@ const SHAPES = [
   [[[0, 0], [1, 0], [1, 1], [2, 1]], 2], [[[1, 0], [2, 0], [0, 1], [1, 1]], 2], [[[0, 0], [0, 1], [1, 1], [1, 2]], 2], [[[1, 0], [1, 1], [0, 1], [0, 2]], 2],
   [[[0, 0], [1, 1]], 1], [[[1, 0], [0, 1]], 1], [[[0, 0], [1, 1], [2, 2]], 0.8], [[[2, 0], [1, 1], [0, 2]], 0.8],
 ];
-const STONE = '#7d7f9c';
+const STONE = '#7d7f9c', STONE2 = '#4b4d6e';   // pierre dure (Aventure, niveau 9+) : il faut l'effacer deux fois
 // Thèmes : la couleur de base d'une pièce (indice dans COLORS) est remappée à l'affichage.
 const THEMES = [
   { id: 'classic', cost: 0, style: 'candy', pal: COLORS, bg: 'radial-gradient(ellipse at 50% 0%,#3b2a6b 0%,#1b1840 55%,#120f2a 100%)' },
@@ -204,7 +204,7 @@ function genLevel(n) {
   const r = mulberry32(n * 7919 + 13);
   const board = Array.from({ length: N }, () => Array(N).fill(null));
   const bands = Math.min(1 + Math.floor(n / 4), 5) + (n > 24 ? 1 : 0) + (n > 34 ? 1 : 0), cells = [];
-  const used = new Set();
+  const used = new Set(); let hard = 0;
   for (let k = 0; k < bands; k++) {
     let horiz, idx, t = 0;
     do { horiz = r() < 0.5; idx = (r() * N) | 0; } while (used.has((horiz ? 'r' : 'c') + idx) && ++t < 20);
@@ -216,6 +216,7 @@ function genLevel(n) {
       if (board[y][x]) continue;
       board[y][x] = STONE;
       if (board[y].every(c => c) || board.every(row => row[x])) { board[y][x] = null; continue; }
+      if (n >= 9 && r() < Math.min(0.45, 0.15 + (n - 9) * 0.012)) { board[y][x] = STONE2; hard++; }
       cells.push([x, y]);
     }
   }
@@ -226,7 +227,7 @@ function genLevel(n) {
   const target = 3 + Math.floor(n / 5);
   // au-delà du niveau 16, les coups se resserrent (−1,2 % par niveau, jusqu'à −28 %)
   const tight = 1 - Math.min(0.28, Math.max(0, n - 16) * 0.012);
-  const moves = Math.round((type === 'gems' ? 6 + Math.round(gemsN * 1.5) + bands * 2 : 6 + target * 3) * tight);
+  const moves = Math.round((type === 'gems' ? 6 + Math.round(gemsN * 1.5) + bands * 2 + hard * 0.6 : 6 + target * 3) * tight);
   return { board, gems: type === 'gems' ? gems : new Set(), goal: { type, gems: type === 'gems' ? gemsN : 0, target, moves } };
 }
 function startLevel(n) {
@@ -237,6 +238,7 @@ function startLevel(n) {
   fillTray();
   ['bp-over', 'bp-map', 'bp-res'].forEach(id => $(id).classList.add('hidden'));
   S.pops.push({ text: t('bp.level', { n }), sub: S.goal.type === 'gems' ? t('bp.getGems', { n: S.goal.gems }) : t('bp.clearLines', { n: S.goal.target }), t: 0 });
+  if (n === 9 || (n > 9 && !ADV.stars[9])) S.pops.push({ text: t('bp.hardTitle'), sub: t('bp.hardSub'), t: -1.3 });   // présentation des pierres dures
   updateHUD();
 }
 function advResult(win) {
@@ -358,6 +360,7 @@ function smash(cells) {
   for (const [x, y] of cells) {
     if (x < 0 || y < 0 || x >= N || y >= N || !S.board[y][x]) continue;
     const color = S.board[y][x]; hit++;
+    if (color === STONE2) { S.board[y][x] = STONE; for (let k = 0; k < 3; k++) burst(x, y, STONE); continue; }   // les boosters fissurent aussi, sans briser
     S.clearing.push({ x, y, color, t: 0, delay: hit * 0.02 });
     S.board[y][x] = null;
     for (let k = 0; k < 5; k++) burst(x, y, color);
@@ -414,9 +417,10 @@ function place(idx, gx, gy) {
     gained += bonus;
     for (const [x, y] of cells.values()) {
       const color = S.board[y][x];
+      if (color === STONE2) { S.board[y][x] = STONE; S.placedAnim.push({ x, y, t: 0 }); for (let k = 0; k < 3; k++) burst(x, y, STONE); continue; }
       S.clearing.push({ x, y, color, t: 0, delay: (Math.abs(x - gx) + Math.abs(y - gy)) * 0.025 });
       S.board[y][x] = null;
-      for (let k = 0; k < 4; k++) burst(x, y, color);
+      for (let k = 0; k < 4 + Math.min(6, S.combo); k++) burst(x, y, color);
       if (S.gems.delete(y * N + x)) { S.got++; for (let k = 0; k < 10; k++) burst(x, y, '#7ff6ff'); setTimeout(() => beep(1400 + S.got * 60, 0.1, 'sine', 0.05), 80); }
     }
     const allClear = S.board.every(r => r.every(c => !c));
@@ -531,6 +535,13 @@ function shade(hex, amt) {
   r = Math.max(0, Math.min(255, r)); g = Math.max(0, Math.min(255, g)); b = Math.max(0, Math.min(255, b));
   return `rgb(${r},${g},${b})`;
 }
+// pierre dure : bord épais et deux traits en X
+function cracks(x, y, s) {
+  ctx.save(); ctx.strokeStyle = 'rgba(210,215,255,.55)'; ctx.lineWidth = Math.max(1.5, s * 0.05); ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(x + s * 0.24, y + s * 0.26); ctx.lineTo(x + s * 0.5, y + s * 0.5); ctx.lineTo(x + s * 0.42, y + s * 0.76);
+  ctx.moveTo(x + s * 0.5, y + s * 0.5); ctx.lineTo(x + s * 0.78, y + s * 0.36); ctx.stroke();
+  ctx.strokeStyle = 'rgba(0,0,0,.35)'; ctx.lineWidth = s * 0.07; rr(x + s * 0.1, y + s * 0.1, s * 0.8, s * 0.8, s * 0.16); ctx.stroke(); ctx.restore();
+}
 function cell(x, y, s, color, alpha = 1, c2 = ctx) {
   color = tc(color);
   const style = curTheme().style, p = s * 0.06, r = s * 0.18;
@@ -630,8 +641,16 @@ function draw(dt) {
     if (pa) { const k = Math.sin(Math.min(1, pa.t / 0.25) * Math.PI) * 0.12; s = L.cs * (1 + k); ox = (L.cs - s) / 2; }
     const lit = hl && (hl.rows.includes(y) || hl.cols.includes(x));
     cell(L.bx + x * L.cs + ox, L.by + y * L.cs + ox, s, lit ? hl.color : c);
+    if (c === STONE2) cracks(L.bx + x * L.cs + ox, L.by + y * L.cs + ox, s);
     if (S.gems.has(y * N + x)) gem(L.bx + (x + 0.5) * L.cs, L.by + (y + 0.48) * L.cs, L.cs * 0.3);
     if (lit) { ctx.fillStyle = 'rgba(255,255,255,' + (0.18 + 0.12 * Math.sin(performance.now() / 90)) + ')'; rr(L.bx + x * L.cs + 3, L.by + y * L.cs + 3, L.cs - 6, L.cs - 6, L.cs * .15); ctx.fill(); }
+  }
+  // série de combos : badge au-dessus de la grille, qui grossit avec la série
+  if (S.combo >= 2 && !S.over) {
+    const k = 1 + 0.06 * Math.sin(performance.now() / 120), fz = Math.round(L.cs * (0.42 + Math.min(0.3, S.combo * 0.04)) * k);
+    ctx.save(); ctx.font = `900 ${fz}px system-ui,sans-serif`; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+    ctx.fillStyle = S.combo >= 5 ? '#ff7a3d' : '#ffd24d'; ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 8 + S.combo * 2;
+    ctx.fillText(t('bp.streak', { n: S.combo }), L.bx + L.bs, L.by - 12); ctx.restore();
   }
   S.placedAnim.forEach(a => a.t += dt); S.placedAnim = S.placedAnim.filter(a => a.t < 0.25);
 
@@ -709,7 +728,8 @@ function draw(dt) {
 
   // messages
   S.pops.forEach(p => {
-    p.t += dt; const k = p.t / 1.2;
+    p.t += dt; if (p.t < 0) return;   // message différé (t négatif au départ)
+    const k = p.t / 1.2;
     const a = k < 0.15 ? k / 0.15 : Math.max(0, 1 - (k - 0.6) / 0.4);
     const sc = 1 + Math.max(0, 0.3 - k) * 2;
     ctx.save(); ctx.globalAlpha = a; ctx.translate(W / 2, L.by + L.bs * 0.42 - k * 40); ctx.scale(sc, sc);
@@ -830,11 +850,24 @@ $('bp-resretry').onclick = () => startLevel(S.lvl);
 $('bp-resmap').onclick = () => { $('bp-res').classList.add('hidden'); openMap(); };
 window.addEventListener('resize', () => running && resize());
 
+// bonus de connexion : une fois par jour, qui grandit avec la série de jours (10 → 40 🪙)
+function loginBonus() {
+  let L0 = { day: 0, streak: 0 };
+  try { L0 = Object.assign(L0, JSON.parse(localStorage.getItem('blocparty.login') || '{}')); } catch (e) {}
+  const today = dayKey(); if (L0.day === today) return;
+  const y = new Date(); y.setDate(y.getDate() - 1);
+  L0.streak = L0.day === dayKey(y) ? L0.streak + 1 : 1; L0.day = today;
+  try { localStorage.setItem('blocparty.login', JSON.stringify(L0)); } catch (e) {}
+  const gain = 10 + 5 * Math.min(6, L0.streak - 1);
+  COINS += gain; saveCoins(); paintBoost();
+  S.pops.push({ text: t('bp.loginTitle', { n: L0.streak }), sub: `+${gain} 🪙`, t: -0.6 });
+}
 let inited = false;
 window.GAMES.blocks = {
   reward() { COINS += 30; saveCoins(); },   // objectif du jour
   show() {
     if (!inited) { inited = true; if (!load()) newGame(); else if (!S.tray.some(t => t && canPlaceAnywhere(t))) newGame(); updateHUD(); }
+    loginBonus();
     running = true; requestAnimationFrame(() => { resize(); last = performance.now(); requestAnimationFrame(frame); });
   },
   hide() { running = false; S.drag = null; },
