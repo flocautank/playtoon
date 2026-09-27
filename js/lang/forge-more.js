@@ -3,6 +3,7 @@ const pl = (n, one, many) => (n === 1 ? one : many);
 
 export default {
   es: {
+    'sf.adBoost': '▶ Vídeo: producción ×2 · 4 h', 'sf.adBoostMore': '▶ Vídeo: +4 h de ×2', 'sf.boostBuff': '📺 ×2 · {t}', 'sf.eternalBuff': '♾️ ×2 eterno', 'sf.offDouble': '▶ Vídeo: duplica tus ganancias sin conexión (+{v})', 'sf.boostOn': '📺 ¡Producción ×2 durante 4 horas!', 'sf.offDoubled': '🌙 Ganancias sin conexión duplicadas: +{v}', 'sfapp.eternal': 'Motor eterno: ×2 para siempre', 'sfapp.eternalDesc': 'Compra única. Producción ×2 permanente: el impulso de los vídeos, sin vídeos. Los vídeos de bonificación siguen siendo opcionales.', 'sfapp.eternalOwned': '✓ Motor eterno activo — ¡gracias!',
     'sf.gens': [
       ['Chispa', 'Un pequeño destello que solo quiere crecer.'], ['Farol cósmico', 'Atrapa la luz de las estrellas cercanas.'],
       ['Molino de cometas', 'Las colas de cometa hacen girar las aspas.'], ['Forja lunar', 'Forjada en frío en la cara oculta.'],
@@ -84,10 +85,11 @@ export default {
     'sf.gain': 'Ganancia:', 'sf.have': 'Tienes:', 'sf.explode': 'Explotar',
     'sf.tForges': 'Forjas', 'sf.tUpg': 'Mejoras', 'sf.tMeta': 'Constelación', 'sf.tChal': 'Retos', 'sf.tAch': 'Logros',
     'sf.introTitle': '✨ Nova Foundry',
-    'sf.introTxt': '1. <b>Toca la estrella</b> para recoger polvo estelar.<br>2. Compra <b>forjas</b> (a la derecha): producen solas, incluso cuando no estás.<br>3. Las <b>mejoras</b> multiplican la producción. Atrapa los ☄️ cometas dorados que pasan.<br>4. Más tarde, una <b class="nova">Supernova</b> te devuelve a cero, pero mucho más fuerte.',
+    'sf.introTxt': '1. <b>Toca la estrella</b> para recoger polvo estelar.<br>2. Compra <b>forjas</b>: producen solas, incluso cuando no estás.<br>3. Las <b>mejoras</b> multiplican la producción. Atrapa los ☄️ cometas dorados que pasan.<br>4. Más tarde, una <b class="nova">Supernova</b> te devuelve a cero, pero mucho más fuerte.',
     'sf.introOk': '¡Vamos!',
   },
   de: {
+    'sf.adBoost': '▶ Video: Produktion ×2 · 4 Std.', 'sf.adBoostMore': '▶ Video: +4 Std. ×2', 'sf.boostBuff': '📺 ×2 · {t}', 'sf.eternalBuff': '♾️ Ewig ×2', 'sf.offDouble': '▶ Video: Offline-Gewinne verdoppeln (+{v})', 'sf.boostOn': '📺 Produktion ×2 für 4 Stunden!', 'sf.offDoubled': '🌙 Offline-Gewinne verdoppelt: +{v}', 'sfapp.eternal': 'Ewiger Motor: ×2 für immer', 'sfapp.eternalDesc': 'Einmaliger Kauf. Dauerhafte Produktion ×2 — der Video-Boost ohne Videos. Bonus-Videos bleiben freiwillig.', 'sfapp.eternalOwned': '✓ Ewiger Motor aktiv — danke!',
     'sf.gens': [
       ['Funke', 'Ein kleines Leuchten, das nur wachsen will.'], ['Kosmische Laterne', 'Fängt das Licht naher Sterne ein.'],
       ['Kometenmühle', 'Kometenschweife treiben die Flügel an.'], ['Mondschmiede', 'Kalt geschmiedet auf der Rückseite.'],
@@ -169,10 +171,11 @@ export default {
     'sf.gain': 'Gewinn:', 'sf.have': 'Besitz:', 'sf.explode': 'Explodieren',
     'sf.tForges': 'Schmieden', 'sf.tUpg': 'Upgrades', 'sf.tMeta': 'Sternbild', 'sf.tChal': 'Proben', 'sf.tAch': 'Erfolge',
     'sf.introTitle': '✨ Nova Foundry',
-    'sf.introTxt': '1. <b>Tippe auf den Stern</b>, um Sternenstaub zu sammeln.<br>2. Kaufe <b>Schmieden</b> (rechts): Sie produzieren von selbst, auch wenn du weg bist.<br>3. <b>Verbesserungen</b> vervielfachen die Produktion. Fang die vorbeiziehenden ☄️ goldenen Kometen.<br>4. Später schickt dich eine <b class="nova">Supernova</b> zurück auf null — aber viel stärker.',
+    'sf.introTxt': '1. <b>Tippe auf den Stern</b>, um Sternenstaub zu sammeln.<br>2. Kaufe <b>Schmieden</b>: Sie produzieren von selbst, auch wenn du weg bist.<br>3. <b>Verbesserungen</b> vervielfachen die Produktion. Fang die vorbeiziehenden ☄️ goldenen Kometen.<br>4. Später schickt dich eine <b class="nova">Supernova</b> zurück auf null — aber viel stärker.',
     'sf.introOk': 'Los geht’s',
   },
   it: {
+    'sf.adBoost': '▶ Video: produzione ×2 · 4 h', 'sf.adBoostMore': '▶ Video: +4 h di ×2', 'sf.boostBuff': '📺 ×2 · {t}', 'sf.eternalBuff': '♾️ ×2 eterno', 'sf.offDouble': '▶ Video: raddoppia i guadagni offline (+{v})', 'sf.boostOn': '📺 Produzione ×2 per 4 ore!', 'sf.offDoubled': '🌙 Guadagni offline raddoppiati: +{v}', 'sfapp.eternal': 'Motore eterno: ×2 per sempre', 'sfapp.eternalDesc': 'Acquisto una tantum. Produzione ×2 permanente: il boost dei video, senza i video. I video bonus restano facoltativi.', 'sfapp.eternalOwned': '✓ Motore eterno attivo — grazie!',
     'sf.gens': [
       ['Scintilla', 'Un piccolo bagliore che vuole solo crescere.'], ['Lanterna cosmica', 'Cattura la luce delle stelle vicine.'],
       ['Mulino a comete', 'Le code delle comete fanno girare le pale.'], ['Forgia lunare', 'Battuta a freddo sul lato nascosto.'],
@@ -254,10 +257,11 @@ export default {
     'sf.gain': 'Guadagno:', 'sf.have': 'Possedute:', 'sf.explode': 'Esplodi',
     'sf.tForges': 'Forge', 'sf.tUpg': 'Potenziamenti', 'sf.tMeta': 'Costellazione', 'sf.tChal': 'Sfide', 'sf.tAch': 'Obiettivi',
     'sf.introTitle': '✨ Nova Foundry',
-    'sf.introTxt': '1. <b>Tocca la stella</b> per raccogliere polvere di stelle.<br>2. Compra <b>forge</b> (a destra): producono da sole, anche quando non ci sei.<br>3. I <b>potenziamenti</b> moltiplicano la produzione. Prendi le ☄️ comete dorate di passaggio.<br>4. Più avanti, una <b class="nova">Supernova</b> ti riporta a zero, ma molto più forte.',
+    'sf.introTxt': '1. <b>Tocca la stella</b> per raccogliere polvere di stelle.<br>2. Compra <b>forge</b>: producono da sole, anche quando non ci sei.<br>3. I <b>potenziamenti</b> moltiplicano la produzione. Prendi le ☄️ comete dorate di passaggio.<br>4. Più avanti, una <b class="nova">Supernova</b> ti riporta a zero, ma molto più forte.',
     'sf.introOk': 'Si parte',
   },
   pt: {
+    'sf.adBoost': '▶ Vídeo: produção ×2 · 4 h', 'sf.adBoostMore': '▶ Vídeo: +4 h de ×2', 'sf.boostBuff': '📺 ×2 · {t}', 'sf.eternalBuff': '♾️ ×2 eterno', 'sf.offDouble': '▶ Vídeo: dobre seus ganhos offline (+{v})', 'sf.boostOn': '📺 Produção ×2 por 4 horas!', 'sf.offDoubled': '🌙 Ganhos offline dobrados: +{v}', 'sfapp.eternal': 'Motor eterno: ×2 para sempre', 'sfapp.eternalDesc': 'Compra única. Produção ×2 permanente — o impulso dos vídeos, sem os vídeos. Os vídeos bônus continuam opcionais.', 'sfapp.eternalOwned': '✓ Motor eterno ativo — obrigado!',
     'sf.gens': [
       ['Faísca', 'Um pequeno brilho que só quer crescer.'], ['Lanterna cósmica', 'Capta a luz das estrelas vizinhas.'],
       ['Moinho de cometas', 'As caudas dos cometas giram as pás.'], ['Forja lunar', 'Forjada a frio no lado oculto.'],
@@ -339,7 +343,7 @@ export default {
     'sf.gain': 'Ganho:', 'sf.have': 'Você tem:', 'sf.explode': 'Explodir',
     'sf.tForges': 'Forjas', 'sf.tUpg': 'Melhorias', 'sf.tMeta': 'Constelação', 'sf.tChal': 'Desafios', 'sf.tAch': 'Conquistas',
     'sf.introTitle': '✨ Nova Foundry',
-    'sf.introTxt': '1. <b>Toque na estrela</b> para coletar poeira estelar.<br>2. Compre <b>forjas</b> (à direita): elas produzem sozinhas, mesmo quando você não está.<br>3. As <b>melhorias</b> multiplicam a produção. Pegue os ☄️ cometas dourados que passam.<br>4. Mais tarde, uma <b class="nova">Supernova</b> leva você de volta ao zero — mas muito mais forte.',
+    'sf.introTxt': '1. <b>Toque na estrela</b> para coletar poeira estelar.<br>2. Compre <b>forjas</b>: elas produzem sozinhas, mesmo quando você não está.<br>3. As <b>melhorias</b> multiplicam a produção. Pegue os ☄️ cometas dourados que passam.<br>4. Mais tarde, uma <b class="nova">Supernova</b> leva você de volta ao zero — mas muito mais forte.',
     'sf.introOk': 'Vamos lá',
   },
 };

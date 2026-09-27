@@ -1,39 +1,44 @@
-# Construit l'application Android de Block Quarry (Capacitor) :
-# - APK de test (installable directement sur un téléphone) à chaque changement du jeu ;
-# - AAB de publication signé avec la clé d'envoi (secrets BQ_UPLOAD_*), à déposer sur Google Play ;
-# - envoi automatique sur la piste « internal » de Google Play si le secret PLAY_SERVICE_ACCOUNT_JSON existe.
-name: Android — Block Quarry
+# Construit les applications Android de Playtoon (Capacitor), une par jeu :
+# - APK de test (installable directement sur un téléphone) à chaque changement ;
+# - AAB de publication signé avec la clé d'envoi (secrets UPLOAD_*, communs aux trois applications) ;
+# - lancement de l'APK dans un émulateur Android avec services Google (plantage = échec) ;
+# - envoi sur la piste « internal » de Google Play si le secret PLAY_SERVICE_ACCOUNT_JSON existe.
+# Identifiants AdMob par application : variables du dépôt <PRÉFIXE>_ADMOB_APP_ID, _REWARDED_ID, _INTERSTITIAL_ID
+# (BQ = Block Quarry, NF = Nova Foundry, SH = Synth Horde) ; à défaut, publicités de TEST de Google.
+name: Android
 
 on:
   push:
     branches: [main]
     paths:
-      - 'apps/block-quarry/**'
-      - 'apps/shared/**'
-      - 'js/blocks.js'
-      - 'js/i18n.js'
-      - 'js/version.js'
+      - 'apps/**'
+      - 'js/**'
       - 'css/style.css'
       - 'index.html'
-      - '.github/workflows/android-block-quarry.yml'
+      - '.github/workflows/android.yml'
   workflow_dispatch:
 
 concurrency:
-  group: android-block-quarry
+  group: android
   cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { app: block-quarry, prefix: BQ, version: blocks, pkg: io.github.flocautank.blockquarry }
+          - { app: nova-foundry, prefix: NF, version: forge, pkg: io.github.flocautank.novafoundry }
     defaults:
       run:
-        working-directory: apps/block-quarry
+        working-directory: apps/${{ matrix.app }}
     env:
-      # identifiants AdMob réels : variables du dépôt (Settings → Variables) ; à défaut, identifiants de test Google
-      ADMOB_APP_ID: ${{ vars.ADMOB_APP_ID }}
-      ADMOB_REWARDED_ID: ${{ vars.ADMOB_REWARDED_ID }}
-      ADMOB_INTERSTITIAL_ID: ${{ vars.ADMOB_INTERSTITIAL_ID }}
+      ADMOB_APP_ID: ${{ vars[format('{0}_ADMOB_APP_ID', matrix.prefix)] }}
+      ADMOB_REWARDED_ID: ${{ vars[format('{0}_ADMOB_REWARDED_ID', matrix.prefix)] }}
+      ADMOB_INTERSTITIAL_ID: ${{ vars[format('{0}_ADMOB_INTERSTITIAL_ID', matrix.prefix)] }}
       VERSION_CODE: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
@@ -42,7 +47,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: apps/block-quarry/package-lock.json
+          cache-dependency-path: apps/${{ matrix.app }}/package-lock.json
 
       - uses: actions/setup-java@v4
         with:
@@ -54,26 +59,26 @@ jobs:
           npm ci
           node build.mjs
           npx cap sync android
-          echo "VERSION_NAME=$(node --input-type=module -e "import('../../js/version.js').then(m => console.log(m.VERSIONS.blocks))")" >> "$GITHUB_ENV"
+          echo "VERSION_NAME=$(node --input-type=module -e "import('../../js/version.js').then(m => console.log(m.VERSIONS['${{ matrix.version }}']))")" >> "$GITHUB_ENV"
 
       - name: Clé d'envoi (si configurée)
         env:
-          KEYSTORE_B64: ${{ secrets.BQ_UPLOAD_KEYSTORE_BASE64 }}
+          KEYSTORE_B64: ${{ secrets.UPLOAD_KEYSTORE_BASE64 || secrets.BQ_UPLOAD_KEYSTORE_BASE64 }}
         run: |
           if [ -n "$KEYSTORE_B64" ]; then
             echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/upload.jks"
             echo "UPLOAD_KEYSTORE_PATH=$RUNNER_TEMP/upload.jks" >> "$GITHUB_ENV"
             echo "signature : clé d'envoi"
           else
-            echo "::warning::Secret BQ_UPLOAD_KEYSTORE_BASE64 absent : l'AAB ne sera pas signé (APK de test seulement)."
+            echo "::warning::Secret UPLOAD_KEYSTORE_BASE64 absent : l'AAB ne sera pas signé (APK de test seulement)."
           fi
 
       - name: Gradle — APK de test et AAB de publication
-        working-directory: apps/block-quarry/android
+        working-directory: apps/${{ matrix.app }}/android
         env:
-          UPLOAD_KEYSTORE_PASSWORD: ${{ secrets.BQ_UPLOAD_KEYSTORE_PASSWORD }}
-          UPLOAD_KEY_ALIAS: ${{ secrets.BQ_UPLOAD_KEY_ALIAS }}
-          UPLOAD_KEY_PASSWORD: ${{ secrets.BQ_UPLOAD_KEY_PASSWORD }}
+          UPLOAD_KEYSTORE_PASSWORD: ${{ secrets.UPLOAD_KEYSTORE_PASSWORD || secrets.BQ_UPLOAD_KEYSTORE_PASSWORD }}
+          UPLOAD_KEY_ALIAS: ${{ secrets.UPLOAD_KEY_ALIAS || secrets.BQ_UPLOAD_KEY_ALIAS }}
+          UPLOAD_KEY_PASSWORD: ${{ secrets.UPLOAD_KEY_PASSWORD || secrets.BQ_UPLOAD_KEY_PASSWORD }}
         run: |
           chmod +x gradlew
           ./gradlew --no-daemon assembleDebug bundleRelease
@@ -81,15 +86,15 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: block-quarry-${{ env.VERSION_NAME }}-${{ github.run_number }}-debug-apk
-          path: apps/block-quarry/android/app/build/outputs/apk/debug/*.apk
+          name: ${{ matrix.app }}-${{ env.VERSION_NAME }}-${{ github.run_number }}-debug-apk
+          path: apps/${{ matrix.app }}/android/app/build/outputs/apk/debug/*.apk
           retention-days: 30
 
       - uses: actions/upload-artifact@v4
         if: env.UPLOAD_KEYSTORE_PATH != ''
         with:
-          name: block-quarry-${{ env.VERSION_NAME }}-${{ github.run_number }}-release-aab
-          path: apps/block-quarry/android/app/build/outputs/bundle/release/*.aab
+          name: ${{ matrix.app }}-${{ env.VERSION_NAME }}-${{ github.run_number }}-release-aab
+          path: apps/${{ matrix.app }}/android/app/build/outputs/bundle/release/*.aab
           retention-days: 90
 
       - name: Google Play — piste interne (si le compte de service est configuré)
@@ -100,7 +105,7 @@ jobs:
           if [ -z "$PLAY_JSON" ]; then echo "Pas de compte de service : dépôt manuel de l'AAB dans la Play Console."; exit 0; fi
           echo "$PLAY_JSON" > "$RUNNER_TEMP/play.json"
           npm install --no-save googleapis@144
-          node tools/play-upload.mjs "$RUNNER_TEMP/play.json" android/app/build/outputs/bundle/release/app-release.aab internal
+          node ../shared/play-upload.mjs "$RUNNER_TEMP/play.json" android/app/build/outputs/bundle/release/app-release.aab ${{ matrix.pkg }} internal
 
   # Démarre l'APK de test dans un vrai émulateur Android (avec services Google) : pas de plantage au lancement,
   # console du jeu (Capacitor/Console) et journaux AdMob / consentement recopiés dans le journal de la CI.
@@ -108,10 +113,16 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { app: block-quarry, pkg: io.github.flocautank.blockquarry }
+          - { app: nova-foundry, pkg: io.github.flocautank.novafoundry }
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: block-quarry-*-debug-apk
+          pattern: ${{ matrix.app }}-*-debug-apk
           merge-multiple: true
           path: apk
       - name: KVM
@@ -129,18 +140,18 @@ jobs:
           script: |
             adb install -r apk/*.apk
             adb logcat -c
-            adb shell am start -n io.github.flocautank.blockquarry/.MainActivity
+            adb shell am start -n ${{ matrix.pkg }}/.MainActivity
             sleep 45
             adb exec-out screencap -p > launch.png
             adb logcat -d > logcat.txt || true
-            echo "=== processus ===" ; adb shell pidof io.github.flocautank.blockquarry || echo "APPLICATION ARRÊTÉE"
-            echo "=== console du jeu, AdMob, consentement, facturation ===" ; grep -E "Capacitor/Console|Capacitor/Plugin|Ads|UserMessaging|Billing|AndroidRuntime|FATAL" logcat.txt | grep -vE "chatty" | head -150 || true
+            echo "=== processus ===" ; adb shell pidof ${{ matrix.pkg }} || echo "APPLICATION ARRÊTÉE"
+            echo "=== console du jeu, AdMob, consentement, facturation ===" ; grep -E "Capacitor/Console|Capacitor/Plugin|Ads|UserMessaging|Billing|AndroidRuntime|FATAL" logcat.txt | grep -vE "chatty|Finsky|HeterodyneSyncer" | head -150 || true
             if grep -q "FATAL EXCEPTION" logcat.txt; then echo "::error::plantage au lancement"; grep -A30 "FATAL EXCEPTION" logcat.txt | head -60; exit 1; fi
-            adb shell pidof io.github.flocautank.blockquarry
+            adb shell pidof ${{ matrix.pkg }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: block-quarry-emulator-${{ github.run_number }}
+          name: ${{ matrix.app }}-emulator-${{ github.run_number }}
           path: |
             launch.png
             logcat.txt

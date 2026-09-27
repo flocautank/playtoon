@@ -1,12 +1,11 @@
 // Envoie un AAB sur une piste Google Play (internal, alpha, beta, production) via l'API Play Developer.
-// Usage : node tools/play-upload.mjs <compte-de-service.json> <app-release.aab> [piste]
+// Usage : node ../shared/play-upload.mjs <compte-de-service.json> <app-release.aab> <package> [piste]
 // Prérequis : l'application existe dans la Play Console et un premier AAB y a été déposé à la main
 // (exigence de Google), et le compte de service a le droit « Publier » sur l'application.
 import { google } from 'googleapis';
 import { createReadStream } from 'fs';
 
-const [keyFile, aab, track = 'internal'] = process.argv.slice(2);
-const packageName = 'io.github.flocautank.blockquarry';
+const [keyFile, aab, packageName, track = 'internal'] = process.argv.slice(2);
 const auth = new google.auth.GoogleAuth({ keyFile, scopes: ['https://www.googleapis.com/auth/androidpublisher'] });
 const api = google.androidpublisher({ version: 'v3', auth });
 

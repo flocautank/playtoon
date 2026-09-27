@@ -6,6 +6,7 @@ const pl = (n, one, many) => (n === 1 ? one : many);
 
 export default {
   en: {
+    'sf.adBoost': '▶ Video: ×2 production · 4 h', 'sf.adBoostMore': '▶ Video: +4 h of ×2', 'sf.boostBuff': '📺 ×2 · {t}', 'sf.eternalBuff': '♾️ Eternal ×2', 'sf.offDouble': '▶ Video: double your offline gains (+{v})', 'sf.boostOn': '📺 ×2 production for 4 hours!', 'sf.offDoubled': '🌙 Offline gains doubled: +{v}', 'sfapp.eternal': 'Eternal Engine: ×2 forever', 'sfapp.eternalDesc': 'One-time purchase. Permanent ×2 production — the video boost, without the videos. Reward videos stay optional.', 'sfapp.eternalOwned': '✓ Eternal Engine active — thank you!',
     'sf.name': 'Nova Foundry',
     'sf.gens': [
       ['Spark', 'A tiny glow that only wants to grow.'], ['Cosmic Lantern', 'Catches the light of nearby stars.'],
@@ -88,10 +89,11 @@ export default {
     'sf.gain': 'Gain:', 'sf.have': 'Owned:', 'sf.explode': 'Explode',
     'sf.tForges': 'Forges', 'sf.tUpg': 'Upgrades', 'sf.tMeta': 'Constellation', 'sf.tChal': 'Challenges', 'sf.tAch': 'Achievements',
     'sf.introTitle': '✨ Nova Foundry',
-    'sf.introTxt': '1. <b>Tap the star</b> to collect stardust.<br>2. Buy <b>forges</b> (on the right): they produce on their own, even while you are away.<br>3. <b>Upgrades</b> multiply production. Catch the ☄️ golden comets flying by.<br>4. Later, a <b class="nova">Supernova</b> sends you back to zero — but much stronger.',
+    'sf.introTxt': '1. <b>Tap the star</b> to collect stardust.<br>2. Buy <b>forges</b>: they produce on their own, even while you are away.<br>3. <b>Upgrades</b> multiply production. Catch the ☄️ golden comets flying by.<br>4. Later, a <b class="nova">Supernova</b> sends you back to zero — but much stronger.',
     'sf.introOk': 'Let’s go',
   },
   fr: {
+    'sf.adBoost': '▶ Vidéo : production ×2 · 4 h', 'sf.adBoostMore': '▶ Vidéo : +4 h de ×2', 'sf.boostBuff': '📺 ×2 · {t}', 'sf.eternalBuff': '♾️ ×2 éternel', 'sf.offDouble': '▶ Vidéo : double tes gains hors-ligne (+{v})', 'sf.boostOn': '📺 Production ×2 pendant 4 heures !', 'sf.offDoubled': '🌙 Gains hors-ligne doublés : +{v}', 'sfapp.eternal': 'Moteur éternel : ×2 pour toujours', 'sfapp.eternalDesc': 'Achat unique. Production ×2 permanente — le boost des vidéos, sans les vidéos. Les vidéos bonus restent facultatives.', 'sfapp.eternalOwned': '✓ Moteur éternel actif — merci !',
     'sf.name': 'Nova Foundry',
     'sf.gens': [
       ['Étincelle', 'Une petite lueur qui ne demande qu’à grandir.'], ['Lanterne cosmique', 'Capte la lumière des étoiles voisines.'],
@@ -174,7 +176,7 @@ export default {
     'sf.gain': 'Gain :', 'sf.have': 'Possédées :', 'sf.explode': 'Exploser',
     'sf.tForges': 'Forges', 'sf.tUpg': 'Améliorations', 'sf.tMeta': 'Constellation', 'sf.tChal': 'Défis', 'sf.tAch': 'Succès',
     'sf.introTitle': '✨ Nova Foundry',
-    'sf.introTxt': '1. <b>Touche l’étoile</b> pour récolter de la poussière d’étoile.<br>2. Achète des <b>forges</b> (à droite) : elles produisent toutes seules, même quand tu es parti.<br>3. Les <b>améliorations</b> multiplient la production. Attrape les ☄️ comètes dorées qui passent.<br>4. Plus tard, une <b class="nova">Supernova</b> te fait repartir de zéro, mais bien plus fort.',
+    'sf.introTxt': '1. <b>Touche l’étoile</b> pour récolter de la poussière d’étoile.<br>2. Achète des <b>forges</b> : elles produisent toutes seules, même quand tu es parti.<br>3. Les <b>améliorations</b> multiplient la production. Attrape les ☄️ comètes dorées qui passent.<br>4. Plus tard, une <b class="nova">Supernova</b> te fait repartir de zéro, mais bien plus fort.',
     'sf.introOk': 'C’est parti',
   },
 };

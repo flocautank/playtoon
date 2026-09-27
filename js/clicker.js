@@ -148,6 +148,7 @@ function globalMult() {
   if (chalDone('c_hands')) m *= 1.5;
   m *= 1 + (S.sing || 0) * (gal('g_big') ? 0.2 : 0.1);
   if (inChal('c_dim')) m *= 0.1;
+  if (boostOn()) m *= 2;   // vidéo « ×2 pendant 4 h » ou achat « Moteur éternel » (application)
   for (const b of S.buffs) { if (b.type === 'frenzy') m *= 7; else if (b.type === 'meteor') m *= 77; else if (b.type === 'eclipse') m *= 2; }
   return m;
 }
@@ -174,6 +175,25 @@ const upgCost = u => u.cost * (has('m_upg') ? 0.75 : 1) * (chalDone('c_noupg') ?
 function novaGainAt(total) { return Math.floor(Math.sqrt(total / 2e5) * (has('m_crunch') ? 2 : 1) * (chalDone('c_dim') ? 1.25 : 1) * (1 + 0.5 * (S.sing || 0))); }
 function novaGain() { if (S.chal) return 0; return Math.floor(Math.sqrt(S.runTotal / 2e5) * (has('m_crunch') ? 2 : 1) * (chalDone('c_dim') ? 1.25 : 1) * (1 + 0.5 * (S.sing || 0))); }
 function luck() { let l = 1; for (const u of UPGRADES) if (S.upg[u.id] && u.fx.luck) l += u.fx.luck; if (has('m_comet')) l *= 2; if (chalDone('c_rush')) l *= 1.25; return l; }
+
+// ---------- monétisation (application Android uniquement ; sur le web, PT_MON n'existe pas) ----------
+const BOOST_H = 4, BOOST_MAX_H = 8, ETERNAL = 'eternal_boost';
+const MON = () => window.PT_MON;
+const eternal = () => !!(MON() && MON().owns(ETERNAL));
+const boostLeft = () => Math.max(0, (S.adBoostUntil || 0) - Date.now());
+const boostOn = () => eternal() || boostLeft() > 0;
+let offPending = 0, offUntil = 0;   // gains hors-ligne qu'une vidéo peut doubler (proposé une minute)
+function hm(ms) { const m = Math.ceil(ms / 60000); return m >= 60 ? `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')}` : `${m} min`; }
+async function watchBoost() {
+  if (!MON() || !(await MON().reward('boost'))) return;
+  S.adBoostUntil = Math.min(Date.now() + BOOST_MAX_H * 3600e3, Math.max(Date.now(), S.adBoostUntil || 0) + BOOST_H * 3600e3);
+  toast(t('sf.boostOn')); flash = 0.4; save(); refresh(true);
+}
+async function watchOffline() {
+  const v = offPending;
+  if (!v || !MON() || !(await MON().reward('offline'))) return;
+  earn(v); offPending = 0; toast(t('sf.offDoubled', { v: fmt(v) })); save(); refresh(true);
+}
 
 // ---------- actions ----------
 function earn(v) { S.dust += v; S.runTotal += v; S.lifeTotal += v; }
@@ -219,7 +239,7 @@ function buyMeta(m) {
 }
 // Repart de zéro en gardant tout ce qui est permanent (utilisé par Supernova et par les défis).
 function resetRun(extra) {
-  const keep = { novaTotal: S.novaTotal, novaBank: S.novaBank, meta: S.meta, ach: S.ach, prestiges: S.prestiges, lifeTotal: S.lifeTotal, lifeClicks: S.lifeClicks, lifeComets: S.lifeComets, chalDone: S.chalDone || {}, sing: S.sing || 0, singBank: S.singBank || 0, gal: S.gal || {}, bigbangs: S.bigbangs || 0, ...extra };
+  const keep = { novaTotal: S.novaTotal, novaBank: S.novaBank, meta: S.meta, ach: S.ach, prestiges: S.prestiges, lifeTotal: S.lifeTotal, lifeClicks: S.lifeClicks, lifeComets: S.lifeComets, chalDone: S.chalDone || {}, sing: S.sing || 0, singBank: S.singBank || 0, gal: S.gal || {}, bigbangs: S.bigbangs || 0, adBoostUntil: S.adBoostUntil || 0, ...extra };   // le boost vidéo survit aux Supernovae
   const kept = {};
   if (has('m_keep')) for (const k of ['click0', 'click1', 'click2']) if (S.upg[k]) kept[k] = 1;
   S = Object.assign(fresh(), keep); S.upg = kept;
@@ -534,7 +554,13 @@ function refresh(structural) {
   $('sf-dust').textContent = fmt(S.dust);
   $('sf-rate').textContent = fmt(dps());
   const BN = { frenzy: [t('sf.bFrenzy'), ''], click: [t('sf.bClick'), ''], meteor: [t('sf.bMeteor'), 'met'], eclipse: [t('sf.bEclipse'), 'ecl'] };
-  $('sf-buffs').innerHTML = S.buffs.map(b => `<span class="${BN[b.type][1]}">${BN[b.type][0]} · ${Math.ceil(b.t)} s</span>`).join('');
+  $('sf-buffs').innerHTML = (eternal() ? `<span class="met">${t('sf.eternalBuff')}</span>` : boostLeft() > 0 ? `<span class="met">${t('sf.boostBuff', { t: hm(boostLeft()) })}</span>` : '') + S.buffs.map(b => `<span class="${BN[b.type][1]}">${BN[b.type][0]} · ${Math.ceil(b.t)} s</span>`).join('');
+  const canAd = !!(MON() && MON().canReward());
+  $('sf-adboost').classList.toggle('hidden', !canAd || eternal() || boostLeft() > (BOOST_MAX_H - BOOST_H) * 3600e3);
+  $('sf-adboost').textContent = boostLeft() > 0 ? t('sf.adBoostMore') : t('sf.adBoost');
+  if (offPending && Date.now() > offUntil) offPending = 0;
+  $('sf-offdouble').classList.toggle('hidden', !canAd || !offPending);
+  if (offPending) $('sf-offdouble').textContent = t('sf.offDouble', { v: fmt(offPending) });
   $('sf-click').textContent = fmt(clickValue());
   const g = novaGain();
   $('sf-nova-gain').textContent = fmt(g); $('sf-nova-have').textContent = fmt(S.novaBank) + (S.novaTotal !== S.novaBank ? t('sf.earned', { n: fmt(S.novaTotal) }) : '');
@@ -629,6 +655,9 @@ document.querySelectorAll('#sf-buymult button').forEach(b => b.onclick = () => {
 $('sf-prestige').onclick = prestige;
 $('sf-intro-ok').onclick = () => { $('sf-intro').classList.add('hidden'); try { localStorage.setItem('starforge.intro', '1'); } catch (e) {} };
 $('sf-chal-quit').onclick = () => quitChal(false);
+$('sf-adboost').onclick = watchBoost;
+$('sf-offdouble').onclick = watchOffline;
+window.addEventListener('pt-owned', () => refresh(true));
 // langue : le HTML se traduit tout seul, le panneau ouvert est reconstruit
 applyI18n();
 window.addEventListener('pt-lang', () => { if (built) build(); });
@@ -671,7 +700,7 @@ function load() {
     const away = Math.min(8 * 3600, (Date.now() - (d.last || Date.now())) / 1000);
     if (away > 30) {
       const v = dps() * away * (has('m_off') ? 1 : 0.25);
-      if (v > 0) { earn(v); setTimeout(() => toast(t('sf.away', { v: fmt(v) })), 300); }
+      if (v > 0) { earn(v); setTimeout(() => toast(t('sf.away', { v: fmt(v) })), 300); if (away > 300) { offPending = v; offUntil = Date.now() + 60000; } }
     }
   } catch (e) {}
 }
@@ -710,4 +739,4 @@ window.GAMES.forge = {
   hide() { visible = false; hideTip(); save(); },
 };
 // Accès de test (tools/sf-balance.mjs, console).
-window.__sf = { fmt, get S() { return S; }, get comet() { return comet; }, spawnComet, catchComet, set S(v) { S = v; }, tick, buyGen, buyUpg, UPGRADES, GENS, costN, upgCost, dps, clickValue, novaGain, earn, fresh, resetRun, META, buyMeta, setMult: m => { buyMult = m; } };
+window.__sf = { fmt, boostOn, get offPending() { return offPending; }, set offPending(v) { offPending = v; offUntil = Date.now() + 60000; }, watchBoost, watchOffline, get S() { return S; }, get comet() { return comet; }, spawnComet, catchComet, set S(v) { S = v; }, tick, buyGen, buyUpg, UPGRADES, GENS, costN, upgCost, dps, clickValue, novaGain, earn, fresh, resetRun, META, buyMeta, setMult: m => { buyMult = m; } };

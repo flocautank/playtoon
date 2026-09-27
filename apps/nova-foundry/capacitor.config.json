@@ -1,0 +1,11 @@
+{
+  "appId": "io.github.flocautank.novafoundry",
+  "appName": "Nova Foundry",
+  "webDir": "www",
+  "backgroundColor": "#0b0a1f",
+  "android": { "allowMixedContent": false },
+  "plugins": {
+    "SplashScreen": { "launchAutoHide": false, "backgroundColor": "#0b0a1f", "showSpinner": false },
+    "StatusBar": { "backgroundColor": "#0b0a1f", "style": "DARK", "overlaysWebView": false }
+  }
+}

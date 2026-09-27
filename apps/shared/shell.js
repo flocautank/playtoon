@@ -29,7 +29,8 @@ const SETTINGS = `
 </div>
 <div class="pt-toasts" id="pt-toasts"></div>`;
 
-// opts : { game: clé de window.GAMES, gearHost: id de l'élément qui reçoit ⚙ (sinon bouton flottant),
+// opts : { game: clé de window.GAMES, gearHost: sélecteur CSS de l'élément qui reçoit le bouton (sinon bouton flottant),
+//          gearIcon (⚙ par défaut),
 //          mon: objet de createMon, version, music: true si le jeu a une musique, onBack?: () => bool }
 export async function initShell(opts) {
   document.body.insertAdjacentHTML('beforeend', SETTINGS);
@@ -44,8 +45,8 @@ export async function initShell(opts) {
   });
 
   const { mon } = opts;
-  const gear = document.createElement('button'); gear.id = 'bq-gear'; gear.textContent = '⚙'; gear.setAttribute('aria-label', 'Settings');
-  const host = opts.gearHost && $(opts.gearHost);
+  const gear = document.createElement('button'); gear.id = 'bq-gear'; gear.textContent = opts.gearIcon || '⚙'; gear.setAttribute('aria-label', 'Settings');
+  const host = opts.gearHost && document.querySelector(opts.gearHost);
   if (host) host.appendChild(gear); else { gear.classList.add('bq-gear-float'); document.body.appendChild(gear); }
 
   function openSettings() {

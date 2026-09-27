@@ -12,4 +12,4 @@ const mon = createMon({
   noAdsSku: 'remove_ads',
   interstitial: { first: 5 * 60e3, gap: 4 * 60e3, every: 3 },   // jamais les 5 premières minutes, au plus toutes les 4 min, une pause sur trois
 });
-initShell({ game: 'blocks', gearHost: 'bp-boost', mon, version: CONFIG.version });
+initShell({ game: 'blocks', gearHost: '#bp-boost', mon, version: CONFIG.version });
