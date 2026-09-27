@@ -238,6 +238,9 @@ const DICT = {
   },
 };
 
+// chaque jeu apporte son propre dictionnaire (js/lang/<jeu>.js) : { en: {...}, fr: {...}, ... }
+export function addStrings(d) { for (const l of Object.keys(d)) DICT[l] = Object.assign(DICT[l] || {}, d[l]); }
+
 function detect() {
   try { const l = localStorage.getItem(KEY); if (l && DICT[l]) return l; } catch (e) {}
   for (const l of navigator.languages || [navigator.language || 'en']) { const b = String(l).slice(0, 2).toLowerCase(); if (DICT[b]) return b; }
