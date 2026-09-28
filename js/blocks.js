@@ -20,6 +20,7 @@ const SHAPES = [
   [[[0, 0], [1, 0], [1, 1], [2, 1]], 2], [[[1, 0], [2, 0], [0, 1], [1, 1]], 2], [[[0, 0], [0, 1], [1, 1], [1, 2]], 2], [[[1, 0], [1, 1], [0, 1], [0, 2]], 2],
   [[[0, 0], [1, 1]], 1], [[[1, 0], [0, 1]], 1], [[[0, 0], [1, 1], [2, 2]], 0.8], [[[2, 0], [1, 1], [0, 2]], 0.8],
 ];
+let overTimer = 0, resTimer = 0;   // minuteries des écrans de fin (annulées au changement de mode)
 const ADV_TOOLS = 2;   // boosters par tentative de niveau d'Aventure
 const STONE = '#7d7f9c', STONE2 = '#4b4d6e', STONEC = '#7d7f9d';   // STONEC : pierre dure déjà fissurée (un effacement de plus)   // pierre dure (Aventure, niveau 9+) : il faut l'effacer deux fois
 // Thèmes : la couleur de base d'une pièce (indice dans COLORS) est remappée à l'affichage.
@@ -68,7 +69,7 @@ try { const c = localStorage.getItem('blocparty.coins'); if (c !== null) COINS =
 const saveCoins = () => { try { localStorage.setItem('blocparty.coins', COINS); } catch (e) {} paintBoost(); };
 function paintBoost() {
   $('bp-coins').textContent = COINS;
-  document.querySelectorAll('#bp-boost button').forEach(b => { b.classList.toggle('on', b.dataset.tool === tool); b.classList.toggle('no', (COINS < TOOLS[b.dataset.tool] && !(S.freeTool && b.dataset.tool === 'hammer')) || (S.mode === 'adv' && (S.toolsUsed || 0) >= ADV_TOOLS)); });
+  document.querySelectorAll('#bp-boost button[data-tool]').forEach(b => { b.classList.toggle('on', b.dataset.tool === tool); b.classList.toggle('no', (COINS < TOOLS[b.dataset.tool] && !(S.freeTool && b.dataset.tool === 'hammer')) || (S.mode === 'adv' && (S.toolsUsed || 0) >= ADV_TOOLS)); });
 }
 try { ADV = Object.assign(ADV, JSON.parse(localStorage.getItem('blocparty.adv') || '{}')); } catch (e) {}
 const saveAdv = () => { try { localStorage.setItem('blocparty.adv', JSON.stringify(ADV)); } catch (e) {} };
@@ -92,7 +93,7 @@ function load() {
     const d = JSON.parse(localStorage.getItem('blocparty.save') || 'null');
     S.best = +(localStorage.getItem('blocparty.best') || 0);
     if (d && d.board && d.board.length === N) {
-      S.board = d.board; S.tray = d.tray; S.score = d.score; S.shown = d.score; S.combo = d.combo || 0;
+      S.board = d.board; S.tray = d.tray; S.score = d.score; S.shown = d.score; S.combo = d.combo || 0; S.contN = d.contN || 0; S.placed = d.placed || 0;
       return true;
     }
   } catch (e) {}
@@ -104,7 +105,7 @@ function save() {
   try {
     localStorage.setItem('blocparty.best', S.best);
     if (S.over) localStorage.removeItem('blocparty.save');
-    else localStorage.setItem('blocparty.save', JSON.stringify({ board: S.board, tray: S.tray, score: S.score, combo: S.combo }));
+    else localStorage.setItem('blocparty.save', JSON.stringify({ board: S.board, tray: S.tray, score: S.score, combo: S.combo, contN: S.contN || 0, placed: S.placed || 0 }));
   } catch (e) {}
 }
 
@@ -193,7 +194,7 @@ function clearSpace() {
 }
 
 function newGame() {
-  clearTimeout(overTimer); S.contN = 0; S.placed = 0;
+  clearTimeout(overTimer); clearTimeout(resTimer); S.contN = 0; S.placed = 0;
   S.mode = 'classic'; rnd = Math.random; S.gems.clear();
   S.board = Array.from({ length: N }, () => Array(N).fill(null));
   S.score = 0; S.shown = 0; S.combo = 0; S.over = false; S.fx = []; S.pops = []; S.clearing = []; S.vidCont = false;
@@ -235,7 +236,7 @@ function genLevel(n) {
   return { board, gems: type === 'gems' ? gems : new Set(), goal: { type, gems: type === 'gems' ? gemsN : 0, target, moves } };
 }
 function startLevel(n) {
-  clearTimeout(overTimer); S.contN = 0; S.vidCont = false;
+  clearTimeout(overTimer); clearTimeout(resTimer); S.contN = 0; S.vidCont = false;
   const L0 = genLevel(n);
   S.mode = 'adv'; S.lvl = n; S.goal = L0.goal; S.moves = L0.goal.moves; S.gems = L0.gems; S.got = 0; S.lines = 0; S.rescue = n >= 9 ? 2 : 1; S.moreBought = false; S.toolsUsed = 0; S.gain = 0;
   S.used = 0; S.board = L0.board; S.score = 0; S.shown = 0; S.combo = 0; S.over = false; S.fx = []; S.pops = []; S.clearing = [];
@@ -257,7 +258,7 @@ function advResult(win) {
     S.gain = stars > prev ? (stars - prev) * 10 : 0;
     if (S.gain) { COINS += S.gain; saveCoins(); }
   }
-  setTimeout(() => {
+  clearTimeout(resTimer); resTimer = setTimeout(() => {
     const close = S.goal.type === 'gems' ? S.got >= S.goal.gems - 1 : S.lines >= S.goal.target - 1;
     $('bp-restitle').textContent = win ? t('bp.levelWon', { n: S.lvl }) : close ? t('bp.failClose') : t('bp.fail');
     $('bp-resstars').innerHTML = [1, 2, 3].map(k => k <= stars ? '★' : '<i>★</i>').join('');
@@ -280,7 +281,7 @@ let DAILY = { day: 0, best: 0, streak: 0, last: 0 };
 try { DAILY = Object.assign(DAILY, JSON.parse(localStorage.getItem('blocparty.daily') || '{}')); } catch (e) {}
 const saveDaily = () => { try { localStorage.setItem('blocparty.daily', JSON.stringify(DAILY)); } catch (e) {} };
 function startDaily() {
-  clearTimeout(overTimer); S.contN = 0;
+  clearTimeout(overTimer); clearTimeout(resTimer); S.contN = 0;
   const today = dayKey();
   if (DAILY.day !== today) {
     const y = new Date(); y.setDate(y.getDate() - 1);
@@ -326,7 +327,7 @@ const CHRONO_T = 120;
 let TOP = [];
 try { TOP = JSON.parse(localStorage.getItem('blocparty.chrono') || '[]'); } catch (e) {}
 function startChrono() {
-  clearTimeout(overTimer);
+  clearTimeout(overTimer); clearTimeout(resTimer);
   S.mode = 'chrono'; rnd = Math.random; S.gems = new Set(); S.clock = CHRONO_T; S.chronoT = 0; S.myRank = -1;
   S.board = Array.from({ length: N }, () => Array(N).fill(null));
   S.score = 0; S.shown = 0; S.combo = 0; S.over = false; S.fx = []; S.pops = []; S.clearing = [];
@@ -474,7 +475,6 @@ function place(idx, gx, gy) {
   save(); updateHUD();
 }
 
-let overTimer = 0;
 const armOver = ms => { clearTimeout(overTimer); overTimer = setTimeout(gameOver, ms); };
 function gameOver() {
   S.over = true;
@@ -486,7 +486,7 @@ function gameOver() {
     top.innerHTML = TOP.map((e, i) => `<li class="${i === S.myRank ? 'me' : ''}">${num(e.s)} <span class="muted">· ${e.d}</span></li>`).join('');
   } else if (S.mode === 'daily') $('bp-newbest').textContent = t('bp.dailyEnd', { date: todayLabel(), best: num(DAILY.best), n: DAILY.streak });
   else $('bp-newbest').textContent = S.score >= S.best && S.score > 0 ? t('bp.newRecord') : t('bp.record', { n: num(S.best) });
-  $('bp-cont').classList.toggle('hidden', COINS < contCost() || S.mode === 'chrono' || (S.mode === 'daily' && S.contN));
+  $('bp-cont').classList.toggle('hidden', COINS < contCost() || S.mode === 'chrono' || (S.mode === 'daily' && dailyContUsed()));
   $('bp-cont').textContent = t('bp.contBooster', { n: contCost() });
   $('bp-vidcont').classList.toggle('hidden', S.mode === 'chrono' || S.vidCont || !MON.canReward());
   $('bp-over').classList.remove('hidden');
@@ -814,7 +814,8 @@ const resume = id => {
   clearSpace();
   S.pops.length = 0; S.pops.push({ text: t('bp.spaceCleared'), sub: t('bp.keepGoing'), t: 0 }); updateHUD(); save();
 };
-const payResume = id => { const c = contCost(); if (COINS < c || (S.mode === 'daily' && S.contN)) return; COINS -= c; S.contN = (S.contN || 0) + 1; saveCoins(); resume(id); };
+const payResume = id => { const c = contCost(); if (COINS < c || (S.mode === 'daily' && dailyContUsed())) return; COINS -= c; S.contN = (S.contN || 0) + 1; if (S.mode === 'daily') { DAILY.cont = DAILY.day; saveDaily(); } saveCoins(); resume(id); };
+const dailyContUsed = () => DAILY.cont === DAILY.day;
 $('bp-cont').onclick = () => payResume('bp-over');
 $('bp-rescont').onclick = () => payResume('bp-res');
 const MORE_COST = 25;

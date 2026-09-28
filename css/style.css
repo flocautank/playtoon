@@ -343,3 +343,5 @@ main{position:fixed;inset:var(--nav-h) 0 0 0}
 /* Synth Horde : noms longs de la boutique sur deux lignes plutôt que tronqués ; annonces longues bornées en largeur */
 .nb-sh b{white-space:normal;line-height:1.2}
 @media (max-height:500px) and (orientation:landscape){.nb-msg{max-width:56vw;white-space:normal;line-height:1.15}}
+/* notifications en haut (sous la barre) : en bas, elles couvraient les boosters de Block Quarry et le joystick */
+.pt-toasts{bottom:auto;top:calc(env(safe-area-inset-top, 0px) + 58px)}

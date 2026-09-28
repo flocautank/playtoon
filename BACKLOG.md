@@ -29,6 +29,10 @@ headless (`node tools/smoke.mjs`, zéro erreur console, captures relues), pouss�
 
 ## Fait
 
+- **Itération E18** (2026-09-28, évaluation n° 6 : verdict « non » pour Block Quarry, restes mineurs) — minuterie de
+  l'écran de résultat d'Aventure annulée au changement de mode ; reprise payante du défi du jour une fois **par jour** ;
+  prix de reprise et compteur de pièces sauvegardés avec la partie classique ; roue des réglages hors du grisage des
+  boosters ; notifications en haut de l'écran (elles couvraient les boosters) ; libellé français raccourci.
 - **Itération E17** (2026-09-28, évaluation n° 5) — Block Quarry 1.3.0 : **courbe d'Aventure lissée** — pierres dures
   présentées une à une (1, 2, 3 aux niveaux 9–11, +4 coups, 2 tirages de secours dès le niveau 9 : le mur des niveaux
   9–11 disparaît) et niveaux « lignes » resserrés de 20 % dès le niveau 16 (bot : 37/40, plus de ★3 faciles) ; **records

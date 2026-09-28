@@ -75,7 +75,7 @@ const DICT = {
     'bp.spaceCleared': 'Place libérée !', 'bp.keepGoing': 'continue', 'bp.toolLimit': '{n} boosters max par niveau', 'bp.modesTitle': 'Modes de jeu',
     'bp.hardTitle': 'Pierres dures', 'bp.hardSub': "les pierres sombres s'effacent en deux fois", 'bp.streak': '🔥 Série ×{n}', 'bp.loginTitle': 'Bonus du jour · jour {n}',
     'bp.pickCell': 'Choisis une case', 'bp.pickCellSub': 'à casser', 'bp.plus3': '+3 coups', 'bp.lastChance': 'dernière chance !',
-    'bp.contBooster': '💥 Dégager la grille et continuer · 🪙 {n}', 'bp.again': 'Rejouer', 'bp.modesBtn': '🗺️ Modes',
+    'bp.contBooster': '💥 Dégager et continuer · 🪙 {n}', 'bp.again': 'Rejouer', 'bp.modesBtn': '🗺️ Modes',
     'bp.adventure': 'Aventure', 'bp.advHelp': 'Récupère les 💎 en effaçant les lignes qui les contiennent, ou efface le nombre de lignes demandé, avant la fin des coups. Moins tu utilises de coups, plus tu gagnes d’étoiles.',
     'bp.scrollHint': '↕ 40 niveaux : fais défiler la carte', 'bp.dailyBtn': '🎯 Défi du jour', 'bp.chronoBtn': '⏱ Chrono 2 min', 'bp.chronoBtnSub': '+1,5 s par ligne effacée',
     'bp.classic': 'Partie classique (sans fin)', 'close': 'Fermer',
