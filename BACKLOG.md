@@ -15,9 +15,7 @@ headless (`node tools/smoke.mjs`, zéro erreur console, captures relues), pouss�
 
 *Évaluation n° 4 (un sous-agent joueur par jeu, web + appli Android, 2026-09-27).*
 
-- **Block Quarry — reste à faire** (après E10) : nouvelles mécaniques d'Aventure tous les ~8 niveaux (cases verrouillées,
-  pierres à deux coups, objectifs de couleur) et coffres d'étoiles sur la carte ; raisons de revenir (récompense de
-  connexion / série, défi du jour à un seul essai compté) ; retour de combo plus fort (jauge de série, effets croissants).
+- **Block Quarry — reste à faire** (après E12) : coffres d'étoiles sur la carte ; objectifs de couleur ; défi du jour à un seul essai compté (choix de design, à trancher).
 - **Nova Foundry** : *(rapport attendu)*
 - **Synth Horde** : *(rapport attendu)*
 
@@ -31,6 +29,10 @@ headless (`node tools/smoke.mjs`, zéro erreur console, captures relues), pouss�
 
 ## Fait
 
+- **Itération E12** (2026-09-27) — Block Quarry 1.2.0 : **pierres dures** en Aventure dès le niveau 9 (sombres, fissurées ;
+  la première ligne effacée les fissure, la seconde les brise ; les boosters les fissurent seulement ; 15 → 45 % des
+  pierres selon le niveau, coups ajustés ; présentées au niveau 9 ; bot : 37/40) ; **bonus de connexion** quotidien
+  10 → 40 🪙 selon la série de jours ; **série de combos** visible au-dessus de la grille (badge qui grossit, étincelles en plus).
 - **Itération E10** (2026-09-27, évaluation n° 4) — Block Quarry 1.1.0 : **reprises payantes garanties** — « +3 coups »
   (pièces ou vidéo) redonne des pièces qui rentrent quand la grille est bloquée (la partie restait figée) ; « Continuer »
   (15 🪙 ou vidéo) dégage la zone 3×3 la plus pleine et donne trois pièces qui rentrent, au lieu d'un marteau à viser qui
