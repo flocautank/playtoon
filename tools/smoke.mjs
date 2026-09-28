@@ -421,13 +421,40 @@ await m.tap('#nb-start'); await m.waitForTimeout(1500); await shot(m, 'm-bonk-pl
   log('mobile joystick sur le cercle : déplacements', res.join(' / '), res.every(d => d > 5) ? 'OK' : 'ÉCHEC');
 }
 await m.evaluate(() => { const S = window.__nb.S; S.xp = S.need * 1.01; window.__nb.update(1 / 30); });
-await m.waitForTimeout(400); await shot(m, 'm-bonk-levelup');
+await m.waitForTimeout(650); await shot(m, 'm-bonk-levelup');   // > verrou de 0,4 s des cartes
 const visibleCards = await m.$$eval('.nb-choice', els => els.filter(e => { const r = e.getBoundingClientRect(); return r.bottom <= innerHeight && r.top >= 0; }).length);
 const rerollVisible = await m.$eval('#nb-reroll', e => { const r = e.getBoundingClientRect(); return r.bottom <= innerHeight; });
 await m.tap('.nb-choice'); await m.waitForTimeout(300);
 await m.tap('#nb-pausebtn'); await m.waitForTimeout(300);
 log(`mobile Synth Horde : cartes visibles=${visibleCards}/3 · « Reroll » visible=${rerollVisible} · pause au bouton=${await m.evaluate(() => window.__nb.S.state)}`);
 await shot(m, 'm-bonk-pause');
+
+// téléphone en paysage (application Android) : pause, annonces et écran de fin tiennent dans l'écran
+{
+  const ctxL = await browser.newContext({ viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+  const L = await guard(await ctxL.newPage()); watch(L, 'paysage');
+  await L.goto(base + '#bonk'); await L.waitForTimeout(900);
+  const inView = sel => L.$eval(sel, e => { const r = e.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight && r.left >= 0 && r.right <= innerWidth; });
+  const chars = await L.$eval('#nb-chars', e => e.getBoundingClientRect().bottom), startTop = await L.$eval('#nb-start', e => e.getBoundingClientRect().top);
+  const shopJ = await inView('#nb-shopjump');
+  await L.tap('#nb-start'); await L.waitForTimeout(800);
+  const lock = await L.evaluate(() => { const nb = window.__nb, S = nb.S; S.xp = S.need * 1.01; nb.update(1 / 30); const lvl = S.level; document.querySelector('.nb-choice').click(); return S.state === 'levelup' && S.level === lvl; });
+  await L.waitForTimeout(500); await L.evaluate(() => { const S = window.__nb.S; while (S.state === 'levelup') window.__nb.pick(0); });
+  await L.evaluate(() => { const nb = window.__nb, S = nb.S; S.p.hp = 1e6; nb.spawnBoss(); const c = S.chests.find(c => !c.open); S.p.x = c.x; S.p.z = c.z; S.p.y = c.y; nb.update(1 / 30); nb.update(1 / 30);
+    const m = document.getElementById('nb-msg'); m.textContent = 'JUMP!'; m.classList.add('show'); });
+  await L.waitForTimeout(400);   // la classe « bossing » est posée par l'image suivante
+  const over = await L.evaluate(() => { const m = document.getElementById('nb-msg');
+    const a = m.getBoundingClientRect(), b = document.getElementById('nb-prompt').getBoundingClientRect(), k = document.getElementById('nb-boss').getBoundingClientRect();
+    return { prompt: b.height > 0, hitPrompt: a.bottom > b.top && a.top < b.bottom, hitBoss: a.top < k.bottom && a.bottom > k.top }; });
+  await L.tap('#nb-pausebtn'); await L.waitForTimeout(300); await shot(L, 'l-bonk-pause');
+  const res = await inView('#nb-resume'), quit = await inView('#nb-quit');
+  await L.tap('#nb-quit'); await L.waitForTimeout(300); await shot(L, 'l-bonk-end');
+  const again = await inView('#nb-again');
+  const ok = chars <= startTop && shopJ && lock && over.prompt && !over.hitPrompt && !over.hitBoss && res && quit && again;
+  log(`paysage 844×390 : personnages au-dessus du bouton=${chars <= startTop} · raccourci boutique=${shopJ} · verrou des cartes=${lock} · annonce hors invite=${!over.hitPrompt} et hors boss=${!over.hitBoss} · Reprendre/Abandonner visibles=${res}/${quit} · fin visible=${again}`, ok ? 'OK' : 'ÉCHEC');
+  if (!ok) errs.push('[paysage] mise en page Synth Horde');
+  await ctxL.close();
+}
 
 await browser.close(); srv.close();
 if (errs.length) { console.error('ERREURS :\n' + errs.join('\n')); process.exit(1); }

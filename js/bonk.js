@@ -21,7 +21,7 @@ const RUN_TIME = 600;      // 10 minutes
 const MAX_ENEMIES = 420;
 // téléphones : foule et particules plafonnées plus bas (coût GPU/CPU), rien ne change sur ordinateur
 const enemyCap = () => TOUCH ? 250 : MAX_ENEMIES;
-const GUN_CAP = 6;          // balles de tireurs (hors élites) en vol en même temps, au plus
+const GUN_CAP = 8;          // balles de tireurs (hors élites) en vol en même temps, au plus
 
 // ============================================================ données
 const RAR = [
