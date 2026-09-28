@@ -13,22 +13,19 @@ headless (`node tools/smoke.mjs`, zéro erreur console, captures relues), pouss�
 
 ## À faire (ordre de priorité)
 
-*Évaluation n° 4 (un sous-agent joueur par jeu, web + appli Android, 2026-09-27).*
+*Évaluations n° 6 (Block Quarry, Nova Foundry) et n° 7 (Synth Horde), 2026-09-28 : verdict « non » pour les trois jeux —
+plus rien qui vaille une itération d'après des sous-agents joueurs. **Boucle arrêtée.** Ce qui reste ne peut être tranché
+que par de vrais joueurs sur de vrais appareils :*
 
-- **Block Quarry — reste à faire** (après E12) : coffres d'étoiles sur la carte ; objectifs de couleur ; défi du jour à un seul essai compté (choix de design, à trancher).
-- **Nova Foundry — reste à faire** (après E14) : *(rien de signalé ; à revoir à l'évaluation n° 5)*
-- **Synth Horde — reste à faire** (après E11) : révélation du contenu des coffres (carte animée) ; runs plus courtes / sauvegarde en cours de run pour le mobile (choix de design) ; réglage qualité manuel.
-
-*Évaluation n° 3 (sous-agent joueur, 2026-09-25, desktop + iPhone 13) — un bloquant (joystick mobile), le reste en finitions ; corrections des évaluations 1 et 2 confirmées. Verdict : une fois le joystick corrigé, plus rien qui vaille une itération → fin de la boucle.*
-
-*(vide)*
-
-*Feuille de route (après les retours d'évaluation).*
-
-*(vide)*
+- ressenti de la difficulté et de l'économie (Aventure de Block Quarry, défis et fin de partie de Nova Foundry, Chaleur de Synth Horde) ;
+- performances de Synth Horde sur un Android d'entrée de gamme ;
+- Synth Horde : gemmes laissées en hauteur en fin d'étape 2–3 par un bot — à confirmer par un humain (sinon, aimant périodique) ;
+- Nova Foundry : puits de Novae après la Constellation pour les joueurs de plus de 10 h (optionnel).
 
 ## Fait
 
+- **Itération E21** (2026-09-28, évaluation n° 7 : verdict « non ») — notifications retenues aussi pendant les choix de
+  niveau de Synth Horde (elles couvraient les cartes).
 - **Itération E20** (2026-09-28, évaluation n° 6 : verdict « oui » pour Synth Horde) — Synth Horde 1.3.0 : **fusion des gemmes
   près de l'action** — au-delà de 850 objets au sol, l'XP d'un ennemi s'ajoutait à une gemme quelconque (souvent à 90 m) :
   niveau bloqué ~8 min puis 36 choix d'affilée ; désormais gemme voisine (6 m), sinon la plus lointaine cède sa valeur à
