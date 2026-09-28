@@ -163,7 +163,7 @@ const SHOP = [
 ];
 const shopLvl = id => (META.shop && META.shop[id]) || 0;
 const shopCost = it => Math.round(it.base * Math.pow(1.8, shopLvl(it.id)));
-function runCredits(S) { return Math.floor((S.kills / 15 + S.t / 10 + S.level * 2 + (S.stage || 0) * 120 + (S.bossDead ? 100 : 0) + (S.won ? 80 : 0)) * (1 + 0.25 * (S.heat || 0))); }
+function runCredits(S) { return Math.floor(((S.gold || 0) / 40 + S.kills / 15 + S.t / 10 + S.level * 2 + (S.stage || 0) * 120 + (S.bossDead ? 100 : 0) + (S.won ? 80 : 0)) * (1 + 0.25 * (S.heat || 0))); }
 // Chaleur (Heat) 1–5 : débloquée par une première victoire ; chaque cran ajoute PV, dégâts et cadence d'apparition, et rapporte plus de crédits.
 const HEAT_MAX = 5;
 const heatWon = id => { const h = META.heatWon && META.heatWon[id]; return typeof h === 'number' ? h : -1; };
@@ -807,10 +807,11 @@ function spawning(dt) {
   const cap = Math.min(TOUCH ? 250 : 300, 70 + m * 36);   // au-delà, la foule devient illisible (et lourde sur mobile)
   rate = Math.min(rate, 22) * heatRate();
   if (S.boss) rate *= 0.5;
+  if (S.bossDead) rate *= 0.12;   // portail ouvert : accalmie jusqu'au passage
   rate *= 1 + 0.25 * (S.greed || 0);
   S.spawnAcc += rate * dt;
   while (S.spawnAcc >= 1) { S.spawnAcc--; if (S.enemies.length < cap) spawnAround(pickType(), 26, 42); }
-  if (S.t >= S.nextSwarm && !S.boss) {
+  if (S.t >= S.nextSwarm && !S.boss && !S.bossDead) {
     S.nextSwarm += 75;
     const n = Math.min(60, 18 + m * 5), type = m > 3 ? 'spike' : 'drone';
     for (let i = 0; i < n; i++) { const a = i / n * TAU; const x = S.p.x + Math.cos(a) * 24, z = S.p.z + Math.sin(a) * 24; if (Math.abs(x) < HALF - 2 && Math.abs(z) < HALF - 2) spawnEnemy(type, x, z); }
@@ -937,6 +938,8 @@ function hurt(d, src = '?') {
   S.p.hp -= d; S.iframe = 0.7; S.hurtFlash = 1; sfx('hurt');
   (S.hurtBy = S.hurtBy || {})[src] = (S.hurtBy[src] || 0) + d;   // statistiques d'équilibrage
   S.lastHurt = src;   // « tué par … » sur l'écran de fin
+  (S.recentHurt = S.recentHurt || []).push({ t: S.t, src, d });
+  if (S.recentHurt.length > 80) S.recentHurt = S.recentHurt.filter(h => S.t - h.t <= 8);
   if (navigator.vibrate) navigator.vibrate(40);
   if (S.p.hp <= 0) {
     if (S.revives > 0) { S.revives--; revive(); }
@@ -1296,7 +1299,11 @@ function buildChoices(mode) {
     if (c.kind === 'wup') c.ups = makeWeaponUpgrade(S.weapons.find(w => w.id === c.id), c.rar);
     out.push(c);
   }
-  while (out.length < 3) out.push({ kind: out.length % 2 ? 'gold' : 'heal', rar: 0 });
+  // build complet (ou presque) : bonus de caractéristiques distincts, un soin seulement si les PV sont bas
+  if (out.length < 3 && S.p.hp < S.stats.hp * 0.4) out.push({ kind: 'heal', rar: 0 });
+  const statKeys = Object.keys(TOMES).filter(k => k !== 'multi');
+  for (let g = 0; out.length < 3 && g < 50; g++) { const k = statKeys[(Math.random() * statKeys.length) | 0]; if (used.has(k)) continue; used.add(k); out.push({ kind: 'stat', key: k, rar: rollRarity() }); }
+  while (out.length < 3) out.push({ kind: 'gold', rar: 0 });
   return out;
 }
 function choiceHTML(c) {
@@ -1474,7 +1481,7 @@ function nextStage() {
   let gems = 0; for (const k of S.pickups) if (k.type === 'gem') gems += k.v * S.stats.xp;
   const room = Math.max(0, S.need - S.xp) + xpNeed(S.level + 1) - 0.01, take = Math.min(gems, room);
   S.xp += take;
-  const portalGold = Math.round((gems - take) / S.stats.xp / 4);
+  const portalGold = Math.round((gems - take) / S.stats.xp / 10);
   S.gold += portalGold;
   S.rings.forEach(r => { if (r.mesh) { scene.remove(r.mesh); if (!r.hostile) r.mesh.material.dispose(); } });
   S.enemies = []; S.pickups = []; S.bolts = []; S.bullets = []; S.discs = []; S.rockets = []; S.mines = []; S.rings = []; S.dmgNums = [];
@@ -1552,6 +1559,9 @@ function bossDeath() {
   for (let i = 0; i < 12; i++) { const a = i / 12 * TAU, r = rand(5, 10); addPickup('gem', b.x + Math.cos(a) * r, b.y, b.z + Math.sin(a) * r, Math.ceil(bxp / 12)); }
   explode(b.x, b.y - 3, b.z, 12, 99999, [1, 0.3, 0.5]);
   levelGroup.remove(b.g); S.boss = null; S.bossDead = true;
+  // accalmie : la victoire sur le boss dégage le terrain autour du joueur, pour marcher jusqu'au portail
+  explode(S.p.x, S.p.y, S.p.z, 22, 99999, [0.5, 1, 0.9]);
+  S.bullets.length = 0;
   META.bossKills++;
   if (S.stage === 1) META.hydraKills = (META.hydraKills || 0) + 1;
   if (S.stage === 2) META.archonKills = (META.archonKills || 0) + 1;
@@ -1985,7 +1995,11 @@ function endRun(win) {
   const cr = runCredits(S); META.credits = (META.credits || 0) + cr;
   window.ptEvent && window.ptEvent('nb_time', surv);
   saveMeta();
-  const killedBy = !win && S.p.hp <= 0 && S.lastHurt ? S.lastHurt : null;
+  let killedBy = !win && S.p.hp <= 0 && S.lastHurt ? S.lastHurt : null;
+  if (killedBy && S.recentHurt) {   // la source qui a fait le plus de dégâts dans les 8 dernières secondes, pas seulement le dernier coup
+    const sum = {}; for (const h of S.recentHurt) if (S.t - h.t <= 8) sum[h.src] = (sum[h.src] || 0) + h.d;
+    killedBy = Object.keys(sum).sort((a, b) => sum[b] - sum[a])[0] || killedBy;
+  }
   S.endInfo = { surv, cr, newly: CHARS.filter(c => unlocked(c) && !before.includes(c.id)), killedBy, best: S.bestBefore > 0 && surv > S.bestBefore, heatRec, firstWin: win && META.wins === 1 };
   renderEnd();
   $('nb-pause').classList.add('hidden');   // « Abandonner » depuis la pause : l'écran de fin la remplace
@@ -2112,7 +2126,7 @@ window.addEventListener('pt-lang', () => {
   else if (S.state === 'end') renderEnd();
 });
 // Accès de débogage (console) à l'état de la run.
-window.__nb = { get S() { return S; }, get camDist() { return camDist; }, update, pick, keys, interact, jump, damage, hurt, spawnEnemy, spawnBoss, nextStage, music, newRun, addWeapon, openLevelUp };
+window.__nb = { get S() { return S; }, get camDist() { return camDist; }, update, pick, keys, interact, jump, damage, hurt, spawnEnemy, spawnBoss, nextStage, music, newRun, addWeapon, openLevelUp, buildChoices, bossDeath };
 
 window.GAMES.bonk = {
   reward() { META.credits = (META.credits || 0) + 40; saveMeta(); if (!S || S.state === 'menu') try { renderMenu(); } catch (e) {} },   // objectif du jour

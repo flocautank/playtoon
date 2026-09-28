@@ -29,6 +29,13 @@ headless (`node tools/smoke.mjs`, zéro erreur console, captures relues), pouss�
 
 ## Fait
 
+- **Itération E16** (2026-09-28, évaluation n° 5) — Synth Horde 1.2.0 : **accalmie après chaque boss** (l'onde de la victoire
+  dégage 22 m autour du joueur, balles effacées, apparitions ÷8 et plus de vagues jusqu'au portail — le bot mourait dans la
+  foule entre le boss et le portail) ; **build complet** : trois bonus de caractéristiques distincts au lieu de
+  « Soin | Bourse | Soin » (un soin seulement sous 40 % de PV) ; or : portail 1 or pour 10 XP (au lieu de 4), et l'or
+  restant rapporte des crédits en fin de run (1 ◈ pour 40 or) ; cause de la mort = plus grosse source de dégâts des
+  8 dernières secondes ; noms longs de la boutique sur deux lignes, annonces bornées en largeur en paysage.
+  Bot 20 runs : médiane 7:51.
 - **Itération E15** (2026-09-28, évaluation n° 5) — Nova Foundry 1.3.0 : **les défis deviennent une vraie couche** — Novae,
   Singularités et Moteur stellaire ne comptent plus en défi (comme l'annonçait déjà la confirmation), départ avec le Pack
   de démarrage (fin du départ mort de « Mains libres », 18 min sans production), objectifs de « Pénombre » (2e6) et
