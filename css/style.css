@@ -178,7 +178,7 @@ main{position:fixed;inset:var(--nav-h) 0 0 0}
 @media (max-width:760px){
   .sf-wrap{flex-direction:column}
   .sf-left{flex:0 0 46%;padding:8px}
-  .sf-right{flex:1 1 54%;max-width:none;border-left:0;border-top:1px solid var(--line)}
+  .sf-right{flex:1 1 54%;max-width:none;border-left:0;border-top:1px solid var(--line);min-height:0}.sf-panel{min-height:0}
   .sf-dust{font-size:22px}
   .sf-prestige{padding:6px 10px}
   .sf-prestige.idle{padding:4px 10px}.sf-prestige.idle > div > b,.sf-prestige.idle .btn{display:none}   /* rien à gagner : une seule ligne */

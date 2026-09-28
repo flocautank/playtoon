@@ -18,7 +18,8 @@ const base = `http://localhost:${srv.address().port}/`;
 const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 const errs = [];
 const watch = (p, tag) => { p.on('pageerror', e => errs.push(`[${tag}] ${e.message}`)); p.on('console', m => { if (m.type() === 'error') errs.push(`[${tag}] ${m.text()}`); }); };
-const shot = (p, n) => p.screenshot({ path: path.join(shots, n + '.png') });
+// capture : une nouvelle tentative plus patiente si la machine est chargée (WebGL logiciel très lent sous charge)
+const shot = (p, n) => p.screenshot({ path: path.join(shots, n + '.png') }).catch(() => p.screenshot({ path: path.join(shots, n + '.png'), timeout: 90000 }));
 const T0 = Date.now();
 let lastStep = 'démarrage';
 const log = (...a) => { lastStep = a.join(' ').slice(0, 60); console.log(`[${((Date.now() - T0) / 1000).toFixed(0)} s]`, ...a); };
@@ -403,6 +404,13 @@ for (const t of ['blocks', 'forge', 'bonk']) {
     const before = await m.evaluate(() => Object.keys(window.__sf.S.upg).length);
     await m.tap('#sf-upg-grid .sf-upg'); await m.waitForTimeout(250);
     log('mobile : fiche au 1er toucher =', !!(await m.$('.sf-tip')) || 'fermée après achat', '· achat au 2e toucher :', before, '→', await m.evaluate(() => Object.keys(window.__sf.S.upg).length));
+    // le panneau du bas doit défiler sur téléphone (régression : colonne sans min-height:0, tout le bas inaccessible)
+    await m.evaluate(() => { const S = window.__sf.S; S.gens = S.gens.map((_, i) => 60 - i * 6); S.lifeTotal = Math.max(S.lifeTotal, 1e15); });
+    await m.tap('[data-sf=upg]'); await m.waitForTimeout(150); await m.tap('[data-sf=gen]'); await m.waitForTimeout(300);
+    const sc = await m.evaluate(() => { const e = [...document.querySelectorAll('.sf-panel')].find(x => x.offsetParent); e.scrollTop = 9999; return { top: e.scrollTop, room: e.scrollHeight - e.clientHeight, bottom: Math.round(document.querySelector('.sf-right').getBoundingClientRect().bottom), vh: innerHeight }; });
+    log('mobile : panneau des forges défilable =', sc.room <= 0 || sc.top > 0, JSON.stringify(sc));
+    if (sc.room <= 0) throw new Error('test de défilement sans objet : la liste des forges tient à l’écran');
+    if (sc.room > 0 && sc.top === 0) throw new Error('panneau Nova Foundry non défilable sur téléphone');
   }
 }
 await m.tap('#nb-start'); await m.waitForTimeout(1500); await shot(m, 'm-bonk-play');

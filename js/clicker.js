@@ -1,6 +1,6 @@
 // NOVA FOUNDRY (ex-Star Forge) — clicker à progression (forges, améliorations, paliers) et méta-progression
 // (Supernova → Novae → Constellation permanente, succès permanents).
-import { t, num, applyI18n, addStrings } from './i18n.js';
+import { t, num, applyI18n, addStrings, lang } from './i18n.js';
 import SF_EN_FR from './lang/forge.js';
 import SF_MORE from './lang/forge-more.js';
 addStrings(SF_EN_FR); addStrings(SF_MORE);
@@ -73,7 +73,7 @@ const ACH = [];
   ACH.push({ id: 'tot' + n, ic: '💰', get name() { return t('sf.ach')[i]; }, get desc() { return t('sf.aTotDesc', { n: fmt(n) }); }, test: s => s.lifeTotal >= n }));
 [100, 1000, 10000].forEach(n => ACH.push({ id: 'clk' + n, ic: '🖱️', get name() { return t('sf.reqClicks', { n: num(n) }); }, get desc() { return t('sf.aClkDesc', { n: num(n) }); }, test: s => s.lifeClicks >= n }));
 GENS.forEach((g, i) => ACH.push({ id: 'own' + i, ic: g.ic, get name() { return t('sf.aOwn', { gen: g.name }); }, get desc() { return t('sf.aOwnDesc', { gen: g.name }); }, test: s => s.gens[i] >= 50 }));
-ACH.push({ id: 'bigbang', ic: '🌌', get desc() { return t('sf.aBBDesc'); }, test: s => (s.bigbangs || 0) >= 1 });
+ACH.push({ id: 'bigbang', ic: '🌌', name: 'Big Bang', get desc() { return t('sf.aBBDesc'); }, test: s => (s.bigbangs || 0) >= 1 });
 [[1, '💥'], [5, '🌠'], [20, '🌌']].forEach(([n, ic]) => ACH.push({ id: 'pre' + n, ic, get name() { return t('sf.aPre', { n }); }, get desc() { return t('sf.aPreDesc', { n }); }, test: s => s.prestiges >= n }));
 [[1, '⭐'], [10, '🌟'], [50, '🎇']].forEach(([n, ic]) => ACH.push({ id: 'com' + n, ic, get name() { return t('sf.aCom', { n }); }, get desc() { return t('sf.aComDesc', { n }); }, test: s => s.lifeComets >= n }));
 [1e3, 1e6, 1e9].forEach(n => ACH.push({ id: 'dps' + n, ic: '⚡', name: `${fmt(n)} /s`, get desc() { return t('sf.aDpsDesc', { n: fmt(n) }); }, test: s => dps() >= n }));
@@ -105,7 +105,19 @@ i18nProps(META, 'sf.meta', ['name', 'desc']);
 i18nProps(CHALS, 'sf.chal', ['name', 'desc', 'reward']);
 i18nProps(GALAXY, 'sf.gal', ['name', 'desc']);
 const gal = id => !!(S.gal && S.gal[id]);
-const singGain = () => Math.floor(Math.sqrt(S.novaTotal / 50));
+// Plafonds doux de fin de partie : linéaire jusqu'au seuil, puis en racine carrée. Sans eux, Novae et Singularités
+// s'entretenaient l'une l'autre et la partie s'emballait en quelques minutes (tools/sf-long.mjs).
+const soft = (x, cap) => x <= cap ? x : cap * Math.sqrt(x / cap);
+const effNova = () => soft(S.novaTotal, 500);
+const effSing = (n = S.sing || 0) => soft(n, 10);
+// Moteur stellaire : puits de Singularités sans fin (×1,25 de production par niveau, coût doublé à chaque niveau)
+const ENG_BASE = 5;
+const engCost = () => ENG_BASE * Math.pow(2, S.eng || 0);
+function buyEngine() {
+  if ((S.singBank || 0) < engCost()) return false;
+  S.singBank -= engCost(); S.eng = (S.eng || 0) + 1; return true;
+}
+const singGain = () => Math.floor(soft(Math.sqrt(S.novaTotal / 50), 4));   // plafond doux au-delà de 4 par Big Bang
 const inChal = id => S.chal === id;
 const chalDone = id => !!(S.chalDone && S.chalDone[id]);
 
@@ -122,12 +134,12 @@ const has = id => !!S.meta[id];
 function fmt(n) {
   if (!isFinite(n)) return '∞';
   if (SCI && n >= 1e6) return n.toExponential(2).replace('e+', 'e');
-  if (n < 1000) return n < 10 && n % 1 ? n.toFixed(1) : Math.floor(n).toString();
+  if (n < 1000) return n < 10 && n % 1 ? n.toLocaleString(lang, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : Math.floor(n).toString();
   if (n < 1e6) return num(Math.floor(n));
   const units = ['M', 'G', 'T', 'P', 'E', 'Z', 'Y', 'R', 'Q'];
   const e = Math.floor(Math.log10(n) / 3) - 2;
   if (e >= units.length) return n.toExponential(2).replace('+', '');
-  return (n / Math.pow(1000, e + 2)).toFixed(2) + ' ' + units[e];
+  return (n / Math.pow(1000, e + 2)).toLocaleString(lang, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ' + units[e];
 }
 
 // ---------- calculs ----------
@@ -142,11 +154,12 @@ const novaPct = () => has('m_nova') ? 0.08 : 0.05;
 function globalMult() {
   let m = 1;
   for (const u of UPGRADES) if (S.upg[u.id] && u.fx.global) m *= u.fx.global;
-  m *= 1 + S.novaTotal * novaPct();
+  m *= 1 + effNova() * novaPct();
   m *= 1 + Object.keys(S.ach).length * (has('m_ach') ? 0.03 : 0.01);
   if (has('m_sing')) m *= 3;
   if (chalDone('c_hands')) m *= 1.5;
-  m *= 1 + (S.sing || 0) * (gal('g_big') ? 0.2 : 0.1);
+  m *= 1 + effSing() * (gal('g_big') ? 0.2 : 0.1);
+  if (S.eng) m *= Math.pow(1.25, S.eng);
   if (inChal('c_dim')) m *= 0.1;
   if (boostOn()) m *= 2;   // vidéo « ×2 pendant 4 h » ou achat « Moteur éternel » (application)
   for (const b of S.buffs) { if (b.type === 'frenzy') m *= 7; else if (b.type === 'meteor') m *= 77; else if (b.type === 'eclipse') m *= 2; }
@@ -160,7 +173,7 @@ function clickValue() {
   for (const u of UPGRADES) if (S.upg[u.id] && u.fx.click) c *= u.fx.click;
   if (has('m_click')) c *= 3;
   let pct = 0; for (const u of UPGRADES) if (S.upg[u.id] && u.fx.clickPct) pct += u.fx.clickPct;
-  c = c * (1 + S.novaTotal * 0.03) + dps() * pct;
+  c = c * (1 + effNova() * 0.03) + dps() * pct;
   for (const b of S.buffs) if (b.type === 'click') c *= 777;
   return c;
 }
@@ -172,8 +185,8 @@ function maxAffordable(i) {
   return Math.max(0, Math.floor(Math.log(S.dust * (r - 1) / b + 1) / Math.log(r)));
 }
 const upgCost = u => u.cost * (has('m_upg') ? 0.75 : 1) * (chalDone('c_noupg') ? 0.85 : 1);
-function novaGainAt(total) { return Math.floor(Math.sqrt(total / 2e5) * (has('m_crunch') ? 2 : 1) * (chalDone('c_dim') ? 1.25 : 1) * (1 + 0.5 * (S.sing || 0))); }
-function novaGain() { if (S.chal) return 0; return Math.floor(Math.sqrt(S.runTotal / 2e5) * (has('m_crunch') ? 2 : 1) * (chalDone('c_dim') ? 1.25 : 1) * (1 + 0.5 * (S.sing || 0))); }
+function novaGainAt(total) { return Math.floor(soft(Math.sqrt(total / 2e5) * (has('m_crunch') ? 2 : 1) * (chalDone('c_dim') ? 1.25 : 1) * (1 + 0.5 * effSing()), 200)); }
+function novaGain() { if (S.chal) return 0; return novaGainAt(S.runTotal); }
 function luck() { let l = 1; for (const u of UPGRADES) if (S.upg[u.id] && u.fx.luck) l += u.fx.luck; if (has('m_comet')) l *= 2; if (chalDone('c_rush')) l *= 1.25; return l; }
 
 // ---------- monétisation (application Android uniquement ; sur le web, PT_MON n'existe pas) ----------
@@ -239,7 +252,7 @@ function buyMeta(m) {
 }
 // Repart de zéro en gardant tout ce qui est permanent (utilisé par Supernova et par les défis).
 function resetRun(extra) {
-  const keep = { novaTotal: S.novaTotal, novaBank: S.novaBank, meta: S.meta, ach: S.ach, prestiges: S.prestiges, lifeTotal: S.lifeTotal, lifeClicks: S.lifeClicks, lifeComets: S.lifeComets, chalDone: S.chalDone || {}, sing: S.sing || 0, singBank: S.singBank || 0, gal: S.gal || {}, bigbangs: S.bigbangs || 0, adBoostUntil: S.adBoostUntil || 0, ...extra };   // le boost vidéo survit aux Supernovae
+  const keep = { novaTotal: S.novaTotal, novaBank: S.novaBank, meta: S.meta, ach: S.ach, prestiges: S.prestiges, lifeTotal: S.lifeTotal, lifeClicks: S.lifeClicks, lifeComets: S.lifeComets, chalDone: S.chalDone || {}, sing: S.sing || 0, singBank: S.singBank || 0, gal: S.gal || {}, eng: S.eng || 0, bigbangs: S.bigbangs || 0, adBoostUntil: S.adBoostUntil || 0, ...extra };   // le boost vidéo survit aux Supernovae
   const kept = {};
   if (has('m_keep')) for (const k of ['click0', 'click1', 'click2']) if (S.upg[k]) kept[k] = 1;
   S = Object.assign(fresh(), keep); S.upg = kept;
@@ -274,7 +287,7 @@ async function bigBang() {
   if (S.chal) { toast(t('sf.bbChal')); return; }
   const g = singGain();
   if (S.novaTotal < BIGBANG_MIN || g < 1) return;
-  if (!await ptConfirm(t('sf.bbConfirm', { nova: num(S.novaTotal), g, np: g * 50, pp: g * (gal('g_big') ? 20 : 10) }), t('sf.bbOk'))) return;
+  if (!await ptConfirm(t('sf.bbConfirm', { nova: num(S.novaTotal), g, np: Math.round((effSing((S.sing || 0) + g) - effSing()) * 50), pp: Math.round((effSing((S.sing || 0) + g) - effSing()) * (gal('g_big') ? 20 : 10)) }), t('sf.bbOk'))) return;
   const start = gal('g_nova') ? 10 : 0;
   resetRun({ novaTotal: start, novaBank: start, meta: {}, sing: (S.sing || 0) + g, singBank: (S.singBank || 0) + g, bigbangs: (S.bigbangs || 0) + 1 });
   if (gal('g_nova')) S.meta = { m_click: 1 };
@@ -292,7 +305,7 @@ async function prestige() {
   const g = novaGain();
   if (g < 1) return;
   const warn = g <= 3 ? t('sf.snWarn', { n: novaGainAt(S.runTotal * 4) }) : '';
-  if (!await ptConfirm(t('sf.snConfirm', { g: fmt(g), n: g, pct: Math.round(g * novaPct() * 100), warn }), t('sf.snOk'))) return;
+  if (!await ptConfirm(t('sf.snConfirm', { g: fmt(g), n: g, pct: Math.round((soft(S.novaTotal + g, 500) - effNova()) * novaPct() * 100), warn }), t('sf.snOk'))) return;
   resetRun({ novaTotal: S.novaTotal + g, novaBank: S.novaBank + g, prestiges: S.prestiges + 1 });
   flash = 1;
   sfx(110, 1.2, 'sawtooth', 0.08);
@@ -488,6 +501,8 @@ function build() {
     setTimeout(() => {
       const gl = $('sf-gal'); if (!gl) return;
       GALAXY.forEach(x => { const d = document.createElement('button'); d.className = 'sf-item'; d.dataset.id = x.id; d.innerHTML = `<div class="ic" style="background:#2b1f4a">${x.ic}</div><div class="mid"><b>${x.name}</b><span>${x.desc}</span></div><div class="rt"><b class="nova">${x.cost}✧</b></div>`; d.onclick = () => buyGal(x); gl.appendChild(d); });
+      const en = document.createElement('button'); en.className = 'sf-item'; en.id = 'sf-eng'; en.innerHTML = `<div class="ic" style="background:#2b1f4a">⚙️</div><div class="mid"><b>${t('sf.engName')}</b><span></span></div><div class="rt"><b class="nova"></b></div>`;
+      en.onclick = () => { if (buyEngine()) { sfx(660, 0.3, 'triangle', 0.08); save(); refresh(true); } }; gl.appendChild(en);
       $('sf-bb-btn').onclick = bigBang; refresh();
     });
     META.forEach(m => {
@@ -606,11 +621,12 @@ function refresh(structural) {
   } else if (tab === 'meta') {
     const g = singGain(), bbi = $('sf-bb-info');
     if (bbi) {
-      bbi.innerHTML = S.novaTotal >= BIGBANG_MIN || S.sing ? t('sf.bbInfo', { nova: num(S.novaTotal), g, bank: S.singBank || 0, sing: S.sing || 0, np: (S.sing || 0) * 50, pp: (S.sing || 0) * (gal('g_big') ? 20 : 10) }) : t('sf.bbLocked', { min: BIGBANG_MIN, n: num(S.novaTotal) });
+      bbi.innerHTML = S.novaTotal >= BIGBANG_MIN || S.sing ? t('sf.bbInfo', { nova: num(S.novaTotal), g, bank: S.singBank || 0, sing: S.sing || 0, np: Math.round(effSing() * 50), pp: Math.round(effSing() * (gal('g_big') ? 20 : 10)) }) + (g >= 1 ? '<br>' + t('sf.bbAfter', { np: Math.round(effSing((S.sing || 0) + g) * 50), pp: Math.round(effSing((S.sing || 0) + g) * (gal('g_big') ? 20 : 10)) }) : '') + (META.some(m => !S.meta[m.id]) && S.novaTotal >= BIGBANG_MIN ? '<br>' + t('sf.bbHint') : '') : t('sf.bbLocked', { min: BIGBANG_MIN, n: num(S.novaTotal) });
       $('sf-bb-btn').disabled = S.novaTotal < BIGBANG_MIN || g < 1 || !!S.chal;
-      document.querySelectorAll('#sf-gal .sf-item').forEach(d => { const x = GALAXY.find(y => y.id === d.dataset.id); d.classList.toggle('done', gal(x.id)); d.querySelector('.rt b').textContent = gal(x.id) ? t('sf.owned') : x.cost + '✧'; d.classList.toggle('can', !gal(x.id) && (S.singBank || 0) >= x.cost); d.classList.toggle('no', !gal(x.id) && (S.singBank || 0) < x.cost); });
+      const en = $('sf-eng'); if (en) { en.querySelector('.mid span').textContent = t('sf.engDesc', { n: S.eng || 0, m: fmt(Math.pow(1.25, S.eng || 0)) }); en.querySelector('.rt b').textContent = fmt(engCost()) + '✧'; en.classList.toggle('can', (S.singBank || 0) >= engCost()); en.classList.toggle('no', (S.singBank || 0) < engCost()); en.classList.toggle('hidden', !S.bigbangs); }
+      document.querySelectorAll('#sf-gal .sf-item[data-id]').forEach(d => { const x = GALAXY.find(y => y.id === d.dataset.id); d.classList.toggle('done', gal(x.id)); d.querySelector('.rt b').textContent = gal(x.id) ? t('sf.owned') : x.cost + '✧'; d.classList.toggle('can', !gal(x.id) && (S.singBank || 0) >= x.cost); d.classList.toggle('no', !gal(x.id) && (S.singBank || 0) < x.cost); });
     }
-    $('sf-meta-info').innerHTML = t('sf.metaInfo', { bank: num(S.novaBank), pct: num(Math.round(S.novaTotal * novaPct() * 100)) });
+    $('sf-meta-info').innerHTML = t('sf.metaInfo', { bank: num(S.novaBank), pct: num(Math.round(effNova() * novaPct() * 100)) });
     panel.querySelectorAll('.sf-node').forEach(n => {
       const m = META.find(q => q.id === n.dataset.id);
       const open = m.req.every(r => S.meta[r]);
@@ -719,7 +735,7 @@ function loop(t) {
   requestAnimationFrame(loop);
 }
 // La production continue même quand l'onglet est masqué (rattrapage à la reprise, cf. dt plafonné + hors-ligne).
-document.addEventListener('visibilitychange', () => { if (document.hidden) save(); else if (inited) { const d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (d) { const away = Math.min(8 * 3600, (Date.now() - d.last) / 1000); if (away > 5) earn(dps() * away * (has('m_off') ? 1 : 0.25)); } } });
+document.addEventListener('visibilitychange', () => { if (document.hidden) save(); else if (inited) { const d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (d) { const away = Math.min(8 * 3600, (Date.now() - d.last) / 1000); if (away > 5) { const v = dps() * away * (has('m_off') ? 1 : 0.25); earn(v); if (away > 60 && v > 0) { toast(t('sf.away', { v: fmt(v) })); if (away > 300) { offPending = v; offUntil = Date.now() + 60000; } refresh(true); } } } } });
 window.addEventListener('beforeunload', save);
 window.addEventListener('resize', () => visible && resizeStar());
 // la zone cliquable suit la taille réelle du cadre (la mise en page mobile change après le premier calcul)
@@ -739,4 +755,4 @@ window.GAMES.forge = {
   hide() { visible = false; hideTip(); save(); },
 };
 // Accès de test (tools/sf-balance.mjs, console).
-window.__sf = { fmt, boostOn, get offPending() { return offPending; }, set offPending(v) { offPending = v; offUntil = Date.now() + 60000; }, watchBoost, watchOffline, get S() { return S; }, get comet() { return comet; }, spawnComet, catchComet, set S(v) { S = v; }, tick, buyGen, buyUpg, UPGRADES, GENS, costN, upgCost, dps, clickValue, novaGain, earn, fresh, resetRun, META, buyMeta, setMult: m => { buyMult = m; } };
+window.__sf = { GALAXY, singGain, buyEngine, fmt, boostOn, get offPending() { return offPending; }, set offPending(v) { offPending = v; offUntil = Date.now() + 60000; }, watchBoost, watchOffline, get S() { return S; }, get comet() { return comet; }, spawnComet, catchComet, set S(v) { S = v; }, tick, buyGen, buyUpg, UPGRADES, GENS, costN, upgCost, dps, clickValue, novaGain, earn, fresh, resetRun, META, buyMeta, setMult: m => { buyMult = m; } };

@@ -16,7 +16,9 @@ headless (`node tools/smoke.mjs`, zéro erreur console, captures relues), pouss�
 *Évaluation n° 4 (un sous-agent joueur par jeu, web + appli Android, 2026-09-27).*
 
 - **Block Quarry — reste à faire** (après E12) : coffres d'étoiles sur la carte ; objectifs de couleur ; défi du jour à un seul essai compté (choix de design, à trancher).
-- **Nova Foundry** : *(rapport attendu)*
+- **Nova Foundry — reste à faire** (après E13) : carte « Bon retour » (absence, gains, bouton doubler) au lieu d'un toast ;
+  tuiles d'amélioration avec un court libellé d'effet ; la chance ne devrait pas rendre les éclipses plus fréquentes ;
+  suffixes de grands nombres traduits (Mio./Mrd.).
 - **Synth Horde** : *(rapport attendu)*
 
 *Évaluation n° 3 (sous-agent joueur, 2026-09-25, desktop + iPhone 13) — un bloquant (joystick mobile), le reste en finitions ; corrections des évaluations 1 et 2 confirmées. Verdict : une fois le joystick corrigé, plus rien qui vaille une itération → fin de la boucle.*
@@ -29,6 +31,16 @@ headless (`node tools/smoke.mjs`, zéro erreur console, captures relues), pouss�
 
 ## Fait
 
+- **Itération E13** (2026-09-28, évaluation n° 4) — Nova Foundry 1.1.0 : **panneau du bas qui ne défilait pas sur téléphone**
+  (bloquant : forges hautes, défis 4–6, bas de la Constellation et tout le Big Bang hors d'atteinte ; colonne sans
+  `min-height:0`) — test de non-régression dans `tools/smoke.mjs` ; **fin de partie qui s'emballait** (Novae ↔ Singularités
+  s'entretenant, débordement vers 1e197 en 3 h 30) : plafonds doux (effet des Novae au-delà de 500, des Singularités au-delà
+  de 10, gain de Novae au-delà de 200 par Supernova, Singularités au-delà de 4 par Big Bang) et **Moteur stellaire**, puits
+  de Singularités sans fin (×1,25 par niveau, coût doublé) — `tools/sf-long.mjs` : 1re Supernova 11 min, 1er Big Bang
+  2 h 13 comme avant, puis 8 Big Bangs en 12 h qui s'espacent, sans débordement ; aperçu « après ce Big Bang » et conseil de
+  finir la Constellation ; succès Big Bang nommé ; décimales dans la langue (1,74 M) ; « ×2 à 25 » au lieu de « palier 25 » ;
+  allemand cohérent avec les onglets (Proben, Upgrades) ; retour sur l'onglet : gains hors-ligne annoncés et doublables ;
+  captures du test de fumée qui réessaient sous forte charge.
 - **Itération E12** (2026-09-27) — Block Quarry 1.2.0 : **pierres dures** en Aventure dès le niveau 9 (sombres, fissurées ;
   la première ligne effacée les fissure, la seconde les brise ; les boosters les fissurent seulement ; 15 → 45 % des
   pierres selon le niveau, coups ajustés ; présentées au niveau 9 ; bot : 37/40) ; **bonus de connexion** quotidien
