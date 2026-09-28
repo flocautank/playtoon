@@ -29,6 +29,14 @@ headless (`node tools/smoke.mjs`, zéro erreur console, captures relues), pouss�
 
 ## Fait
 
+- **Itération E15** (2026-09-28, évaluation n° 5) — Nova Foundry 1.3.0 : **les défis deviennent une vraie couche** — Novae,
+  Singularités et Moteur stellaire ne comptent plus en défi (comme l'annonçait déjà la confirmation), départ avec le Pack
+  de démarrage (fin du départ mort de « Mains libres », 18 min sans production), objectifs de « Pénombre » (2e6) et
+  « Contre la montre » (5e6 en 15 min) recalés : 6 à 46 min par défi au lieu de 0,6 à 10 ; chrono des défis aussi au
+  retour sur l'onglet ; indication « prochaine Nova à X produits (n %) » ; objectif du jour +2 % des Novae (au moins 1) ;
+  succès de fin de partie (Big Bang ×5/×20, Moteur stellaire 5/10, les 6 défis) ; nœuds de Constellation achetés
+  cochés ; repères sur les tuiles achetées, doigts numérotés 1–5 comme leur nom ; notation scientifique et suffixes
+  dans la langue, espace insécable avant l'unité ; « sur cet appareil » dans l'application.
 - **Itération E11** (2026-09-28, évaluation n° 4, sous-agent) — Synth Horde 1.1.0 : annonces en haut (sous le chrono / la barre
   du boss), plus jamais sous l'invite du coffre ; pause en deux colonnes en paysage, Reprendre/Abandonner toujours
   visibles, écran de fin qui tient en 740×360 ; joueur toujours lisible (silhouette par-dessus tout, anneau au sol),

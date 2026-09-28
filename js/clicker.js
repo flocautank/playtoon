@@ -32,7 +32,7 @@ const MILESTONES = [10, 25, 50, 100, 150, 200, 250, 300, 350, 400, 500];
 const UPGRADES = [];
 // repère court sur les tuiles d'amélioration (deux tuiles de la même forge ne se ressemblent plus)
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
-const upgTag = u => { const m = /^g\d+t(\d+)$/.exec(u.id) || /^(?:click|luck|glob)(\d+)$/.exec(u.id); return m ? ROMAN[+m[1]] || '' : ''; };
+const upgTag = u => { const f = /^click(\d+)$/.exec(u.id); if (f && +f[1] >= 3) return String(+f[1] - 2); const m = /^g\d+t(\d+)$/.exec(u.id) || /^(?:click|luck|glob)(\d+)$/.exec(u.id); return m ? ROMAN[+m[1]] || '' : ''; };
 // noms et descriptions calculés à la lecture : ils suivent la langue choisie
 GENS.forEach((g, gi) => GEN_TIERS.forEach((th, ti) => UPGRADES.push({
   id: `g${gi}t${ti}`, ic: g.ic, cost: g.cost * TIER_COST[ti],
@@ -77,6 +77,9 @@ const ACH = [];
 [100, 1000, 10000].forEach(n => ACH.push({ id: 'clk' + n, ic: '🖱️', get name() { return t('sf.reqClicks', { n: num(n) }); }, get desc() { return t('sf.aClkDesc', { n: num(n) }); }, test: s => s.lifeClicks >= n }));
 GENS.forEach((g, i) => ACH.push({ id: 'own' + i, ic: g.ic, get name() { return t('sf.aOwn', { gen: g.name }); }, get desc() { return t('sf.aOwnDesc', { gen: g.name }); }, test: s => s.gens[i] >= 50 }));
 ACH.push({ id: 'bigbang', ic: '🌌', name: 'Big Bang', get desc() { return t('sf.aBBDesc'); }, test: s => (s.bigbangs || 0) >= 1 });
+[5, 20].forEach(n => ACH.push({ id: 'bb' + n, ic: '🌌', get name() { return t('sf.aBBn', { n }); }, get desc() { return t('sf.aBBnDesc', { n }); }, test: s => (s.bigbangs || 0) >= n }));
+[5, 10].forEach(n => ACH.push({ id: 'eng' + n, ic: '⚙️', get name() { return t('sf.engName') + ' ' + n; }, get desc() { return t('sf.aEngDesc', { n }); }, test: s => (s.eng || 0) >= n }));
+ACH.push({ id: 'allchal', ic: '🏅', get name() { return t('sf.aAllChal'); }, get desc() { return t('sf.aAllChalDesc'); }, test: s => Object.keys(s.chalDone || {}).length >= 6 });
 [[1, '💥'], [5, '🌠'], [20, '🌌']].forEach(([n, ic]) => ACH.push({ id: 'pre' + n, ic, get name() { return t('sf.aPre', { n }); }, get desc() { return t('sf.aPreDesc', { n }); }, test: s => s.prestiges >= n }));
 [[1, '⭐'], [10, '🌟'], [50, '🎇']].forEach(([n, ic]) => ACH.push({ id: 'com' + n, ic, get name() { return t('sf.aCom', { n }); }, get desc() { return t('sf.aComDesc', { n }); }, test: s => s.lifeComets >= n }));
 [1e3, 1e6, 1e9].forEach(n => ACH.push({ id: 'dps' + n, ic: '⚡', name: `${fmt(n)} /s`, get desc() { return t('sf.aDpsDesc', { n: fmt(n) }); }, test: s => dps() >= n }));
@@ -88,8 +91,8 @@ const CHALS = [
   { id: 'c_short', ic: '🧱', goal: 1e6, need: 1 },
   { id: 'c_noupg', ic: '🚫', goal: 3e6, need: 2 },
   { id: 'c_infl', ic: '📈', goal: 1e7, need: 2 },
-  { id: 'c_dim', ic: '🌑', goal: 1e7, need: 3 },
-  { id: 'c_rush', ic: '⏱️', goal: 1e8, need: 4, time: 900 },
+  { id: 'c_dim', ic: '🌑', goal: 2e6, need: 3 },
+  { id: 'c_rush', ic: '⏱️', goal: 5e6, need: 4, time: 900 },
 ];
 // Big Bang : 2e couche de prestige. Réinitialise Novae et Constellation contre des Singularités
 // (gain de Novae +50 % et production +10 % chacune), à dépenser dans la Galaxie (automatisations).
@@ -111,8 +114,9 @@ const gal = id => !!(S.gal && S.gal[id]);
 // Plafonds doux de fin de partie : linéaire jusqu'au seuil, puis en racine carrée. Sans eux, Novae et Singularités
 // s'entretenaient l'une l'autre et la partie s'emballait en quelques minutes (tools/sf-long.mjs).
 const soft = (x, cap) => x <= cap ? x : cap * Math.sqrt(x / cap);
-const effNova = () => soft(S.novaTotal, 500);
-const effSing = (n = S.sing || 0) => soft(n, 10);
+// en défi, ni Novae ni Singularités ne comptent (« repart de zéro, sans Novae ») : le défi reste un vrai défi
+const effNova = () => S.chal ? 0 : soft(S.novaTotal, 500);
+const effSing = (n = S.sing || 0) => S.chal && n === (S.sing || 0) ? 0 : soft(n, 10);
 // Moteur stellaire : puits de Singularités sans fin (×1,25 de production par niveau, coût doublé à chaque niveau)
 const ENG_BASE = 5;
 const engCost = () => ENG_BASE * Math.pow(2, S.eng || 0);
@@ -136,13 +140,14 @@ let S = fresh();
 const has = id => !!S.meta[id];
 function fmt(n) {
   if (!isFinite(n)) return '∞';
-  if (SCI && n >= 1e6) return n.toExponential(2).replace('e+', 'e');
+  const sci = () => { const [mn, ex] = n.toExponential(2).split('e'); return (+mn).toLocaleString(lang, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + 'e' + ex.replace('+', ''); };
+  if (SCI && n >= 1e6) return sci();
   if (n < 1000) return n < 10 && n % 1 ? n.toLocaleString(lang, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : Math.floor(n).toString();
   if (n < 1e6) return num(Math.floor(n));
   const units = ['M', 'G', 'T', 'P', 'E', 'Z', 'Y', 'R', 'Q'];
   const e = Math.floor(Math.log10(n) / 3) - 2;
-  if (e >= units.length) return n.toExponential(2).replace('+', '');
-  return (n / Math.pow(1000, e + 2)).toLocaleString(lang, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ' + units[e];
+  if (e >= units.length) return sci();
+  return (n / Math.pow(1000, e + 2)).toLocaleString(lang, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '\u00a0' + units[e];
 }
 
 // ---------- calculs ----------
@@ -162,7 +167,7 @@ function globalMult() {
   if (has('m_sing')) m *= 3;
   if (chalDone('c_hands')) m *= 1.5;
   m *= 1 + effSing() * (gal('g_big') ? 0.2 : 0.1);
-  if (S.eng) m *= Math.pow(1.25, S.eng);
+  if (S.eng && !S.chal) m *= Math.pow(1.25, S.eng);
   if (inChal('c_dim')) m *= 0.1;
   if (boostOn()) m *= 2;   // vidéo « ×2 pendant 4 h » ou achat « Moteur éternel » (application)
   for (const b of S.buffs) { if (b.type === 'frenzy') m *= 7; else if (b.type === 'meteor') m *= 77; else if (b.type === 'eclipse') m *= 2; }
@@ -283,6 +288,7 @@ async function startChal(c) {
   if (S.chal || chalDone(c.id) || S.prestiges < c.need) return;
   if (!await ptConfirm(t('sf.chalConfirm', { ic: c.ic, name: c.name, desc: c.desc, goal: fmt(c.goal), time: c.time ? t('sf.inMin', { n: c.time / 60 }) : '', reward: c.reward }), t('sf.chalStart'))) return;
   resetRun({ chal: c.id, chalT: 0 });
+  S.gens[0] = Math.max(S.gens[0], 10); S.gens[1] = Math.max(S.gens[1], 5);   // départ du Pack de démarrage : jamais de départ mort (Mains libres)
   comet = null; flash = 0.6; toast(t('sf.chalStarted', { ic: c.ic, name: c.name })); sfx(330, 0.4, 'square', 0.05);
   save(); refresh(true);
 }
@@ -551,7 +557,7 @@ function build() {
     const st = document.createElement('div'); st.className = 'muted small'; st.id = 'sf-stats'; st.style.marginTop = '12px'; panel.appendChild(st);
   } else if (tab === 'opt') {
     panel.innerHTML = `<div class="sf-h">${t('sf.optSave')}</div>
-      <p class="muted small">${t('sf.optSaveTxt')}</p>
+      <p class="muted small">${t(document.body.classList.contains('bq-app') ? 'sf.optSaveTxtApp' : 'sf.optSaveTxt')}</p>
       <div class="row" style="justify-content:flex-start"><button class="btn ghost small" id="sf-exp">${t('sf.export')}</button><button class="btn ghost small" id="sf-imp">${t('sf.import')}</button><button class="btn small" id="sf-wipe" style="background:#a0304a">${t('sf.wipe')}</button></div>
       <textarea id="sf-io" style="width:100%;height:90px;margin-top:8px;background:#0a0c16;color:#ccd;border:1px solid #2a3050;border-radius:8px;padding:6px;font-size:11px"></textarea>
       <div class="sf-h">${t('sf.optDisplay')}</div>
@@ -578,7 +584,7 @@ function fillUpgrades() {
   });
   const owned = UPGRADES.filter(u => S.upg[u.id]);
   $('sf-upg-owned-h').textContent = t('sf.boughtHdr', { n: owned.length, t: UPGRADES.length });
-  owned.forEach(u => { const d = document.createElement('div'); d.className = 'sf-upg'; d.style.opacity = .6; d.textContent = u.ic; tipify(d, () => `<b>${u.name}</b> ✓<br>${u.desc}`); grid2.appendChild(d); });
+  owned.forEach(u => { const d = document.createElement('div'); d.className = 'sf-upg'; d.style.opacity = .6; d.innerHTML = `${u.ic}${upgTag(u) ? `<i class="sf-utag">${upgTag(u)}</i>` : ''}`; tipify(d, () => `<b>${u.name}</b> ✓<br>${u.desc}`); grid2.appendChild(d); });
   upgSig = sigUpg();
 }
 let upgSig = '';
@@ -602,6 +608,8 @@ function refresh(structural) {
   $('sf-nova-gain').textContent = fmt(g); $('sf-nova-have').textContent = fmt(S.novaBank) + (S.novaTotal !== S.novaBank ? t('sf.earned', { n: fmt(S.novaTotal) }) : '');
   $('sf-prestige').disabled = g < 1;
   $('sf-prestige-box').classList.toggle('idle', g < 1);
+  const nx = $('sf-nova-next');
+  if (nx) { let need = 2e5; if (g < 1 && !S.chal) { while (novaGainAt(need) < 1 && need < 1e300) need *= 1.25; } nx.textContent = g < 1 && !S.chal ? t('sf.nextNova', { n: fmt(need), p: Math.min(99, Math.floor(S.runTotal / need * 100)) }) : ''; }
   $('sf-prestige-box').style.display = S.runTotal >= 1e5 || S.novaTotal > 0 ? '' : 'none';
   $('sf-tab-chal').classList.toggle('hidden', S.prestiges < 1);
   const ch = S.chal && CHALS.find(x => x.id === S.chal);
@@ -756,16 +764,16 @@ function loop(t) {
   requestAnimationFrame(loop);
 }
 // La production continue même quand l'onglet est masqué (rattrapage à la reprise, cf. dt plafonné + hors-ligne).
-document.addEventListener('visibilitychange', () => { if (document.hidden) save(); else if (inited) { const d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (d) { const away = Math.min(8 * 3600, (Date.now() - d.last) / 1000); if (away > 5) { const v = dps() * away * (has('m_off') ? 1 : 0.25); earn(v); if (away > 60 && v > 0) { if (away > 300) { offPending = v; offUntil = Date.now() + 60000; } welcomeBack(away, v); refresh(true); } } } } });
+document.addEventListener('visibilitychange', () => { if (document.hidden) save(); else if (inited) { const d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (d) { const away = Math.min(8 * 3600, (Date.now() - d.last) / 1000); if (away > 5) { if (S.chal) S.chalT += away; const v = dps() * away * (has('m_off') ? 1 : 0.25); earn(v); if (away > 60 && v > 0) { if (away > 300) { offPending = v; offUntil = Date.now() + 60000; } welcomeBack(away, v); refresh(true); } } } } });
 window.addEventListener('beforeunload', save);
 window.addEventListener('resize', () => visible && resizeStar());
 // la zone cliquable suit la taille réelle du cadre (la mise en page mobile change après le premier calcul)
 if (window.ResizeObserver) new ResizeObserver(() => visible && resizeStar()).observe(cv);
 
 window.GAMES.forge = {
-  reward() {   // objectif du jour : +1 Nova (on charge la sauvegarde si le jeu n'a pas encore été ouvert)
+  reward() {   // objectif du jour : +2 % des Novae gagnées (au moins 1) (on charge la sauvegarde si le jeu n'a pas encore été ouvert)
     if (!inited) { inited = true; load(); lastT = performance.now(); requestAnimationFrame(loop); }
-    S.novaTotal++; S.novaBank++; save(); if (built) refresh(true);
+    const n = Math.max(1, Math.round(S.novaTotal * 0.02)); S.novaTotal += n; S.novaBank += n; save(); if (built) refresh(true);
   },
   show() {
     visible = true;
