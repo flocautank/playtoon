@@ -29,6 +29,16 @@ headless (`node tools/smoke.mjs`, zéro erreur console, captures relues), pouss�
 
 ## Fait
 
+- **Itération E17** (2026-09-28, évaluation n° 5) — Block Quarry 1.3.0 : **courbe d'Aventure lissée** — pierres dures
+  présentées une à une (1, 2, 3 aux niveaux 9–11, +4 coups, 2 tirages de secours dès le niveau 9 : le mur des niveaux
+  9–11 disparaît) et niveaux « lignes » resserrés de 20 % dès le niveau 16 (bot : 37/40, plus de ★3 faciles) ; **records
+  qui ne s'achètent plus** — « Continuer » coûte au moins la bombe (30 → 60 → 120 🪙 dans la même partie) et une seule
+  fois par défi du jour ; en classique, le tirage bienveillant s'estompe après 150 pièces ; vidéo « dégager et continuer »
+  aussi quand on est bloqué en Aventure avec des coups restants ; minuterie de fin de partie annulée au changement de
+  mode (elle pouvait terminer un niveau tout juste lancé) ; pierres dures intactes « rivetées », fissurées seulement
+  après le premier effacement ; boosters grisés à la limite de l'Aventure ; allemand « Fortsetzen » / « Erneut
+  versuchen » ; bonus du jour en toast au premier lancement (plus par-dessus le tutoriel). Test de fumée : remplissage
+  de la grille déterministe pour le test de la bombe.
 - **Itération E16** (2026-09-28, évaluation n° 5) — Synth Horde 1.2.0 : **accalmie après chaque boss** (l'onde de la victoire
   dégage 22 m autour du joueur, balles effacées, apparitions ÷8 et plus de vagues jusqu'au portail — le bot mourait dans la
   foule entre le boss et le portail) ; **build complet** : trois bonus de caractéristiques distincts au lieu de

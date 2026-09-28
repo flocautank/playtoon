@@ -101,7 +101,8 @@ await page.click('#bp-again'); await page.waitForTimeout(300);
 await page.click('#bp-mapbtn'); await page.waitForTimeout(200); await page.click('#bp-classic'); await page.waitForTimeout(300);
 // boosters : on remplit un peu la grille, puis bombe au centre
 await page.evaluate(() => window.GAMES.blocks.reward());   // +30 pièces : le test des « +3 coups » en a dépensé 25
-await page.evaluate(() => { const { S, place, fits, N } = window.__bp; for (let k = 0; k < 4; k++) S.tray.forEach((pc, i) => { if (!pc) return; for (let y = 2; y < N; y++) for (let x = 2; x < N; x++) if (S.tray[i] && fits(pc, x, y)) { place(i, x, y); return; } }); });
+// grille remplie directement (motif fixe, aucune ligne complète) : la partie ne peut pas se terminer pendant le test
+await page.evaluate(() => { const { S, N } = window.__bp; for (let y = 2; y < 7; y++) for (let x = 1; x < 7; x++) S.board[y][x] = '#ff5d8f'; S.over = false; });
 const filledBefore = await page.evaluate(() => window.__bp.S.board.flat().filter(Boolean).length);
 const coinsBefore = +(await page.$eval('#bp-coins', e => e.textContent));
 await page.click('[data-tool=bomb]');

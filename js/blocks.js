@@ -20,7 +20,8 @@ const SHAPES = [
   [[[0, 0], [1, 0], [1, 1], [2, 1]], 2], [[[1, 0], [2, 0], [0, 1], [1, 1]], 2], [[[0, 0], [0, 1], [1, 1], [1, 2]], 2], [[[1, 0], [1, 1], [0, 1], [0, 2]], 2],
   [[[0, 0], [1, 1]], 1], [[[1, 0], [0, 1]], 1], [[[0, 0], [1, 1], [2, 2]], 0.8], [[[2, 0], [1, 1], [0, 2]], 0.8],
 ];
-const STONE = '#7d7f9c', STONE2 = '#4b4d6e';   // pierre dure (Aventure, niveau 9+) : il faut l'effacer deux fois
+const ADV_TOOLS = 2;   // boosters par tentative de niveau d'Aventure
+const STONE = '#7d7f9c', STONE2 = '#4b4d6e', STONEC = '#7d7f9d';   // STONEC : pierre dure déjà fissurée (un effacement de plus)   // pierre dure (Aventure, niveau 9+) : il faut l'effacer deux fois
 // Thèmes : la couleur de base d'une pièce (indice dans COLORS) est remappée à l'affichage.
 const THEMES = [
   { id: 'classic', cost: 0, style: 'candy', pal: COLORS, bg: 'radial-gradient(ellipse at 50% 0%,#3b2a6b 0%,#1b1840 55%,#120f2a 100%)' },
@@ -67,7 +68,7 @@ try { const c = localStorage.getItem('blocparty.coins'); if (c !== null) COINS =
 const saveCoins = () => { try { localStorage.setItem('blocparty.coins', COINS); } catch (e) {} paintBoost(); };
 function paintBoost() {
   $('bp-coins').textContent = COINS;
-  document.querySelectorAll('#bp-boost button').forEach(b => { b.classList.toggle('on', b.dataset.tool === tool); b.classList.toggle('no', COINS < TOOLS[b.dataset.tool] && !(S.freeTool && b.dataset.tool === 'hammer')); });
+  document.querySelectorAll('#bp-boost button').forEach(b => { b.classList.toggle('on', b.dataset.tool === tool); b.classList.toggle('no', (COINS < TOOLS[b.dataset.tool] && !(S.freeTool && b.dataset.tool === 'hammer')) || (S.mode === 'adv' && (S.toolsUsed || 0) >= ADV_TOOLS)); });
 }
 try { ADV = Object.assign(ADV, JSON.parse(localStorage.getItem('blocparty.adv') || '{}')); } catch (e) {}
 const saveAdv = () => { try { localStorage.setItem('blocparty.adv', JSON.stringify(ADV)); } catch (e) {} };
@@ -158,13 +159,14 @@ function fillTray() {
   // Tirage équitable : les trois pièces doivent pouvoir être posées (dans un ordre au moins) ; plus la grille est
   // pleine, plus on écarte les grosses pièces. À défaut, au moins une pièce qui rentre.
   const filled = S.board.reduce((a, r) => a + r.filter(c => c).length, 0) / (N * N);
+  const mercy = S.mode !== 'classic' || (S.placed || 0) < 150;   // classique : la bienveillance s'estompe après 150 pièces
   // Grille chargée : on cherche d'abord un tirage où une pièce complète une ligne (coup de pouce).
   let best = null, fair = null;
   for (let k = 0; k < 60; k++) {
     const t = [makePiece(), makePiece(), makePiece()];
     if (filled > 0.45 && k < 40 && t.some(p => p.cells.length >= 5 && rnd() < (filled - 0.35) * 2)) continue;
     if (placeAll(t, S.board)) {
-      if (filled < 0.4 || k >= 40 || t.some(p => clearsLine(p, S.board))) { best = t; break; }
+      if (!mercy || filled < 0.4 || k >= 40 || t.some(p => clearsLine(p, S.board))) { best = t; break; }
       if (!fair) fair = t;
     } else if (!best && t.some(p => canPlaceAnywhere(p))) best = t;
   }
@@ -191,6 +193,7 @@ function clearSpace() {
 }
 
 function newGame() {
+  clearTimeout(overTimer); S.contN = 0; S.placed = 0;
   S.mode = 'classic'; rnd = Math.random; S.gems.clear();
   S.board = Array.from({ length: N }, () => Array(N).fill(null));
   S.score = 0; S.shown = 0; S.combo = 0; S.over = false; S.fx = []; S.pops = []; S.clearing = []; S.vidCont = false;
@@ -216,7 +219,7 @@ function genLevel(n) {
       if (board[y][x]) continue;
       board[y][x] = STONE;
       if (board[y].every(c => c) || board.every(row => row[x])) { board[y][x] = null; continue; }
-      if (n >= 9 && r() < Math.min(0.45, 0.15 + (n - 9) * 0.012)) { board[y][x] = STONE2; hard++; }
+      if (n >= 9 && hard < (n <= 11 ? n - 8 : 99) && r() < Math.min(0.45, 0.15 + (n - 9) * 0.012)) { board[y][x] = STONE2; hard++; }
       cells.push([x, y]);
     }
   }
@@ -227,12 +230,14 @@ function genLevel(n) {
   const target = 3 + Math.floor(n / 5);
   // au-delà du niveau 16, les coups se resserrent (−1,2 % par niveau, jusqu'à −28 %)
   const tight = 1 - Math.min(0.28, Math.max(0, n - 16) * 0.012);
-  const moves = Math.round((type === 'gems' ? 6 + Math.round(gemsN * 1.5) + bands * 2 + hard * 0.6 : 6 + target * 3) * tight);
+  // niveaux « lignes » resserrés en seconde moitié (ils étaient triviaux), niveaux 9–11 un peu plus larges (présentation)
+  const moves = Math.round((type === 'gems' ? 6 + Math.round(gemsN * 1.5) + bands * 2 + hard * 0.6 + (n >= 9 && n <= 11 ? 4 : 0) : (6 + target * 3) * (n >= 16 ? 0.8 : 1)) * tight);
   return { board, gems: type === 'gems' ? gems : new Set(), goal: { type, gems: type === 'gems' ? gemsN : 0, target, moves } };
 }
 function startLevel(n) {
+  clearTimeout(overTimer); S.contN = 0; S.vidCont = false;
   const L0 = genLevel(n);
-  S.mode = 'adv'; S.lvl = n; S.goal = L0.goal; S.moves = L0.goal.moves; S.gems = L0.gems; S.got = 0; S.lines = 0; S.rescue = 1; S.moreBought = false; S.toolsUsed = 0; S.gain = 0;
+  S.mode = 'adv'; S.lvl = n; S.goal = L0.goal; S.moves = L0.goal.moves; S.gems = L0.gems; S.got = 0; S.lines = 0; S.rescue = n >= 9 ? 2 : 1; S.moreBought = false; S.toolsUsed = 0; S.gain = 0;
   S.used = 0; S.board = L0.board; S.score = 0; S.shown = 0; S.combo = 0; S.over = false; S.fx = []; S.pops = []; S.clearing = [];
   rnd = mulberry32(n * 104729 + 7);
   fillTray();
@@ -258,9 +263,11 @@ function advResult(win) {
     $('bp-resstars').innerHTML = [1, 2, 3].map(k => k <= stars ? '★' : '<i>★</i>').join('');
     $('bp-restext').textContent = win ? t('bp.resWin', { used: S.used, total: S.goal.moves, coins: COINS }) + (S.gain ? `  ·  +${S.gain} 🪙` : '') : (S.moves <= 0 ? t('bp.noMoves') : t('bp.noRoom'));
     $('bp-resnext').classList.toggle('hidden', !win || S.lvl >= LEVELS);
-    $('bp-rescont').classList.toggle('hidden', win || S.moves <= 0 || COINS < CONT_COST);
+    $('bp-rescont').classList.toggle('hidden', win || S.moves <= 0 || COINS < contCost());
+    $('bp-rescont').textContent = t('bp.cont', { n: contCost() });
     $('bp-resmore').classList.toggle('hidden', win || S.moves > 0 || S.moreBought || COINS < MORE_COST);   // seconde chance, une fois par tentative
-    $('bp-resvid').classList.toggle('hidden', win || S.moves > 0 || S.moreBought || !MON.canReward());   // …ou contre une vidéo (application)
+    $('bp-resvid').classList.toggle('hidden', win || (S.moves <= 0 ? S.moreBought : S.vidCont) || !MON.canReward());
+    $('bp-resvid').textContent = t(S.moves <= 0 ? 'app.watchMoves' : 'app.watchCont');   // …ou contre une vidéo (application)
     $('bp-res').classList.remove('hidden');
     if (win) [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => beep(f, 0.18, 'triangle', 0.06), i * 110));
     else beep(260, 0.4, 'sawtooth', 0.04);
@@ -273,6 +280,7 @@ let DAILY = { day: 0, best: 0, streak: 0, last: 0 };
 try { DAILY = Object.assign(DAILY, JSON.parse(localStorage.getItem('blocparty.daily') || '{}')); } catch (e) {}
 const saveDaily = () => { try { localStorage.setItem('blocparty.daily', JSON.stringify(DAILY)); } catch (e) {} };
 function startDaily() {
+  clearTimeout(overTimer); S.contN = 0;
   const today = dayKey();
   if (DAILY.day !== today) {
     const y = new Date(); y.setDate(y.getDate() - 1);
@@ -318,6 +326,7 @@ const CHRONO_T = 120;
 let TOP = [];
 try { TOP = JSON.parse(localStorage.getItem('blocparty.chrono') || '[]'); } catch (e) {}
 function startChrono() {
+  clearTimeout(overTimer);
   S.mode = 'chrono'; rnd = Math.random; S.gems = new Set(); S.clock = CHRONO_T; S.chronoT = 0; S.myRank = -1;
   S.board = Array.from({ length: N }, () => Array(N).fill(null));
   S.score = 0; S.shown = 0; S.combo = 0; S.over = false; S.fx = []; S.pops = []; S.clearing = [];
@@ -334,7 +343,7 @@ function chronoEnd() {
   S.myRank = TOP.indexOf(entry);
   try { localStorage.setItem('blocparty.chrono', JSON.stringify(TOP)); } catch (e) {}
   updateHUD();
-  setTimeout(gameOver, 400);
+  armOver(400);
 }
 
 function openMap() {
@@ -360,7 +369,7 @@ function smash(cells) {
   for (const [x, y] of cells) {
     if (x < 0 || y < 0 || x >= N || y >= N || !S.board[y][x]) continue;
     const color = S.board[y][x]; hit++;
-    if (color === STONE2) { S.board[y][x] = STONE; for (let k = 0; k < 3; k++) burst(x, y, STONE); continue; }   // les boosters fissurent aussi, sans briser
+    if (color === STONE2) { S.board[y][x] = STONEC; for (let k = 0; k < 3; k++) burst(x, y, STONE); continue; }   // les boosters fissurent aussi, sans briser
     S.clearing.push({ x, y, color, t: 0, delay: hit * 0.02 });
     S.board[y][x] = null;
     for (let k = 0; k < 5; k++) burst(x, y, color);
@@ -371,7 +380,6 @@ function smash(cells) {
   save(); updateHUD();
   return hit;
 }
-const ADV_TOOLS = 2;   // boosters par tentative de niveau
 function useTool(name, gx, gy) {
   const cost = S.freeTool && name === 'hammer' ? 0 : TOOLS[name];
   if (COINS < cost) return false;
@@ -384,7 +392,7 @@ function useTool(name, gx, gy) {
   COINS -= cost; tool = null; S.freeTool = false; if (S.mode === 'adv') S.toolsUsed = (S.toolsUsed || 0) + 1; saveCoins(); save();
   // toujours bloqué après le booster ? la partie se termine
   if (!S.over && !S.tray.some(t => t && canPlaceAnywhere(t))) {
-    if (S.mode === 'adv') advResult(false); else { S.over = true; setTimeout(gameOver, 600); }
+    if (S.mode === 'adv') advResult(false); else { S.over = true; armOver(600); }
   }
   return true;
 }
@@ -397,7 +405,7 @@ function linesToClear(board) {
 }
 
 function place(idx, gx, gy) {
-  tutoDone();
+  tutoDone(); S.placed = (S.placed || 0) + 1;
   window.ptEvent && window.ptEvent('bp_pieces', 1);
   const p = S.tray[idx];
   for (const [x, y] of p.cells) { S.board[gy + y][gx + x] = p.color; S.placedAnim.push({ x: gx + x, y: gy + y, t: 0 }); }
@@ -417,7 +425,7 @@ function place(idx, gx, gy) {
     gained += bonus;
     for (const [x, y] of cells.values()) {
       const color = S.board[y][x];
-      if (color === STONE2) { S.board[y][x] = STONE; S.placedAnim.push({ x, y, t: 0 }); for (let k = 0; k < 3; k++) burst(x, y, STONE); continue; }
+      if (color === STONE2) { S.board[y][x] = STONEC; S.placedAnim.push({ x, y, t: 0 }); for (let k = 0; k < 3; k++) burst(x, y, STONE); continue; }
       S.clearing.push({ x, y, color, t: 0, delay: (Math.abs(x - gx) + Math.abs(y - gy)) * 0.025 });
       S.board[y][x] = null;
       for (let k = 0; k < 4 + Math.min(6, S.combo); k++) burst(x, y, color);
@@ -461,11 +469,13 @@ function place(idx, gx, gy) {
   else if (S.score > S.best) S.best = S.score;
   if (!S.tray.some(t => t && canPlaceAnywhere(t))) {
     S.over = true;
-    setTimeout(gameOver, 600);
+    armOver(600);
   }
   save(); updateHUD();
 }
 
+let overTimer = 0;
+const armOver = ms => { clearTimeout(overTimer); overTimer = setTimeout(gameOver, ms); };
 function gameOver() {
   S.over = true;
   $('bp-final').textContent = num(S.score);
@@ -476,7 +486,8 @@ function gameOver() {
     top.innerHTML = TOP.map((e, i) => `<li class="${i === S.myRank ? 'me' : ''}">${num(e.s)} <span class="muted">· ${e.d}</span></li>`).join('');
   } else if (S.mode === 'daily') $('bp-newbest').textContent = t('bp.dailyEnd', { date: todayLabel(), best: num(DAILY.best), n: DAILY.streak });
   else $('bp-newbest').textContent = S.score >= S.best && S.score > 0 ? t('bp.newRecord') : t('bp.record', { n: num(S.best) });
-  $('bp-cont').classList.toggle('hidden', COINS < CONT_COST || S.mode === 'chrono');
+  $('bp-cont').classList.toggle('hidden', COINS < contCost() || S.mode === 'chrono' || (S.mode === 'daily' && S.contN));
+  $('bp-cont').textContent = t('bp.contBooster', { n: contCost() });
   $('bp-vidcont').classList.toggle('hidden', S.mode === 'chrono' || S.vidCont || !MON.canReward());
   $('bp-over').classList.remove('hidden');
   beep(300, 0.3, 'sawtooth', 0.04); setTimeout(() => beep(200, 0.4, 'sawtooth', 0.04), 200);
@@ -535,7 +546,12 @@ function shade(hex, amt) {
   r = Math.max(0, Math.min(255, r)); g = Math.max(0, Math.min(255, g)); b = Math.max(0, Math.min(255, b));
   return `rgb(${r},${g},${b})`;
 }
-// pierre dure : bord épais et deux traits en X
+// pierre dure intacte : renforts (bord épais et rivets) ; une fois touchée, elle se fissure
+function armor(x, y, s) {
+  ctx.save(); ctx.strokeStyle = 'rgba(0,0,0,.45)'; ctx.lineWidth = s * 0.09; rr(x + s * 0.12, y + s * 0.12, s * 0.76, s * 0.76, s * 0.16); ctx.stroke();
+  ctx.fillStyle = 'rgba(220,225,255,.55)'; for (const [a, b] of [[0.27, 0.27], [0.73, 0.27], [0.27, 0.73], [0.73, 0.73]]) { ctx.beginPath(); ctx.arc(x + s * a, y + s * b, s * 0.05, 0, 7); ctx.fill(); }
+  ctx.restore();
+}
 function cracks(x, y, s) {
   ctx.save(); ctx.strokeStyle = 'rgba(210,215,255,.55)'; ctx.lineWidth = Math.max(1.5, s * 0.05); ctx.lineCap = 'round';
   ctx.beginPath(); ctx.moveTo(x + s * 0.24, y + s * 0.26); ctx.lineTo(x + s * 0.5, y + s * 0.5); ctx.lineTo(x + s * 0.42, y + s * 0.76);
@@ -641,7 +657,8 @@ function draw(dt) {
     if (pa) { const k = Math.sin(Math.min(1, pa.t / 0.25) * Math.PI) * 0.12; s = L.cs * (1 + k); ox = (L.cs - s) / 2; }
     const lit = hl && (hl.rows.includes(y) || hl.cols.includes(x));
     cell(L.bx + x * L.cs + ox, L.by + y * L.cs + ox, s, lit ? hl.color : c);
-    if (c === STONE2) cracks(L.bx + x * L.cs + ox, L.by + y * L.cs + ox, s);
+    if (c === STONE2) armor(L.bx + x * L.cs + ox, L.by + y * L.cs + ox, s);
+    else if (c === STONEC) cracks(L.bx + x * L.cs + ox, L.by + y * L.cs + ox, s);
     if (S.gems.has(y * N + x)) gem(L.bx + (x + 0.5) * L.cs, L.by + (y + 0.48) * L.cs, L.cs * 0.3);
     if (lit) { ctx.fillStyle = 'rgba(255,255,255,' + (0.18 + 0.12 * Math.sin(performance.now() / 90)) + ')'; rr(L.bx + x * L.cs + 3, L.by + y * L.cs + 3, L.cs - 6, L.cs - 6, L.cs * .15); ctx.fill(); }
   }
@@ -797,10 +814,11 @@ const resume = id => {
   clearSpace();
   S.pops.length = 0; S.pops.push({ text: t('bp.spaceCleared'), sub: t('bp.keepGoing'), t: 0 }); updateHUD(); save();
 };
-const payResume = id => { if (COINS < CONT_COST) return; COINS -= CONT_COST; saveCoins(); resume(id); };
+const payResume = id => { const c = contCost(); if (COINS < c || (S.mode === 'daily' && S.contN)) return; COINS -= c; S.contN = (S.contN || 0) + 1; saveCoins(); resume(id); };
 $('bp-cont').onclick = () => payResume('bp-over');
 $('bp-rescont').onclick = () => payResume('bp-res');
-const MORE_COST = 25, CONT_COST = 15;
+const MORE_COST = 25;
+const contCost = () => 30 * Math.pow(2, S.contN || 0);   // 30 → 60 → 120 : les records ne s'achètent pas
 $('bp-resmore').onclick = () => {
   if (COINS < MORE_COST || S.moreBought) return;
   COINS -= MORE_COST; saveCoins(); S.moreBought = true; S.moves += 3; S.over = false;
@@ -808,7 +826,7 @@ $('bp-resmore').onclick = () => {
   $('bp-res').classList.add('hidden'); S.pops.push({ text: t('bp.plus3'), sub: t('bp.lastChance'), t: 0 }); updateHUD();
 };
 // vidéos récompensées (application uniquement) : toujours facultatives, jamais imposées
-$('bp-resvid').onclick = () => MON.reward('moves').then(ok => {
+$('bp-resvid').onclick = () => S.moves > 0 ? MON.reward('continue').then(ok => { if (!ok || S.vidCont) return; S.vidCont = true; resume('bp-res'); }) : MON.reward('moves').then(ok => {
   if (!ok || S.moreBought) return;
   S.moreBought = true; S.moves += 3; S.over = false;
   if (!S.tray.some(t => t && canPlaceAnywhere(t))) rescueTray();
@@ -860,6 +878,7 @@ function loginBonus() {
   try { localStorage.setItem('blocparty.login', JSON.stringify(L0)); } catch (e) {}
   const gain = 10 + 5 * Math.min(6, L0.streak - 1);
   COINS += gain; saveCoins(); paintBoost();
+  if (TUTO) { window.ptToast && window.ptToast(t('bp.loginTitle', { n: L0.streak }) + ` · +${gain} 🪙`); return; }   // pas de bandeau par-dessus le tutoriel
   S.pops.push({ text: t('bp.loginTitle', { n: L0.streak }), sub: `+${gain} 🪙`, t: -0.6 });
 }
 let inited = false;
