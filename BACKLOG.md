@@ -17,7 +17,7 @@ headless (`node tools/smoke.mjs`, zéro erreur console, captures relues), pouss�
 
 - **Block Quarry — reste à faire** (après E12) : coffres d'étoiles sur la carte ; objectifs de couleur ; défi du jour à un seul essai compté (choix de design, à trancher).
 - **Nova Foundry — reste à faire** (après E14) : *(rien de signalé ; à revoir à l'évaluation n° 5)*
-- **Synth Horde** : *(rapport attendu)*
+- **Synth Horde — reste à faire** (après E11) : révélation du contenu des coffres (carte animée) ; runs plus courtes / sauvegarde en cours de run pour le mobile (choix de design) ; réglage qualité manuel.
 
 *Évaluation n° 3 (sous-agent joueur, 2026-09-25, desktop + iPhone 13) — un bloquant (joystick mobile), le reste en finitions ; corrections des évaluations 1 et 2 confirmées. Verdict : une fois le joystick corrigé, plus rien qui vaille une itération → fin de la boucle.*
 
@@ -29,6 +29,19 @@ headless (`node tools/smoke.mjs`, zéro erreur console, captures relues), pouss�
 
 ## Fait
 
+- **Itération E11** (2026-09-28, évaluation n° 4, sous-agent) — Synth Horde 1.1.0 : annonces en haut (sous le chrono / la barre
+  du boss), plus jamais sous l'invite du coffre ; pause en deux colonnes en paysage, Reprendre/Abandonner toujours
+  visibles, écran de fin qui tient en 740×360 ; joueur toujours lisible (silhouette par-dessus tout, anneau au sol),
+  onde de choc en anneau discret, œil du boss adouci ; balles ennemies distinctes (cœur blanc, halo orange, traînée),
+  8 balles de tireurs ordinaires au plus, tireurs introduits progressivement de 4 à 6 min 30 ; bouton Boutique ◈ en haut
+  du menu, personnages en 3 colonnes au-dessus du bouton Lancer ; chiffres de dégâts hors de la bande du HUD et sans
+  chevauchement ; portail limité à 2 montées de niveau (le reste en or) ; « vitesse des projectiles / d'orbite » ;
+  « ⭐ fait évoluer X » seulement si X est possédée ; verrou de 0,4 s sur les cartes, level-up différé de 1,5 s après une
+  résurrection ; invite de charge du sanctuaire ; cause de la mort et « nouveau record » en fin de run ; radar 100 px en
+  paysage ; perf mobile (antialias coupé, résolution dynamique 0,75–1, 800 particules, 250 ennemis, matériau d'anneau
+  partagé, radar à 15 Hz) ; **Chaleur 1–5** après la première victoire (+25 % PV, +15 % dégâts, +12 % apparitions,
+  +25 % crédits par cran ; record par personnage). Équilibrage 40 runs : médiane 7:10 → 7:13, balles des tireurs
+  50 % → 42 % des dégâts subis. Test de fumée : contrôles paysage 844×390.
 - **Itération E14** (2026-09-28) — Nova Foundry 1.2.0 : carte « Bon retour » après plus de 5 min d'absence (durée, gains,
   bouton vidéo pour les doubler, rappel du nœud Veille nocturne tant qu'il manque) au lieu d'un toast vite évincé ;
   tuiles d'amélioration numérotées (I–VIII), deux tuiles de la même forge ne se confondent plus ; les éclipses ne
