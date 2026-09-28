@@ -916,8 +916,17 @@ function kill(e) {
   sfx('kill');
 }
 function dropXp(x, y, z, v) {
-  if (S.pickups.length > 850) {  // fusion : on ajoute la valeur à une gemme existante
-    for (let i = S.pickups.length - 1; i >= 0; i--) if (S.pickups[i].type === 'gem') { S.pickups[i].v += v; return; }
+  if (S.pickups.length > 850) {
+    // fusion près de l'action : dans une gemme voisine (6 m), sinon la gemme la plus lointaine du joueur cède sa valeur
+    // à la nouvelle — l'XP ne part plus dans une gemme perdue à 90 m (panne de niveaux puis avalanche de choix)
+    let best = -1, bd = 36, far = -1, fd = -1;
+    for (let i = 0; i < S.pickups.length; i++) {
+      const k = S.pickups[i]; if (k.type !== 'gem') continue;
+      const d = (k.x - x) ** 2 + (k.z - z) ** 2; if (d < bd) { bd = d; best = i; }
+      const dp = (k.x - S.p.x) ** 2 + (k.z - S.p.z) ** 2; if (dp > fd) { fd = dp; far = i; }
+    }
+    if (best >= 0) { S.pickups[best].v += v; return; }
+    if (far >= 0) { v += S.pickups[far].v; S.pickups.splice(far, 1); }
   }
   addPickup('gem', x, y, z, v);
 }
@@ -2016,7 +2025,8 @@ function renderEnd() {
   const full = (txt, col) => `<div class="nb-efull" style="color:${col}">${txt}</div>`;
   const notes = (killedBy ? full(tr('nb.kb.' + (killedBy in KB ? killedBy : 'other')), '#ff7a95') : '')
     + (best ? full(tr('nb.newBest'), '#ffc94d') : '') + (heatRec ? full(tr('nb.heatRec', { n: S.heat }), '#ff8a4d') : '')
-    + (firstWin ? full(tr('nb.heatUnlocked'), '#ff8a4d') : '');
+    + (firstWin ? full(tr('nb.heatUnlocked'), '#ff8a4d') : '')
+    + ((S.gold || 0) >= 40 ? full(tr('nb.goldCr', { g: num(S.gold), c: num(Math.floor(S.gold / 40 * (1 + 0.25 * (S.heat || 0)))) }), '#ffc94d') : '');
   $('nb-endstats').innerHTML = row('nb.eTime', `${Math.floor(surv / 60)}:${String(surv % 60).padStart(2, '0')}`) + row('nb.eLevel', S.level) + row('nb.eKills', num(S.kills)) + row('nb.eDmg', num(S.dmgDealt))
     + row('nb.eChests', S.chestsOpened) + row('nb.eChar', S.ch.name) + row('nb.eStage', (S.stage + 1) + ' / ' + STAGES.length)
     + (S.heat ? row('nb.heat', '🔥 ' + S.heat) : '')

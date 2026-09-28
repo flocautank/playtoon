@@ -48,7 +48,12 @@ document.addEventListener('pointerdown', e => { if (!soundBox.contains(e.target)
 paintMute();
 
 // Petites notifications communes (objectifs du jour…)
-window.ptToast = t => { const z = document.getElementById('pt-toasts'), d = document.createElement('div'); d.textContent = t; z.appendChild(d); setTimeout(() => d.remove(), 4000); };
+// en pleine run de Synth Horde, les notifications attendent (elles couvraient le chrono et les alertes du boss)
+const toastNow = t => { const z = document.getElementById('pt-toasts'), d = document.createElement('div'); d.textContent = t; z.appendChild(d); setTimeout(() => d.remove(), 4000); };
+const inRun = () => current === 'bonk' && window.__nb && window.__nb.S && window.__nb.S.state === 'play';
+const held = [];
+window.ptToast = t => { if (inRun()) held.push(t); else toastNow(t); };
+setInterval(() => { if (held.length && !inRun()) held.splice(0).forEach(toastNow); }, 1000);
 
 // ---------- Objectifs du jour : un par jeu, tirés de la date, récompense dans le jeu concerné
 const GOALS = {

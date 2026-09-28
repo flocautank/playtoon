@@ -29,6 +29,11 @@ headless (`node tools/smoke.mjs`, zéro erreur console, captures relues), pouss�
 
 ## Fait
 
+- **Itération E20** (2026-09-28, évaluation n° 6 : verdict « oui » pour Synth Horde) — Synth Horde 1.3.0 : **fusion des gemmes
+  près de l'action** — au-delà de 850 objets au sol, l'XP d'un ennemi s'ajoutait à une gemme quelconque (souvent à 90 m) :
+  niveau bloqué ~8 min puis 36 choix d'affilée ; désormais gemme voisine (6 m), sinon la plus lointaine cède sa valeur à
+  la nouvelle (XP conservée, plafond tenu) ; notifications du site retenues pendant une run (elles couvraient le chrono
+  et l'alerte SAUTE !) puis affichées ; conversion or → crédits affichée sur l'écran de fin.
 - **Itération E19** (2026-09-28, évaluation n° 6 : verdict « non » pour Nova Foundry, restes mineurs) — notifications du
   site en haut seulement dans Block Quarry (en haut, elles couvraient le compteur de Nova Foundry) ; succès du Moteur
   stellaire aux niveaux 3 et 6 (le niveau 10 était hors d'atteinte) ; indication « prochaine Nova » précise à 4 % près ;
