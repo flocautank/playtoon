@@ -78,7 +78,7 @@ const ACH = [];
 GENS.forEach((g, i) => ACH.push({ id: 'own' + i, ic: g.ic, get name() { return t('sf.aOwn', { gen: g.name }); }, get desc() { return t('sf.aOwnDesc', { gen: g.name }); }, test: s => s.gens[i] >= 50 }));
 ACH.push({ id: 'bigbang', ic: '🌌', name: 'Big Bang', get desc() { return t('sf.aBBDesc'); }, test: s => (s.bigbangs || 0) >= 1 });
 [5, 20].forEach(n => ACH.push({ id: 'bb' + n, ic: '🌌', get name() { return t('sf.aBBn', { n }); }, get desc() { return t('sf.aBBnDesc', { n }); }, test: s => (s.bigbangs || 0) >= n }));
-[5, 10].forEach(n => ACH.push({ id: 'eng' + n, ic: '⚙️', get name() { return t('sf.engName') + ' ' + n; }, get desc() { return t('sf.aEngDesc', { n }); }, test: s => (s.eng || 0) >= n }));
+[3, 6].forEach(n => ACH.push({ id: 'eng' + n, ic: '⚙️', get name() { return t('sf.engName') + ' ' + n; }, get desc() { return t('sf.aEngDesc', { n }); }, test: s => (s.eng || 0) >= n }));
 ACH.push({ id: 'allchal', ic: '🏅', get name() { return t('sf.aAllChal'); }, get desc() { return t('sf.aAllChalDesc'); }, test: s => Object.keys(s.chalDone || {}).length >= 6 });
 [[1, '💥'], [5, '🌠'], [20, '🌌']].forEach(([n, ic]) => ACH.push({ id: 'pre' + n, ic, get name() { return t('sf.aPre', { n }); }, get desc() { return t('sf.aPreDesc', { n }); }, test: s => s.prestiges >= n }));
 [[1, '⭐'], [10, '🌟'], [50, '🎇']].forEach(([n, ic]) => ACH.push({ id: 'com' + n, ic, get name() { return t('sf.aCom', { n }); }, get desc() { return t('sf.aComDesc', { n }); }, test: s => s.lifeComets >= n }));
@@ -609,7 +609,7 @@ function refresh(structural) {
   $('sf-prestige').disabled = g < 1;
   $('sf-prestige-box').classList.toggle('idle', g < 1);
   const nx = $('sf-nova-next');
-  if (nx) { let need = 2e5; if (g < 1 && !S.chal) { while (novaGainAt(need) < 1 && need < 1e300) need *= 1.25; } nx.textContent = g < 1 && !S.chal ? t('sf.nextNova', { n: fmt(need), p: Math.min(99, Math.floor(S.runTotal / need * 100)) }) : ''; }
+  if (nx) { let need = 2e5; if (g < 1 && !S.chal) { while (novaGainAt(need) < 1 && need < 1e300) need *= 1.04; } nx.textContent = g < 1 && !S.chal ? t('sf.nextNova', { n: fmt(need), p: Math.min(99, Math.floor(S.runTotal / need * 100)) }) : ''; }
   $('sf-prestige-box').style.display = S.runTotal >= 1e5 || S.novaTotal > 0 ? '' : 'none';
   $('sf-tab-chal').classList.toggle('hidden', S.prestiges < 1);
   const ch = S.chal && CHALS.find(x => x.id === S.chal);

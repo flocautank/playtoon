@@ -33,6 +33,7 @@ const SETTINGS = `
 //          gearIcon (⚙ par défaut),
 //          mon: objet de createMon, version, music: true si le jeu a une musique, onBack?: () => bool }
 export async function initShell(opts) {
+  document.body.dataset.tab = opts.game;
   document.body.insertAdjacentHTML('beforeend', SETTINGS);
   try { window.PT_MUTE = localStorage.getItem('playtoon.mute') === '1'; window.PT_MUSIC = localStorage.getItem('playtoon.music') !== '0'; } catch (e) { window.PT_MUSIC = true; }
   window.ptToast = msg => { const z = $('pt-toasts'), d = document.createElement('div'); d.textContent = msg; z.appendChild(d); setTimeout(() => d.remove(), 3500); };

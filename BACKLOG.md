@@ -29,6 +29,10 @@ headless (`node tools/smoke.mjs`, zéro erreur console, captures relues), pouss�
 
 ## Fait
 
+- **Itération E19** (2026-09-28, évaluation n° 6 : verdict « non » pour Nova Foundry, restes mineurs) — notifications du
+  site en haut seulement dans Block Quarry (en haut, elles couvraient le compteur de Nova Foundry) ; succès du Moteur
+  stellaire aux niveaux 3 et 6 (le niveau 10 était hors d'atteinte) ; indication « prochaine Nova » précise à 4 % près ;
+  « Téméraire » au lieu de « Défieur ».
 - **Itération E18** (2026-09-28, évaluation n° 6 : verdict « non » pour Block Quarry, restes mineurs) — minuterie de
   l'écran de résultat d'Aventure annulée au changement de mode ; reprise payante du défi du jour une fois **par jour** ;
   prix de reprise et compteur de pièces sauvegardés avec la partie classique ; roue des réglages hors du grisage des

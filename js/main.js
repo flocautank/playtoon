@@ -14,7 +14,7 @@ function show(id) {
   if (current && G[current]) G[current].hide();
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.id === 'tab-' + id));
   document.querySelectorAll('#nav a').forEach(a => a.classList.toggle('on', a.dataset.tab === id));
-  current = id;
+  current = id; document.body.dataset.tab = id;
   if (G[id]) G[id].show();
   try { localStorage.setItem('arcade.tab', id); } catch (e) {}
 }
