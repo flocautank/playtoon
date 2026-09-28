@@ -30,6 +30,9 @@ const TIER_COST = [10, 50, 500, 5e4, 5e6, 5e8, 5e10, 5e12];
 const MILESTONES = [10, 25, 50, 100, 150, 200, 250, 300, 350, 400, 500];
 
 const UPGRADES = [];
+// repère court sur les tuiles d'amélioration (deux tuiles de la même forge ne se ressemblent plus)
+const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
+const upgTag = u => { const m = /^g\d+t(\d+)$/.exec(u.id) || /^(?:click|luck|glob)(\d+)$/.exec(u.id); return m ? ROMAN[+m[1]] || '' : ''; };
 // noms et descriptions calculés à la lecture : ils suivent la langue choisie
 GENS.forEach((g, gi) => GEN_TIERS.forEach((th, ti) => UPGRADES.push({
   id: `g${gi}t${ti}`, ic: g.ic, cost: g.cost * TIER_COST[ti],
@@ -201,6 +204,24 @@ async function watchBoost() {
   if (!MON() || !(await MON().reward('boost'))) return;
   S.adBoostUntil = Math.min(Date.now() + BOOST_MAX_H * 3600e3, Math.max(Date.now(), S.adBoostUntil || 0) + BOOST_H * 3600e3);
   toast(t('sf.boostOn')); flash = 0.4; save(); refresh(true);
+}
+// Carte « Bon retour » : durée d'absence, gains, et (application) le bouton pour les doubler
+function welcomeBack(away, v) {
+  if (away < 300) { toast(t('sf.away', { v: fmt(v) })); return; }
+  let o = $('sf-back');
+  if (!o) {
+    o = document.createElement('div'); o.className = 'overlay hidden'; o.id = 'sf-back';
+    o.innerHTML = '<div class="card"><h2></h2><p class="sf-backtxt"></p><button class="btn bp-vid hidden" id="sf-backdbl"></button><button class="btn" id="sf-backok" data-back></button></div>';
+    $('tab-forge').appendChild(o);
+    $('sf-backok').onclick = () => o.classList.add('hidden');
+    $('sf-backdbl').onclick = async () => { await watchOffline(); o.classList.add('hidden'); };
+  }
+  o.querySelector('h2').textContent = t('sf.backTitle');
+  o.querySelector('.sf-backtxt').innerHTML = t('sf.backTxt', { time: hm(away * 1000), v: fmt(v) }) + (has('m_off') ? '' : '<br><span class="muted small">' + t('sf.backHint') + '</span>');
+  const canAd = !!(MON() && MON().canReward());
+  $('sf-backdbl').classList.toggle('hidden', !canAd); $('sf-backdbl').textContent = t('sf.offDouble', { v: fmt(v) });
+  $('sf-backok').textContent = t('sf.backOk');
+  o.classList.remove('hidden');
 }
 async function watchOffline() {
   const v = offPending;
@@ -551,7 +572,7 @@ function fillUpgrades() {
   const av = UPGRADES.filter(u => !S.upg[u.id] && u.req(S)).sort((a, b) => upgCost(a) - upgCost(b));
   if (!av.length) grid.innerHTML = `<p class="muted small" style="grid-column:1/-1">${t('sf.nothing')}</p>`;
   av.forEach(u => {
-    const b = document.createElement('button'); b.className = 'sf-upg'; b.dataset.id = u.id; b.innerHTML = `<span>${u.ic}</span><small>${fmt(upgCost(u))}</small>`;
+    const b = document.createElement('button'); b.className = 'sf-upg'; b.dataset.id = u.id; b.innerHTML = `<span>${u.ic}</span><small>${fmt(upgCost(u))}</small>${upgTag(u) ? `<i class="sf-utag">${upgTag(u)}</i>` : ''}`;
     tipify(b, () => `<b>${u.name}</b><br>${u.desc}<br><span style="color:var(--gold)">${fmt(upgCost(u))}</span>${S.dust < upgCost(u) ? ` <span class="muted">${t('sf.notEnough')}</span>` : ''}`, () => buyUpg(u));
     grid.appendChild(b);
   });
@@ -685,7 +706,7 @@ function tick(dt) {
   if (has('m_auto') && !inChal('c_hands')) { autoAcc += dt * 5; while (autoAcc >= 1) { autoAcc--; const v = clickValue(); earn(v); S.clicks++; } }
   S.buffs.forEach(b => b.t -= dt); S.buffs = S.buffs.filter(b => b.t > 0);
   // éclipse : de temps en temps, production ×2 mais clics sans effet pendant 45 s
-  if (visible && !S.chal) { nextEclipse -= dt * luck(); if (nextEclipse <= 0) { nextEclipse = 480 + Math.random() * 480; S.buffs.push({ type: 'eclipse', t: 45, max: 45 }); toast(t('sf.eclipseT')); sfx(90, 1, 'sine', 0.08); } }
+  if (visible && !S.chal) { nextEclipse -= dt; if (nextEclipse <= 0) { nextEclipse = 480 + Math.random() * 480; S.buffs.push({ type: 'eclipse', t: 45, max: 45 }); toast(t('sf.eclipseT')); sfx(90, 1, 'sine', 0.08); } }
   galAcc += dt;
   if (galAcc >= 1) {
     galAcc = 0;
@@ -716,7 +737,7 @@ function load() {
     const away = Math.min(8 * 3600, (Date.now() - (d.last || Date.now())) / 1000);
     if (away > 30) {
       const v = dps() * away * (has('m_off') ? 1 : 0.25);
-      if (v > 0) { earn(v); setTimeout(() => toast(t('sf.away', { v: fmt(v) })), 300); if (away > 300) { offPending = v; offUntil = Date.now() + 60000; } }
+      if (v > 0) { earn(v); if (away > 300) { offPending = v; offUntil = Date.now() + 60000; } setTimeout(() => welcomeBack(away, v), 400); }
     }
   } catch (e) {}
 }
@@ -735,7 +756,7 @@ function loop(t) {
   requestAnimationFrame(loop);
 }
 // La production continue même quand l'onglet est masqué (rattrapage à la reprise, cf. dt plafonné + hors-ligne).
-document.addEventListener('visibilitychange', () => { if (document.hidden) save(); else if (inited) { const d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (d) { const away = Math.min(8 * 3600, (Date.now() - d.last) / 1000); if (away > 5) { const v = dps() * away * (has('m_off') ? 1 : 0.25); earn(v); if (away > 60 && v > 0) { toast(t('sf.away', { v: fmt(v) })); if (away > 300) { offPending = v; offUntil = Date.now() + 60000; } refresh(true); } } } } });
+document.addEventListener('visibilitychange', () => { if (document.hidden) save(); else if (inited) { const d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (d) { const away = Math.min(8 * 3600, (Date.now() - d.last) / 1000); if (away > 5) { const v = dps() * away * (has('m_off') ? 1 : 0.25); earn(v); if (away > 60 && v > 0) { if (away > 300) { offPending = v; offUntil = Date.now() + 60000; } welcomeBack(away, v); refresh(true); } } } } });
 window.addEventListener('beforeunload', save);
 window.addEventListener('resize', () => visible && resizeStar());
 // la zone cliquable suit la taille réelle du cadre (la mise en page mobile change après le premier calcul)

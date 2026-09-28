@@ -291,3 +291,5 @@ main{position:fixed;inset:var(--nav-h) 0 0 0}
   .nb-pausebtn{top:8px;right:156px}
   .nb-msg,.nb-root.bossing .nb-msg{top:auto;bottom:24%;font-size:17px}
 }
+.sf-utag{position:absolute;top:2px;right:4px;font-style:normal;font-size:9px;font-weight:800;color:#b9a6ff;letter-spacing:.02em}
+#sf-back .card{text-align:center;max-width:360px}.sf-backtxt{line-height:1.5}

@@ -16,9 +16,7 @@ headless (`node tools/smoke.mjs`, zéro erreur console, captures relues), pouss�
 *Évaluation n° 4 (un sous-agent joueur par jeu, web + appli Android, 2026-09-27).*
 
 - **Block Quarry — reste à faire** (après E12) : coffres d'étoiles sur la carte ; objectifs de couleur ; défi du jour à un seul essai compté (choix de design, à trancher).
-- **Nova Foundry — reste à faire** (après E13) : carte « Bon retour » (absence, gains, bouton doubler) au lieu d'un toast ;
-  tuiles d'amélioration avec un court libellé d'effet ; la chance ne devrait pas rendre les éclipses plus fréquentes ;
-  suffixes de grands nombres traduits (Mio./Mrd.).
+- **Nova Foundry — reste à faire** (après E14) : *(rien de signalé ; à revoir à l'évaluation n° 5)*
 - **Synth Horde** : *(rapport attendu)*
 
 *Évaluation n° 3 (sous-agent joueur, 2026-09-25, desktop + iPhone 13) — un bloquant (joystick mobile), le reste en finitions ; corrections des évaluations 1 et 2 confirmées. Verdict : une fois le joystick corrigé, plus rien qui vaille une itération → fin de la boucle.*
@@ -31,6 +29,10 @@ headless (`node tools/smoke.mjs`, zéro erreur console, captures relues), pouss�
 
 ## Fait
 
+- **Itération E14** (2026-09-28) — Nova Foundry 1.2.0 : carte « Bon retour » après plus de 5 min d'absence (durée, gains,
+  bouton vidéo pour les doubler, rappel du nœud Veille nocturne tant qu'il manque) au lieu d'un toast vite évincé ;
+  tuiles d'amélioration numérotées (I–VIII), deux tuiles de la même forge ne se confondent plus ; les éclipses ne
+  dépendent plus de la chance (les télescopes les rendaient plus fréquentes). Suffixes M/G/T gardés (communs aux jeux idle).
 - **Itération E13** (2026-09-28, évaluation n° 4) — Nova Foundry 1.1.0 : **panneau du bas qui ne défilait pas sur téléphone**
   (bloquant : forges hautes, défis 4–6, bas de la Constellation et tout le Big Bang hors d'atteinte ; colonne sans
   `min-height:0`) — test de non-régression dans `tools/smoke.mjs` ; **fin de partie qui s'emballait** (Novae ↔ Singularités
