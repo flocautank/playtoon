@@ -194,8 +194,10 @@
       <div class="overlay" id="nb-menu">
         <div class="card wide">
           <h1 class="neon">SYNTH HORDE</h1>
-          <p class="muted" data-i18n-html="nb.intro"></p>
+          <p class="muted nb-intro" data-i18n-html="nb.intro"></p>
+          <button class="btn ghost small nb-shopjump" id="nb-shopjump"><span data-i18n="nb.shopJump">Shop</span> · ◈ <b id="nb-credits2">0</b></button>
           <div class="nb-chars" id="nb-chars"></div>
+          <div class="nb-heat hidden" id="nb-heat"><b data-i18n="nb.heat">Heat</b><span id="nb-heatbtns"></span><span class="muted small" id="nb-heatinfo"></span></div>
           <div class="nb-shop-h"><b data-i18n="nb.shopTitle">Permanent upgrades</b><span>◈ <b id="nb-credits">0</b> <span data-i18n="nb.creditsWord">credits</span></span></div>
           <div class="nb-shop" id="nb-shop"></div>
           <div class="nb-keys muted small"></div>
@@ -211,18 +213,20 @@
         </div>
       </div>
       <div class="overlay hidden" id="nb-pause">
-        <div class="card">
+        <div class="card nb-pcard">
           <h2 data-i18n="nb.pause">Paused</h2>
           <div id="nb-build" class="nb-build"></div>
+          <div class="nb-pset">
           <label class="small"><input type="range" id="nb-sens" min="0.3" max="2.5" step="0.1" value="1"> <span data-i18n="nb.sens">Camera sensitivity</span></label>
           <label class="small"><span data-i18n="nb.dmgNums">Damage numbers</span> <select id="nb-nums"><option value="merge" data-i18n="nb.numsMerge">grouped</option><option value="crit" data-i18n="nb.numsCrit">crits only</option><option value="off" data-i18n="nb.numsOff">off</option></select></label>
           <label class="small"><span data-i18n="nb.autoLvl">Level-ups</span> <select id="nb-autolvl"><option value="" data-i18n="nb.autoManual">I choose</option><option value="1" data-i18n="nb.autoAuto">auto-pick</option></select></label>
           <label class="small"><input type="checkbox" id="nb-music" checked> <span data-i18n="nb.music">Music</span> <span class="muted" data-i18n="nb.musicNote">(shared setting, also under 🔊)</span></label>
-          <div class="row"><button class="btn" id="nb-resume" data-i18n="nb.resume" data-back>Resume</button><button class="btn ghost" id="nb-quit" data-i18n="nb.quit">Give up</button></div>
+          </div>
+          <div class="row nb-prow"><button class="btn" id="nb-resume" data-i18n="nb.resume" data-back>Resume</button><button class="btn ghost" id="nb-quit" data-i18n="nb.quit">Give up</button></div>
         </div>
       </div>
       <div class="overlay hidden" id="nb-end">
-        <div class="card wide">
+        <div class="card wide nb-ecard">
           <h2 id="nb-endtitle" data-i18n="nb.endTitle">Run over</h2>
           <div id="nb-endstats"></div>
           <button class="btn small bp-vid hidden" id="nb-double"></button>
