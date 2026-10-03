@@ -4,7 +4,10 @@ import { createRequire } from 'module';
 import { mkdirSync } from 'fs';
 const require = createRequire('/opt/node22/lib/node_modules/');
 const { chromium } = require('playwright');
-const OUT = new URL('../store/screenshots/', import.meta.url).pathname;
+// Variables (captures Steam, PC) : SHOT_URL, SHOT_OUT, SHOT_W, SHOT_H, SHOT_DSF, SHOT_MOBILE=0
+const E = process.env, OUT = E.SHOT_OUT || new URL('../store/screenshots/', import.meta.url).pathname;
+const URL_ = E.SHOT_URL || 'http://localhost:8792/';
+const VIEW = { viewport: { width: +(E.SHOT_W || 640), height: +(E.SHOT_H || 360) }, deviceScaleFactor: +(E.SHOT_DSF || 3), isMobile: E.SHOT_MOBILE !== '0', hasTouch: E.SHOT_MOBILE !== '0' };
 const META = { totalKills: 5200, bossKills: 3, maxLevel: 31, bestTime: 1260, bestKills: 2400, runs: 14, wins: 1, sel: 'ronin', sens: 1, credits: 940,
   shop: { hp: 3, dmg: 3, speed: 2, magnet: 2, xp: 2, luck: 1, gold: 2, reroll: 1 }, music: true, nums: 'merge' };
 
@@ -37,10 +40,10 @@ const b = await chromium.launch({ args: ['--use-gl=swiftshader', '--enable-unsaf
 for (const lang of ['en', 'fr']) {
   mkdirSync(OUT + lang, { recursive: true });
   for (const [name, setup] of SCENES) {
-    const ctx = await b.newContext({ viewport: { width: 640, height: 360 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true, locale: lang });
+    const ctx = await b.newContext({ ...VIEW, locale: lang });
     const p = await ctx.newPage();
     await p.addInitScript(([l, m]) => { if (!sessionStorage.getItem('init')) { sessionStorage.setItem('init', 1); localStorage.clear(); localStorage.setItem('playtoon.lang', l); localStorage.setItem('playtoon.music', '0'); localStorage.setItem('neonbonk.meta.v1', JSON.stringify(m)); } }, [lang, META]);
-    await p.goto('http://localhost:8792/'); await p.waitForTimeout(2500);
+    await p.goto(URL_); await p.waitForTimeout(2500);
     await setup(p); await p.waitForTimeout(1200);
     await p.screenshot({ path: `${OUT}${lang}/${name}.png` });
     await ctx.close(); console.log(lang, name);

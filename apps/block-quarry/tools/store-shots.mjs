@@ -5,7 +5,10 @@ import { createRequire } from 'module';
 import { mkdirSync } from 'fs';
 const require = createRequire('/opt/node22/lib/node_modules/');
 const { chromium } = require('playwright');
-const OUT = new URL('../store/screenshots/', import.meta.url).pathname;
+// Variables (captures Steam, PC) : SHOT_URL, SHOT_OUT, SHOT_W, SHOT_H, SHOT_DSF, SHOT_MOBILE=0
+const E = process.env, OUT = E.SHOT_OUT || new URL('../store/screenshots/', import.meta.url).pathname;
+const URL_ = E.SHOT_URL || 'http://localhost:8790/';
+const VIEW = { viewport: { width: +(E.SHOT_W || 360), height: +(E.SHOT_H || 640) }, deviceScaleFactor: +(E.SHOT_DSF || 3), isMobile: E.SHOT_MOBILE !== '0', hasTouch: E.SHOT_MOBILE !== '0' };
 
 // remplit la grille « comme en cours de partie » avec un motif déterministe
 const PREP = `(() => { const bp = window.__bp, S = bp.S, C = ['#ff5d8f','#ffc94d','#4dd4ff','#7cff8a','#b98bff','#ff8a4d','#4dffd2'];
@@ -28,10 +31,10 @@ const b = await chromium.launch();
 for (const lang of ['en', 'fr']) {
   mkdirSync(OUT + lang, { recursive: true });
   for (const [name, setup] of SCENES) {
-    const ctx = await b.newContext({ viewport: { width: 360, height: 640 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true, locale: lang });
+    const ctx = await b.newContext({ ...VIEW, locale: lang });
     const p = await ctx.newPage();
-    await p.addInitScript(l => { if (!sessionStorage.getItem('init')) { sessionStorage.setItem('init', 1); localStorage.clear(); localStorage.setItem('playtoon.lang', l); localStorage.setItem('blocparty.tuto', '1'); } }, lang);
-    await p.goto('http://localhost:8790/'); await p.waitForTimeout(700);
+    await p.addInitScript(l => { if (!sessionStorage.getItem('init')) { sessionStorage.setItem('init', 1); localStorage.clear(); localStorage.setItem('playtoon.lang', l); localStorage.setItem('blocparty.tuto', '1'); const d = new Date(); localStorage.setItem('blocparty.login', JSON.stringify({ day: d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(), streak: 1 })); } }, lang);
+    await p.goto(URL_); await p.waitForTimeout(700);
     await p.evaluate(PREP); await setup(p); await p.waitForTimeout(450);
     await p.screenshot({ path: `${OUT}${lang}/${name}.png` });
     await ctx.close();

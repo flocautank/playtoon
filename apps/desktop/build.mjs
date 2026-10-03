@@ -6,11 +6,12 @@
 import { build as esbuild } from 'esbuild';
 import { cpSync, mkdirSync, rmSync, writeFileSync, copyFileSync, existsSync, chmodSync } from 'fs';
 import { createRequire } from 'module';
+import { fileURLToPath } from 'url';
 import { buildApp } from '../shared/build-app.mjs';
 import { GAMES } from './games.mjs';
 
 const require = createRequire(import.meta.url);
-const HERE = new URL('./', import.meta.url).pathname;
+const HERE = fileURLToPath(new URL('./', import.meta.url));
 const args = process.argv.slice(2);
 const ids = args.filter(a => !a.startsWith('--'));
 const stageOnly = args.includes('--stage-only');

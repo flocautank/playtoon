@@ -67,7 +67,7 @@ jobs:
           sudo apt-get update -qq && sudo apt-get install -y -qq xvfb > /dev/null
           for g in block-quarry:blockquarry nova-foundry:novafoundry synth-horde:synthhorde; do
             d=${g%%:*}; e=${g##*:}
-            timeout 25 xvfb-run -a dist/$d/linux-unpacked/launch.sh > run-$d.log 2>&1; code=$?
+            code=0; timeout 25 xvfb-run -a dist/$d/linux-unpacked/launch.sh > run-$d.log 2>&1 || code=$?
             # 124 = toujours en marche au bout de 25 s (attendu) ; tout autre code = le jeu s'est arrêté
             if [ $code -ne 124 ]; then echo "::error::$d s'est arrêté (code $code)"; cat run-$d.log; exit 1; fi
             echo "$d : démarre et reste ouvert"

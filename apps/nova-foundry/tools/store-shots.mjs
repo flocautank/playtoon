@@ -4,7 +4,10 @@ import { createRequire } from 'module';
 import { mkdirSync } from 'fs';
 const require = createRequire('/opt/node22/lib/node_modules/');
 const { chromium } = require('playwright');
-const OUT = new URL('../store/screenshots/', import.meta.url).pathname;
+// Variables (captures Steam, PC) : SHOT_URL, SHOT_OUT, SHOT_W, SHOT_H, SHOT_DSF, SHOT_MOBILE=0
+const E = process.env, OUT = E.SHOT_OUT || new URL('../store/screenshots/', import.meta.url).pathname;
+const URL_ = E.SHOT_URL || 'http://localhost:8791/';
+const VIEW = { viewport: { width: +(E.SHOT_W || 360), height: +(E.SHOT_H || 640) }, deviceScaleFactor: +(E.SHOT_DSF || 3), isMobile: E.SHOT_MOBILE !== '0', hasTouch: E.SHOT_MOBILE !== '0' };
 
 // partie avancée crédible : forges, améliorations, Novae, constellation partielle
 const SAVE = { dust: 4.2e9, runTotal: 9.6e10, lifeTotal: 3.1e12, clicks: 2400, lifeClicks: 18000, gens: [120, 95, 80, 64, 50, 36, 22, 9, 2, 0], upg: {}, cometsTotal: 6, lifeComets: 41,
@@ -26,10 +29,10 @@ const b = await chromium.launch();
 for (const lang of ['en', 'fr']) {
   mkdirSync(OUT + lang, { recursive: true });
   for (const [name, setup] of SCENES) {
-    const ctx = await b.newContext({ viewport: { width: 360, height: 640 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true, locale: lang });
+    const ctx = await b.newContext({ ...VIEW, locale: lang });
     const p = await ctx.newPage();
     await p.addInitScript(([l, s]) => { if (!sessionStorage.getItem('init')) { sessionStorage.setItem('init', 1); localStorage.clear(); localStorage.setItem('playtoon.lang', l); localStorage.setItem('starforge.intro', '1'); localStorage.setItem('starforge.save.v1', JSON.stringify({ ...s, last: Date.now() })); } }, [lang, SAVE]);
-    await p.goto('http://localhost:8791/'); await p.waitForTimeout(900);
+    await p.goto(URL_); await p.waitForTimeout(900);
     await setup(p); await p.waitForTimeout(700);
     await p.evaluate(() => document.querySelectorAll('#sf-toasts .toast').forEach(t => t.remove()));
     await p.screenshot({ path: `${OUT}${lang}/${name}.png` });

@@ -3,15 +3,17 @@
 // Identifiants publicitaires : variables d'environnement (ADMOB_REWARDED_ID, ADMOB_INTERSTITIAL_ID),
 // sinon identifiants de TEST de Google (sans risque, ne rapportent rien).
 import { readFileSync, writeFileSync, mkdirSync, rmSync, copyFileSync } from 'fs';
+import { fileURLToPath, pathToFileURL } from 'url';
 
-const SHARED = new URL('./', import.meta.url).pathname, ROOT = new URL('../../', import.meta.url).pathname;
+// chemins système (fileURLToPath : correct aussi sous Windows, où URL.pathname donnerait /D:/…)
+const SHARED = fileURLToPath(new URL('./', import.meta.url)), ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const TEST = { rewarded: 'ca-app-pub-3940256099942544/5224354917', interstitial: 'ca-app-pub-3940256099942544/1033173712' };
 
 // app : { dir (dossier de l'application), section (id de la <section> du jeu), versionKey, title, ads (false : appli payante), config (champs en plus),
 //        esbuild (la fonction build d'esbuild, installé dans l'application) }
 export async function buildApp(app) {
   const OUT = app.dir + 'www/', env = process.env;
-  const { VERSIONS } = await import(ROOT + 'js/version.js');
+  const { VERSIONS } = await import(pathToFileURL(ROOT + 'js/version.js').href);
   const config = {
     version: VERSIONS[app.versionKey],
     testAds: !(env.ADMOB_REWARDED_ID && env.ADMOB_INTERSTITIAL_ID) || env.ADMOB_TEST === '1',
