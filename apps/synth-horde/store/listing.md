@@ -1,7 +1,8 @@
 # Synth Horde — Google Play store listing
 
 Package: `io.github.flocautank.synthhorde` · Category: **Games → Action** · Tags: Roguelike, Survival, Arcade, Offline
-Content: 12+ likely (IARC: fantasy violence against abstract neon shapes, no blood; contains ads; in-app purchase).
+**Paid app** — price set in Play Console (suggested **2,99 € / US$ 2.99**, see `../../PRICING.md`). No ads, no in-app purchase.
+Content: 7+ / Everyone 10+ likely (IARC: fantasy violence against abstract neon shapes, no blood; no ads; no purchases).
 Privacy policy: https://flocautank.github.io/playtoon/privacy.html
 
 Graphics: `../assets/play-icon-512.png`, `../assets/feature-graphic.png`, `screenshots/en/*.png`, `screenshots/fr/*.png` (1920×1080, landscape).
@@ -37,11 +38,9 @@ The grid is alive — and it wants you gone. Run, jump and dash through a synthw
 • 6 characters to unlock, each with a starting weapon and a bonus
 • Records, stats and daily goals
 
-★ FAIR BY DESIGN
-• Plays offline, no account
-• Optional reward videos: a second chance once per run, or double credits at the end of a run
-• Occasional full-screen ad between runs only — never during play, never in your first minutes
-• One optional purchase removes those ads forever
+★ BUY ONCE, PLAY FOREVER
+• The full game: no ads, no in-app purchases, no energy timers
+• Plays offline, no account, no data collected
 • 6 languages: English, Français, Español, Deutsch, Italiano, Português
 
 How long can you last?
@@ -75,11 +74,9 @@ La grille est vivante — et elle veut ta peau. Cours, saute et glisse dans un m
 • 6 personnages à débloquer, chacun avec son arme de départ et son bonus
 • Records, statistiques et objectifs du jour
 
-★ ÉQUITABLE
-• Jouable hors-ligne, sans compte
-• Vidéos bonus facultatives : une seconde chance par run, ou crédits doublés en fin de run
-• Une publicité plein écran de temps en temps, seulement entre deux runs — jamais en pleine partie, jamais dans tes premières minutes
-• Un achat facultatif supprime ces publicités pour toujours
+★ ACHETÉ UNE FOIS, À TOI POUR TOUJOURS
+• Le jeu complet : aucune publicité, aucun achat intégré, aucune jauge d'énergie
+• Jouable hors-ligne, sans compte, aucune donnée collectée
 • 6 langues : English, Français, Español, Deutsch, Italiano, Português
 
 Combien de temps tiendras-tu ?
@@ -87,10 +84,7 @@ Combien de temps tiendras-tu ?
 
 ---
 
-## In-app product
+## Price
 
-| Product ID | Type | Name (EN / FR) | Suggested price |
-|---|---|---|---|
-| `remove_ads` | One-time (managed) | Remove ads / Supprimer les pubs | 2,99 € |
-
-Description: "No more full-screen ads between runs. Reward videos stay optional." / « Plus de publicités plein écran entre les runs. Les vidéos bonus restent facultatives. »
+Paid app (Play Console → Monetize → App pricing). Suggested **2,99 € (EU) / US$ 2.99**; Play converts to local prices.
+No in-app products. Turn on **Play Console → Release → App integrity → Automatic protection** (anti-piracy for paid apps).

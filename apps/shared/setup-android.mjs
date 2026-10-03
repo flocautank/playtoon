@@ -1,12 +1,14 @@
 // Prépare le projet Android d'une application Playtoon après `npx cap add android` (idempotent) :
 // identifiant AdMob injecté par la CI, orientation, numéro de version et signature fournis par la CI.
-// Usage (depuis le dossier de l'application) : node ../shared/setup-android.mjs portrait|landscape
+// Usage (depuis le dossier de l'application) : node ../shared/setup-android.mjs portrait|landscape [noads]
+// « noads » : application payante sans SDK publicitaire (pas d'identifiant AdMob dans le manifeste).
 import { readFileSync, writeFileSync } from 'fs';
 
-const orient = process.argv[2] || 'portrait';
+const orient = process.argv[2] || 'portrait', noAds = process.argv[3] === 'noads';
 const man = 'android/app/src/main/AndroidManifest.xml', gr = 'android/app/build.gradle';
 let m = readFileSync(man, 'utf8');
-if (!m.includes('com.google.android.gms.ads.APPLICATION_ID')) {
+if (noAds) m = m.replace(/\n\s*<!-- AdMob[^\n]*-->\n\s*<meta-data android:name="com.google.android.gms.ads.APPLICATION_ID"[^\n]*\n/, '\n');
+else if (!m.includes('com.google.android.gms.ads.APPLICATION_ID')) {
   m = m.replace('android:theme="@style/AppTheme">\n', 'android:theme="@style/AppTheme">\n\n        <!-- AdMob : identifiant de l\'application (test par défaut, réel injecté par la CI via ADMOB_APP_ID) -->\n        <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="${admobAppId}" />\n');
 }
 m = m.replace(/\n\s*android:screenOrientation="[a-zA-Z]+"/, '');
@@ -40,4 +42,4 @@ if (!g.includes('VERSION_CODE')) {
             minifyEnabled false`);
 }
 writeFileSync(gr, g);
-console.log('android/ prêt :', orient, g.includes('VERSION_CODE') ? '· version et signature par la CI' : '· ÉCHEC du patch gradle', m.includes('APPLICATION_ID') ? '· AdMob' : '· ÉCHEC AdMob');
+console.log('android/ prêt :', orient, g.includes('VERSION_CODE') ? '· version et signature par la CI' : '· ÉCHEC du patch gradle', noAds ? (m.includes('APPLICATION_ID') ? '· ÉCHEC : AdMob encore présent' : '· sans pub') : m.includes('APPLICATION_ID') ? '· AdMob' : '· ÉCHEC AdMob');

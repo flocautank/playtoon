@@ -31,7 +31,7 @@ const SETTINGS = `
 
 // opts : { game: clé de window.GAMES, gearHost: sélecteur CSS de l'élément qui reçoit le bouton (sinon bouton flottant),
 //          gearIcon (⚙ par défaut),
-//          mon: objet de createMon, version, music: true si le jeu a une musique, onBack?: () => bool }
+//          mon: objet de createMon (absent pour une application payante sans pub), version, music: true si le jeu a une musique, onBack?: () => bool }
 export async function initShell(opts) {
   document.body.dataset.tab = opts.game;
   document.body.insertAdjacentHTML('beforeend', SETTINGS);
@@ -45,7 +45,8 @@ export async function initShell(opts) {
     m.classList.remove('hidden');
   });
 
-  const { mon } = opts;
+  // application payante (Synth Horde) : ni pub ni achat — un « mon » neutre qui n'affiche rien
+  const mon = opts.mon || { native: false, products: [], owns: () => false, shopReady: () => false, price: () => '', buy: async () => {}, restore: async () => {}, privacyRequired: () => false, privacyOptions: async () => {}, init: async () => {} };
   const gear = document.createElement('button'); gear.id = 'bq-gear'; gear.textContent = opts.gearIcon || '⚙'; gear.setAttribute('aria-label', 'Settings');
   const host = opts.gearHost && document.querySelector(opts.gearHost);
   if (host) host.appendChild(gear); else { gear.classList.add('bq-gear-float'); document.body.appendChild(gear); }

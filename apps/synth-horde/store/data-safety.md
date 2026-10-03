@@ -1,54 +1,33 @@
 # Synth Horde — Play Console "App content" answers
 
-These answers match what the app actually does (see `../src/app.js`, `../../shared/mon.js` and `privacy.html`). The only SDKs that
-process data are **Google Mobile Ads (AdMob) + UMP consent** and **Google Play Billing**.
+Synth Horde is a **paid app with no ads, no in-app purchases and no third-party SDK that processes data**
+(see `../src/app.js` and `../package.json`: only Capacitor core plugins). Game progress stays on the device.
 
 ## Privacy policy
 `https://flocautank.github.io/playtoon/privacy.html`
 
 ## Ads
-**Does your app contain ads?** Yes.
+**Does your app contain ads?** **No.**
 
 ## App access
 All functionality is available without special access (no login).
 
 ## Content rating (IARC questionnaire)
-Category: **Game**. Violence: fantasy violence against abstract geometric enemies, no blood, no humans. Sexuality: none. Language: none. Controlled substances: none.
-Gambling / simulated gambling: **none** (chests give random in-run upgrades bought with in-game gold only — never real money).
-User interaction / chat / sharing location: **none**. Digital purchases: **yes** (one-time "Remove ads").
-Expected result: PEGI 7 / ESRB Everyone 10+ (likely) (with "In-App Purchases").
+Category: **Game**. Violence: fantasy violence against abstract geometric enemies, no blood, no humans. Sexuality: none.
+Language: none. Controlled substances: none. Gambling / simulated gambling: none (chests give random in-run upgrades bought
+with in-game gold only). User interaction / chat / sharing location: none. Digital purchases: **no**.
+Expected result: PEGI 7 / ESRB Everyone 10+ (likely).
 
 ## Target audience and content
-Target age groups: **13–15, 16–17, 18+** (not "under 13": that would put the app under the Families policy and
-require Families-certified ad SDKs). "Could the app unintentionally appeal to children?" — answer honestly
-(cartoon neon shapes); if Google asks for it, the ads are already restricted to `MaxAdContentRating.General`.
+Target age groups: **13–15, 16–17, 18+** (keeps the app out of the Families program, which has extra requirements).
 
 ## Advertising ID
-**Does your app use advertising ID?** Yes — purpose: **Advertising or marketing** (through the Google Mobile Ads SDK,
-which declares the `AD_ID` permission automatically).
+**Does your app use advertising ID?** **No** (no ads SDK; the `AD_ID` permission is not in the manifest).
 
 ## Data safety form
-
-**Does your app collect or share any of the required user data types?** Yes.
-**Is all of the user data collected by your app encrypted in transit?** Yes.
-**Do you provide a way for users to request that their data is deleted?** No account exists; game data is on the
-device only. (Answer "No" — ad data is handled by Google; players can reset their advertising ID.)
-
-| Data type | Collected | Shared | Optional? | Purposes |
-|---|---|---|---|---|
-| Location → Approximate location (from IP, by AdMob) | Yes | Yes | No | Advertising or marketing, Fraud prevention |
-| Device or other IDs → Advertising ID | Yes | Yes | No | Advertising or marketing, Analytics, Fraud prevention |
-| App activity → App interactions (ad views/taps) | Yes | Yes | No | Advertising or marketing, Analytics |
-| App info and performance → Diagnostics (AdMob SDK) | Yes | No | No | Analytics, Fraud prevention |
-
-Not collected: name, email, user IDs, contacts, photos, files, messages, health, precise location, web history,
-financial info (payments are processed by Google Play, which the app never sees).
-
-"Is this data processed ephemerally?" — No. "Is collection required?" — Required (ads fund the free version; the "Remove ads" purchase removes full-screen ads),
-but personalisation depends on the player's UMP consent in the EEA/UK/Switzerland.
+**Does your app collect or share any of the required user data types?** **No.**
+(Play still requires the form: answer "No" to collection, the app then shows "No data collected" / "No data shared".)
+Is data encrypted in transit? Not applicable (the app sends nothing). Account deletion: not applicable (no account).
 
 ## Government apps / financial features / health
-No / None / No.
-
-## News app, COVID-19, Data deletion URL
 Not applicable.

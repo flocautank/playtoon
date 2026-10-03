@@ -7,7 +7,7 @@ import { readFileSync, writeFileSync, mkdirSync, rmSync, copyFileSync } from 'fs
 const SHARED = new URL('./', import.meta.url).pathname, ROOT = new URL('../../', import.meta.url).pathname;
 const TEST = { rewarded: 'ca-app-pub-3940256099942544/5224354917', interstitial: 'ca-app-pub-3940256099942544/1033173712' };
 
-// app : { dir (dossier de l'application), section (id de la <section> du jeu), versionKey, title, config (champs en plus),
+// app : { dir (dossier de l'application), section (id de la <section> du jeu), versionKey, title, ads (false : appli payante), config (champs en plus),
 //        esbuild (la fonction build d'esbuild, installé dans l'application) }
 export async function buildApp(app) {
   const OUT = app.dir + 'www/', env = process.env;
@@ -30,6 +30,6 @@ export async function buildApp(app) {
   copyFileSync(SHARED + 'app.css', OUT + 'app.css');
   for (const f of app.copy || []) copyFileSync(ROOT + f, OUT + f.split('/').pop());
   await app.esbuild({ entryPoints: [app.dir + 'src/app.js'], bundle: true, format: 'esm', target: 'es2020', minify: true, outfile: OUT + 'app.js', nodePaths: [app.dir + 'node_modules'], logLevel: 'warning', loader: { '.png': 'file' } });
-  console.log(`www/ prêt (${app.title}) —`, config.testAds ? 'publicités de TEST' : 'publicités réelles', '— version', config.version);
+  console.log(`www/ prêt (${app.title}) —`, app.ads === false ? 'application payante, sans publicité' : config.testAds ? 'publicités de TEST' : 'publicités réelles', '— version', config.version);
   return config;
 }

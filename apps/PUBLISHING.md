@@ -7,7 +7,7 @@ the store texts, graphics, privacy policy and form answers.
 |---|---|---|---|---|---|
 | Block Quarry (ex-Bloc Party) | `apps/block-quarry` | `io.github.flocautank.blockquarry` | `BQ_` | `remove_ads` — Remove ads, 2.99 € | between games, capped |
 | Nova Foundry (ex-Star Forge) | `apps/nova-foundry` | `io.github.flocautank.novafoundry` | `NF_` | `eternal_boost` — Eternal Engine, 3.99 € | none |
-| Synth Horde (ex-Neon Bonk) | `apps/synth-horde` | `io.github.flocautank.synthhorde` | `SH_` | `remove_ads` — Remove ads, 2.99 € | between runs, capped |
+| Synth Horde (ex-Neon Bonk) | `apps/synth-horde` | `io.github.flocautank.synthhorde` | — (no ads) | none — **paid app**, 2,99 € | none |
 
 Each app has its own `store/` folder (listing.md, data-safety.md, screenshots/) and `assets/` (Play icon, feature graphic).
 One Play developer account publishes all of them; **each app needs its own 14-day closed test**. What is left needs **your** Google accounts, identity and
@@ -29,13 +29,13 @@ Web searches found no app with these names. Play checks name conflicts again at 
 
 ## 2. AdMob account and ad units (≈ 20 min)
 1. https://admob.google.com → sign in with the same Google account → add an app: **Android**, "not published yet",
-   name *Block Quarry* — then the same for *Nova Foundry* and *Synth Horde*.
+   name *Block Quarry* — then the same for *Nova Foundry* (Synth Horde has no ads: no AdMob app for it).
 2. For each app, create its ad units: **Rewarded** ("rewarded") for all, plus **Interstitial** ("between games") for
-   Block Quarry and Synth Horde (Nova Foundry has no full-screen ads).
+   Block Quarry (Nova Foundry has no full-screen ads).
 3. **Privacy & messaging → GDPR → Create message** for the app (required, otherwise the consent form cannot be shown
    in Europe and ads stay off there). Select the default "Google" consent options, publish it.
 4. In GitHub → `flocautank/playtoon` → Settings → Secrets and variables → Actions → **Variables** tab, add for each app
-   (prefix `BQ_`, `NF_` or `SH_`, see the table):
+   (prefix `BQ_` or `NF_`, see the table):
    - `<PREFIX>_ADMOB_APP_ID` = the app ID (`ca-app-pub-…~…`)
    - `<PREFIX>_ADMOB_REWARDED_ID` = the rewarded unit ID (`ca-app-pub-…/…`)
    - `<PREFIX>_ADMOB_INTERSTITIAL_ID` = the interstitial unit ID (Nova Foundry: repeat the rewarded ID, it is unused)
@@ -104,7 +104,7 @@ the first 5 minutes, at most one every 4 minutes and one break in three. "Remove
 ×2 production for 4 hours (stackable up to 8 h, survives Supernovae) and "double your offline gains" (offered for one
 minute when you come back). "Eternal Engine" = the ×2 forever, without videos.
 
-**Synth Horde** (runs of 10–25 min) — reward videos: a **second chance** once per run (offered at death when the
-shop revive is used up: back with half health and a shockwave) and **double credits** on the end screen. Full-screen
-ads only between two runs (Play again / Menu), never in the first 5 minutes, at most one every 4 minutes and one run
-end in two. "Remove ads" removes them. The app is landscape.
+**Synth Horde** — **paid app** (suggested 2,99 €): no ads, no in-app purchase, no ads SDK at all, so its Data safety
+form is "No data collected". In Play Console: Monetize → App pricing → set the price (a **payments profile** is required,
+the same one as for in-app products). Turn on Release → App integrity → **Automatic protection** against repackaging.
+The app is landscape.
