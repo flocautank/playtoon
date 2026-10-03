@@ -17,8 +17,10 @@ const once = (event, ms) => new Promise(res => {
   AdMob.addListener(event, v => done(v === undefined ? true : v)).then(x => { h = x; });
 });
 
-// cfg : { prefix, testAds, rewardedId, interstitialId, products: [{ sku, name, desc }], noAdsSku?, interstitial?: { first, gap, every } }
+// cfg : { prefix, testAds, rewardedId, interstitialId, iosTestAds?, iosRewardedId?, iosInterstitialId?, products: [{ sku, name, desc }], noAdsSku?, interstitial?: { first, gap, every } }
 export function createMon(cfg) {
+  // iOS : unités et mode test propres à l'application iOS (une application AdMob par système)
+  if (Capacitor.getPlatform() === 'ios') cfg = { ...cfg, rewardedId: cfg.iosRewardedId || cfg.rewardedId, interstitialId: cfg.iosInterstitialId || cfg.interstitialId, testAds: cfg.iosTestAds ?? cfg.testAds };
   const st = { canAds: false, privacy: false, rewarded: false, inter: false, lastBreak: 0, breaks: 0, start: Date.now(), billing: false, prices: {} };
   const key = sku => `${cfg.prefix}.owned.${sku}`;
   const owned = {};
@@ -45,6 +47,10 @@ export function createMon(cfg) {
     if (info.isConsentFormAvailable && info.status === AdmobConsentStatus.REQUIRED) info = await AdMob.showConsentForm();
     st.canAds = !!info.canRequestAds;
     st.privacy = info.privacyOptionsRequirementStatus === 'REQUIRED';
+    // iOS : App Tracking Transparency, demandée après le consentement (sinon pubs non personnalisées, jamais bloquées)
+    if (Capacitor.getPlatform() === 'ios') {
+      try { const { status } = await AdMob.trackingAuthorizationStatus(); if (status === 'notDetermined') await AdMob.requestTrackingAuthorization(); } catch (e) {}
+    }
     if (st.canAds) { loadRewarded(); loadInter(); }
   }
   async function checkOwned(report) {

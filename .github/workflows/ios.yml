@@ -1,0 +1,104 @@
+# Applications iOS (Capacitor) des trois jeux — « Apple plus tard », mais tout est prêt :
+# - à chaque changement : compilation pour le simulateur iOS (vérifie que le projet compile, sans compte Apple) ;
+# - à la demande (Actions → iOS → Run workflow, « testflight ») : archive signée et envoi sur App Store Connect /
+#   TestFlight pour chaque appli, si les secrets Apple existent (voir apps/IOS.md).
+# AdMob iOS (Block Quarry, Nova Foundry) : variables <PRÉFIXE>_IOS_ADMOB_APP_ID, _REWARDED_ID, _INTERSTITIAL_ID ;
+# à défaut, publicités de TEST. Synth Horde : payante, sans pub.
+name: iOS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/block-quarry/**'
+      - 'apps/nova-foundry/**'
+      - 'apps/synth-horde/**'
+      - 'apps/shared/**'
+      - 'js/**'
+      - 'css/style.css'
+      - 'index.html'
+      - '.github/workflows/ios.yml'
+  workflow_dispatch:
+    inputs:
+      testflight:
+        description: 'Archiver, signer et envoyer sur TestFlight (secrets Apple requis)'
+        type: boolean
+        default: false
+
+concurrency:
+  group: ios
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { app: block-quarry, prefix: BQ, version: blocks, ads: true }
+          - { app: nova-foundry, prefix: NF, version: forge, ads: true }
+          - { app: synth-horde, prefix: SH, version: bonk, ads: false }
+    defaults:
+      run:
+        working-directory: apps/${{ matrix.app }}
+    env:
+      ADMOB_IOS_REWARDED_ID: ${{ vars[format('{0}_IOS_ADMOB_REWARDED_ID', matrix.prefix)] }}
+      ADMOB_IOS_INTERSTITIAL_ID: ${{ vars[format('{0}_IOS_ADMOB_INTERSTITIAL_ID', matrix.prefix)] }}
+      IOS_ADMOB_APP_ID: ${{ vars[format('{0}_IOS_ADMOB_APP_ID', matrix.prefix)] }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/${{ matrix.app }}/package-lock.json
+      - name: Web → www/ → projet iOS
+        run: |
+          npm ci
+          node build.mjs
+          npx cap sync ios
+          echo "VERSION_NAME=$(node --input-type=module -e "import('../../js/version.js').then(m => console.log(m.VERSIONS['${{ matrix.version }}']))")" >> "$GITHUB_ENV"
+      - name: Compilation (simulateur, sans signature)
+        working-directory: apps/${{ matrix.app }}/ios/App
+        run: |
+          xcodebuild -project App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build | tail -30
+          echo "compilation iOS réussie : ${{ matrix.app }} ${{ env.VERSION_NAME }}"
+
+      # ---------- TestFlight (à la demande) ----------
+      - name: Clé App Store Connect
+        if: github.event_name == 'workflow_dispatch' && inputs.testflight
+        env:
+          KEY_B64: ${{ secrets.APPSTORE_API_KEY_P8_BASE64 }}
+        run: |
+          if [ -z "$KEY_B64" ]; then echo "::error::secret APPSTORE_API_KEY_P8_BASE64 absent (voir apps/IOS.md)"; exit 1; fi
+          echo "$KEY_B64" | base64 --decode > "$RUNNER_TEMP/AuthKey.p8"
+      - name: Archive signée et envoi sur App Store Connect
+        if: github.event_name == 'workflow_dispatch' && inputs.testflight
+        working-directory: apps/${{ matrix.app }}/ios/App
+        env:
+          KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+          ISSUER: ${{ secrets.APPSTORE_API_ISSUER_ID }}
+          TEAM: ${{ vars.APPLE_TEAM_ID }}
+        run: |
+          AUTH="-allowProvisioningUpdates -authenticationKeyPath $RUNNER_TEMP/AuthKey.p8 -authenticationKeyID $KEY_ID -authenticationKeyIssuerID $ISSUER"
+          EXTRA=""; if [ "${{ matrix.ads }}" = "true" ] && [ -n "$IOS_ADMOB_APP_ID" ]; then EXTRA="ADMOB_APP_ID=$IOS_ADMOB_APP_ID"; fi
+          xcodebuild -project App.xcodeproj -scheme App -configuration Release -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" archive $AUTH \
+            DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic \
+            MARKETING_VERSION="$VERSION_NAME" CURRENT_PROJECT_VERSION="${{ github.run_number }}" $EXTRA | tail -20
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>$TEAM</string>
+            <key>signingStyle</key><string>automatic</string>
+          </dict></plist>
+          PLIST
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/App.xcarchive" -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -exportPath "$RUNNER_TEMP/export" $AUTH | tail -20
+          echo "envoyé sur App Store Connect : ${{ matrix.app }} $VERSION_NAME (${{ github.run_number }}) — visible dans TestFlight après traitement"

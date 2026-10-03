@@ -7,7 +7,9 @@ import { fileURLToPath, pathToFileURL } from 'url';
 
 // chemins système (fileURLToPath : correct aussi sous Windows, où URL.pathname donnerait /D:/…)
 const SHARED = fileURLToPath(new URL('./', import.meta.url)), ROOT = fileURLToPath(new URL('../../', import.meta.url));
+// unités de TEST officielles de Google (Android / iOS) : sans risque, ne rapportent rien
 const TEST = { rewarded: 'ca-app-pub-3940256099942544/5224354917', interstitial: 'ca-app-pub-3940256099942544/1033173712' };
+const TEST_IOS = { rewarded: 'ca-app-pub-3940256099942544/1712485313', interstitial: 'ca-app-pub-3940256099942544/4411468910' };
 
 // app : { dir (dossier de l'application), section (id de la <section> du jeu), versionKey, title, ads (false : appli payante), config (champs en plus),
 //        esbuild (la fonction build d'esbuild, installé dans l'application) }
@@ -19,6 +21,10 @@ export async function buildApp(app) {
     testAds: !(env.ADMOB_REWARDED_ID && env.ADMOB_INTERSTITIAL_ID) || env.ADMOB_TEST === '1',
     rewardedId: env.ADMOB_REWARDED_ID || TEST.rewarded,
     interstitialId: env.ADMOB_INTERSTITIAL_ID || TEST.interstitial,
+    // iOS : unités AdMob propres à l'application iOS (ADMOB_IOS_REWARDED_ID / ADMOB_IOS_INTERSTITIAL_ID)
+    iosTestAds: !(env.ADMOB_IOS_REWARDED_ID && env.ADMOB_IOS_INTERSTITIAL_ID) || env.ADMOB_TEST === '1',
+    iosRewardedId: env.ADMOB_IOS_REWARDED_ID || TEST_IOS.rewarded,
+    iosInterstitialId: env.ADMOB_IOS_INTERSTITIAL_ID || TEST_IOS.interstitial,
     ...(app.config || {}),
   };
   writeFileSync(app.dir + 'src/config.js', '// généré par build.mjs — ne pas modifier à la main\nexport const CONFIG = ' + JSON.stringify(config, null, 2) + ';\n');

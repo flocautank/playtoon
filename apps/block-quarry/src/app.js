@@ -8,6 +8,7 @@ import { CONFIG } from './config.js';
 
 const mon = createMon({
   prefix: 'bq', testAds: CONFIG.testAds, rewardedId: CONFIG.rewardedId, interstitialId: CONFIG.interstitialId,
+  iosTestAds: CONFIG.iosTestAds, iosRewardedId: CONFIG.iosRewardedId, iosInterstitialId: CONFIG.iosInterstitialId,
   products: [{ sku: 'remove_ads', name: 'app.removeAds', desc: 'app.removeAdsDesc', owned: 'app.adsRemoved' }],
   noAdsSku: 'remove_ads',
   interstitial: { first: 5 * 60e3, gap: 4 * 60e3, every: 3 },   // jamais les 5 premières minutes, au plus toutes les 4 min, une pause sur trois

@@ -9,6 +9,7 @@ import { CONFIG } from './config.js';
 
 const mon = createMon({
   prefix: 'nf', testAds: CONFIG.testAds, rewardedId: CONFIG.rewardedId, interstitialId: CONFIG.interstitialId,
+  iosTestAds: CONFIG.iosTestAds, iosRewardedId: CONFIG.iosRewardedId, iosInterstitialId: CONFIG.iosInterstitialId,
   products: [{ sku: 'eternal_boost', name: 'sfapp.eternal', desc: 'sfapp.eternalDesc', owned: 'sfapp.eternalOwned' }],
   interstitial: null,
 });
