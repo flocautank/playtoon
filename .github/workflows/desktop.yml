@@ -1,0 +1,127 @@
+# Versions PC (Steam) des trois jeux : Electron, une construction par système.
+# - à chaque changement : Windows, Linux et macOS construits, dossiers prêts pour Steam en artefacts ;
+# - à la demande (Actions → Desktop → Run workflow, « steam_upload ») : envoi sur Steam avec SteamPipe pour chaque jeu
+#   dont la variable <PRÉFIXE>_STEAM_APPID existe (BQ = Block Quarry, NF = Nova Foundry, SH = Synth Horde).
+#   Dépôts Steam attendus : App ID + 1 = Windows, + 2 = Linux, + 3 = macOS (voir apps/desktop/STEAM.md).
+#   Secrets : STEAM_USERNAME (compte de build dédié) et STEAM_CONFIG_VDF (config.vdf encodé en base64, Steam Guard validé).
+name: Desktop
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/desktop/**'
+      - 'apps/shared/shell-ui.js'
+      - 'apps/shared/build-app.mjs'
+      - 'apps/shared/index.html'
+      - 'apps/shared/app.css'
+      - 'js/**'
+      - 'css/style.css'
+      - 'index.html'
+      - '.github/workflows/desktop.yml'
+  workflow_dispatch:
+    inputs:
+      steam_upload:
+        description: 'Envoyer sur Steam (jeux dont <PRÉFIXE>_STEAM_APPID est défini)'
+        type: boolean
+        default: false
+      steam_branch:
+        description: 'Branche Steam à mettre en service (vide = aucune ; « default » doit se faire dans Steamworks)'
+        type: string
+        default: 'beta'
+
+concurrency:
+  group: desktop
+  cancel-in-progress: true
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: windows-latest, plat: win, name: windows, dir: win-unpacked }
+          - { os: ubuntu-latest, plat: linux, name: linux, dir: linux-unpacked }
+          - { os: macos-latest, plat: mac, name: macos, dir: mac-universal }
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: apps/desktop
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+      - name: Construction des trois jeux
+        run: |
+          npm ci
+          node build.mjs --${{ matrix.plat }}
+          echo "VERSIONS=$(node --input-type=module -e "import('../../js/version.js').then(m => console.log(Object.values(m.VERSIONS).join('-')))")" >> "$GITHUB_ENV"
+      - name: Test de démarrage (Linux, sous écran virtuel)
+        if: matrix.plat == 'linux'
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq xvfb > /dev/null
+          for g in block-quarry:blockquarry nova-foundry:novafoundry synth-horde:synthhorde; do
+            d=${g%%:*}; e=${g##*:}
+            timeout 25 xvfb-run -a dist/$d/linux-unpacked/launch.sh > run-$d.log 2>&1; code=$?
+            # 124 = toujours en marche au bout de 25 s (attendu) ; tout autre code = le jeu s'est arrêté
+            if [ $code -ne 124 ]; then echo "::error::$d s'est arrêté (code $code)"; cat run-$d.log; exit 1; fi
+            echo "$d : démarre et reste ouvert"
+          done
+      # archive tar : garde les droits d'exécution et les liens symboliques (indispensables à l'app macOS et au binaire Linux)
+      - name: Archives
+        run: |
+          mkdir -p out
+          for g in block-quarry nova-foundry synth-horde; do tar -czf out/$g-${{ matrix.name }}.tar.gz -C dist/$g/${{ matrix.dir }} .; done
+          ls -la out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.name }}
+          path: apps/desktop/out/*.tar.gz
+          retention-days: 30
+
+  steam:
+    if: github.event_name == 'workflow_dispatch' && inputs.steam_upload
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { game: block-quarry, prefix: BQ }
+          - { game: nova-foundry, prefix: NF }
+          - { game: synth-horde, prefix: SH }
+    env:
+      APPID: ${{ vars[format('{0}_STEAM_APPID', matrix.prefix)] }}
+    steps:
+      - name: App ID présent ?
+        run: |
+          if [ -z "$APPID" ]; then echo "::notice::${{ matrix.prefix }}_STEAM_APPID absent, ${{ matrix.game }} n'est pas envoyé sur Steam"; fi
+      - uses: actions/download-artifact@v4
+        if: env.APPID != ''
+        with:
+          pattern: desktop-*
+          merge-multiple: true
+          path: archives
+      - name: Dossiers des dépôts Steam
+        if: env.APPID != ''
+        run: |
+          for os in windows linux macos; do mkdir -p steam/${{ matrix.game }}-$os && tar -xzf archives/${{ matrix.game }}-$os.tar.gz -C steam/${{ matrix.game }}-$os; done
+          ls steam/*
+      - uses: game-ci/steam-deploy@v3
+        if: env.APPID != ''
+        with:
+          username: ${{ secrets.STEAM_USERNAME }}
+          configVdf: ${{ secrets.STEAM_CONFIG_VDF }}
+          appId: ${{ env.APPID }}
+          buildDescription: ${{ github.sha }}
+          rootPath: steam
+          depot1Path: ${{ matrix.game }}-windows
+          depot2Path: ${{ matrix.game }}-linux
+          depot3Path: ${{ matrix.game }}-macos
+          releaseBranch: ${{ inputs.steam_branch }}

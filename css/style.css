@@ -345,3 +345,5 @@ main{position:fixed;inset:var(--nav-h) 0 0 0}
 @media (max-height:500px) and (orientation:landscape){.nb-msg{max-width:56vw;white-space:normal;line-height:1.15}}
 /* Block Quarry : notifications en haut (en bas, elles couvraient les boosters) ; ailleurs elles restent en bas */
 body[data-tab=blocks] .pt-toasts{bottom:auto;top:calc(env(safe-area-inset-top, 0px) + 58px)}
+/* Synth Horde : carte choisie à la manette */
+.nb-choice.pad{outline:3px solid #7ff6ff;outline-offset:2px;transform:translateY(-3px)}

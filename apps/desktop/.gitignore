@@ -1,0 +1,5 @@
+node_modules/
+dist/
+games/*/www/
+games/*/stage/
+games/*/src/config.js

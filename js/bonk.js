@@ -1350,6 +1350,7 @@ function openLevelUp(mode = 'level') {
   renderChoices();
   levelUpTitle();
   pickLockUntil = performance.now() + 400;
+  PAD.sel = 0; setTimeout(padMark, 0);
   const box = $('nb-choices'); box.classList.add('locked'); clearTimeout(pickLockTimer);
   pickLockTimer = setTimeout(() => box.classList.remove('locked'), 400);
   $('nb-reroll').style.display = mode === 'shrine' ? 'none' : '';
@@ -1945,10 +1946,49 @@ function dynRes(raw) {
   if (avg > 1 / 45) pr = Math.max(0.75, pr - 0.125); else if (avg < 1 / 57) pr = Math.min(top, pr + 0.125);
   if (pr !== DR.pr) { DR.pr = pr; renderer.setPixelRatio(pr); renderer.setSize(W, H, false); }
 }
+// ============================================================ manette (Gamepad API : Xbox, PlayStation, Steam Deck…)
+// stick gauche : courir · stick droit : caméra · A sauter · B glisser · X interagir · Start pause ;
+// choix de niveau : croix / stick pour choisir la carte, A pour la prendre, Y pour relancer ; menus : A / B.
+const PAD = { prev: [], sel: 0, moving: false, lx: 0, known: false };
+function pollPad(dt) {
+  const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+  const gp = [...pads].find(p => p && p.connected && p.mapping === 'standard') || [...pads].find(p => p && p.connected);
+  if (!gp) return;
+  if (!PAD.known) { PAD.known = true; msg(tr('nb.padOn'), 2.5, '#7ff6ff'); if (!S || S.state === 'menu') renderMenu(); }
+  const b = i => !!(gp.buttons[i] && gp.buttons[i].pressed), hit = i => b(i) && !PAD.prev[i];
+  const ax = i => { const v = gp.axes[i] || 0; return Math.abs(v) < 0.18 ? 0 : (v - Math.sign(v) * 0.18) / 0.82; };
+  const st = S ? S.state : 'menu';
+  if (st === 'play') {
+    const lx = ax(0), ly = ax(1);
+    if (lx || ly) { S_touch.joy = { x: lx, y: ly }; PAD.moving = true; } else if (PAD.moving) { S_touch.joy = { x: 0, y: 0 }; PAD.moving = false; }
+    const rx = ax(2), ry = ax(3), k = 2.8 * dt * (META.sens || 1);
+    if (rx || ry) { S.cam.yaw -= rx * k; S.cam.pitch = clamp(S.cam.pitch + ry * k * 0.6, -0.35, 1.25); }
+    if (hit(0)) jump();
+    if (hit(1)) slide();
+    if (hit(2)) interact();
+    if (hit(9)) pause();
+  } else {
+    if (PAD.moving) { S_touch.joy = { x: 0, y: 0 }; PAD.moving = false; }
+    if (st === 'levelup') {
+      const lx = ax(0), step = hit(14) || (lx < -0.6 && PAD.lx >= -0.6) ? -1 : hit(15) || (lx > 0.6 && PAD.lx <= 0.6) ? 1 : 0;
+      PAD.lx = lx;
+      if (step) { PAD.sel = (PAD.sel + step + curChoices.length) % curChoices.length; padMark(); }
+      if (hit(0) && curChoices[PAD.sel]) pickUI(PAD.sel);
+      if (hit(3)) { reroll(); padMark(); }
+    } else if (st === 'pause') { if (hit(9) || hit(1) || hit(0)) resume(); }
+    else if (st === 'menu' && !$('nb-menu').classList.contains('hidden')) { if (hit(0) || hit(9)) $('nb-start').click(); }
+    else if (st === 'end') { if (hit(0)) $('nb-replay').click(); else if (hit(1)) $('nb-again').click(); }
+  }
+  PAD.prev = gp.buttons.map(x => x.pressed);
+}
+function padMark() { document.querySelectorAll('#nb-choices .nb-choice').forEach((c, i) => c.classList.toggle('pad', PAD.known && i === PAD.sel)); }
+window.addEventListener('gamepadconnected', () => { PAD.known = false; });
+
 function frame() {
   if (!active) return;
   rafId = requestAnimationFrame(frame);
   const raw = clock.getDelta(), dt = Math.min(0.05, raw);
+  pollPad(dt);
   const T = performance.now() / 1000;
   if (TOUCH && S && S.state === 'play') dynRes(raw);
   skyMat.uniforms.uTime.value = T; groundMat.uniforms.uTime.value = T; scene.userData.wallMat.uniforms.uTime.value = T;
@@ -2064,7 +2104,7 @@ function toMenu() {
 }
 function renderMenu() {
   const sl = $('nb-slidebtn'); sl.classList.toggle('nb-long', sl.textContent.trim().length > 6);   // RUTSCHEN, BARRIDA… : police réduite
-  document.querySelector('#nb-menu .nb-keys').innerHTML = tr(TOUCH ? 'nb.keysTouch' : 'nb.keys');
+  document.querySelector('#nb-menu .nb-keys').innerHTML = tr(TOUCH ? 'nb.keysTouch' : 'nb.keys') + (PAD.known ? '<br>' + tr('nb.keysPad') : '');
   const box = $('nb-chars'); box.innerHTML = '';
   if (!CHARS.find(c => c.id === META.sel && unlocked(c))) META.sel = 'glitch';
   CHARS.forEach(c => {

@@ -568,4 +568,11 @@ Object.assign(de, { 'nb.goldCr': '◆ {g} Gold übrig → +{c} ◈ (enthalten)' 
 Object.assign(it, { 'nb.goldCr': '◆ {g} oro rimasto → +{c} ◈ (incluso)' });
 Object.assign(pt, { 'nb.goldCr': '◆ {g} de ouro restante → +{c} ◈ (incluído)' });
 
+Object.assign(en, { 'nb.padOn': '🎮 Controller connected', 'nb.keysPad': '🎮 <b>Left stick</b> move · <b>Right stick</b> camera · <b>A</b> jump (x2) · <b>B</b> slide · <b>X</b> interact · <b>Start</b> pause · level-ups: <b>←/→</b> then <b>A</b>, <b>Y</b> reroll' });
+Object.assign(fr, { 'nb.padOn': '🎮 Manette connectée', 'nb.keysPad': '🎮 <b>Stick gauche</b> bouger · <b>Stick droit</b> caméra · <b>A</b> sauter (x2) · <b>B</b> glisser · <b>X</b> interagir · <b>Start</b> pause · niveaux : <b>←/→</b> puis <b>A</b>, <b>Y</b> relancer' });
+Object.assign(es, { 'nb.padOn': '🎮 Mando conectado', 'nb.keysPad': '🎮 <b>Stick izquierdo</b> moverse · <b>Stick derecho</b> cámara · <b>A</b> saltar (x2) · <b>B</b> barrida · <b>X</b> interactuar · <b>Start</b> pausa · niveles: <b>←/→</b> y <b>A</b>, <b>Y</b> tirar de nuevo' });
+Object.assign(de, { 'nb.padOn': '🎮 Controller verbunden', 'nb.keysPad': '🎮 <b>Linker Stick</b> bewegen · <b>Rechter Stick</b> Kamera · <b>A</b> springen (x2) · <b>B</b> rutschen · <b>X</b> interagieren · <b>Start</b> Pause · Stufen: <b>←/→</b> dann <b>A</b>, <b>Y</b> neu ziehen' });
+Object.assign(it, { 'nb.padOn': '🎮 Controller collegato', 'nb.keysPad': '🎮 <b>Stick sinistro</b> muoviti · <b>Stick destro</b> telecamera · <b>A</b> salta (x2) · <b>B</b> scivola · <b>X</b> interagisci · <b>Start</b> pausa · livelli: <b>←/→</b> poi <b>A</b>, <b>Y</b> rilancia' });
+Object.assign(pt, { 'nb.padOn': '🎮 Controle conectado', 'nb.keysPad': '🎮 <b>Analógico esquerdo</b> mover · <b>Analógico direito</b> câmera · <b>A</b> pular (x2) · <b>B</b> deslizar · <b>X</b> interagir · <b>Start</b> pausa · níveis: <b>←/→</b> e <b>A</b>, <b>Y</b> sortear de novo' });
+
 export default { en, fr, es, de, it, pt };
