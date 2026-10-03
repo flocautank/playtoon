@@ -24,7 +24,7 @@ Une barre de navigation fine en haut permet de passer de l'un à l'autre ; le je
 - Graphismes 100 % procéduraux (shaders néon, grille, ciel synthwave), sons synthétisés en WebAudio.
 - Progression sauvegardée dans le `localStorage` du navigateur.
 - Anglais par défaut, langue du navigateur détectée, 6 langues (`js/i18n.js`, dictionnaires par jeu dans `js/lang/`).
-- Applications Android (Capacitor) dans `apps/` — guide de publication : `apps/PUBLISHING.md`.
+- Applications Android et iOS (Capacitor) et versions PC pour Steam (Electron) dans `apps/` — ce qui reste à faire pour publier : `apps/RELEASE-GUIDE.md`.
 
 ## Installer Playtoon
 

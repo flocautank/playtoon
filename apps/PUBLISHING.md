@@ -1,5 +1,7 @@
 # Publishing the Playtoon apps on Google Play — step by step
 
+> Overview of every platform (Google Play, Steam, App Store, PlayStation) and of what is left to do: `RELEASE-GUIDE.md`.
+
 Everything that can be prepared in code is done for each app: the Android project, a CI build that signs it,
 the store texts, graphics, privacy policy and form answers.
 
