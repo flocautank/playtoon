@@ -205,11 +205,11 @@ Le cœur de la boucle est déjà présent : timer de 10 min, coffres payés en o
 | # | Écart | Effort | État |
 |---|---|---|---|
 | R1 | **Bug bloquant** : PV des boss 2–3 gonflés ~12× (le calcul comptait l'excès de dégâts et les ondes de nettoyage de la mort du boss, et le DPS de foule au lieu du DPS sur cible unique) | S | **fait** (1.8.1) — PV calibrés sur les dégâts réellement portés au boss pendant 6 s, combat visé 60/75/90 s ; dégâts utiles seulement ; test du PV de départ dans le smoke |
-| R2 | Horde clairsemée en étape 1 et avec un bon build (0–11 ennemis les 2 premières minutes, 28–70 entre 5 et 8 min) : un « directeur » qui vise un nombre de vivants selon le temps, débit jusqu'à ~60/s, vagues toutes les 45 s | M | à faire |
-| R3 | Pas de choix du moment du boss : autel d'invocation anticipée, bonus selon le temps restant | S/M | à faire |
-| R4 | Méta qui s'épuise vite : ~60 quêtes à paliers, armes et tomes en partie verrouillés, plus d'objets conditionnels | M/L | à faire |
-| R5 | Or inutile en fin de run (2 300–3 300 restants) : marchand qui se réapprovisionne, 2e duplicateur, sanctuaire « or → bénédiction » | S | à faire |
-| R6 | Lisibilité en étape 3 : fondu étendu à tout ennemi proche de la caméra, silhouette du joueur à travers les obstacles | S | à faire |
+| R2 | Horde clairsemée en étape 1 et avec un bon build (0–11 ennemis les 2 premières minutes, 28–70 entre 5 et 8 min) : un « directeur » qui vise un nombre de vivants selon le temps, débit jusqu'à ~60/s, vagues toutes les 45 s | M | **fait** (1.9.0) — directeur de foule : vise ≈12 + 27×minute ennemis en vie (moitié pendant le boss), débit jusqu'à 60/s ; nuées toutes les 45 s (au lieu de 75) ; mesuré avec un bon build : 100–250 en vie dès la 3e minute (28–70 avant) |
+| R3 | Pas de choix du moment du boss : autel d'invocation anticipée, bonus selon le temps restant | S/M | **fait** (1.9.0) — autel du boss (1 par étape) : invoque le boss tout de suite ; s'il reste ≥ 1:00, un 2e coffre doré ; crédits en fin de run selon le temps gagné |
+| R4 | Méta qui s'épuise vite : ~60 quêtes à paliers, armes et tomes en partie verrouillés, plus d'objets conditionnels | M/L | **fait** (1.9.0) — 60 quêtes (21 + 30 paliers + une victoire par personnage) ; les 6 nouvelles armes sont désormais des récompenses de quête ; +1 bannir et +1 relance supplémentaires ; liste triée (à faire d'abord) |
+| R5 | Or inutile en fin de run (2 300–3 300 restants) : marchand qui se réapprovisionne, 2e duplicateur, sanctuaire « or → bénédiction » | S | **fait** (1.9.0) — marchand et duplicateur restent ouverts (prix ×1,4 / ×1,6 à chaque achat) ; sanctuaire de la dîme : bénédiction contre de l'or, 3 fois, prix ×1,8 |
+| R6 | Lisibilité en étape 3 : fondu étendu à tout ennemi proche de la caméra, silhouette du joueur à travers les obstacles | S | **fait** (1.9.0) — tout ennemi collé à l'objectif devient translucide (en plus de ceux entre caméra et joueur) ; la silhouette du joueur à travers les obstacles existait déjà |
 | — | Mineurs : « Dégâts » de fin = excès (corrigé, 1.8.1) ; lave comptée comme objets (corrigé) ; « −0% » et icônes sans libellé sur tactile (corrigé : libellés courts) | S | **fait** (1.8.1) |
 
 ## Fait

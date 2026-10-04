@@ -244,6 +244,14 @@ log('nouvelles armes / clés :', await page.evaluate(() => {
   r.push(`clés=${S.keys.length}`);
   return r.join(' · ');
 }));
+log('autel / dîme / quêtes à paliers :', await page.evaluate(() => {
+  const nb = window.__nb, S = nb.S, r = [];
+  S.state = 'play'; S.enemies.length = 0; S.pending = 0; S.gold = 999;
+  const t = S.shrines.find(x => x.kind === 'tithe'); if (t) { S.p.x = t.x + 1; S.p.z = t.z + 1; S.p.y = t.y; nb.update(1 / 60); nb.interact(); r.push(`dîme=${S.state}`); if (S.state === 'levelup') nb.pick(0); }
+  r.push(`autel=${S.shrines.some(x => x.kind === 'altar')}`, `quêtes=${document.querySelectorAll('#nb-qlist .nb-q').length}`);
+  S.state = 'play';
+  return r.join(' · ');
+}));
 log('laser + mines :', await page.evaluate(() => {
   const nb = window.__nb, S = nb.S, out = [];
   S.state = 'play'; S.enemies.length = 0; S.weapons = S.weapons.filter(w => w.id === 'blaster'); S.weapons[0].t = 999;   // blaster muet
