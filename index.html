@@ -210,7 +210,8 @@
         <div class="card wide">
           <h2 class="neon" data-i18n="nb.levelUp">LEVEL UP</h2>
           <div class="nb-choices" id="nb-choices"></div>
-          <button class="btn ghost small" id="nb-reroll"><span data-i18n="nb.reroll">Reroll</span> (<span id="nb-rerolls">2</span>)</button>
+          <div class="nb-lvbtns"><button class="btn ghost small" id="nb-reroll"><span data-i18n="nb.reroll">Reroll</span> (<span id="nb-rerolls">2</span>)</button><button class="btn ghost small" id="nb-banish" data-i18n-title="nb.banishTip" title="Remove an option for this run"><span data-i18n="nb.banish">Banish</span> (<span id="nb-banishes">2</span>)</button><button class="btn ghost small" id="nb-skip"><span data-i18n="nb.skip">Skip</span> (+◆<span id="nb-skipg">10</span>)</button></div>
+          <button class="btn ghost small hidden" id="nb-leave" data-i18n="nb.leave">Leave</button>
         </div>
       </div>
       <div class="overlay hidden" id="nb-pause">

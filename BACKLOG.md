@@ -185,12 +185,12 @@ Le cœur de la boucle est déjà présent : timer de 10 min, coffres payés en o
 |---|---|
 | 1 | **fait** (1.4.0) — tremblement de caméra (trauma, réglage « Tremblement de l’écran » en pause), gel d'image (élite 70 ms, évolution 120 ms, boss 200 ms, coup reçu 40 ms), coup de focale (niveau, évolution, boss), mort en « pop » (l'ennemi gonfle et blanchit 0,1 s + éclat blanc), chiffres de crit qui naissent gros, sons à deux couches (bruit filtré + oscillateur, hauteur variée, compresseur), arpège montant des gemmes, ennemis et boss translucides entre caméra et joueur |
 | 2 | **fait** (1.5.0) — 16 objets à déclencheur (30 au total) : onde de choc à l'atterrissage, feu des sauts en l'air, dégâts selon la vitesse, en l'air, sous 40 % de PV, nova tous les N kills, braises de glissade, crits en éclair chaîné, guillotine, givre, ralentissement quand on est touché, explosions renforcées, soin par gemme, or de Midas, coffres moins chers, surcadence après un niveau |
-| 3 | à faire |
+| 3 | **fait** (1.6.0) — marchand néon (1 objet parmi 3, prix selon rareté et étape), duplicateur (copie un objet possédé), sanctuaire maudit (champion ×3 PV → coffre doré), sanctuaire aimant, coffre doré (épique ou mieux) aussi lâché par chaque boss ; le passe-partout réduit aussi les prix |
 | 4 | à faire |
 | 5 | à faire |
 | 6 | **fait** (1.5.0) — dégâts par source (chaque arme, objets) en barres sur l'écran de fin, feuille de stats dans la pause, description des objets en infobulle |
-| 7 | à faire |
-| 8 | à faire |
+| 7 | **fait** (1.6.0) — saut parfait dans les 150 ms après l'atterrissage : élan rendu +5 % par saut enchaîné (plafond 2,6× la marche), « REBOND ×N », tampon de saut, focale qui s'ouvre avec la vitesse, 8 tremplins par étape (sur le radar) |
+| 8 | **fait** (1.6.0) — Bannir (2 par run, nouvelles armes / tomes / bénédictions, touche B, manette X) et Passer (+◆ 10 + 5×étape, touche N, manette Select) ; Partir chez le marchand (Échap, manette B) |
 | 9 | à faire |
 | 10 | à faire |
 | 11 | à faire |

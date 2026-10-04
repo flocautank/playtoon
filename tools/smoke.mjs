@@ -207,6 +207,21 @@ log('objets à déclencheur :', await page.evaluate(() => {
   if (S.p.hp > 0) S.p.hp = hp0;
   return `objets=${Object.keys(S.items).length} · onde à l'atterrissage=${(S.dmgBy.item || 0) > item0} · braises=${fires} · guillotine=${e2.hp <= 0} · sources=${Object.keys(S.dmgBy).join('/')}`;
 }));
+log('marchand / duplicateur / maudit / bannir / rebond :', await page.evaluate(() => {
+  const nb = window.__nb, S = nb.S, r = [];
+  S.state = 'play'; S.enemies.length = 0; S.pending = 0; S.gold = 400;
+  const go = k => { const s = S.shrines.find(x => x.kind === k && !x.used); if (!s) return false; S.p.x = s.x + 1; S.p.z = s.z + 1; S.p.y = s.y; S.state = 'play'; nb.update(1 / 60); nb.interact(); return true; };
+  if (go('shop')) { const g = S.gold; const st = S.state; nb.pick(0); r.push(`marchand=${st}/${g - S.gold}`); }
+  if (go('dup')) { const n = Object.values(S.items).reduce((a, b) => a + b, 0); nb.pick(0); r.push(`dup=${Object.values(S.items).reduce((a, b) => a + b, 0) - n}`); }
+  if (go('curse')) { const e = S.enemies.find(x => x.curse); const c = S.chests.length; if (e) nb.damage(e, e.hp + 1, false); r.push(`coffre doré=${S.chests.length - c === 1 && S.chests[S.chests.length - 1].gold}`); }
+  S.state = 'play'; S.pending = 1; nb.openLevelUp('level'); document.getElementById('nb-banish').click();
+  const b0 = S.banishes, i = [0, 1, 2].find(j => document.querySelectorAll('#nb-choices .nb-choice')[j] && !document.querySelectorAll('#nb-choices .nb-choice')[j].classList.contains('nobanish'));
+  if (i !== undefined) nb.banish(i);
+  r.push(`banni=${S.banned.size}/${b0 - S.banishes}`);
+  S.pending = 0; document.getElementById('nb-levelup').classList.add('hidden'); S.state = 'play';
+  r.push(`tremplins=${S.pads.length}`);
+  return r.join(' · ');
+}));
 log('laser + mines :', await page.evaluate(() => {
   const nb = window.__nb, S = nb.S, out = [];
   S.state = 'play'; S.enemies.length = 0; S.weapons = S.weapons.filter(w => w.id === 'blaster'); S.weapons[0].t = 999;   // blaster muet

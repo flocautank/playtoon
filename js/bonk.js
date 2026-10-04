@@ -140,6 +140,12 @@ const SHRINES = {
   charge: { col: 0x7cff8a, css: '#7cff8a', n: 4 },
   chal: { col: 0xff3050, css: '#ff3050', n: 2 },
   greed: { col: 0xffc94d, css: '#ffc94d', n: 2 },
+  // à quoi dépenser l'or : marchand (1 objet au choix parmi 3), duplicateur (copie un objet), sanctuaire maudit
+  // (un champion qui lâche un coffre doré), aimant (toute l'XP vient à toi)
+  shop: { col: 0x27e0ff, css: '#27e0ff', n: 1 },
+  dup: { col: 0xff8a4d, css: '#ff8a4d', n: 1 },
+  curse: { col: 0xb98bff, css: '#b98bff', n: 1 },
+  magnet: { col: 0x7ff6ff, css: '#7ff6ff', n: 1 },
 };
 
 // Étapes : la run enchaîne la Grille, la Fournaise puis le Vide ; la victoire vient après le 3e boss.
@@ -534,11 +540,24 @@ function buildLevel() {
       const p = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.25, 3.2, 5), neonMat(col, 0.5));
       const a = k * Math.PI / 2 + Math.PI / 4; p.position.set(Math.cos(a) * 3, 1.6, Math.sin(a) * 3); g.add(p);
     }
-    const crystal = new THREE.Mesh(kind === 'chal' ? new THREE.TetrahedronGeometry(1) : kind === 'greed' ? new THREE.CylinderGeometry(0.8, 0.8, 0.25, 12).rotateX(Math.PI / 2) : new THREE.OctahedronGeometry(0.8), neonMat(col, 0.8)); crystal.position.y = 3; g.add(crystal);
+    const CG = { chal: () => new THREE.TetrahedronGeometry(1), greed: () => new THREE.CylinderGeometry(0.8, 0.8, 0.25, 12).rotateX(Math.PI / 2), shop: () => new THREE.TorusKnotGeometry(0.55, 0.17, 64, 8),
+      dup: () => new THREE.BoxGeometry(1.3, 0.85, 0.85), curse: () => new THREE.IcosahedronGeometry(0.95), magnet: () => new THREE.TorusGeometry(0.7, 0.22, 8, 24, Math.PI * 1.4) };
+    const crystal = new THREE.Mesh((CG[kind] || (() => new THREE.OctahedronGeometry(0.8)))(), neonMat(col, 0.8)); crystal.position.y = 3; g.add(crystal);
     const ring = new THREE.Mesh(scene.userData.ringGeo, new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.6, side: THREE.DoubleSide })); ring.scale.setScalar(3.4); ring.position.y = 0.15; g.add(ring);
     const fill = new THREE.Mesh(new THREE.CircleGeometry(1, 48).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.25 })); fill.position.y = 0.12; fill.scale.setScalar(0.001); g.add(fill);
     g.position.set(x, y, z); levelGroup.add(g);
     S.shrines.push({ kind, x, y, z, charge: 0, used: false, mesh: g, crystal, fill, ring });
+  }
+  // tremplins : propulsent haut et loin, en gardant (et gonflant) l'élan
+  S.pads = [];
+  for (let t = 0; S.pads.length < 8 && t < 400; t++) {
+    const x = rand(-HALF + 10, HALF - 10), z = rand(-HALF + 10, HALF - 10);
+    if (!free(x, z, 3) || S.pads.some(o => Math.hypot(o.x - x, o.z - z) < 25)) continue;
+    const y = terrainH(x, z), g = new THREE.Group();
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.6, 0.3, 24), neonMat(0x7cff8a, 0.6)); base.position.y = 0.15; g.add(base);
+    const arrow = new THREE.Mesh(new THREE.ConeGeometry(0.6, 0.9, 4), neonMat(0xeaffea, 1.2)); arrow.position.y = 1.1; g.add(arrow);
+    g.position.set(x, y, z); levelGroup.add(g);
+    S.pads.push({ x, y, z, arrow, cd: 0 });
   }
   // jarres : se brisent au contact et lâchent or / XP / soin
   S.jars = [];
@@ -550,10 +569,21 @@ function buildLevel() {
 }
 function addChestMesh(c) {
   const g = new THREE.Group();
-  const b = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.8, 0.9), neonMat(c.free ? 0x7ff6ff : 0xffc94d, 0.35)); b.position.y = 0.4; g.add(b);
-  const l = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.25, 1.0), neonMat(c.free ? 0x27e0ff : 0xff8a1a, 0.5)); l.position.y = 0.92; g.add(l);
+  const b = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.8, 0.9), neonMat(c.gold ? 0xfff0a0 : c.free ? 0x7ff6ff : 0xffc94d, c.gold ? 0.9 : 0.35)); b.position.y = 0.4; g.add(b);
+  const l = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.25, 1.0), neonMat(c.gold ? 0xffd84d : c.free ? 0x27e0ff : 0xff8a1a, c.gold ? 1.2 : 0.5)); l.position.y = 0.92; g.add(l);
+  if (c.gold) g.scale.setScalar(1.3);
   g.position.set(c.x, c.y, c.z); g.rotation.y = rand(0, TAU); levelGroup.add(g); c.mesh = g; c.lid = l;
 }
+function goldChest(x, z, y) {   // coffre doré : gratuit, objet épique ou légendaire
+  const c = { x, y: y ?? terrainH(x, z), z, open: false, free: true, gold: true };
+  addChestMesh(c); S.chests.push(c);
+  burst(x, c.y + 1, z, 80, [1, 0.85, 0.3], 9, 0.8); addRing(x, c.y + 0.3, z, 5, [1, 0.85, 0.3], 0.5);
+  msg(tr('nb.goldChest'), 3, '#ffd84d'); sfx('chest');
+}
+const shopPrice = rar => Math.round([22, 40, 70, 120][rar] * (1 + 0.5 * S.stage) * S.stats.chestDisc);
+const dupPrice = () => Math.round(30 * (1 + 0.5 * S.stage) * S.stats.chestDisc);
+function giveItem(it) { it.fx(S.stats, S.p); S.items[it.id] = (S.items[it.id] || 0) + 1; }
+function shrineUsed(t) { t.used = true; t.crystal.visible = false; t.ring.material.opacity = 0.12; }
 function shrineReward(s) {
   const c = { x: s.x, y: s.y, z: s.z, open: false, free: true };
   addChestMesh(c); S.chests.push(c);
@@ -593,7 +623,7 @@ function newRun() {
   const ch = CHARS.find(c => c.id === META.sel && unlocked(c)) || CHARS[0];
   S = {
     state: 'play', stage: 0, stageT: 0, ch, heat: Math.min(META.heatSel || 0, heatAvail()), t: 0, time: RUN_TIME, kills: 0, gold: 0, level: 1, xp: 0, need: xpNeed(1), pending: 0, rerolls: 2,
-    stats: null, weapons: [], tomes: [], items: {}, enemies: [], pickups: [], bolts: [], bullets: [], discs: [], rockets: [], mines: [], rings: [], dmgNums: [], pops: [], dmgBy: {}, trauma: 0, hitstop: 0, fovKick: 0, fires: [], novaK: 0, rushT: 0, fireT: 0,
+    stats: null, weapons: [], tomes: [], items: {}, enemies: [], pickups: [], bolts: [], bullets: [], discs: [], rockets: [], mines: [], rings: [], dmgNums: [], pops: [], dmgBy: {}, banned: new Set(), banishes: 2, banishOn: false, landT: -9, landHs: 0, jumpBuf: -9, hops: 0, pads: [], trauma: 0, hitstop: 0, fovKick: 0, fires: [], novaK: 0, rushT: 0, fireT: 0,
     spawnAcc: 0, nextSwarm: 90, eliteAt: [420, 240], boss: null, portal: null, won: false, dmgDealt: 0, chestsOpened: 0,
     iframe: 0, shieldT: 0, hurtFlash: 0, msgT: 0, chestCost: 12, orbPos: [], orbCount: 0, magnetAll: 0, bossDead: false,
     p: { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, onGround: true, jumps: 1, slide: 0, slideCd: 0, face: Math.PI, hp: 100 },
@@ -676,6 +706,9 @@ function bindInput() {
       const i = ['Digit1', 'Digit2', 'Digit3', 'Numpad1', 'Numpad2', 'Numpad3'].indexOf(e.code) % 3;
       if (i >= 0 && curChoices[i]) pickUI(i);
       if (e.code === 'KeyR') reroll();
+      if (e.code === 'Escape') leaveShop();
+      if (e.code === 'KeyB') toggleBanish();
+      if (e.code === 'KeyN') skipLevel();
     } else if (S.state === 'pause' && (e.code === 'Escape' || e.code === 'KeyP')) resume();
   });
   addEventListener('keyup', e => { keys[e.code] = false; });
@@ -737,7 +770,20 @@ const S_touch = { joy: { x: 0, y: 0 } };
 
 function jump() {
   const p = S.p;
-  if (p.onGround) { p.vy = S.stats.jumpV; p.onGround = false; p.jumps = S.stats.jumps - 1; sfx('jump'); }
+  if (p.onGround) {
+    p.vy = S.stats.jumpV; p.onGround = false; p.jumps = S.stats.jumps - 1; sfx('jump');
+    // saut parfait (dans les 150 ms après l'atterrissage) : l'élan est rendu intact, +5 % par saut enchaîné
+    const maxSp = 8.5 * S.stats.speed, hs = Math.hypot(p.vx, p.vz);
+    if (S.t - S.landT < 0.15 && S.landHs > maxSp * 1.05) {
+      S.hops = Math.min(S.hops + 1, 12);
+      const target = Math.min(S.landHs * 1.05, maxSp * 2.6), k = target / (hs || 1);
+      if (hs > 0.5) { p.vx *= k; p.vz *= k; }
+      if (S.hops >= 2) addNum(p.x, p.y + 2.4, p.z, tr('nb.hop', { n: S.hops }), false, '#7cff8a');
+      burst(p.x, p.y + 0.1, p.z, 10, [0.5, 1, 0.6], 4, 0.3);
+    } else S.hops = 0;
+    return;
+  }
+  else if (p.jumps <= 0) S.jumpBuf = S.t;   // tampon : un appui juste avant l'atterrissage saute dès le contact
   else if (p.jumps > 0) {
     p.vy = S.stats.jumpV * 0.92; p.jumps--; sfx('jump'); burst(p.x, p.y + 0.3, p.z, 12, [0.2, 0.9, 1], 4, 0.4);
     if (S.stats.jumpBurst) asItem(() => explode(p.x, p.y, p.z, 2.6 * S.stats.area, itemDmg(14 * S.stats.jumpBurst), [1, 0.5, 0.15]));
@@ -973,6 +1019,7 @@ function kill(e) {
   dropXp(e.x, e.y + 0.4, e.z, e.xp);
   if (e.T.split && !e.child) for (let k = 0; k < 3; k++) { const c = spawnEnemy('spike', e.x + rand(-1, 1), e.z + rand(-1, 1)); if (c) { c.child = true; c.kx = rand(-8, 8); c.kz = rand(-8, 8); } }
   if (e.chal) { e.chal.left--; if (e.chal.left <= 0) shrineReward(e.chal); }
+  if (e.curse) goldChest(e.x, e.z);
   const g = S.stats.gold * (1 + 0.5 * (S.greed || 0));
   if (e.elite) { for (let i = 0; i < 8; i++) addPickup('coin', e.x + rand(-1.5, 1.5), e.y + 0.5, e.z + rand(-1.5, 1.5), Math.ceil(3 * g)); addPickup('heart', e.x, e.y + 0.5, e.z, 30); }
   else if (Math.random() < 0.07 + S.stats.midas) addPickup('coin', e.x, e.y + 0.4, e.z, Math.max(1, Math.round(rand(1, 3) * g)));
@@ -1356,7 +1403,7 @@ function updatePickups(dt) {
 // ============================================================ level-up / choix
 let curChoices = [], choiceMode = 'level';
 let pickLockUntil = 0, pickLockTimer = 0;   // verrou de 0,4 s à l'ouverture : un toucher en cours de jeu ne choisit pas une carte par accident
-const pickUI = i => { if (performance.now() >= pickLockUntil) pick(i); };
+const pickUI = i => { if (performance.now() < pickLockUntil) return; if (S.banishOn) banish(i); else pick(i); };
 function rollRarity(bonus = 0) {
   const L = S.stats.luck + bonus;
   const w = [Math.max(10, 62 - L * 0.5), 25 + L * 0.3, 10 + L * 0.15, 3 + L * 0.08];
@@ -1377,6 +1424,17 @@ function makeWeaponUpgrade(w, rar) {
 }
 function buildChoices(mode) {
   const out = [], used = new Set();
+  if (mode === 'shop') {
+    for (let g = 0; out.length < 3 && g < 60; g++) {
+      const rar = rollRarity(15), pool = ITEMS.filter(i => i.r === rar && !used.has(i.id)); if (!pool.length) continue;
+      const it = pool[(Math.random() * pool.length) | 0]; used.add(it.id); out.push({ kind: 'buy', id: it.id, rar, price: shopPrice(rar) });
+    }
+    return out;
+  }
+  if (mode === 'dup') {
+    const own = Object.keys(S.items).map(id => ITEMS.find(i => i.id === id)).sort((a, b) => b.r - a.r || Math.random() - 0.5).slice(0, 3);
+    return own.map(it => ({ kind: 'dup', id: it.id, rar: it.r }));
+  }
   if (mode === 'shrine') {
     const keys = Object.keys(TOMES).filter(k => k !== 'multi');
     while (out.length < 3) { const k = keys[(Math.random() * keys.length) | 0]; if (used.has(k)) continue; used.add(k); out.push({ kind: 'stat', key: k, rar: rollRarity(40) }); }
@@ -1384,9 +1442,9 @@ function buildChoices(mode) {
   }
   const pool = [];
   S.weapons.forEach(w => { if (w.lvl < 10) pool.push({ kind: 'wup', id: w.id, wt: 3 }); });
-  if (S.weapons.length < 4) Object.keys(WEAPONS).forEach(id => { if (!S.weapons.find(w => w.id === id)) pool.push({ kind: 'wnew', id, wt: 1.3 }); });
+  if (S.weapons.length < 4) Object.keys(WEAPONS).forEach(id => { if (!S.weapons.find(w => w.id === id) && !S.banned.has('w:' + id)) pool.push({ kind: 'wnew', id, wt: 1.3 }); });
   S.tomes.forEach(t => { if (t.lvl < 10) pool.push({ kind: 'tup', id: t.id, wt: 2 }); });
-  if (S.tomes.length < 4) Object.keys(TOMES).forEach(id => { if (!S.tomes.find(t => t.id === id)) pool.push({ kind: 'tnew', id, wt: 1 }); });
+  if (S.tomes.length < 4) Object.keys(TOMES).forEach(id => { if (!S.tomes.find(t => t.id === id) && !S.banned.has('t:' + id)) pool.push({ kind: 'tnew', id, wt: 1 }); });
   while (out.length < 3 && pool.length) {
     let r = Math.random() * pool.reduce((a, b) => a + b.wt, 0), i = 0;
     for (; i < pool.length - 1; i++) { r -= pool[i].wt; if (r <= 0) break; }
@@ -1398,7 +1456,7 @@ function buildChoices(mode) {
   // build complet (ou presque) : bonus de caractéristiques distincts, un soin seulement si les PV sont bas
   if (out.length < 3 && S.p.hp < S.stats.hp * 0.4) out.push({ kind: 'heal', rar: 0 });
   const statKeys = Object.keys(TOMES).filter(k => k !== 'multi');
-  for (let g = 0; out.length < 3 && g < 50; g++) { const k = statKeys[(Math.random() * statKeys.length) | 0]; if (used.has(k)) continue; used.add(k); out.push({ kind: 'stat', key: k, rar: rollRarity() }); }
+  for (let g = 0; out.length < 3 && g < 50; g++) { const k = statKeys[(Math.random() * statKeys.length) | 0]; if (used.has(k) || S.banned.has('t:' + k)) continue; used.add(k); out.push({ kind: 'stat', key: k, rar: rollRarity() }); }
   while (out.length < 3) out.push({ kind: 'gold', rar: 0 });
   return out;
 }
@@ -1415,6 +1473,11 @@ function choiceHTML(c) {
     const evoW = Object.keys(EVOS).find(k => EVOS[k].tome === (c.key || c.id));
     if (c.kind === 'tnew' && evoW && S.weapons.some(w => w.id === evoW && !w.evo)) lines.push(`<span class="muted small">${tr('nb.evolvesW', { w: WEAPONS[evoW].name })}</span>`);
   } else if (c.kind === 'gold') { ic = '◆'; title = tr('nb.purse'); lines = [tr('nb.purseTxt')]; }
+  else if (c.kind === 'buy' || c.kind === 'dup') {
+    const it = ITEMS.find(i => i.id === c.id); ic = it.ic; title = it.name; lines = [it.desc];
+    const price = c.kind === 'buy' ? c.price : dupPrice();
+    lines.push(`<b style="color:${S.gold >= price ? '#ffd84d' : '#ff6a80'}">◆ ${num(price)}</b>${c.kind === 'dup' ? ` <span class="muted small">· ${tr('nb.dupOwn', { n: S.items[c.id] })}</span>` : ''}`);
+  }
   else { ic = '💗'; title = tr('nb.heal'); lines = [tr('nb.healTxt')]; }
   return `<div class="ic">${ic}</div><span class="tag">${R.name}</span><b>${title}</b>${lines.map(l => `<p>${l}</p>`).join('')}`;
 }
@@ -1437,27 +1500,52 @@ function openLevelUp(mode = 'level') {
   renderChoices();
   levelUpTitle();
   pickLockUntil = performance.now() + 400;
-  fovKick(5);
+  if (mode === 'level' || mode === 'shrine') fovKick(5);
   PAD.sel = 0; setTimeout(padMark, 0);
   const box = $('nb-choices'); box.classList.add('locked'); clearTimeout(pickLockTimer);
   pickLockTimer = setTimeout(() => box.classList.remove('locked'), 400);
-  $('nb-reroll').style.display = mode === 'shrine' ? 'none' : '';
+  $('nb-reroll').style.display = $('nb-banish').style.display = $('nb-skip').style.display = mode === 'level' ? '' : 'none';
+  setBanish(false);
+  $('nb-leave').classList.toggle('hidden', mode !== 'shop' && mode !== 'dup');
   $('nb-levelup').classList.remove('hidden');
   sfx('level');
 }
 function levelUpTitle() {
-  $('nb-levelup').querySelector('h2').textContent = choiceMode === 'shrine' ? tr('nb.shrineTitle') : tr('nb.lvlTitle', { n: S.level - S.pending + 1 });
+  $('nb-levelup').querySelector('h2').textContent = choiceMode === 'shrine' ? tr('nb.shrineTitle') : choiceMode === 'shop' ? tr('nb.shopT') : choiceMode === 'dup' ? tr('nb.dupT') : tr('nb.lvlTitle', { n: S.level - S.pending + 1 });
 }
 function renderChoices() {
   const box = $('nb-choices'); box.innerHTML = '';
   curChoices.forEach((c, i) => {
-    const b = document.createElement('button'); b.className = 'nb-choice ' + RAR[c.rar].cls; b.innerHTML = choiceHTML(c) + `<p class="muted small nb-key">[${i + 1}]</p>`;
+    const b = document.createElement('button'); b.className = 'nb-choice ' + RAR[c.rar].cls + (banKey(c) ? '' : ' nobanish'); b.innerHTML = choiceHTML(c) + `<p class="muted small nb-key">[${i + 1}]</p>`;
     b.onclick = () => pickUI(i); box.appendChild(b);
   });
   $('nb-rerolls').textContent = S.rerolls;
   $('nb-reroll').disabled = S.rerolls <= 0;
+  $('nb-banishes').textContent = S.banishes;
+  $('nb-banish').disabled = S.banishes <= 0;
+  $('nb-skipg').textContent = 10 + 5 * S.stage;
 }
-function reroll() { if (S.rerolls <= 0 || choiceMode !== 'level') return; S.rerolls--; curChoices = buildChoices('level'); renderChoices(); }
+function reroll() { if (S.rerolls <= 0 || choiceMode !== 'level') return; S.rerolls--; setBanish(false); curChoices = buildChoices('level'); renderChoices(); }
+// Bannir : retire pour la run une nouvelle arme, un nouveau tome ou une bénédiction ; Passer : un peu d'or au lieu d'un choix
+const banKey = c => c.kind === 'wnew' ? 'w:' + c.id : c.kind === 'tnew' ? 't:' + c.id : c.kind === 'stat' ? 't:' + c.key : null;
+function setBanish(on) { S.banishOn = on && S.banishes > 0 && choiceMode === 'level'; $('nb-choices').classList.toggle('banish', S.banishOn); $('nb-banish').classList.toggle('on', S.banishOn); }
+function banish(i) {
+  const c = curChoices[i], k = c && banKey(c);
+  if (!k) { msg(tr('nb.cantBanish'), 1.8); return; }
+  S.banned.add(k); S.banishes--;
+  const name = (choiceHTML(c).match(/<b>(.*?)<\/b>/) || [])[1] || '';
+  msg(tr('nb.banned', { name }), 2, '#ff6a80');
+  const shown = new Set(curChoices.map(x => x.kind + (x.id || x.key)));
+  const fresh = buildChoices('level').find(x => !shown.has(x.kind + (x.id || x.key))) || { kind: 'gold', rar: 0 };
+  curChoices[i] = fresh; setBanish(false); renderChoices(); padMark();
+}
+const toggleBanish = () => { if (S && S.state === 'levelup' && choiceMode === 'level') setBanish(!S.banishOn); };
+function skipLevel() {
+  if (!S || S.state !== 'levelup' || choiceMode !== 'level' || performance.now() < pickLockUntil) return;
+  const g = 10 + 5 * S.stage; S.gold += g; msg(tr('nb.skipped', { n: g }), 1.2, '#ffd84d');
+  S.pending--; setBanish(false);
+  if (S.pending > 0) openLevelUp('level'); else closeChoices();
+}
 function applyStat(key, v) {
   const s = S.stats;
   switch (TOMES[key].stat) {
@@ -1469,6 +1557,14 @@ function applyStat(key, v) {
 }
 function pick(i) {
   const c = curChoices[i]; if (!c) return;
+  if (c.kind === 'buy' || c.kind === 'dup') {
+    const price = c.kind === 'buy' ? c.price : dupPrice();
+    if (S.gold < price) { msg(tr('nb.noGold'), 1); sfx('hurt'); return; }
+    S.gold -= price; const it = ITEMS.find(x => x.id === c.id); giveItem(it);
+    if (S.vendor) { shrineUsed(S.vendor); S.vendor = null; }
+    msg(`${it.ic} ${it.name} — ${it.desc}`, 3, RAR[it.r].col); sfx('chest'); shake(0.15);
+    renderWeaponsHud(); closeChoices(); return;
+  }
   if (choiceMode === 'level' && S.stats.rush) S.rushT = 6 + 3 * S.stats.rush;   // surcadence après un niveau
   if (c.kind === 'wnew') addWeapon(c.id);
   else if (c.kind === 'wup') {
@@ -1487,10 +1583,14 @@ function pick(i) {
   if (rdy && !rdy.told) { rdy.told = true; setTimeout(() => msg(tr('nb.evoReady', { w: WEAPONS[rdy.id].name }), 4, '#ffc94d'), 300); }
   renderWeaponsHud();
   if (choiceMode === 'level' && S.pending > 0) { openLevelUp('level'); return; }
+  closeChoices();
+}
+function closeChoices() {
   $('nb-levelup').classList.add('hidden');
-  S.state = 'play'; S.iframe = Math.max(S.iframe, 0.6);
+  S.state = 'play'; S.iframe = Math.max(S.iframe, 0.6); S.vendor = null;
   lockPointer();
 }
+const leaveShop = () => { if (S && S.state === 'levelup' && (choiceMode === 'shop' || choiceMode === 'dup')) closeChoices(); };
 
 // ============================================================ interactions (coffres, sanctuaires, portail)
 let promptTarget = null;
@@ -1500,7 +1600,7 @@ function updateInteract(dt) {
     if (c.open) continue;
     if (Math.hypot(c.x - p.x, c.z - p.z) < 2.2 && Math.abs(c.y - p.y) < 2) {
       promptTarget = c;
-      txt = c.free ? tr('nb.pChestFree') : S.gold >= chestPrice() ? tr('nb.pChest', { n: chestPrice() }) : tr('nb.pChestNo', { n: chestPrice(), g: S.gold });
+      txt = c.gold ? tr('nb.pChestGold') : c.free ? tr('nb.pChestFree') : S.gold >= chestPrice() ? tr('nb.pChest', { n: chestPrice() }) : tr('nb.pChestNo', { n: chestPrice(), g: S.gold });
     }
   }
   if (S.portal && Math.hypot(S.portal.x - p.x, S.portal.z - p.z) < 3.5) { promptTarget = S.portal; txt = tr(S.stage < STAGES.length - 1 ? 'nb.pPortal' : 'nb.pPortalWin'); }
@@ -1508,7 +1608,7 @@ function updateInteract(dt) {
     if (s.used || !(Math.hypot(s.x - p.x, s.z - p.z) < 3.3 && Math.abs(s.y - p.y) < 3)) continue;
     if (s.kind === 'charge') { if (!promptTarget) txt = tr('nb.pCharge', { n: Math.min(99, Math.floor(s.charge * 100)) }); continue; }   // pas d'action : on reste dedans
     promptTarget = s;
-    txt = tr(s.kind === 'chal' ? 'nb.pChal' : 'nb.pGreed');
+    txt = tr({ chal: 'nb.pChal', greed: 'nb.pGreed', shop: 'nb.pShop', dup: 'nb.pDup', curse: 'nb.pCurse', magnet: 'nb.pMagnet' }[s.kind], { n: dupPrice() });
   }
   // jarres
   for (const j of S.jars) {
@@ -1536,9 +1636,19 @@ function updateInteract(dt) {
 function interact() {
   const t = promptTarget; if (!t) return;
   if (t === S.portal) { if (S.stage < STAGES.length - 1) nextStage(); else endRun(true); return; }
+  if (t.kind === 'shop' || t.kind === 'dup') {   // marchand / duplicateur : une fenêtre de choix, l'achat consomme le sanctuaire
+    if (t.kind === 'dup' && !Object.keys(S.items).length) { msg(tr('nb.dupNone'), 1.5); return; }
+    if (t.kind === 'dup' && S.gold < dupPrice()) { msg(tr('nb.noGold'), 1); return; }
+    S.vendor = t; openLevelUp(t.kind); return;
+  }
   if (t.kind) {   // sanctuaire
-    t.used = true; t.crystal.visible = false; t.ring.material.opacity = 0.12;
-    if (t.kind === 'chal') {
+    shrineUsed(t);
+    if (t.kind === 'curse') {
+      const a = rand(0, TAU), e = spawnEnemy('brute', clamp(t.x + Math.cos(a) * 10, -HALF + 2, HALF - 2), clamp(t.z + Math.sin(a) * 10, -HALF + 2, HALF - 2), true);
+      if (e) { e.curse = true; e.hp *= 3; e.max *= 3; e.size *= 1.3; e.r *= 1.3; msg(tr('nb.curseGo'), 3, '#b98bff'); shake(0.3); }
+      else goldChest(t.x + 2, t.z + 2);
+    } else if (t.kind === 'magnet') { S.magnetAll = 3; msg(tr('nb.magnet'), 1.5); }
+    else if (t.kind === 'chal') {
       t.left = 0;
       for (let k = 0; k < 2; k++) {
         const a = rand(0, TAU), e = spawnEnemy(Math.random() < 0.5 ? 'brute' : 'charger', clamp(t.x + Math.cos(a) * 12, -HALF + 2, HALF - 2), clamp(t.z + Math.sin(a) * 12, -HALF + 2, HALF - 2), true);
@@ -1549,7 +1659,7 @@ function interact() {
       S.greed = (S.greed || 0) + 1;
       msg(tr('nb.greed', { n: S.greed }), 3, '#ffc94d');
     }
-    burst(t.x, t.y + 2, t.z, 40, t.kind === 'chal' ? [1, 0.2, 0.3] : [1, 0.8, 0.3], 7, 0.6); sfx('boss');
+    const sc = new THREE.Color(SHRINES[t.kind].col); burst(t.x, t.y + 2, t.z, 40, [sc.r, sc.g, sc.b], 7, 0.6); sfx(t.kind === 'magnet' ? 'level' : 'boss');
     return;
   }
   if (!t.free && S.gold < chestPrice()) { msg(tr('nb.noGold'), 1); return; }
@@ -1563,11 +1673,10 @@ function interact() {
     msg(tr('nb.evolved', { w: WEAPONS[ev.id].name, e: `${E.ic} ${E.name}` }), 4.5, '#ffc94d');
     sfx('level'); sfx('chest'); shake(0.4); hitstop(0.12); fovKick(9); renderWeaponsHud(); return;
   }
-  let rar = rollRarity(10), pool = ITEMS.filter(i => i.r === rar);
+  let rar = t.gold ? Math.max(2, rollRarity(30)) : rollRarity(10), pool = ITEMS.filter(i => i.r === rar);
   while (!pool.length) { rar--; pool = ITEMS.filter(i => i.r === rar); }
   const it = pool[(Math.random() * pool.length) | 0];
-  it.fx(S.stats, S.p);
-  S.items[it.id] = (S.items[it.id] || 0) + 1;
+  giveItem(it);
   shake(0.12 + rar * 0.06);
   burst(t.x, t.y + 1, t.z, 50, [1, 0.8, 0.3], 7, 0.6);
   msg(`${it.ic} ${it.name} — ${it.desc}`, 3.5, RAR[it.r].col);
@@ -1660,6 +1769,7 @@ function bossDeath() {
   for (let i = 0; i < 12; i++) { const a = i / 12 * TAU, r = rand(5, 10); addPickup('gem', b.x + Math.cos(a) * r, b.y, b.z + Math.sin(a) * r, Math.ceil(bxp / 12)); }
   explode(b.x, b.y - 3, b.z, 12, 99999, [1, 0.3, 0.5]);
   levelGroup.remove(b.g); S.boss = null; S.bossDead = true;
+  goldChest(clamp(b.x, -HALF + 4, HALF - 4), clamp(b.z, -HALF + 4, HALF - 4));
   // accalmie : la victoire sur le boss dégage le terrain autour du joueur, pour marcher jusqu'au portail
   explode(S.p.x, S.p.y, S.p.z, 22, 99999, [0.5, 1, 0.9]);
   S.bullets.length = 0;
@@ -1758,7 +1868,9 @@ function update(dt) {
   if (p.y <= g) {
     if (!p.onGround && p.vy < -18) burst(p.x, g + 0.1, p.z, 14, [1, 0.3, 0.9], 5, 0.35);
     if (!p.onGround && p.vy < -10 && st.landShock) asItem(() => explode(p.x, g, p.z, 3.2 * st.area, itemDmg(18 * st.landShock), [0.5, 0.9, 1]));
+    const landing = !p.onGround;
     p.y = g; p.vy = 0; p.onGround = true; p.jumps = st.jumps - 1;
+    if (landing) { S.landT = S.t; S.landHs = hs; if (S.t - S.jumpBuf < 0.15) { S.jumpBuf = -9; jump(); } }
   } else if (p.y > g + 0.05) {
     if (p.onGround && p.vy <= 0 && p.y - g < 0.6 && p.slide <= 0) { p.y = g; p.vy = 0; }   // colle aux descentes
     else p.onGround = false;
@@ -1769,6 +1881,15 @@ function update(dt) {
   S.hurtFlash = Math.max(0, S.hurtFlash - dt * 2.5);
   if (S.lvlDelay > 0) S.lvlDelay -= dt;
   S.rushT = Math.max(0, S.rushT - dt);
+  if (p.onGround && S.t - S.landT > 0.4) S.hops = 0;
+  for (const d of S.pads) {
+    d.cd -= dt; d.arrow.position.y = 1.1 + Math.sin(S.t * 4 + d.x) * 0.25; d.arrow.rotation.y += dt * 2;
+    if (d.cd > 0 || Math.hypot(p.x - d.x, p.z - d.z) > 1.6 || p.y > d.y + 1 || p.vy > 0) continue;
+    d.cd = 0.6; p.vy = st.jumpV * 2.1; p.onGround = false; p.jumps = st.jumps - 1;
+    const h = Math.hypot(p.vx, p.vz), want = Math.max(h * 1.3, 8.5 * st.speed * 1.4), k = want / (h || 1);
+    if (h > 0.5) { p.vx *= k; p.vz *= k; } else { p.vx = -Math.sin(S.cam.yaw) * want; p.vz = -Math.cos(S.cam.yaw) * want; }
+    burst(d.x, d.y + 0.4, d.z, 30, [0.5, 1, 0.6], 7, 0.5); addRing(d.x, d.y + 0.3, d.z, 3, [0.5, 1, 0.6], 0.35); sfx('level'); fovKick(6);
+  }
   updateFires(dt, p, st);
 
   // --- monde
@@ -1950,7 +2071,9 @@ function updateCamera(dt) {
     for (const o of [b.core, b.ring, b.ring2, b.core.children[0]]) { o.material.transparent = ghost; o.material.depthWrite = !ghost; o.material.uniforms.uAlpha.value = ghost ? 0.25 : 1; }
   }
   if (live) { S.trauma = Math.max(0, S.trauma - dt * 1.6); S.fovKick = Math.max(0, S.fovKick - dt * 14); }
-  const fov = 70 + S.fovKick;
+  const over = Math.hypot(S.p.vx, S.p.vz) / (8.5 * S.stats.speed) - 1.1;   // la focale s'ouvre avec la vitesse
+  S.fovSp = (S.fovSp || 0) + (clamp(over * 9, 0, 12) - (S.fovSp || 0)) * Math.min(1, dt * 4);
+  const fov = 70 + S.fovKick + S.fovSp;
   if (Math.abs(camera.fov - fov) > 0.01) { camera.fov = fov; camera.updateProjectionMatrix(); }
   scene.userData.sky.position.copy(camera.position);
 }
@@ -2014,6 +2137,7 @@ function drawRadar(ctx, R, cx, cy, own) {
     ctx.fillStyle = col; ctx.beginPath(); ctx.arc(cx + px, cy + pz, r, 0, TAU); ctx.fill();
   };
   for (const e of S.enemies) if (Math.abs(e.x - S.p.x) < 60 && Math.abs(e.z - S.p.z) < 60) dot(e.x, e.z, e.elite ? '#ffc94d' : 'rgba(255,61,120,.7)', e.elite ? 3 : 1.3);
+  for (const d of S.pads || []) dot(d.x, d.z, 'rgba(124,255,138,.55)', 2.2);
   for (const c of S.chests) if (!c.open) dot(c.x, c.z, '#ffd84d', 3);
   for (const s of S.shrines) if (!s.used) dot(s.x, s.z, SHRINES[s.kind].css, 3.5);
   if (S.boss) dot(S.boss.x, S.boss.z, '#ff2d55', 6);
@@ -2103,6 +2227,9 @@ function pollPad(dt) {
       if (step) { PAD.sel = (PAD.sel + step + curChoices.length) % curChoices.length; padMark(); }
       if (hit(0) && curChoices[PAD.sel]) pickUI(PAD.sel);
       if (hit(3)) { reroll(); padMark(); }
+      if (hit(1)) leaveShop();
+      if (hit(2)) toggleBanish();
+      if (hit(8)) skipLevel();
     } else if (st === 'pause') { if (hit(9) || hit(1) || hit(0)) resume(); }
     else if (st === 'menu' && !$('nb-menu').classList.contains('hidden')) { if (hit(0) || hit(9)) $('nb-start').click(); }
     else if (st === 'end') { if (hit(0)) $('nb-replay').click(); else if (hit(1)) $('nb-again').click(); }
@@ -2306,6 +2433,9 @@ $('nb-shake').onchange = e => { META.shake = e.target.checked; saveMeta(); };
 $('nb-resume').onclick = resume;
 $('nb-quit').onclick = () => endRun(false);
 $('nb-reroll').onclick = reroll;
+$('nb-leave').onclick = leaveShop;
+$('nb-banish').onclick = toggleBanish;
+$('nb-skip').onclick = skipLevel;
 $('nb-sens').oninput = e => { META.sens = +e.target.value; saveMeta(); };
 $('nb-music').onchange = e => window.ptSetMusic && window.ptSetMusic(e.target.checked);
 window.addEventListener('pt-music', () => { if (window.PT_MUSIC && S && S.state === 'play' && active) music.start(S.stage); else if (!window.PT_MUSIC) music.stop(0.3); });
@@ -2329,7 +2459,7 @@ window.addEventListener('pt-lang', () => {
   else if (S.state === 'end') renderEnd();
 });
 // Accès de débogage (console) à l'état de la run.
-window.__nb = { get S() { return S; }, get camDist() { return camDist; }, update, pick, keys, interact, jump, damage, hurt, spawnEnemy, spawnBoss, nextStage, music, newRun, addWeapon, openLevelUp, buildChoices, bossDeath, slide, giveItem: id => { const it = ITEMS.find(i => i.id === id); it.fx(S.stats, S.p); S.items[id] = (S.items[id] || 0) + 1; } };
+window.__nb = { get S() { return S; }, get camDist() { return camDist; }, update, pick, keys, interact, jump, damage, hurt, spawnEnemy, spawnBoss, nextStage, music, newRun, addWeapon, openLevelUp, buildChoices, bossDeath, slide, giveItem: id => giveItem(ITEMS.find(i => i.id === id)), goldChest, banish, get vendor() { return S.vendor; } };
 
 window.GAMES.bonk = {
   reward() { META.credits = (META.credits || 0) + 40; saveMeta(); if (!S || S.state === 'menu') try { renderMenu(); } catch (e) {} },   // objectif du jour
