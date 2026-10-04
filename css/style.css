@@ -295,6 +295,15 @@ main{position:fixed;inset:var(--nav-h) 0 0 0}
 .nb-heatb{float:right;font-size:12px;color:#ff8a4d;margin-left:4px}
 .nb-pset{display:flex;flex-direction:column;gap:12px}
 #nb-endstats .nb-efull{grid-column:1/-1;justify-content:center;border-bottom:0;padding:1px 0}
+#nb-endstats .nb-dmgby{grid-column:1/-1;display:block;border-bottom:0;margin-top:6px}
+.nb-dmgby h4,.nb-stats h4{margin:4px 0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted,#9aa)}
+#nb-endstats .nb-db,.nb-db{display:grid;border-bottom:1px solid rgba(255,255,255,.06);grid-template-columns:minmax(0,1.3fr) 1fr auto;align-items:center;gap:8px;font-size:12.5px;padding:2px 0}
+.nb-db span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left}
+.nb-db i{display:block;height:7px;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden}
+.nb-db i u{display:block;height:100%;background:linear-gradient(90deg,#ff3df0,#27e0ff)}
+.nb-db b{font-size:12px;white-space:nowrap}.nb-db small{opacity:.6}
+.nb-stats{flex-basis:100%;display:flex;flex-wrap:wrap;justify-content:center;gap:4px 10px;font-size:12.5px;margin-top:4px}
+.nb-stats h4{flex-basis:100%;text-align:center}
 .nb-slide.nb-long{font-size:8.5px;letter-spacing:-.04em}
 @media (max-width:600px){.nb-shopjump{display:inline-block}}
 /* Synth Horde sur téléphone en paysage (l'application Android est en paysage) : peu de hauteur */

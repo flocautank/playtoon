@@ -184,11 +184,11 @@ Le cœur de la boucle est déjà présent : timer de 10 min, coffres payés en o
 | Écart | État |
 |---|---|
 | 1 | **fait** (1.4.0) — tremblement de caméra (trauma, réglage « Tremblement de l’écran » en pause), gel d'image (élite 70 ms, évolution 120 ms, boss 200 ms, coup reçu 40 ms), coup de focale (niveau, évolution, boss), mort en « pop » (l'ennemi gonfle et blanchit 0,1 s + éclat blanc), chiffres de crit qui naissent gros, sons à deux couches (bruit filtré + oscillateur, hauteur variée, compresseur), arpège montant des gemmes, ennemis et boss translucides entre caméra et joueur |
-| 2 | à faire |
+| 2 | **fait** (1.5.0) — 16 objets à déclencheur (30 au total) : onde de choc à l'atterrissage, feu des sauts en l'air, dégâts selon la vitesse, en l'air, sous 40 % de PV, nova tous les N kills, braises de glissade, crits en éclair chaîné, guillotine, givre, ralentissement quand on est touché, explosions renforcées, soin par gemme, or de Midas, coffres moins chers, surcadence après un niveau |
 | 3 | à faire |
 | 4 | à faire |
 | 5 | à faire |
-| 6 | à faire |
+| 6 | **fait** (1.5.0) — dégâts par source (chaque arme, objets) en barres sur l'écran de fin, feuille de stats dans la pause, description des objets en infobulle |
 | 7 | à faire |
 | 8 | à faire |
 | 9 | à faire |

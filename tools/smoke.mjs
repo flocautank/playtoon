@@ -193,6 +193,20 @@ log('évolution :', await page.evaluate(() => {
   const before = S.kills; for (let i = 0; i < 150; i++) { S.state = 'play'; S.pending = 0; nb.update(1 / 30); }
   return `évoluée=${w.evo} · traits simultanés=${1 + w.count} · perforation=${w.pierce} · éliminations en 5 s=${S.kills - before}`;
 }));
+log('objets à déclencheur :', await page.evaluate(() => {
+  const nb = window.__nb, S = nb.S;
+  S.state = 'play'; S.enemies.length = 0; S.pending = 0;
+  const hp0 = S.stats.hp; S.p.hp = S.stats.hp;
+  nb.giveItem('ember'); nb.giveItem('soles'); nb.giveItem('axe');
+  const e = nb.spawnEnemy('brute', S.p.x + 1.5, S.p.z); e.speed = 0; e.hp = e.max = 5000;
+  const item0 = S.dmgBy.item || 0;
+  nb.jump(); for (let i = 0; i < 60; i++) { S.state = 'play'; S.pending = 0; nb.update(1 / 30); }
+  nb.slide(); for (let i = 0; i < 6; i++) { S.state = 'play'; nb.update(1 / 30); }
+  const fires = S.fires.length;
+  const e2 = nb.spawnEnemy('brute', S.p.x + 25, S.p.z + 25); e2.hp = e2.max * 0.11; nb.damage(e2, 1, false);
+  if (S.p.hp > 0) S.p.hp = hp0;
+  return `objets=${Object.keys(S.items).length} · onde à l'atterrissage=${(S.dmgBy.item || 0) > item0} · braises=${fires} · guillotine=${e2.hp <= 0} · sources=${Object.keys(S.dmgBy).join('/')}`;
+}));
 log('laser + mines :', await page.evaluate(() => {
   const nb = window.__nb, S = nb.S, out = [];
   S.state = 'play'; S.enemies.length = 0; S.weapons = S.weapons.filter(w => w.id === 'blaster'); S.weapons[0].t = 999;   // blaster muet

@@ -99,6 +99,23 @@ const ITEMS = [
   { id: 'reactor', r: 3, ic: '☢️', fx: s => { s.proj++; s.dmg += 0.1; } },
   { id: 'crown', r: 3, ic: '👑', fx: s => { s.dmg += 0.2; s.xp += 0.2; s.luck += 10; } },
   { id: 'wings', r: 2, ic: '🪽', fx: s => { s.speed += 0.15; s.jumpV *= 1.2; } },
+  // objets à déclencheur : ils réagissent à ce que tu fais (saut, glissade, crit, kill, coup reçu) — c'est eux qui font un build
+  { id: 'soles', r: 1, ic: '🌩️', fx: s => s.landShock++ },
+  { id: 'burner', r: 1, ic: '🔥', fx: s => s.jumpBurst++ },
+  { id: 'turbine', r: 2, ic: '🌀', fx: s => s.speedDmg += 0.25 },
+  { id: 'kite', r: 1, ic: '🪁', fx: s => s.airDmg += 0.25 },
+  { id: 'adren', r: 1, ic: '💉', fx: s => s.lowHpDmg += 0.35 },
+  { id: 'star', r: 2, ic: '🌟', fx: s => s.killNova++ },
+  { id: 'ember', r: 2, ic: '🌋', fx: s => s.slideFire++ },
+  { id: 'mirror', r: 3, ic: '🪞', fx: s => s.critChain = Math.min(1, s.critChain + 0.25) },
+  { id: 'axe', r: 2, ic: '🪓', fx: s => s.execute = Math.min(0.3, s.execute + 0.1) },
+  { id: 'frost', r: 1, ic: '❄️', fx: s => s.frost = Math.min(0.5, s.frost + 0.08) },
+  { id: 'chrono', r: 2, ic: '⏳', fx: s => s.hurtFreeze++ },
+  { id: 'keg', r: 0, ic: '🛢️', fx: s => s.boomPow += 0.25 },
+  { id: 'siphon', r: 0, ic: '🩸', fx: s => s.gemHeal += 0.4 },
+  { id: 'midas', r: 1, ic: '🏺', fx: s => s.midas += 0.05 },
+  { id: 'key', r: 1, ic: '🗝️', fx: s => s.chestDisc *= 0.85 },
+  { id: 'clock', r: 2, ic: '⚡', fx: s => s.rush++ },
 ];
 
 const CHARS = [
@@ -568,14 +585,15 @@ function pushOut(o, p, r) {
 
 // ============================================================ nouvelle run
 function baseStats(ch) {
-  const s = { hp: 100, regen: 0.3, armor: 0, speed: 1, dmg: 1, cd: 1, area: 1, proj: 0, magnet: 1, luck: 0, xp: 1, crit: 0.05, critMul: 2, jumps: 2, jumpV: 11, gold: 1, vamp: 0, shield: 0, thorns: 0, dodge: 0, boom: 0 };
+  const s = { hp: 100, regen: 0.3, armor: 0, speed: 1, dmg: 1, cd: 1, area: 1, proj: 0, magnet: 1, luck: 0, xp: 1, crit: 0.05, critMul: 2, jumps: 2, jumpV: 11, gold: 1, vamp: 0, shield: 0, thorns: 0, dodge: 0, boom: 0,
+    landShock: 0, jumpBurst: 0, speedDmg: 0, airDmg: 0, lowHpDmg: 0, killNova: 0, slideFire: 0, critChain: 0, execute: 0, frost: 0, hurtFreeze: 0, boomPow: 0, gemHeal: 0, midas: 0, chestDisc: 1, rush: 0 };
   ch.bonus(s); return s;
 }
 function newRun() {
   const ch = CHARS.find(c => c.id === META.sel && unlocked(c)) || CHARS[0];
   S = {
     state: 'play', stage: 0, stageT: 0, ch, heat: Math.min(META.heatSel || 0, heatAvail()), t: 0, time: RUN_TIME, kills: 0, gold: 0, level: 1, xp: 0, need: xpNeed(1), pending: 0, rerolls: 2,
-    stats: null, weapons: [], tomes: [], items: {}, enemies: [], pickups: [], bolts: [], bullets: [], discs: [], rockets: [], mines: [], rings: [], dmgNums: [], pops: [], trauma: 0, hitstop: 0, fovKick: 0,
+    stats: null, weapons: [], tomes: [], items: {}, enemies: [], pickups: [], bolts: [], bullets: [], discs: [], rockets: [], mines: [], rings: [], dmgNums: [], pops: [], dmgBy: {}, trauma: 0, hitstop: 0, fovKick: 0, fires: [], novaK: 0, rushT: 0, fireT: 0,
     spawnAcc: 0, nextSwarm: 90, eliteAt: [420, 240], boss: null, portal: null, won: false, dmgDealt: 0, chestsOpened: 0,
     iframe: 0, shieldT: 0, hurtFlash: 0, msgT: 0, chestCost: 12, orbPos: [], orbCount: 0, magnetAll: 0, bossDead: false,
     p: { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, onGround: true, jumps: 1, slide: 0, slideCd: 0, face: Math.PI, hp: 100 },
@@ -614,10 +632,21 @@ function addWeapon(id) {
   S.weapons.push({ id, lvl: 1, dmgM: 1, cdM: 1, count: 0, areaM: 1, speedM: 1, pierce: 0, chain: 0, t: 0.3, ang: 0, hitT: new Map() });
   renderWeaponsHud();
 }
+// bonus de situation des objets à déclencheur : vitesse, en l'air, PV bas, surcadence après un niveau
+function dynDmg() {
+  const s = S.stats, p = S.p;
+  let m = 1;
+  if (s.speedDmg) m += s.speedDmg * clamp(Math.hypot(p.vx, p.vz) / (8.5 * s.speed) - 0.6, 0, 2);
+  if (s.airDmg && !p.onGround) m += s.airDmg;
+  if (s.lowHpDmg && p.hp < s.hp * 0.4) m += s.lowHpDmg;
+  return m;
+}
+const itemDmg = base => base * S.stats.dmg * (1 + S.t / 120);   // dégâts des effets d'objets : suivent la partie comme les explosions
+const chestPrice = () => Math.round(S.chestCost * S.stats.chestDisc);
 const wStat = (w) => {
   const b = WEAPONS[w.id], s = S.stats;
   return {
-    dmg: b.dmg * w.dmgM * s.dmg, cd: b.cd * w.cdM * s.cd, count: b.count + w.count + s.proj,
+    dmg: b.dmg * w.dmgM * s.dmg * dynDmg(), cd: b.cd * w.cdM * s.cd * (S.rushT > 0 ? 0.65 : 1), count: b.count + w.count + s.proj,
     area: b.area * w.areaM * s.area, speed: (b.speed || 1) * w.speedM, pierce: (b.pierce || 0) + w.pierce, chain: (b.chain || 0) + w.chain,
   };
 };
@@ -709,7 +738,10 @@ const S_touch = { joy: { x: 0, y: 0 } };
 function jump() {
   const p = S.p;
   if (p.onGround) { p.vy = S.stats.jumpV; p.onGround = false; p.jumps = S.stats.jumps - 1; sfx('jump'); }
-  else if (p.jumps > 0) { p.vy = S.stats.jumpV * 0.92; p.jumps--; sfx('jump'); burst(p.x, p.y + 0.3, p.z, 12, [0.2, 0.9, 1], 4, 0.4); }
+  else if (p.jumps > 0) {
+    p.vy = S.stats.jumpV * 0.92; p.jumps--; sfx('jump'); burst(p.x, p.y + 0.3, p.z, 12, [0.2, 0.9, 1], 4, 0.4);
+    if (S.stats.jumpBurst) asItem(() => explode(p.x, p.y, p.z, 2.6 * S.stats.area, itemDmg(14 * S.stats.jumpBurst), [1, 0.5, 0.15]));
+  }
 }
 function slide() {
   const p = S.p;
@@ -854,6 +886,7 @@ function updateEnemies(dt) {
     if (e.hp <= 0) continue;
     let dx = p.x - e.x, dz = p.z - e.z; const d = Math.hypot(dx, dz) || 1; dx /= d; dz /= d;
     let sp = e.speed;
+    if (e.slowT > 0) { e.slowT -= dt; sp *= 0.35; }
     if (e.T.ranged && d < 13) sp = d < 9 ? -e.speed * 0.6 : 0;
     if (e.T.charge) {
       e.cst = e.cst || 0; e.ct = (e.ct || 0) - dt;
@@ -898,7 +931,7 @@ function updateEnemies(dt) {
     // contact joueur
     const dy = (p.y + 0.9) - (e.y + (e.T.fly ? 0 : e.size * 0.4));
     if (d < e.r + 0.6 && Math.abs(dy) < e.size * 0.6 + 1) {
-      if (hurt(e.dmg, e.elite ? 'elite' : e.type) && S.stats.thorns) damage(e, S.stats.thorns, false);
+      if (hurt(e.dmg, e.elite ? 'elite' : e.type) && S.stats.thorns) asItem(() => damage(e, S.stats.thorns, false));
     }
   }
 }
@@ -910,11 +943,18 @@ function fireBullet(x, y, z, ang, speed, dmg, src = 'bullet') {
 }
 
 // ============================================================ dégâts
+// source des dégâts (arme en cours, ou « item » pour les effets d'objets) : récap par arme en fin de run
+let dmgSrc = 'item';
+function asItem(f) { const ps = dmgSrc; dmgSrc = 'item'; f(); dmgSrc = ps; }
 function damage(e, amount, canCrit = true, kx = 0, kz = 0) {
   if (e.hp <= 0) return;
   let crit = false;
   if (canCrit && Math.random() < S.stats.crit) { amount *= S.stats.critMul; crit = true; }
-  e.hp -= amount; e.flash = 1; S.dmgDealt += amount;
+  const s = S.stats;
+  if (s.execute && !e.boss && e.hp - amount < e.max * s.execute) amount = Math.max(amount, e.hp);   // guillotine
+  e.hp -= amount; e.flash = 1; S.dmgDealt += amount; S.dmgBy[dmgSrc] = (S.dmgBy[dmgSrc] || 0) + amount;
+  if (s.frost && e.hp > 0 && Math.random() < s.frost) e.slowT = 2;
+  if (crit && s.critChain && Math.random() < s.critChain) asItem(() => chainFrom(e, amount * 0.5));
   if (!e.boss) { e.kx += kx; e.kz += kz; }
   const mode = META.nums || 'merge';
   if (mode === 'merge' && e.num && e.num.t < 0.35 && S.dmgNums.includes(e.num)) { e.num.v += Math.round(amount); e.num.crit = e.num.crit || crit; e.num.t = Math.min(e.num.t, 0.15); }
@@ -935,11 +975,13 @@ function kill(e) {
   if (e.chal) { e.chal.left--; if (e.chal.left <= 0) shrineReward(e.chal); }
   const g = S.stats.gold * (1 + 0.5 * (S.greed || 0));
   if (e.elite) { for (let i = 0; i < 8; i++) addPickup('coin', e.x + rand(-1.5, 1.5), e.y + 0.5, e.z + rand(-1.5, 1.5), Math.ceil(3 * g)); addPickup('heart', e.x, e.y + 0.5, e.z, 30); }
-  else if (Math.random() < 0.07) addPickup('coin', e.x, e.y + 0.4, e.z, Math.max(1, Math.round(rand(1, 3) * g)));
+  else if (Math.random() < 0.07 + S.stats.midas) addPickup('coin', e.x, e.y + 0.4, e.z, Math.max(1, Math.round(rand(1, 3) * g)));
+  if (e.elite && S.stats.midas) for (let i = 0; i < 8; i++) addPickup('coin', e.x + rand(-1.5, 1.5), e.y + 0.5, e.z + rand(-1.5, 1.5), Math.ceil(3 * g));
+  if (S.stats.killNova && ++S.novaK >= Math.max(12, 34 - 6 * S.stats.killNova)) { S.novaK = 0; asItem(() => explode(S.p.x, S.p.y, S.p.z, 5 * S.stats.area, itemDmg(30), [1, 0.9, 0.4])); }
   if (Math.random() < 0.006) addPickup('heart', e.x, e.y + 0.4, e.z, 20);
   if (Math.random() < 0.0015) addPickup('magnetp', e.x, e.y + 0.4, e.z, 0);
   if (S.stats.vamp && Math.random() < S.stats.vamp) S.p.hp = Math.min(S.stats.hp, S.p.hp + 2);
-  if (S.stats.boom && Math.random() < S.stats.boom) explode(e.x, e.y, e.z, 3 * S.stats.area, 20 * S.stats.dmg * (1 + S.t / 120), [1, 0.6, 0.2]);
+  if (S.stats.boom && Math.random() < S.stats.boom) asItem(() => explode(e.x, e.y, e.z, 3 * S.stats.area, 20 * S.stats.dmg * (1 + S.t / 120), [1, 0.6, 0.2]));
   sfx('kill');
 }
 function dropXp(x, y, z, v) {
@@ -958,7 +1000,21 @@ function dropXp(x, y, z, v) {
   addPickup('gem', x, y, z, v);
 }
 function addPickup(type, x, y, z, v) { S.pickups.push({ type, x, y, z, v, vy: 4, vx: rand(-1.5, 1.5), vz: rand(-1.5, 1.5), pull: false, t: 0 }); }
+function chainFrom(e, dmg) {   // miroir : un crit rebondit en éclair sur deux voisins
+  let n = 0;
+  near(e.x, e.z, 7, o => { if (o === e) return; bolt(e.x, e.y + 0.6, e.z, o.x, o.y + 0.6, o.z, [0.7, 0.9, 1]); damage(o, dmg, false); if (++n >= 2) return false; });
+}
+function updateFires(dt, p, st) {   // braises : la glissade sème des flaques de feu
+  if (st.slideFire && p.slide > 0 && p.onGround && (S.fireT -= dt) <= 0 && S.fires.length < 40) { S.fireT = 0.09; S.fires.push({ x: p.x, y: p.y, z: p.z, t: 2.5, tick: 0 }); }
+  for (let i = S.fires.length - 1; i >= 0; i--) {
+    const f = S.fires[i]; f.t -= dt; f.tick -= dt;
+    if (f.t <= 0) { S.fires.splice(i, 1); continue; }
+    if (Math.random() < 0.5) spawnPart(f.x + rand(-0.6, 0.6), f.y + 0.1, f.z + rand(-0.6, 0.6), 0, rand(1.5, 3.5), 0, [1, rand(0.3, 0.6), 0.1], rand(0.25, 0.45), 0.4);
+    if (f.tick <= 0) { f.tick = 0.3; near(f.x, f.z, 1.8, e => { if (Math.hypot(e.x - f.x, e.z - f.z) < 1.4 * st.area + e.r) damage(e, itemDmg(5 * st.slideFire), false); }); }
+  }
+}
 function explode(x, y, z, r, dmg, col) {
+  if (S.stats.boomPow) { r *= 1 + S.stats.boomPow * 0.5; dmg *= 1 + S.stats.boomPow; }
   near(x, z, r + 1, e => { const dx = e.x - x, dz = e.z - z; const d = Math.hypot(dx, dz); if (d < r + e.r) damage(e, dmg, true, dx / (d || 1) * 6, dz / (d || 1) * 6); });
   if (S.boss && Math.hypot(S.boss.x - x, S.boss.z - z) < r + S.boss.r) damage(S.boss, dmg);
   burst(x, y + 0.5, z, 30, col, r * 2.2, 0.45);
@@ -972,6 +1028,7 @@ function hurt(d, src = '?') {
   if (s.shield && S.shieldT <= 0) { S.shieldT = s.shield; S.iframe = 0.5; addNum(S.p.x, S.p.y + 2.2, S.p.z, tr('nb.blocked'), true); return true; }
   if (s.dodge && Math.random() < s.dodge) { S.iframe = 0.3; addNum(S.p.x, S.p.y + 2.2, S.p.z, tr('nb.dodge'), false); return false; }
   d *= 1 - Math.min(0.75, s.armor);
+  if (s.hurtFreeze) { near(S.p.x, S.p.z, 7, e => { e.slowT = 1.5 + s.hurtFreeze; }); addRing(S.p.x, S.p.y + 0.3, S.p.z, 7, [0.5, 0.8, 1], 0.4); }
   S.p.hp -= d; S.iframe = 0.7; S.hurtFlash = 1; sfx('hurt'); shake(0.3 + Math.min(0.3, d / S.stats.hp)); hitstop(0.04);
   (S.hurtBy = S.hurtBy || {})[src] = (S.hurtBy[src] || 0) + d;   // statistiques d'équilibrage
   S.lastHurt = src;   // « tué par … » sur l'écran de fin
@@ -1045,6 +1102,7 @@ function updateWeapons(dt) {
   const p = S.p, px = p.x, py = p.y + 1, pz = p.z;
   let orbIdx = 0;
   for (const w of S.weapons) {
+    dmgSrc = w.id;
     const st = wStat(w);
     w.t -= dt;
     switch (w.id) {
@@ -1060,7 +1118,7 @@ function updateWeapons(dt) {
             const spread = i >= tg.length ? (i - tg.length + 1) * 0.12 : 0;
             const a = Math.atan2(dz, dx) + spread;
             const hd = Math.hypot(dx, dz) / d;
-            S.bolts.push({ x: px, y: py, z: pz, vx: Math.cos(a) * hd * st.speed, vy: dy / d * st.speed, vz: Math.sin(a) * hd * st.speed, life: 1.3, dmg: st.dmg, pierce: st.pierce, hit: new Set() });
+            S.bolts.push({ x: px, y: py, z: pz, vx: Math.cos(a) * hd * st.speed, vy: dy / d * st.speed, vz: Math.sin(a) * hd * st.speed, life: 1.3, dmg: st.dmg, pierce: st.pierce, hit: new Set(), w: w.id });
           }
           sfx('shoot');
         }
@@ -1124,7 +1182,7 @@ function updateWeapons(dt) {
           w.t = st.cd;
           for (let i = 0; i < st.count; i++) {
             const a = tg[i] ? Math.atan2(tg[i].z - pz, tg[i].x - px) : facing() + i * TAU / st.count;
-            S.discs.push({ x: px, y: py, z: pz, a, t: 0, range: 13 * (0.8 + 0.2 * st.area), sp: st.speed, dmg: st.dmg, r: 0.9 * st.area, hitT: new Map(), back: false });
+            S.discs.push({ x: px, y: py, z: pz, a, t: 0, range: 13 * (0.8 + 0.2 * st.area), sp: st.speed, dmg: st.dmg, r: 0.9 * st.area, hitT: new Map(), back: false, w: w.id });
           }
         }
         break;
@@ -1155,7 +1213,7 @@ function updateWeapons(dt) {
           for (let i = 0; i < st.count; i++) {
             const tgt = randomEnemyNear(28);
             const a = rand(0, TAU);
-            S.rockets.push({ x: px, y: py + 0.5, z: pz, vx: Math.cos(a) * 4, vy: 9, vz: Math.sin(a) * 4, tgt, life: 4, dmg: st.dmg, r: st.area, sp: st.speed });
+            S.rockets.push({ x: px, y: py + 0.5, z: pz, vx: Math.cos(a) * 4, vy: 9, vz: Math.sin(a) * 4, tgt, life: 4, dmg: st.dmg, r: st.area, sp: st.speed, w: w.id });
           }
         }
         break;
@@ -1189,7 +1247,7 @@ function updateWeapons(dt) {
             if (S.mines.length >= 30) S.mines.shift();
             const a = rand(0, TAU), d = i ? rand(1, 2.5) : 0;
             const mx = px + Math.cos(a) * d, mz = pz + Math.sin(a) * d;
-            S.mines.push({ x: mx, z: mz, y: groundAt(mx, mz, p.y + 0.5), arm: 0.5, dmg: st.dmg, r: st.area, t: 0 });
+            S.mines.push({ x: mx, z: mz, y: groundAt(mx, mz, p.y + 0.5), arm: 0.5, dmg: st.dmg, r: st.area, t: 0, w: w.id });
           }
         }
         break;
@@ -1203,7 +1261,7 @@ function updateWeapons(dt) {
     let boom = false;
     near(m.x, m.z, 2.5, e => { if (Math.hypot(e.x - m.x, e.z - m.z) < 1.1 + e.r && Math.abs(e.y - m.y) < 2.5) { boom = true; return false; } });
     if (!boom && S.boss && Math.hypot(S.boss.x - m.x, S.boss.z - m.z) < S.boss.r + 1.2) boom = true;
-    if (boom) { explode(m.x, m.y, m.z, m.r, m.dmg, [1, 0.3, 0.3]); S.mines.splice(i, 1); }
+    if (boom) { dmgSrc = m.w; explode(m.x, m.y, m.z, m.r, m.dmg, [1, 0.3, 0.3]); S.mines.splice(i, 1); }
   }
 }
 
@@ -1215,7 +1273,7 @@ function updateProjectiles(dt) {
     let dead = b.life <= 0 || b.y < terrainH(b.x, b.z) - 0.2;
     if (!dead) hitTest(b.x, b.y, b.z, 0.35, e => {
       if (b.hit.has(e)) return;
-      b.hit.add(e); damage(e, b.dmg, true, b.vx * 0.12, b.vz * 0.12);
+      b.hit.add(e); dmgSrc = b.w; damage(e, b.dmg, true, b.vx * 0.12, b.vz * 0.12);
       if (b.pierce-- <= 0) { dead = true; return false; }
     });
     if (dead) { S.bolts[i] = S.bolts[S.bolts.length - 1]; S.bolts.pop(); }
@@ -1235,7 +1293,7 @@ function updateProjectiles(dt) {
     d.y += ((p.y + 1) - d.y) * Math.min(1, dt * 5);
     hitTest(d.x, d.y, d.z, d.r, e => {
       const last = d.hitT.get(e); if (last !== undefined && d.t - last < 0.5) return;
-      d.hitT.set(e, d.t); damage(e, d.dmg, true, Math.cos(d.a) * 5, Math.sin(d.a) * 5);
+      d.hitT.set(e, d.t); dmgSrc = d.w; damage(e, d.dmg, true, Math.cos(d.a) * 5, Math.sin(d.a) * 5);
     });
   }
   // missiles
@@ -1252,7 +1310,7 @@ function updateProjectiles(dt) {
     if (Math.random() < 0.7) spawnPart(r.x, r.y, r.z, rand(-1, 1), rand(-1, 1), rand(-1, 1), [1, 0.5, 0.2], 0.35, 0.35);
     let boom = r.life <= 0 || r.y < terrainH(r.x, r.z);
     if (!boom) hitTest(r.x, r.y, r.z, 0.5, () => { boom = true; return false; });
-    if (boom) { explode(r.x, r.y, r.z, r.r, r.dmg, [1, 0.55, 0.2]); S.rockets[i] = S.rockets[S.rockets.length - 1]; S.rockets.pop(); }
+    if (boom) { dmgSrc = r.w; explode(r.x, r.y, r.z, r.r, r.dmg, [1, 0.55, 0.2]); S.rockets[i] = S.rockets[S.rockets.length - 1]; S.rockets.pop(); }
   }
   // balles ennemies
   for (let i = S.bullets.length - 1; i >= 0; i--) {
@@ -1264,6 +1322,7 @@ function updateProjectiles(dt) {
     if (dead) { S.bullets[i] = S.bullets[S.bullets.length - 1]; S.bullets.pop(); }
   }
   gunInFlight = 0; for (const b of S.bullets) if (b.src === 'bullet') gunInFlight++;
+  dmgSrc = 'item';
 }
 
 // ============================================================ ramassage
@@ -1282,7 +1341,7 @@ function updatePickups(dt) {
       const g = groundAt(k.x, k.z, k.y) + 0.4; if (k.y < g) { k.y = g; k.vy = 0; }
     }
     if (d < 0.9) {
-      if (k.type === 'gem') { S.xp += k.v * S.stats.xp; sfx('xp'); }
+      if (k.type === 'gem') { S.xp += k.v * S.stats.xp; sfx('xp'); if (S.stats.gemHeal) S.p.hp = Math.min(S.stats.hp, S.p.hp + S.stats.gemHeal); }
       else if (k.type === 'coin') { S.gold += k.v; }
       else if (k.type === 'heart') { S.p.hp = Math.min(S.stats.hp, S.p.hp + k.v); addNum(p.x, p.y + 2, p.z, tr('nb.hpGain', { n: k.v }), false, '#7cff8a'); }
       else if (k.type === 'magnetp') { S.magnetAll = 1.5; msg(tr('nb.magnet'), 1.2); }
@@ -1410,6 +1469,7 @@ function applyStat(key, v) {
 }
 function pick(i) {
   const c = curChoices[i]; if (!c) return;
+  if (choiceMode === 'level' && S.stats.rush) S.rushT = 6 + 3 * S.stats.rush;   // surcadence après un niveau
   if (c.kind === 'wnew') addWeapon(c.id);
   else if (c.kind === 'wup') {
     const w = S.weapons.find(x => x.id === c.id); w.lvl++;
@@ -1440,7 +1500,7 @@ function updateInteract(dt) {
     if (c.open) continue;
     if (Math.hypot(c.x - p.x, c.z - p.z) < 2.2 && Math.abs(c.y - p.y) < 2) {
       promptTarget = c;
-      txt = c.free ? tr('nb.pChestFree') : S.gold >= S.chestCost ? tr('nb.pChest', { n: S.chestCost }) : tr('nb.pChestNo', { n: S.chestCost, g: S.gold });
+      txt = c.free ? tr('nb.pChestFree') : S.gold >= chestPrice() ? tr('nb.pChest', { n: chestPrice() }) : tr('nb.pChestNo', { n: chestPrice(), g: S.gold });
     }
   }
   if (S.portal && Math.hypot(S.portal.x - p.x, S.portal.z - p.z) < 3.5) { promptTarget = S.portal; txt = tr(S.stage < STAGES.length - 1 ? 'nb.pPortal' : 'nb.pPortalWin'); }
@@ -1492,9 +1552,9 @@ function interact() {
     burst(t.x, t.y + 2, t.z, 40, t.kind === 'chal' ? [1, 0.2, 0.3] : [1, 0.8, 0.3], 7, 0.6); sfx('boss');
     return;
   }
-  if (!t.free && S.gold < S.chestCost) { msg(tr('nb.noGold'), 1); return; }
+  if (!t.free && S.gold < chestPrice()) { msg(tr('nb.noGold'), 1); return; }
   S.chestsOpened++; window.ptEvent && window.ptEvent('nb_chests', 1);
-  if (!t.free) { S.gold -= S.chestCost; S.chestCost = Math.round(S.chestCost * 1.45 + 4); }
+  if (!t.free) { S.gold -= chestPrice(); S.chestCost = Math.round(S.chestCost * 1.45 + 4); }
   t.open = true; t.lid.rotation.x = -1.2; t.lid.position.z = -0.4; t.lid.position.y = 1.1;
   const ev = evoReady();
   if (ev) {
@@ -1697,6 +1757,7 @@ function update(dt) {
   const g = groundAt(p.x, p.z, p.y);
   if (p.y <= g) {
     if (!p.onGround && p.vy < -18) burst(p.x, g + 0.1, p.z, 14, [1, 0.3, 0.9], 5, 0.35);
+    if (!p.onGround && p.vy < -10 && st.landShock) asItem(() => explode(p.x, g, p.z, 3.2 * st.area, itemDmg(18 * st.landShock), [0.5, 0.9, 1]));
     p.y = g; p.vy = 0; p.onGround = true; p.jumps = st.jumps - 1;
   } else if (p.y > g + 0.05) {
     if (p.onGround && p.vy <= 0 && p.y - g < 0.6 && p.slide <= 0) { p.y = g; p.vy = 0; }   // colle aux descentes
@@ -1707,6 +1768,8 @@ function update(dt) {
   S.iframe = Math.max(0, S.iframe - dt); S.shieldT = Math.max(0, S.shieldT - dt);
   S.hurtFlash = Math.max(0, S.hurtFlash - dt * 2.5);
   if (S.lvlDelay > 0) S.lvlDelay -= dt;
+  S.rushT = Math.max(0, S.rushT - dt);
+  updateFires(dt, p, st);
 
   // --- monde
   rebuildGrid();
@@ -2096,7 +2159,8 @@ function renderBuild() {
   const b = $('nb-build'); b.innerHTML = '';
   S.weapons.forEach(w => b.insertAdjacentHTML('beforeend', `<span>${wIc(w)} ${wName(w)} ${tr('nb.lvShort', { n: w.lvl })}${!w.evo ? ` <span class="muted">${tr('nb.evoHint', { n: EVO_LVL, tome: `${TOMES[EVOS[w.id].tome].ic} ${TOMES[EVOS[w.id].tome].name}` })}</span>` : ' ⭐'}</span>`));
   S.tomes.forEach(t => b.insertAdjacentHTML('beforeend', `<span>${TOMES[t.id].ic} ${TOMES[t.id].name} ${tr('nb.lvShort', { n: t.lvl })}</span>`));
-  Object.entries(S.items).forEach(([id, n]) => { const it = ITEMS.find(i => i.id === id); b.insertAdjacentHTML('beforeend', `<span>${it.ic} ${it.name}${n > 1 ? ' ×' + n : ''}</span>`); });
+  Object.entries(S.items).forEach(([id, n]) => { const it = ITEMS.find(i => i.id === id); b.insertAdjacentHTML('beforeend', `<span title="${it.desc}">${it.ic} ${it.name}${n > 1 ? ' ×' + n : ''}</span>`); });
+  b.insertAdjacentHTML('beforeend', statsHTML());
 }
 function resume() { if (!S || S.state !== 'pause') return; $('nb-pause').classList.add('hidden'); S.state = 'play'; clock.getDelta(); lockPointer(); if (window.PT_MUSIC !== false) music.start(S.stage); }
 function endRun(win) {
@@ -2127,6 +2191,24 @@ function endRun(win) {
   $('nb-prompt').classList.remove('show');
 }
 const KB = { drone: 1, spike: 1, brute: 1, gunner: 1, charger: 1, splitter: 1, elite: 1, bullet: 1, eliteShot: 1, boss: 1, bossShot: 1, wave: 1 };
+// récap des dégâts par arme (et par objets), en barres : ce qui a vraiment porté la run
+function dmgByHTML() {
+  const tot = Object.values(S.dmgBy).reduce((a, b) => a + b, 0); if (!tot) return '';
+  const rows = Object.entries(S.dmgBy).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]).map(([k, v]) => {
+    const w = S.weapons.find(x => x.id === k);
+    const lab = w ? `${wIc(w)} ${wName(w)}` : WEAPONS[k] ? `${WEAPONS[k].ic} ${WEAPONS[k].name}` : `🎒 ${tr('nb.srcItems')}`;
+    const pc = v / tot * 100;
+    return `<div class="nb-db"><span>${lab}</span><i><u style="width:${pc.toFixed(1)}%"></u></i><b>${num(Math.round(v))} <small>${Math.round(pc)}%</small></b></div>`;
+  }).join('');
+  return `<div class="nb-dmgby"><h4>${tr('nb.dmgByT')}</h4>${rows}</div>`;
+}
+// feuille de stats (pause) : les valeurs actuelles, icônes des tomes, nom du tome en infobulle
+function statsHTML() {
+  const s = S.stats, pc = v => Math.round(v * 100);
+  const L = [['power', `+${pc(s.dmg - 1)}%`], ['haste', `−${pc(1 - s.cd)}%`], ['crit', `${pc(s.crit)}% ×${dec(s.critMul)}`], ['area', `+${pc(s.area - 1)}%`], ['multi', `+${s.proj}`],
+    ['agile', `+${pc(s.speed - 1)}%`], ['vital', Math.round(s.hp)], ['regen', `${dec(s.regen)}/s`], ['armor', `${pc(Math.min(0.75, s.armor))}%`], ['magnet', `+${pc(s.magnet - 1)}%`], ['luck', Math.round(s.luck)], ['wisdom', `+${pc(s.xp - 1)}%`]];
+  return `<div class="nb-stats"><h4>${tr('nb.statsT')}</h4>${L.map(([k, v]) => `<span title="${TOMES[k].name}">${TOMES[k].ic} ${v}</span>`).join('')}</div>`;
+}
 function renderEnd() {
   const { surv, cr, newly, killedBy, best, heatRec, firstWin } = S.endInfo;
   $('nb-endtitle').innerHTML = S.won ? `<span class="neon" style="font-size:30px">${tr('nb.victory')}</span>` : tr('nb.dead');
@@ -2140,7 +2222,8 @@ function renderEnd() {
     + row('nb.eChests', S.chestsOpened) + row('nb.eChar', S.ch.name) + row('nb.eStage', (S.stage + 1) + ' / ' + STAGES.length)
     + (S.heat ? row('nb.heat', '🔥 ' + S.heat) : '')
     + notes + full(tr('nb.eCredits', { n: num(cr) }), '#7ff6ff')
-    + (newly.length ? full(tr('nb.eUnlocked', { list: newly.map(c => c.name).join(', ') }), '#ffc94d') : '');
+    + (newly.length ? full(tr('nb.eUnlocked', { list: newly.map(c => c.name).join(', ') }), '#ffc94d') : '')
+    + dmgByHTML();
   const dbl = $('nb-double');
   dbl.classList.toggle('hidden', !(cr > 0 && !S.doubled && MON.canReward()));
   dbl.textContent = tr('nb.double', { n: num(cr) });
@@ -2246,7 +2329,7 @@ window.addEventListener('pt-lang', () => {
   else if (S.state === 'end') renderEnd();
 });
 // Accès de débogage (console) à l'état de la run.
-window.__nb = { get S() { return S; }, get camDist() { return camDist; }, update, pick, keys, interact, jump, damage, hurt, spawnEnemy, spawnBoss, nextStage, music, newRun, addWeapon, openLevelUp, buildChoices, bossDeath };
+window.__nb = { get S() { return S; }, get camDist() { return camDist; }, update, pick, keys, interact, jump, damage, hurt, spawnEnemy, spawnBoss, nextStage, music, newRun, addWeapon, openLevelUp, buildChoices, bossDeath, slide, giveItem: id => { const it = ITEMS.find(i => i.id === id); it.fx(S.stats, S.p); S.items[id] = (S.items[id] || 0) + 1; } };
 
 window.GAMES.bonk = {
   reward() { META.credits = (META.credits || 0) + 40; saveMeta(); if (!S || S.state === 'menu') try { renderMenu(); } catch (e) {} },   // objectif du jour
