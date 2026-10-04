@@ -3,6 +3,11 @@
 // sanctuaires, timer de 10 min, boss, portail), dans une esthétique synthwave néon.
 // Textes : js/lang/bonk.js (clés nb.*). `tr` et non `t` : trop de variables locales s'appellent t ici.
 import * as THREE from '../vendor/three.module.min.js';
+import { EffectComposer } from '../vendor/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from '../vendor/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from '../vendor/addons/postprocessing/UnrealBloomPass.js';
+import { ShaderPass } from '../vendor/addons/postprocessing/ShaderPass.js';
+import { CopyShader } from '../vendor/addons/shaders/CopyShader.js';
 import { Synthwave } from './synthwave.js';
 import { t as tr, num, applyI18n, addStrings, lang } from './i18n.js';
 import NB_TEXT from './lang/bonk.js';
@@ -382,7 +387,8 @@ const PART_VS = `attribute vec3 color; attribute float size; varying vec3 vC;
 void main(){ vC = color; vec4 mv = modelViewMatrix * vec4(position,1.0);
   // taille bornée : sans ça, une particule collée à la caméra devient un sprite géant (coûteux, voire bloquant)
   gl_PointSize = -mv.z > 0.5 ? min(size * 300.0 / -mv.z, 48.0) : 0.0; gl_Position = projectionMatrix * mv; }`;
-const PART_FS = `varying vec3 vC; void main(){ vec2 p = gl_PointCoord - 0.5; float d = length(p); if (d > 0.5) discard; float a = smoothstep(0.5, 0.0, d); gl_FragColor = vec4(vC * a * 1.4, a); }`;
+// cœur chaud + halo doux : une étincelle lumineuse plutôt qu'un disque plat
+const PART_FS = `varying vec3 vC; void main(){ vec2 p = gl_PointCoord - 0.5; float d = length(p); if (d > 0.5) discard; float core = exp(-d * d * 60.0), halo = smoothstep(0.5, 0.0, d); gl_FragColor = vec4(vC * (halo * 0.9 + core * 1.6) + vec3(core * 0.35), halo); }`;
 
 // ============================================================ état global
 let renderer, scene, camera, clock, fx2, g2;
@@ -530,6 +536,7 @@ function init() {
   scene.add(player);
 
   levelGroup = new THREE.Group(); scene.add(levelGroup);
+  initFX();
 
   // overlay 2D (chiffres de dégâts, radar, vignette)
   fx2 = document.createElement('canvas'); fx2.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none';
@@ -554,6 +561,7 @@ function onResize() {
   if (!W) return;
   renderer.setSize(W, H, false);
   camera.aspect = W / H; camera.updateProjectionMatrix();
+  if (FX.composer) { FX.composer.setPixelRatio(renderer.getPixelRatio()); FX.composer.setSize(W, H); FX.bloom.resolution.set(W / 2, H / 2); }
   const d = Math.min(2, devicePixelRatio || 1); fx2.width = W * d; fx2.height = H * d; g2.setTransform(d, 0, 0, d, 0, 0);
   DPR2 = d; radarT = 0;
 }
@@ -760,6 +768,7 @@ function newRun() {
     cam: { yaw: 0, pitch: 0.42 },
   };
   S.stats = baseStats(ch);
+  clearFX(); playerTrail();
   S.unl0 = CHARS.filter(unlocked).map(c => c.id);   // personnages débloqués au départ (les boss tués mettent META à jour en cours de run)
   applyStage(0);
   for (const it of SHOP) if (shopLvl(it.id)) it.fx(S.stats, shopLvl(it.id));
@@ -1103,7 +1112,7 @@ function updateEnemies(dt) {
         sp = 0; e.fuse -= dt; e.flash = 0.5 + 0.5 * Math.sin(S.t * 50);
         if (e.fuse <= 0) {
           const near2 = Math.hypot(p.x - e.x, p.z - e.z) < 3 && Math.abs(p.y - e.y) < 2.5;
-          burst(e.x, e.y + 0.5, e.z, 40, [1, 0.45, 0.1], 8, 0.5); addRing(e.x, e.y + 0.3, e.z, 3, [1, 0.45, 0.1], 0.3); sfx('boom');
+          burst(e.x, e.y + 0.5, e.z, 40, [1, 0.45, 0.1], 8, 0.5); shock(e.x, terrainH(e.x, e.z), e.z, 4, [1, 0.45, 0.1], 0.35); decal(e.x, terrainH(e.x, e.z), e.z, 2.4, [1, 0.45, 0.1], 5, 0); sfx('boom');
           if (near2) { hurt(e.dmg, 'bomber'); shake(0.25); }
           near(e.x, e.z, 3, o => { if (o !== e && !o.T.bomb && !o.elite) { o.hp -= e.max * 1.5; if (o.hp <= 0) kill(o); } });
           e.hp = 0; e.noDrop = true; continue;
@@ -1113,7 +1122,7 @@ function updateEnemies(dt) {
     if (e.T.blink) {   // clignoteur : tous les 3,5 s, réapparaît à 5–7 m (anneau d'avertissement 0,45 s avant)
       e.bt = (e.bt ?? rand(1, 3.5)) - dt;
       if (e.bt <= 0.45 && !e.bto && d > 8) { const a = rand(0, TAU), r = rand(5, 7); e.bto = { x: clamp(p.x + Math.cos(a) * r, -HALF + 2, HALF - 2), z: clamp(p.z + Math.sin(a) * r, -HALF + 2, HALF - 2) }; addRing(e.bto.x, terrainH(e.bto.x, e.bto.z) + 0.2, e.bto.z, 1.4, [0.55, 0.36, 1], 0.45); }
-      if (e.bt <= 0) { if (e.bto) { burst(e.x, e.y + 0.5, e.z, 14, [0.55, 0.36, 1], 4, 0.3); e.x = e.bto.x; e.z = e.bto.z; e.y = terrainH(e.x, e.z); burst(e.x, e.y + 0.5, e.z, 14, [0.55, 0.36, 1], 4, 0.3); } e.bto = null; e.bt = 3.5; }
+      if (e.bt <= 0) { if (e.bto) { burst(e.x, e.y + 0.5, e.z, 14, [0.55, 0.36, 1], 4, 0.3); e.x = e.bto.x; e.z = e.bto.z; e.y = terrainH(e.x, e.z); burst(e.x, e.y + 0.5, e.z, 14, [0.55, 0.36, 1], 4, 0.3); shock(e.x, e.y, e.z, 2.2, [0.55, 0.36, 1], 0.3); } e.bto = null; e.bt = 3.5; }
     }
     if (e.T.heal) {   // soigneur : rend 20 % des PV aux ennemis à 7 m toutes les 2,5 s
       e.ht = (e.ht ?? 2.5) - dt;
@@ -1127,7 +1136,7 @@ function updateEnemies(dt) {
     if (e.T.charge) {
       e.cst = e.cst || 0; e.ct = (e.ct || 0) - dt;
       if (e.cst === 0 && d < 15 && e.ct <= 0) { e.cst = 1; e.ct = 0.7; e.cdx = dx; e.cdz = dz; }            // visée
-      if (e.cst === 1) { sp = 0; e.flash = 0.6 + 0.4 * Math.sin(S.t * 40); if (e.ct <= 0) { e.cst = 2; e.ct = 0.8; } }
+      if (e.cst === 1) { sp = 0; e.flash = 0.6 + 0.4 * Math.sin(S.t * 40); if (e.ct <= 0) { e.cst = 2; e.ct = 0.8; trail(() => [e.x, e.y + 0.6, e.z], () => e.hp > 0 && e.cst === 2, [0.5, 1, 0.55], 0.55); } }
       else if (e.cst === 2) { dx = e.cdx; dz = e.cdz; sp = e.speed * 5; if (e.ct <= 0) { e.cst = 0; e.ct = 2.4; } }  // ruée
       e.face = Math.atan2(dx, dz);
     }
@@ -1208,7 +1217,7 @@ function kill(e) {
   burst(e.x, e.y + 0.5, e.z, e.elite ? 60 : 10, [col.r, col.g, col.b], e.elite ? 9 : 5, 0.5);
   burst(e.x, e.y + 0.5, e.z, e.elite ? 12 : 3, [1.4, 1.4, 1.4], e.elite ? 6 : 3.5, 0.18);   // éclat blanc bref
   if (S.pops.length < 80) S.pops.push({ type: e.type, x: e.x, y: e.y + (e.T.fly ? 0 : e.size * 0.45), z: e.z, size: e.size, rot: e.rot, t: 0 });   // l'ennemi gonfle et s'évanouit (syncMeshes)
-  if (e.elite) { shake(0.45); hitstop(0.07); sfx('elite'); addRing(e.x, e.y + 0.3, e.z, 5, [1, 0.8, 0.3], 0.35); }
+  if (e.elite) { shake(0.45); hitstop(0.07); sfx('elite'); shock(e.x, terrainH(e.x, e.z), e.z, 6, [1, 0.8, 0.3], 0.5, 0.16); decal(e.x, terrainH(e.x, e.z), e.z, 2.6, [1, 0.6, 0.2], 6, 0); }
   if (!e.noDrop) dropXp(e.x, e.y + 0.4, e.z, e.xp);
   if (e.warden) { goldChest(e.x, e.z); shake(0.6); hitstop(0.12); metaAdd('wardens'); }
   if (e.type === 'bomber') S.bomberK = (S.bomberK || 0) + 1;
@@ -1247,7 +1256,7 @@ function chainFrom(e, dmg) {   // miroir : un crit rebondit en éclair sur deux 
   near(e.x, e.z, 7, o => { if (o === e) return; bolt(e.x, e.y + 0.6, e.z, o.x, o.y + 0.6, o.z, [0.7, 0.9, 1]); damage(o, dmg, false); if (++n >= 2) return false; });
 }
 function updateFires(dt, p, st) {   // braises : la glissade sème des flaques de feu
-  if (st.slideFire && p.slide > 0 && p.onGround && (S.fireT -= dt) <= 0 && S.fires.length < 40) { S.fireT = 0.09; S.fires.push({ x: p.x, y: p.y, z: p.z, t: 2.5, tick: 0 }); }
+  if (st.slideFire && p.slide > 0 && p.onGround && (S.fireT -= dt) <= 0 && S.fires.length < 40) { S.fireT = 0.09; S.fires.push({ x: p.x, y: p.y, z: p.z, t: 2.5, tick: 0 }); if (S.fires.length % 3 === 0) decal(p.x, p.y, p.z, 1.3, [1, 0.45, 0.1], 2.5, 1); }
   for (let i = S.fires.length - 1; i >= 0; i--) {
     const f = S.fires[i]; f.t -= dt; f.tick -= dt;
     if (f.t <= 0) { S.fires.splice(i, 1); continue; }
@@ -1261,6 +1270,7 @@ function explode(x, y, z, r, dmg, col) {
   if (S.boss && Math.hypot(S.boss.x - x, S.boss.z - z) < r + S.boss.r) damage(S.boss, dmg);
   burst(x, y + 0.5, z, 30, col, r * 2.2, 0.45);
   addRing(x, y + 0.2, z, r, col, 0.3);
+  if (r >= 2 && r < 50) { const gy = groundAt(x, z, y + 0.5); decal(x, gy, z, r * 0.85, col, 5, 0); if (r >= 3) shock(x, gy, z, r * 1.35, col, 0.4); }
   if (r >= 3.5 && (x - S.p.x) ** 2 + (z - S.p.z) ** 2 < 144) shake(0.08);
   sfx('boom');
 }
@@ -1425,6 +1435,7 @@ function updateWeapons(dt) {
           for (let i = 0; i < st.count; i++) {
             const a = tg[i] ? Math.atan2(tg[i].z - pz, tg[i].x - px) : facing() + i * TAU / st.count;
             S.discs.push({ x: px, y: py, z: pz, a, t: 0, range: 13 * (0.8 + 0.2 * st.area), sp: st.speed, dmg: st.dmg, r: 0.9 * st.area, hitT: new Map(), back: false, w: w.id });
+            { const d = S.discs[S.discs.length - 1]; trail(() => [d.x, d.y, d.z], () => !d.gone, [0.45, 1, 0.55], Math.min(0.9, 0.35 * d.r), 0.15); }
           }
         }
         break;
@@ -1456,6 +1467,7 @@ function updateWeapons(dt) {
             const tgt = randomEnemyNear(28);
             const a = rand(0, TAU);
             S.rockets.push({ x: px, y: py + 0.5, z: pz, vx: Math.cos(a) * 4, vy: 9, vz: Math.sin(a) * 4, tgt, life: 4, dmg: st.dmg, r: st.area, sp: st.speed, w: w.id });
+            { const r = S.rockets[S.rockets.length - 1]; trail(() => [r.x, r.y, r.z], () => !r.gone, w.evo ? [1, 0.85, 0.3] : [1, 0.5, 0.15], 0.22, 0.12); }
           }
         }
         break;
@@ -1529,7 +1541,7 @@ function updateWeapons(dt) {
       case 'toxic':   // flaques toxiques : posées sous des ennemis au hasard, 4 s de dégâts
         if (w.t <= 0) {
           w.t = st.cd;
-          for (let k = 0; k < st.count && S.puddles.length < 16; k++) { const e = randomEnemyNear(16); const x = e ? e.x : px + rand(-5, 5), z = e ? e.z : pz + rand(-5, 5); S.puddles.push({ x, z, y: terrainH(x, z), t: 4, tick: 0, dmg: st.dmg, r: st.area, w: w.id, evo: w.evo }); addRing(x, terrainH(x, z) + 0.15, z, st.area, [0.4, 1, 0.3], 0.4); }
+          for (let k = 0; k < st.count && S.puddles.length < 16; k++) { const e = randomEnemyNear(16); const x = e ? e.x : px + rand(-5, 5), z = e ? e.z : pz + rand(-5, 5); S.puddles.push({ x, z, y: terrainH(x, z), t: 4, tick: 0, dmg: st.dmg, r: st.area, w: w.id, evo: w.evo }); decal(x, terrainH(x, z), z, st.area, w.evo ? [0.75, 0.3, 1] : [0.35, 1, 0.3], 4, 1); }
         }
         break;
       case 'drones': {   // drones : tournent autour de toi et tirent chacun sur l'ennemi le plus proche d'eux
@@ -1609,7 +1621,7 @@ function updateStageBits(dt, p, st) {
     if (v.t <= 0) {
       v.t = rand(6, 11);
       for (let k = 0; k < 60; k++) spawnPart(v.x + rand(-1.5, 1.5), v.y + 0.3, v.z + rand(-1.5, 1.5), rand(-2, 2), rand(8, 16), rand(-2, 2), [1, rand(0.3, 0.7), 0.05], rand(0.4, 0.7), 0.9);
-      addRing(v.x, v.y + 0.2, v.z, 3.2, [1, 0.4, 0.05], 0.4);
+      shock(v.x, v.y, v.z, 4.5, [1, 0.4, 0.05], 0.5); decal(v.x, v.y, v.z, 3.4, [1, 0.35, 0.05], 9, 0);
       if (Math.hypot(p.x - v.x, p.z - v.z) < 3.2 && p.y < v.y + 4) hurt(22 * heatDmg(), 'vent');
       const ps = dmgSrc; dmgSrc = 'none';   // la lave n'est pas à toi : hors récap et hors quêtes
       near(v.x, v.z, 4.5, e => { if (Math.hypot(e.x - v.x, e.z - v.z) < 3.2 + e.r) damage(e, 40 + S.t * 0.4, false); });
@@ -1649,7 +1661,7 @@ function updateProjectiles(dt) {
     } else {
       const dx = p.x - d.x, dz = p.z - d.z, dist = Math.hypot(dx, dz) || 1;
       d.x += dx / dist * d.sp * 1.2 * dt; d.z += dz / dist * d.sp * 1.2 * dt;
-      if (dist < 1 || d.t > 4) { S.discs[i] = S.discs[S.discs.length - 1]; S.discs.pop(); continue; }
+      if (dist < 1 || d.t > 4) { d.gone = true; S.discs[i] = S.discs[S.discs.length - 1]; S.discs.pop(); continue; }
     }
     d.y += ((p.y + 1) - d.y) * Math.min(1, dt * 5);
     hitTest(d.x, d.y, d.z, d.r, e => {
@@ -1671,7 +1683,7 @@ function updateProjectiles(dt) {
     if (Math.random() < 0.7) spawnPart(r.x, r.y, r.z, rand(-1, 1), rand(-1, 1), rand(-1, 1), [1, 0.5, 0.2], 0.35, 0.35);
     let boom = r.life <= 0 || r.y < terrainH(r.x, r.z);
     if (!boom) hitTest(r.x, r.y, r.z, 0.5, () => { boom = true; return false; });
-    if (boom) { dmgSrc = r.w; explode(r.x, r.y, r.z, r.r, r.dmg, [1, 0.55, 0.2]); S.rockets[i] = S.rockets[S.rockets.length - 1]; S.rockets.pop(); }
+    if (boom) { dmgSrc = r.w; explode(r.x, r.y, r.z, r.r, r.dmg, [1, 0.55, 0.2]); r.gone = true; S.rockets[i] = S.rockets[S.rockets.length - 1]; S.rockets.pop(); }
   }
   // balles ennemies
   for (let i = S.bullets.length - 1; i >= 0; i--) {
@@ -1807,7 +1819,7 @@ function openLevelUp(mode = 'level') {
     choiceMode = 'level'; curChoices = buildChoices('level');
     const i = bestChoice(), c = curChoices[i], title = (choiceHTML(c).match(/<b>(.*?)<\/b>/) || [])[1] || '';
     msg(tr('nb.autoPick', { n: S.level - S.pending + 1, title }), 1.6, RAR[c.rar].col);
-    sfx('level'); fovKick(5); pick(i); return;
+    sfx('level'); fovKick(5); shock(S.p.x, S.p.y, S.p.z, 5, [0.4, 0.9, 1], 0.45); pick(i); return;
   }
   choiceMode = mode;
   S.state = 'levelup';
@@ -1816,7 +1828,7 @@ function openLevelUp(mode = 'level') {
   renderChoices();
   levelUpTitle();
   pickLockUntil = performance.now() + 400;
-  if (mode === 'level' || mode === 'shrine') fovKick(5);
+  if (mode === 'level' || mode === 'shrine') { fovKick(5); shock(S.p.x, S.p.y, S.p.z, 5, [0.4, 0.9, 1], 0.45); }
   PAD.sel = 0; setTimeout(padMark, 0);
   const box = $('nb-choices'); box.classList.add('locked'); clearTimeout(pickLockTimer);
   pickLockTimer = setTimeout(() => box.classList.remove('locked'), 400);
@@ -2000,7 +2012,7 @@ function interact() {
   const ev = evoReady();
   if (ev) {
     const E = EVOS[ev.id]; ev.evo = true; E.fx(ev); metaAdd('evos');
-    burst(t.x, t.y + 1, t.z, 120, [1, 0.85, 0.3], 10, 0.9); addRing(t.x, t.y + 0.3, t.z, 8, [1, 0.8, 0.3], 0.6);
+    burst(t.x, t.y + 1, t.z, 120, [1, 0.85, 0.3], 10, 0.9); shock(t.x, t.y, t.z, 10, [1, 0.8, 0.3], 0.7, 0.18); shock(t.x, t.y, t.z, 6, [1, 1, 1], 0.4, 0.08);
     msg(tr('nb.evolved', { w: WEAPONS[ev.id].name, e: `${E.ic} ${E.name}` }), 4.5, '#ffc94d');
     sfx('level'); sfx('chest'); shake(0.4); hitstop(0.12); fovKick(9); renderWeaponsHud(); return;
   }
@@ -2027,6 +2039,7 @@ function nextStage() {
   S.gold += portalGold;
   S.rings.forEach(r => { if (r.mesh) { scene.remove(r.mesh); if (!r.hostile) r.mesh.material.dispose(); } });
   S.enemies = []; S.pickups = []; S.bolts = []; S.bullets = []; S.discs = []; S.rockets = []; S.mines = []; S.rings = []; S.dmgNums = []; S.twisters = []; S.puddles = []; S.fires = [];
+  clearFX(); playerTrail();
   partSys.list.length = 0; scene.userData.lines.segs.length = 0;
   S.stage++; S.stageT = S.t; S.time = ST().time; S.boss = null; S.bossDead = false; S.portal = null;
   S.eliteAt = [ST().time - 120, ST().time - 300]; S.nextSwarm = S.t + 50; S.spawnAcc = 0;
@@ -2118,6 +2131,7 @@ function bossDeath() {
   const b = S.boss;
   burst(b.x, b.y, b.z, 250, [1, 0.3, 0.5], 18, 1.2);
   shake(1); hitstop(0.2); fovKick(10); sfx('elite');
+  { const gy = terrainH(b.x, b.z); shock(b.x, gy, b.z, 16, [1, 0.3, 0.5], 0.9, 0.2); shock(b.x, gy, b.z, 9, [1, 1, 1], 0.5, 0.1); decal(b.x, gy, b.z, 7, [1, 0.3, 0.5], 20, 0); }
   for (let i = 0; i < 40; i++) addPickup('coin', b.x + rand(-3, 3), b.y, b.z + rand(-3, 3), 5);
   // l'XP du boss vaut ~3 niveaux, semée en anneau : on la ramasse en quelques pas au lieu d'enchaîner 8 fenêtres
   const bxp = Math.round(xpNeed(S.level) * 3 / S.stats.xp);
@@ -2145,6 +2159,129 @@ function bossDeath() {
   g.position.set(x, y, z); levelGroup.add(g);
   S.portal = { x, y, z, g, ring };
   msg(tr(S.stage < STAGES.length - 1 ? 'nb.portalOpen' : 'nb.portalFinal'), 4, '#27e0ff');
+}
+
+// ============================================================ effets 2.0 : traînées, marques au sol, ondes, halo lumineux
+// Tout est en un appel de dessin par système (rubans, marques, ondes) pour rester fluide sur téléphone.
+const FX = { trails: null, decals: null, shocks: [], composer: null };
+function initFX() {
+  // rubans : TN traînées de TP points, quadrilatères tournés vers la caméra, mélange additif
+  const TN = TOUCH ? 24 : 48, TPN = 14, nv = TN * TPN * 2;
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(nv * 3), 3).setUsage(THREE.DynamicDrawUsage));
+  g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(nv * 3), 3).setUsage(THREE.DynamicDrawUsage));
+  const idx = [];
+  for (let t = 0; t < TN; t++) for (let i = 0; i < TPN - 1; i++) { const a = (t * TPN + i) * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
+  g.setIndex(idx);
+  const mesh = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+  mesh.frustumCulled = false; scene.add(mesh);
+  FX.trails = { mesh, TN, TPN, slots: new Array(TN).fill(null) };
+  // marques au sol : brûlures (bord lumineux, centre sombre) et flaques lumineuses, en instances
+  const DN = TOUCH ? 32 : 72;
+  const dg = new THREE.PlaneGeometry(2, 2).rotateX(-Math.PI / 2);
+  dg.setAttribute('aFade', new THREE.InstancedBufferAttribute(new Float32Array(DN), 1).setUsage(THREE.DynamicDrawUsage));
+  dg.setAttribute('aKind', new THREE.InstancedBufferAttribute(new Float32Array(DN), 1).setUsage(THREE.DynamicDrawUsage));
+  const dm = new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
+    vertexShader: 'attribute float aFade; attribute float aKind; varying vec2 vU; varying float vF; varying float vK; varying vec3 vCol; void main(){ vU = uv; vF = aFade; vK = aKind; vCol = instanceColor; gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.0); }',
+    fragmentShader: 'varying vec2 vU; varying float vF; varying float vK; varying vec3 vCol; void main(){ float d = length(vU - 0.5) * 2.0; if (d > 1.0) discard; float n = fract(sin(dot(floor(vU * 24.0), vec2(12.9898, 78.233))) * 43758.5453); ' +
+      'if (vK < 0.5) { float rim = smoothstep(0.55, 0.85, d) * smoothstep(1.0, 0.85, d); float a = (smoothstep(1.0, 0.3, d) * 0.55 + rim * 0.5) * vF * (0.8 + 0.2 * n); gl_FragColor = vec4(mix(vec3(0.02, 0.01, 0.03), vCol * 1.4, rim + 0.15 * vF), a); } ' +
+      'else { float a = smoothstep(1.0, 0.2, d) * 0.55 * vF * (0.75 + 0.25 * n); gl_FragColor = vec4(vCol * (0.8 + 0.6 * smoothstep(0.9, 0.0, d)), a); } }',
+  });
+  const dmesh = new THREE.InstancedMesh(dg, dm, DN); dmesh.count = 0; dmesh.frustumCulled = false; dmesh.renderOrder = -0.5;
+  dmesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage); for (let i = 0; i < DN; i++) dmesh.setColorAt(i, tmpC.set(0xffffff));
+  scene.add(dmesh); FX.decals = { mesh: dmesh, DN, list: [] };
+  // ondes de choc : un petit pool de disques au shader (anneau qui s'élargit et s'éteint)
+  const sg = new THREE.PlaneGeometry(2, 2).rotateX(-Math.PI / 2);
+  for (let i = 0; i < 10; i++) {
+    const m = new THREE.Mesh(sg, new THREE.ShaderMaterial({
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, uniforms: { uP: { value: 1 }, uCol: { value: new V3(1, 1, 1) }, uW: { value: 0.12 } },
+      vertexShader: 'varying vec2 vU; void main(){ vU = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+      fragmentShader: 'varying vec2 vU; uniform float uP; uniform vec3 uCol; uniform float uW; void main(){ float d = length(vU - 0.5) * 2.0; float band = smoothstep(uW, 0.0, abs(d - uP)); float inner = smoothstep(uP, 0.0, d) * 0.18 * (1.0 - uP); float a = (band + inner) * (1.0 - uP) * (1.0 - uP); gl_FragColor = vec4(uCol * a * 1.6, a); }',
+    }));
+    m.visible = false; m.frustumCulled = false; scene.add(m); FX.shocks.push({ m, t: 1, life: 1 });
+  }
+  // halo lumineux (bloom) : ordinateur seulement, réglable en pause ; le téléphone garde le rendu direct
+  if (!TOUCH) {
+    const c = new EffectComposer(renderer);
+    c.addPass(new RenderPass(scene, camera));
+    c.addPass(FX.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.55, 0.35, 0.82));
+    c.addPass(new ShaderPass(CopyShader));
+    FX.composer = c;
+  }
+}
+// une traînée suit un objet tant que alive() est vrai, puis s'éteint d'elle-même ; w = largeur, col = [r, g, b]
+function trail(get, alive, col, w, minStep = 0.18) {
+  const T = FX.trails; if (!T) return null;
+  let k = T.slots.findIndex(s => !s); if (k < 0) { k = T.slots.findIndex(s => s.dead); if (k < 0) return null; }
+  const tr = { get, alive, col, w, minStep, pts: [], dead: false, wMul: 1 };
+  T.slots[k] = tr; return tr;
+}
+function updateTrails(dt) {
+  const T = FX.trails; if (!T) return;
+  const pa = T.mesh.geometry.attributes.position.array, ca = T.mesh.geometry.attributes.color.array, cp = camera.position;
+  for (let k = 0; k < T.TN; k++) {
+    const tr = T.slots[k], base = k * T.TPN * 2;
+    if (!tr) { for (let i = 0; i < T.TPN * 2 * 3; i++) pa[base * 3 + i] = 0, ca[base * 3 + i] = 0; continue; }
+    const on = !tr.dead && tr.alive();
+    if (on) {
+      const q = tr.get(), last = tr.pts[tr.pts.length - 1];
+      if (!last || (q[0] - last[0]) ** 2 + (q[1] - last[1]) ** 2 + (q[2] - last[2]) ** 2 > tr.minStep * tr.minStep) { tr.pts.push([q[0], q[1], q[2], 0]); if (tr.pts.length > T.TPN) tr.pts.shift(); }
+      else if (last) { last[0] = q[0]; last[1] = q[1]; last[2] = q[2]; }
+    } else tr.dead = true;
+    for (const q of tr.pts) q[3] += dt;
+    while (tr.pts.length && tr.pts[0][3] > 0.45) tr.pts.shift();
+    if (tr.dead && !tr.pts.length) { T.slots[k] = null; continue; }
+    const n = tr.pts.length;
+    for (let i = 0; i < T.TPN; i++) {
+      const q = tr.pts[Math.min(i, n - 1)], o = (base + i * 2) * 3;
+      if (!q || i >= n) { for (let j = 0; j < 6; j++) pa[o + j] = q ? q[j % 3] : 0, ca[o + j] = 0; continue; }
+      const a = tr.pts[Math.max(0, i - 1)], b = tr.pts[Math.min(n - 1, i + 1)];
+      let dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2];
+      const vx = cp.x - q[0], vy = cp.y - q[1], vz = cp.z - q[2];
+      let sx = dy * vz - dz * vy, sy = dz * vx - dx * vz, sz = dx * vy - dy * vx; const sl = Math.hypot(sx, sy, sz) || 1;
+      const f = (i / Math.max(1, n - 1)) * (1 - q[3] / 0.45), w = tr.w * tr.wMul * f / sl;
+      sx *= w; sy *= w; sz *= w;
+      pa[o] = q[0] + sx; pa[o + 1] = q[1] + sy; pa[o + 2] = q[2] + sz; pa[o + 3] = q[0] - sx; pa[o + 4] = q[1] - sy; pa[o + 5] = q[2] - sz;
+      const c = Math.max(0, f) * tr.wMul;
+      ca[o] = ca[o + 3] = tr.col[0] * c; ca[o + 1] = ca[o + 4] = tr.col[1] * c; ca[o + 2] = ca[o + 5] = tr.col[2] * c;
+    }
+  }
+  T.mesh.geometry.attributes.position.needsUpdate = T.mesh.geometry.attributes.color.needsUpdate = true;
+}
+// kind 0 = brûlure (explosion, éruption), 1 = flaque lumineuse ; la marque s'efface en life secondes
+function decal(x, y, z, r, col, life, kind = 0) {
+  const D = FX.decals; if (!D) return;
+  if (D.list.length >= D.DN) D.list.shift();
+  D.list.push({ x, y: y + 0.05, z, r, col, life, max: life, kind, rot: rand(0, TAU) });
+}
+function updateDecals(dt) {
+  const D = FX.decals; if (!D) return;
+  const m = D.mesh, fa = m.geometry.attributes.aFade.array, ka = m.geometry.attributes.aKind.array;
+  let n = 0;
+  for (let i = D.list.length - 1; i >= 0; i--) { const q = D.list[i]; q.life -= dt; if (q.life <= 0) D.list.splice(i, 1); }
+  for (const q of D.list) {
+    dummy.position.set(q.x, q.y, q.z); dummy.rotation.set(0, q.rot, 0); dummy.scale.set(q.r, 1, q.r); dummy.updateMatrix();
+    m.setMatrixAt(n, dummy.matrix); m.setColorAt(n, tmpC.setRGB(q.col[0], q.col[1], q.col[2]));
+    fa[n] = Math.min(1, q.life / Math.min(1.2, q.max)) * Math.min(1, (q.max - q.life) * 12); ka[n] = q.kind; n++;
+  }
+  m.count = n; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true;
+  m.geometry.attributes.aFade.needsUpdate = m.geometry.attributes.aKind.needsUpdate = true;
+}
+// onde de choc : anneau qui s'élargit jusqu'à r en life secondes
+function shock(x, y, z, r, col, life = 0.45, w = 0.12) {
+  const q = FX.shocks.reduce((a, b) => (a.t / a.life >= b.t / b.life ? a : b));
+  q.t = 0; q.life = life; q.m.position.set(x, y + 0.12, z); q.m.scale.setScalar(r); q.m.visible = true;
+  q.m.material.uniforms.uCol.value.set(col[0], col[1], col[2]); q.m.material.uniforms.uW.value = w;
+}
+function updateShocks(dt) {
+  for (const q of FX.shocks) { if (!q.m.visible) continue; q.t += dt; const p = q.t / q.life; if (p >= 1) { q.m.visible = false; continue; } q.m.material.uniforms.uP.value = 1 - (1 - p) * (1 - p); }
+}
+function playerTrail() { const c = tmpC.set(S.ch.col); S.ptrail = trail(() => [S.p.x, S.p.y + 0.85, S.p.z], () => true, [c.r, c.g, c.b], 0.5, 0.25); }
+function clearFX() {
+  if (FX.trails) FX.trails.slots.fill(null);
+  if (FX.decals) { FX.decals.list.length = 0; FX.decals.mesh.count = 0; }
+  for (const q of FX.shocks) q.m.visible = false;
 }
 
 // ============================================================ effets
@@ -2263,7 +2400,7 @@ function update(dt) {
     d.cd = 0.6; p.vy = st.jumpV * 2.1; p.onGround = false; p.jumps = st.jumps - 1;
     const h = Math.hypot(p.vx, p.vz), want = Math.max(h * 1.3, 8.5 * st.speed * 1.4), k = want / (h || 1);
     if (h > 0.5) { p.vx *= k; p.vz *= k; } else { p.vx = -Math.sin(S.cam.yaw) * want; p.vz = -Math.cos(S.cam.yaw) * want; }
-    burst(d.x, d.y + 0.4, d.z, 30, [0.5, 1, 0.6], 7, 0.5); addRing(d.x, d.y + 0.3, d.z, 3, [0.5, 1, 0.6], 0.35); sfx('level'); fovKick(6);
+    burst(d.x, d.y + 0.4, d.z, 30, [0.5, 1, 0.6], 7, 0.5); shock(d.x, d.y, d.z, 4, [0.5, 1, 0.6], 0.4); sfx('level'); fovKick(6);
   }
   updateStageBits(dt, p, st);
   updateFires(dt, p, st);
@@ -2406,6 +2543,11 @@ function syncMeshes(dt) {
   b.rotation.x = p.slide > 0 ? -1.2 : 0; b.position.y = p.slide > 0 ? 0.5 : 0.9 + (p.onGround ? Math.abs(Math.sin(S.t * 12)) * Math.min(1, Math.hypot(p.vx, p.vz) / 8) * 0.12 : 0);
   player.userData.halo.rotation.z += dt * 3;
   player.visible = !(S.iframe > 0 && Math.floor(S.t * 20) % 2);
+  if (S.ptrail) {   // traînée du joueur : visible quand il va vite (glissade, rebonds, tremplins)
+    const hs = Math.hypot(p.vx, p.vz), ms = 8.5 * S.stats.speed;
+    S.ptrail.wMul += (clamp((hs - ms * 1.1) / (ms * 0.9), 0, 1) - S.ptrail.wMul) * Math.min(1, dt * 8);
+  }
+  updateTrails(dt); updateDecals(dt); updateShocks(dt);
   const cue = player.userData.cue; cue.visible = S.state !== 'menu';
   cue.position.set(p.x, groundAt(p.x, p.z, p.y + 0.1) + 0.08, p.z);
   cue.material.opacity = 0.55 + 0.2 * Math.sin(S.t * 5);
@@ -2650,7 +2792,7 @@ function frame() {
     scene.userData.sky.position.copy(camera.position);
     if (g2) g2.clearRect(0, 0, W, H);
   }
-  renderer.render(scene, camera);
+  if (FX.composer && META.glow !== false && S && S.state !== 'menu') FX.composer.render(); else renderer.render(scene, camera);
 }
 
 // ============================================================ états / écrans
@@ -2663,6 +2805,7 @@ function pause() {
   $('nb-nums').value = META.nums || 'merge';
   $('nb-autolvl').value = META.autoLvl ? '1' : '';
   $('nb-shake').checked = META.shake !== false;
+  $('nb-glow').checked = META.glow !== false;
   music.stop(0.3);
   if (document.pointerLockElement) document.exitPointerLock();
 }
@@ -2765,6 +2908,7 @@ function toMenu() {
   if (S) {
     S.rings.forEach(r => { if (r.mesh) { scene.remove(r.mesh); if (!r.hostile) r.mesh.material.dispose(); } });
     (S.pillars || []).forEach(q => { scene.remove(q.mesh); q.mesh.material.dispose(); }); S.pillars = [];
+    clearFX();
     for (const k in meshes) meshes[k].count = 0;
     scene.userData.beams.forEach(g => g.visible = false);
     partSys.list.length = 0; scene.userData.lines.segs.length = 0;
@@ -2851,6 +2995,8 @@ $('nb-replay').onclick = () => MON.pause().then(() => { toMenu(); $('nb-menu').c
 $('nb-nums').onchange = e => { META.nums = e.target.value; saveMeta(); };
 $('nb-autolvl').onchange = e => { META.autoLvl = !!e.target.value; saveMeta(); };
 $('nb-shake').onchange = e => { META.shake = e.target.checked; saveMeta(); };
+$('nb-glow').onchange = e => { META.glow = e.target.checked; saveMeta(); };
+if (TOUCH) $('nb-glow').parentElement.classList.add('hidden');   // pas de halo sur téléphone : réglage inutile
 $('nb-resume').onclick = resume;
 $('nb-quit').onclick = () => endRun(false);
 $('nb-reroll').onclick = reroll;
