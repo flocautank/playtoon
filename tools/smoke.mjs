@@ -222,6 +222,16 @@ log('marchand / duplicateur / maudit / bannir / rebond :', await page.evaluate((
   r.push(`tremplins=${S.pads.length}`);
   return r.join(' · ');
 }));
+log('familles d’ennemis / gardien / quêtes :', await page.evaluate(() => {
+  const nb = window.__nb, S = nb.S, r = [];
+  S.state = 'play'; S.enemies.length = 0; S.pending = 0;
+  for (const ty of ['bomber', 'blinker', 'healer']) { const e = nb.spawnEnemy(ty, S.p.x + 12, S.p.z + 12); r.push(`${ty}=${!!e}`); }
+  for (let i = 0; i < 90; i++) { S.state = 'play'; S.pending = 0; S.p.hp = S.stats.hp; nb.update(1 / 30); }
+  const c0 = S.chests.length, w = nb.spawnEnemy('warden', S.p.x + 15, S.p.z - 15, true); if (w) { w.warden = true; nb.damage(w, w.hp + 1, false); }
+  r.push(`gardien → coffre doré=${S.chests.length - c0 === 1}`, `quêtes faites=${Object.keys(nb.META.quests || {}).join('/')}`);
+  S.enemies.length = 0;
+  return r.join(' · ');
+}));
 log('laser + mines :', await page.evaluate(() => {
   const nb = window.__nb, S = nb.S, out = [];
   S.state = 'play'; S.enemies.length = 0; S.weapons = S.weapons.filter(w => w.id === 'blaster'); S.weapons[0].t = 999;   // blaster muet

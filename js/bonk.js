@@ -118,6 +118,56 @@ const ITEMS = [
   { id: 'clock', r: 2, ic: '⚡', fx: s => s.rush++ },
 ];
 
+// Quêtes : objectifs permanents qui débloquent des objets (absents des coffres tant que la quête n'est pas faite),
+// des crédits ou des bonus de run. Évaluées pendant la run (compteurs instantanés) et à la fin.
+const QUESTS = [
+  { id: 'k500', ic: '☠', goal: 500, val: m => m.totalKills, item: 'star' },
+  { id: 'boss1', ic: '👑', goal: 1, val: m => m.bossKills, item: 'turbine' },
+  { id: 'stage2', ic: '🌋', goal: 2, val: m => m.bestStage || 0, item: 'ember' },
+  { id: 'evo1', ic: '⭐', goal: 1, val: m => m.evos || 0, item: 'soles' },
+  { id: 'chests10', ic: '📦', goal: 10, val: m => m.bestRunChests || 0, item: 'key' },
+  { id: 'hops5', ic: '🐇', goal: 5, val: m => m.bestHops || 0, item: 'kite' },
+  { id: 'lvl25', ic: '▲', goal: 25, val: m => m.maxLevel, item: 'clock' },
+  { id: 'warden', ic: '🛡', goal: 1, val: m => m.wardens || 0, item: 'burner' },
+  { id: 'gold3', ic: '✨', goal: 3, val: m => m.goldChests || 0, item: 'midas' },
+  { id: 'bombers', ic: '💥', goal: 100, val: m => m.bombers || 0, item: 'adren' },
+  { id: 'itemdmg', ic: '🎒', goal: 25000, val: m => m.itemDmg || 0, item: 'keg' },
+  { id: 'win', ic: '🏁', goal: 1, val: m => m.wins, item: 'chrono' },
+  { id: 'k5000', ic: '☠', goal: 5000, val: m => m.totalKills, item: 'mirror' },
+  { id: 'ot60', ic: '∞', goal: 60, val: m => m.bestOT || 0, item: 'axe' },
+  { id: 'vendor5', ic: '🛒', goal: 5, val: m => m.vendorBuys || 0, reroll: 1 },
+  { id: 'evo10', ic: '⭐', goal: 10, val: m => m.evos || 0, banish: 1 },
+  { id: 'time10', ic: '⏱', goal: 600, val: m => m.bestTime, credits: 300 },
+  { id: 'chests100', ic: '📦', goal: 100, val: m => m.chestsTotal || 0, credits: 500 },
+  { id: 'boss5', ic: '👑', goal: 5, val: m => m.bossKills, credits: 600 },
+  { id: 'k20000', ic: '☠', goal: 20000, val: m => m.totalKills, credits: 1000 },
+  { id: 'heat3', ic: '🔥', goal: 3, val: m => Math.max(0, ...Object.values(m.heatWon || {})), credits: 1500 },
+];
+const QUEST_OF = Object.fromEntries(QUESTS.filter(q => q.item).map(q => [q.item, q.id]));
+const questDone = id => !!(META.quests && META.quests[id]);
+const itemOK = it => !QUEST_OF[it.id] || questDone(QUEST_OF[it.id]);
+function questReward(q) {
+  if (q.item) { const it = ITEMS.find(i => i.id === q.item); return tr('nb.qItem', { it: `${it.ic} ${it.name}` }); }
+  if (q.credits) return tr('nb.qCredits', { n: num(q.credits) });
+  return tr(q.banish ? 'nb.qBanish' : 'nb.qReroll');
+}
+// note un compteur permanent tout de suite (or, gardien, évolution…) et vérifie les quêtes
+function metaAdd(k, v = 1) { META[k] = (META[k] || 0) + v; checkQuests(); }
+function metaMax(k, v) { if (v > (META[k] || 0)) { META[k] = v; checkQuests(); } }
+function checkQuests() {
+  META.quests = META.quests || {};
+  const fresh = [];
+  for (const q of QUESTS) if (!META.quests[q.id] && q.val(META) >= q.goal) {
+    META.quests[q.id] = 1; fresh.push(q);
+    if (q.credits) META.credits = (META.credits || 0) + q.credits;
+  }
+  if (fresh.length) {
+    saveMeta();
+    if (S && S.state !== 'menu') { S.questsNew = (S.questsNew || []).concat(fresh); fresh.forEach((q, i) => setTimeout(() => msg(`🏆 ${tr('nb.q.' + q.id)} — ${questReward(q)}`, 3.5, '#ffc94d'), 400 + i * 3600)); sfx('level'); }
+  }
+  return fresh;
+}
+
 const CHARS = [
   { id: 'glitch', col: '#27e0ff', weapon: 'blaster', bonus: () => {} },
   { id: 'ronin', col: '#ff3df0', weapon: 'blade', bonus: s => s.speed += 0.1, unlock: { test: m => m.totalKills >= 1000 } },
@@ -134,6 +184,11 @@ const ETYPES = {
   gunner:{ geo: 'ico', size: 1.1, hp: 24, speed: 3.4, dmg: 10, xp: 3, col: 0x27e0ff, ranged: true },
   charger:{ geo: 'dart', size: 1.2, hp: 28, speed: 3.2, dmg: 11, xp: 3, col: 0x7cff8a, charge: true },   // s'arrête, clignote, puis fonce tout droit
   splitter:{ geo: 'dodeca', size: 1.4, hp: 42, speed: 3.6, dmg: 12, xp: 4, col: 0xb98bff, split: true }, // se scinde en 3 à la mort
+  // familles propres aux étapes : kamikaze (Fournaise), clignoteur (Vide), soigneur (partout, rare), gardien (mini-boss)
+  bomber: { geo: 'ball', size: 1.0, hp: 14, speed: 7.2, dmg: 22, xp: 2, col: 0xff5a1a, bomb: true },     // fonce, s'allume, explose
+  blinker:{ geo: 'octa', size: 1.0, hp: 20, speed: 4.2, dmg: 12, xp: 3, col: 0x8a5cff, blink: true },    // se téléporte près de toi
+  healer: { geo: 'heart', size: 1.3, hp: 40, speed: 3.0, dmg: 8, xp: 6, col: 0x5cffb0, heal: true, ranged: true, noShoot: true },   // soigne ses voisins : cible prioritaire
+  warden: { geo: 'dodeca', size: 2.4, hp: 70, speed: 2.4, dmg: 24, xp: 20, col: 0xff2d7a, warden: true }, // mini-boss : anneaux de balles, coffre doré
 };
 // Sanctuaires : charge (bénédiction), défi (2 élites → coffre gratuit), avarice (+or, +ennemis)
 const SHRINES = {
@@ -624,7 +679,7 @@ function newRun() {
   S = {
     state: 'play', stage: 0, stageT: 0, ch, heat: Math.min(META.heatSel || 0, heatAvail()), t: 0, time: RUN_TIME, kills: 0, gold: 0, level: 1, xp: 0, need: xpNeed(1), pending: 0, rerolls: 2,
     stats: null, weapons: [], tomes: [], items: {}, enemies: [], pickups: [], bolts: [], bullets: [], discs: [], rockets: [], mines: [], rings: [], dmgNums: [], pops: [], dmgBy: {}, banned: new Set(), banishes: 2, banishOn: false, landT: -9, landHs: 0, jumpBuf: -9, hops: 0, pads: [], trauma: 0, hitstop: 0, fovKick: 0, fires: [], novaK: 0, rushT: 0, fireT: 0,
-    spawnAcc: 0, nextSwarm: 90, eliteAt: [420, 240], boss: null, portal: null, won: false, dmgDealt: 0, chestsOpened: 0,
+    spawnAcc: 0, nextSwarm: 90, eliteAt: [420, 240], wardenAt: [300], boss: null, portal: null, won: false, dmgDealt: 0, chestsOpened: 0,
     iframe: 0, shieldT: 0, hurtFlash: 0, msgT: 0, chestCost: 12, orbPos: [], orbCount: 0, magnetAll: 0, bossDead: false,
     p: { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, onGround: true, jumps: 1, slide: 0, slideCd: 0, face: Math.PI, hp: 100 },
     cam: { yaw: 0, pitch: 0.42 },
@@ -633,7 +688,8 @@ function newRun() {
   S.unl0 = CHARS.filter(unlocked).map(c => c.id);   // personnages débloqués au départ (les boss tués mettent META à jour en cours de run)
   applyStage(0);
   for (const it of SHOP) if (shopLvl(it.id)) it.fx(S.stats, shopLvl(it.id));
-  S.rerolls += shopLvl('reroll'); S.revives = shopLvl('revive');
+  S.rerolls += shopLvl('reroll') + (questDone('vendor5') ? 1 : 0); S.revives = shopLvl('revive');
+  S.banishes += questDone('evo10') ? 1 : 0;
   S.p.hp = S.stats.hp;
   buildLevel();
   S.p.y = terrainH(0, 0);
@@ -778,6 +834,7 @@ function jump() {
       S.hops = Math.min(S.hops + 1, 12);
       const target = Math.min(S.landHs * 1.05, maxSp * 2.6), k = target / (hs || 1);
       if (hs > 0.5) { p.vx *= k; p.vz *= k; }
+      metaMax('bestHops', S.hops);
       if (S.hops >= 2) addNum(p.x, p.y + 2.4, p.z, tr('nb.hop', { n: S.hops }), false, '#7cff8a');
       burst(p.x, p.y + 0.1, p.z, 10, [0.5, 1, 0.6], 4, 0.3);
     } else S.hops = 0;
@@ -894,7 +951,10 @@ function spawnAround(type, dMin, dMax, elite) {
   return null;
 }
 function pickType() {
-  const m = diffMin(), r = Math.random();
+  const m = diffMin(), r = Math.random(), q = Math.random();
+  if (S.stage >= 1 && m > 1.5 && q < 0.09) return 'bomber';
+  if (S.stage >= 2 && m > 1 && q < 0.2) return 'blinker';
+  if (m > 3 && q > 0.965) return 'healer';
   if (m > 5 && r < 0.07) return 'splitter';
   if (m > 3.5 && r < 0.12) return 'charger';
   // tireurs : arrivée progressive entre la 4e et la 6e minute (au lieu d'une marche d'un coup, cause d'un pic de morts)
@@ -906,18 +966,29 @@ function pickType() {
 function spawning(dt) {
   const m = diffMin();
   let rate = 0.8 + m * 0.42 + m * m * 0.05 + (S.time <= 0 ? 4 + (-S.time / 60) * 4 : 0);
-  const cap = Math.min(TOUCH ? 250 : 300, 70 + m * 36);   // au-delà, la foule devient illisible (et lourde sur mobile)
+  const cap = Math.min(TOUCH ? 250 : 380, 70 + m * 40);   // au-delà, la foule devient illisible (et lourde sur mobile)
   rate = Math.min(rate, 22) * heatRate();
   if (S.boss) rate *= 0.5;
-  if (S.bossDead) rate *= 0.12;   // portail ouvert : accalmie jusqu'au passage
+  if (S.bossDead && !S.endless) rate *= 0.12;   // portail ouvert : accalmie jusqu'au passage
+  if (S.endless) rate = Math.min(40, rate * (1.6 + (S.t - S.endless.t0) / 45));   // la nuée finale ne fait que grossir
   rate *= 1 + 0.25 * (S.greed || 0);
   S.spawnAcc += rate * dt;
-  while (S.spawnAcc >= 1) { S.spawnAcc--; if (S.enemies.length < cap) spawnAround(pickType(), 26, 42); }
+  while (S.spawnAcc >= 1) {
+    S.spawnAcc--; if (S.enemies.length >= cap) continue;
+    const ty = pickType(), e = spawnAround(ty, 26, 42);
+    // meutes : les petits arrivent par grappes de 3 à 6 (une horde, pas une pluie d'individus), comptées dans la cadence
+    if (e && (ty === 'drone' || ty === 'spike') && Math.random() < 0.25) for (let k = 0, n = 2 + (Math.random() * 4 | 0); k < n && S.enemies.length < cap; k++) { spawnEnemy(ty, e.x + rand(-2.5, 2.5), e.z + rand(-2.5, 2.5)); S.spawnAcc -= 0.6; }
+  }
   if (S.t >= S.nextSwarm && !S.boss && !S.bossDead) {
     S.nextSwarm += 75;
     const n = Math.min(60, 18 + m * 5), type = m > 3 ? 'spike' : 'drone';
     for (let i = 0; i < n; i++) { const a = i / n * TAU; const x = S.p.x + Math.cos(a) * 24, z = S.p.z + Math.sin(a) * 24; if (Math.abs(x) < HALF - 2 && Math.abs(z) < HALF - 2) spawnEnemy(type, x, z); }
     msg(tr('nb.swarm'), 2);
+  }
+  if (S.wardenAt && S.wardenAt.length && S.time <= S.wardenAt[0]) {
+    S.wardenAt.shift();
+    const w = spawnAround('warden', 22, 28, true);
+    if (w) { w.hp *= 2.2; w.max *= 2.2; w.size *= 0.75; w.r *= 0.75; w.warden = true; msg(tr('nb.wardenGo'), 3, '#ff2d7a'); shake(0.3); sfx('boss'); }
   }
   if (S.eliteAt.length && S.time <= S.eliteAt[0]) {
     S.eliteAt.shift();
@@ -933,6 +1004,32 @@ function updateEnemies(dt) {
     let dx = p.x - e.x, dz = p.z - e.z; const d = Math.hypot(dx, dz) || 1; dx /= d; dz /= d;
     let sp = e.speed;
     if (e.slowT > 0) { e.slowT -= dt; sp *= 0.35; }
+    if (e.T.bomb) {   // kamikaze : à 2,5 m, il s'arrête, clignote 0,6 s puis explose (toi et ses voisins)
+      if (e.fuse === undefined && d < 2.5) e.fuse = 0.6;
+      if (e.fuse !== undefined) {
+        sp = 0; e.fuse -= dt; e.flash = 0.5 + 0.5 * Math.sin(S.t * 50);
+        if (e.fuse <= 0) {
+          const near2 = Math.hypot(p.x - e.x, p.z - e.z) < 3 && Math.abs(p.y - e.y) < 2.5;
+          burst(e.x, e.y + 0.5, e.z, 40, [1, 0.45, 0.1], 8, 0.5); addRing(e.x, e.y + 0.3, e.z, 3, [1, 0.45, 0.1], 0.3); sfx('boom');
+          if (near2) { hurt(e.dmg, 'bomber'); shake(0.25); }
+          near(e.x, e.z, 3, o => { if (o !== e && !o.T.bomb && !o.elite) { o.hp -= e.max * 1.5; if (o.hp <= 0) kill(o); } });
+          e.hp = 0; e.noDrop = true; continue;
+        }
+      }
+    }
+    if (e.T.blink) {   // clignoteur : tous les 3,5 s, réapparaît à 5–7 m (anneau d'avertissement 0,45 s avant)
+      e.bt = (e.bt ?? rand(1, 3.5)) - dt;
+      if (e.bt <= 0.45 && !e.bto && d > 8) { const a = rand(0, TAU), r = rand(5, 7); e.bto = { x: clamp(p.x + Math.cos(a) * r, -HALF + 2, HALF - 2), z: clamp(p.z + Math.sin(a) * r, -HALF + 2, HALF - 2) }; addRing(e.bto.x, terrainH(e.bto.x, e.bto.z) + 0.2, e.bto.z, 1.4, [0.55, 0.36, 1], 0.45); }
+      if (e.bt <= 0) { if (e.bto) { burst(e.x, e.y + 0.5, e.z, 14, [0.55, 0.36, 1], 4, 0.3); e.x = e.bto.x; e.z = e.bto.z; e.y = terrainH(e.x, e.z); burst(e.x, e.y + 0.5, e.z, 14, [0.55, 0.36, 1], 4, 0.3); } e.bto = null; e.bt = 3.5; }
+    }
+    if (e.T.heal) {   // soigneur : rend 20 % des PV aux ennemis à 7 m toutes les 2,5 s
+      e.ht = (e.ht ?? 2.5) - dt;
+      if (e.ht <= 0) { e.ht = 2.5; let n = 0; near(e.x, e.z, 7, o => { if (o !== e && o.hp < o.max && !o.boss) { o.hp = Math.min(o.max, o.hp + o.max * 0.2); n++; } }); if (n) addRing(e.x, e.y + 0.3, e.z, 7, [0.36, 1, 0.69], 0.4); }
+    }
+    if (e.T.warden) {   // gardien : anneau de balles toutes les 4 s
+      e.wt = (e.wt ?? 3) - dt;
+      if (e.wt <= 0 && d < 30) { e.wt = 4; const n = 14, off = rand(0, TAU); for (let i = 0; i < n; i++) fireBullet(e.x, e.y + 1, e.z, off + i * TAU / n, 7.5, e.dmg * 0.55, 'eliteShot'); addRing(e.x, e.y + 0.3, e.z, 3, [1, 0.18, 0.48], 0.3); }
+    }
     if (e.T.ranged && d < 13) sp = d < 9 ? -e.speed * 0.6 : 0;
     if (e.T.charge) {
       e.cst = e.cst || 0; e.ct = (e.ct || 0) - dt;
@@ -960,7 +1057,7 @@ function updateEnemies(dt) {
     e.y += (gy - e.y) * Math.min(1, dt * (gy > e.y ? 9 : 14));
     e.rot += dt * e.spin; e.flash = Math.max(0, e.flash - dt * 6);
     // tir
-    if (e.T.ranged && d < 26) {
+    if (e.T.ranged && !e.T.noShoot && d < 26) {
       e.shootT -= dt;
       if (e.shootT <= 0) {
         // les balles sont la 1re cause de dégâts (tools/nb-balance.mjs) : plus lentes, plus rares, moins fortes,
@@ -998,7 +1095,8 @@ function damage(e, amount, canCrit = true, kx = 0, kz = 0) {
   if (canCrit && Math.random() < S.stats.crit) { amount *= S.stats.critMul; crit = true; }
   const s = S.stats;
   if (s.execute && !e.boss && e.hp - amount < e.max * s.execute) amount = Math.max(amount, e.hp);   // guillotine
-  e.hp -= amount; e.flash = 1; S.dmgDealt += amount; S.dmgBy[dmgSrc] = (S.dmgBy[dmgSrc] || 0) + amount;
+  S.dmgBy[dmgSrc] = (S.dmgBy[dmgSrc] || 0) + Math.min(amount, e.hp);   // dégâts utiles seulement (pas l'excès sur un ennemi achevé)
+  e.hp -= amount; e.flash = 1; S.dmgDealt += amount;
   if (s.frost && e.hp > 0 && Math.random() < s.frost) e.slowT = 2;
   if (crit && s.critChain && Math.random() < s.critChain) asItem(() => chainFrom(e, amount * 0.5));
   if (!e.boss) { e.kx += kx; e.kz += kz; }
@@ -1016,7 +1114,9 @@ function kill(e) {
   burst(e.x, e.y + 0.5, e.z, e.elite ? 12 : 3, [1.4, 1.4, 1.4], e.elite ? 6 : 3.5, 0.18);   // éclat blanc bref
   if (S.pops.length < 80) S.pops.push({ type: e.type, x: e.x, y: e.y + (e.T.fly ? 0 : e.size * 0.45), z: e.z, size: e.size, rot: e.rot, t: 0 });   // l'ennemi gonfle et s'évanouit (syncMeshes)
   if (e.elite) { shake(0.45); hitstop(0.07); sfx('elite'); addRing(e.x, e.y + 0.3, e.z, 5, [1, 0.8, 0.3], 0.35); }
-  dropXp(e.x, e.y + 0.4, e.z, e.xp);
+  if (!e.noDrop) dropXp(e.x, e.y + 0.4, e.z, e.xp);
+  if (e.warden) { goldChest(e.x, e.z); shake(0.6); hitstop(0.12); metaAdd('wardens'); }
+  if (e.type === 'bomber') S.bomberK = (S.bomberK || 0) + 1;
   if (e.T.split && !e.child) for (let k = 0; k < 3; k++) { const c = spawnEnemy('spike', e.x + rand(-1, 1), e.z + rand(-1, 1)); if (c) { c.child = true; c.kx = rand(-8, 8); c.kz = rand(-8, 8); } }
   if (e.chal) { e.chal.left--; if (e.chal.left <= 0) shrineReward(e.chal); }
   if (e.curse) goldChest(e.x, e.z);
@@ -1426,7 +1526,7 @@ function buildChoices(mode) {
   const out = [], used = new Set();
   if (mode === 'shop') {
     for (let g = 0; out.length < 3 && g < 60; g++) {
-      const rar = rollRarity(15), pool = ITEMS.filter(i => i.r === rar && !used.has(i.id)); if (!pool.length) continue;
+      const rar = rollRarity(15), pool = ITEMS.filter(i => i.r === rar && !used.has(i.id) && itemOK(i)); if (!pool.length) continue;
       const it = pool[(Math.random() * pool.length) | 0]; used.add(it.id); out.push({ kind: 'buy', id: it.id, rar, price: shopPrice(rar) });
     }
     return out;
@@ -1560,7 +1660,7 @@ function pick(i) {
   if (c.kind === 'buy' || c.kind === 'dup') {
     const price = c.kind === 'buy' ? c.price : dupPrice();
     if (S.gold < price) { msg(tr('nb.noGold'), 1); sfx('hurt'); return; }
-    S.gold -= price; const it = ITEMS.find(x => x.id === c.id); giveItem(it);
+    S.gold -= price; const it = ITEMS.find(x => x.id === c.id); giveItem(it); if (c.kind === 'buy') metaAdd('vendorBuys');
     if (S.vendor) { shrineUsed(S.vendor); S.vendor = null; }
     msg(`${it.ic} ${it.name} — ${it.desc}`, 3, RAR[it.r].col); sfx('chest'); shake(0.15);
     renderWeaponsHud(); closeChoices(); return;
@@ -1664,23 +1764,27 @@ function interact() {
   }
   if (!t.free && S.gold < chestPrice()) { msg(tr('nb.noGold'), 1); return; }
   S.chestsOpened++; window.ptEvent && window.ptEvent('nb_chests', 1);
+  if (t.gold) metaAdd('goldChests');
+  metaMax('bestRunChests', S.chestsOpened);
   if (!t.free) { S.gold -= chestPrice(); S.chestCost = Math.round(S.chestCost * 1.45 + 4); }
   t.open = true; t.lid.rotation.x = -1.2; t.lid.position.z = -0.4; t.lid.position.y = 1.1;
   const ev = evoReady();
   if (ev) {
-    const E = EVOS[ev.id]; ev.evo = true; E.fx(ev);
+    const E = EVOS[ev.id]; ev.evo = true; E.fx(ev); metaAdd('evos');
     burst(t.x, t.y + 1, t.z, 120, [1, 0.85, 0.3], 10, 0.9); addRing(t.x, t.y + 0.3, t.z, 8, [1, 0.8, 0.3], 0.6);
     msg(tr('nb.evolved', { w: WEAPONS[ev.id].name, e: `${E.ic} ${E.name}` }), 4.5, '#ffc94d');
     sfx('level'); sfx('chest'); shake(0.4); hitstop(0.12); fovKick(9); renderWeaponsHud(); return;
   }
-  let rar = t.gold ? Math.max(2, rollRarity(30)) : rollRarity(10), pool = ITEMS.filter(i => i.r === rar);
-  while (!pool.length) { rar--; pool = ITEMS.filter(i => i.r === rar); }
+  let rar = t.gold ? Math.max(2, rollRarity(30)) : rollRarity(10), pool = ITEMS.filter(i => i.r === rar && itemOK(i));
+  while (!pool.length) { rar--; pool = ITEMS.filter(i => i.r === rar && itemOK(i)); }
   const it = pool[(Math.random() * pool.length) | 0];
   giveItem(it);
-  shake(0.12 + rar * 0.06);
-  burst(t.x, t.y + 1, t.z, 50, [1, 0.8, 0.3], 7, 0.6);
-  msg(`${it.ic} ${it.name} — ${it.desc}`, 3.5, RAR[it.r].col);
-  sfx('chest'); renderWeaponsHud();
+  // révélation : un rayon de la couleur de la rareté jaillit, puis l'objet s'annonce (plus long pour les raretés hautes)
+  const rc = new THREE.Color(RAR[rar].col);
+  addPillar(t.x, t.y, t.z, [rc.r, rc.g, rc.b], 0.5 + rar * 0.25, 0.6 + rar * 0.25);
+  burst(t.x, t.y + 1, t.z, 30 + rar * 25, [rc.r, rc.g, rc.b], 6 + rar, 0.6);
+  sfx('chest'); if (rar >= 2) sfx('level');
+  S.reveal = { t: 0.35 + rar * 0.1, it, rar };
 }
 
 // ============================================================ changement d'étape
@@ -1799,6 +1903,12 @@ function burst(x, y, z, n, col, sp, life) {
     spawnPart(x, y, z, Math.cos(a) * q * s, u * s + sp * 0.3, Math.sin(a) * q * s, col, rand(0.2, 0.45), life * rand(0.6, 1.2));
   }
 }
+function addPillar(x, y, z, col, w, life) {   // colonne de lumière (ouverture de coffre)
+  const m = new THREE.Mesh(scene.userData.pillarGeo || (scene.userData.pillarGeo = new THREE.CylinderGeometry(1, 1, 30, 16, 1, true).translate(0, 15, 0)),
+    new THREE.MeshBasicMaterial({ color: new THREE.Color(...col), transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+  m.position.set(x, y, z); m.scale.set(w, 1, w); scene.add(m);
+  S.pillars = S.pillars || []; S.pillars.push({ mesh: m, life, max: life, w });
+}
 function addRing(x, y, z, r, col, life) {
   const m = new THREE.Mesh(scene.userData.ringGeo, new THREE.MeshBasicMaterial({ color: new THREE.Color(...col), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
   m.position.set(x, y, z); scene.add(m);
@@ -1881,6 +1991,16 @@ function update(dt) {
   S.hurtFlash = Math.max(0, S.hurtFlash - dt * 2.5);
   if (S.lvlDelay > 0) S.lvlDelay -= dt;
   S.rushT = Math.max(0, S.rushT - dt);
+  if (S.reveal && (S.reveal.t -= dt) <= 0) {
+    const { it, rar } = S.reveal; S.reveal = null;
+    msg(`${it.ic} ${it.name} — ${it.desc}`, 3.5, RAR[it.r].col); shake(0.12 + rar * 0.08); if (rar >= 3) { hitstop(0.08); fovKick(6); }
+    renderWeaponsHud();
+  }
+  if (S.pillars) for (let i = S.pillars.length - 1; i >= 0; i--) {
+    const q = S.pillars[i]; q.life -= dt; const k = Math.max(0, q.life / q.max);
+    q.mesh.material.opacity = 0.6 * k; q.mesh.scale.set(q.w * (0.4 + 0.6 * k), 0.3 + 0.7 * Math.min(1, (q.max - q.life) * 6), q.w * (0.4 + 0.6 * k));
+    if (q.life <= 0) { scene.remove(q.mesh); q.mesh.material.dispose(); S.pillars.splice(i, 1); }
+  }
   if (p.onGround && S.t - S.landT > 0.4) S.hops = 0;
   for (const d of S.pads) {
     d.cd -= dt; d.arrow.position.y = 1.1 + Math.sin(S.t * 4 + d.x) * 0.25; d.arrow.rotation.y += dt * 2;
@@ -2232,7 +2352,7 @@ function pollPad(dt) {
       if (hit(8)) skipLevel();
     } else if (st === 'pause') { if (hit(9) || hit(1) || hit(0)) resume(); }
     else if (st === 'menu' && !$('nb-menu').classList.contains('hidden')) { if (hit(0) || hit(9)) $('nb-start').click(); }
-    else if (st === 'end') { if (hit(0)) $('nb-replay').click(); else if (hit(1)) $('nb-again').click(); }
+    else if (st === 'end') { if (hit(0)) $('nb-replay').click(); else if (hit(1)) $('nb-again').click(); else if (hit(3) && !$('nb-endless').classList.contains('hidden')) $('nb-endless').click(); }
   }
   PAD.prev = gp.buttons.map(x => x.pressed);
 }
@@ -2292,16 +2412,21 @@ function renderBuild() {
 function resume() { if (!S || S.state !== 'pause') return; $('nb-pause').classList.add('hidden'); S.state = 'play'; clock.getDelta(); lockPointer(); if (window.PT_MUSIC !== false) music.start(S.stage); }
 function endRun(win) {
   if (S.state === 'end') return;
+  const E = S.endless;   // prolongation après la victoire : on ne compte que ce qui s'y est passé
+  if (E) win = true;
   S.state = 'end'; S.won = win;
   music.stop(1.5);
   if (document.pointerLockElement) document.exitPointerLock();
   const surv = Math.floor(S.t);
   const before = S.unl0 || CHARS.filter(unlocked).map(c => c.id);
-  META.totalKills += S.kills; META.maxLevel = Math.max(META.maxLevel, S.level); META.bestTime = Math.max(META.bestTime, surv); META.bestKills = Math.max(META.bestKills, S.kills);
-  if (win) META.wins++;
+  META.bestStage = Math.max(META.bestStage || 0, S.stage + 1);
+  META.chestsTotal = (META.chestsTotal || 0) + S.chestsOpened - (E ? E.ch0 : 0); META.bombers = (META.bombers || 0) + (S.bomberK || 0); S.bomberK = 0;
+  META.itemDmg = (META.itemDmg || 0) + Math.round((S.dmgBy.item || 0) - (E ? E.id0 : 0));
+  META.totalKills += S.kills - (E ? E.k0 : 0); META.maxLevel = Math.max(META.maxLevel, S.level); META.bestTime = Math.max(META.bestTime, surv); META.bestKills = Math.max(META.bestKills, S.kills);
+  if (win && !E) META.wins++;
   let heatRec = false;
-  if (win) { META.heatWon = META.heatWon || {}; if ((S.heat || 0) > heatWon(S.ch.id)) { META.heatWon[S.ch.id] = S.heat || 0; heatRec = (S.heat || 0) > 0; } }
-  const cr = runCredits(S); META.credits = (META.credits || 0) + cr;
+  if (win && !E) { META.heatWon = META.heatWon || {}; if ((S.heat || 0) > heatWon(S.ch.id)) { META.heatWon[S.ch.id] = S.heat || 0; heatRec = (S.heat || 0) > 0; } }
+  const cr = Math.max(0, runCredits(S) - (E ? E.cr0 : 0)); META.credits = (META.credits || 0) + cr;
   window.ptEvent && window.ptEvent('nb_time', surv);
   saveMeta();
   let killedBy = !win && S.p.hp <= 0 && S.lastHurt ? S.lastHurt : null;
@@ -2309,7 +2434,10 @@ function endRun(win) {
     const sum = {}; for (const h of S.recentHurt) if (S.t - h.t <= 8) sum[h.src] = (sum[h.src] || 0) + h.d;
     killedBy = Object.keys(sum).sort((a, b) => sum[b] - sum[a])[0] || killedBy;
   }
-  S.endInfo = { surv, cr, newly: CHARS.filter(c => unlocked(c) && !before.includes(c.id)), killedBy, best: S.bestBefore > 0 && surv > S.bestBefore, heatRec, firstWin: win && META.wins === 1 };
+  let ot = 0, otRec = false;
+  if (E) { ot = Math.floor(S.t - E.t0); otRec = ot > (META.bestOT || 0); META.bestOT = Math.max(META.bestOT || 0, ot); saveMeta(); }
+  checkQuests();
+  S.endInfo = { ot, otRec, surv, cr, newly: CHARS.filter(c => unlocked(c) && !before.includes(c.id)), killedBy, best: S.bestBefore > 0 && surv > S.bestBefore, heatRec, firstWin: win && !E && META.wins === 1 };
   renderEnd();
   $('nb-pause').classList.add('hidden');   // « Abandonner » depuis la pause : l'écran de fin la remplace
   $('nb-end').classList.remove('hidden');
@@ -2317,7 +2445,7 @@ function endRun(win) {
   ['nb-joy', 'nb-jumpbtn', 'nb-actbtn', 'nb-slidebtn', 'nb-pausebtn'].forEach(id => $(id).classList.add('hidden'));
   $('nb-prompt').classList.remove('show');
 }
-const KB = { drone: 1, spike: 1, brute: 1, gunner: 1, charger: 1, splitter: 1, elite: 1, bullet: 1, eliteShot: 1, boss: 1, bossShot: 1, wave: 1 };
+const KB = { drone: 1, spike: 1, brute: 1, gunner: 1, charger: 1, splitter: 1, bomber: 1, blinker: 1, healer: 1, elite: 1, bullet: 1, eliteShot: 1, boss: 1, bossShot: 1, wave: 1 };
 // récap des dégâts par arme (et par objets), en barres : ce qui a vraiment porté la run
 function dmgByHTML() {
   const tot = Object.values(S.dmgBy).reduce((a, b) => a + b, 0); if (!tot) return '';
@@ -2337,7 +2465,8 @@ function statsHTML() {
   return `<div class="nb-stats"><h4>${tr('nb.statsT')}</h4>${L.map(([k, v]) => `<span title="${TOMES[k].name}">${TOMES[k].ic} ${v}</span>`).join('')}</div>`;
 }
 function renderEnd() {
-  const { surv, cr, newly, killedBy, best, heatRec, firstWin } = S.endInfo;
+  const { surv, cr, newly, killedBy, best, heatRec, firstWin, ot, otRec } = S.endInfo;
+  $('nb-endless').classList.toggle('hidden', !(S.won && !S.endless));
   $('nb-endtitle').innerHTML = S.won ? `<span class="neon" style="font-size:30px">${tr('nb.victory')}</span>` : tr('nb.dead');
   const row = (a, b) => `<div><span class="muted">${tr(a)}</span><b>${b}</b></div>`;
   const full = (txt, col) => `<div class="nb-efull" style="color:${col}">${txt}</div>`;
@@ -2348,7 +2477,9 @@ function renderEnd() {
   $('nb-endstats').innerHTML = row('nb.eTime', `${Math.floor(surv / 60)}:${String(surv % 60).padStart(2, '0')}`) + row('nb.eLevel', S.level) + row('nb.eKills', num(S.kills)) + row('nb.eDmg', num(S.dmgDealt))
     + row('nb.eChests', S.chestsOpened) + row('nb.eChar', S.ch.name) + row('nb.eStage', (S.stage + 1) + ' / ' + STAGES.length)
     + (S.heat ? row('nb.heat', '🔥 ' + S.heat) : '')
+    + (S.endless ? full(tr(otRec ? 'nb.otRec' : 'nb.otDone', { n: `${Math.floor(ot / 60)}:${String(ot % 60).padStart(2, '0')}` }), '#ff8a4d') : '')
     + notes + full(tr('nb.eCredits', { n: num(cr) }), '#7ff6ff')
+    + (S.questsNew || []).map(q => full(`🏆 ${tr('nb.q.' + q.id)} — ${questReward(q)}`, '#ffc94d')).join('')
     + (newly.length ? full(tr('nb.eUnlocked', { list: newly.map(c => c.name).join(', ') }), '#ffc94d') : '')
     + dmgByHTML();
   const dbl = $('nb-double');
@@ -2368,6 +2499,7 @@ function toMenu() {
   music.stop(0.3);
   if (S) {
     S.rings.forEach(r => { if (r.mesh) { scene.remove(r.mesh); if (!r.hostile) r.mesh.material.dispose(); } });
+    (S.pillars || []).forEach(q => { scene.remove(q.mesh); q.mesh.material.dispose(); }); S.pillars = [];
     for (const k in meshes) meshes[k].count = 0;
     scene.userData.beams.forEach(g => g.visible = false);
     partSys.list.length = 0; scene.userData.lines.segs.length = 0;
@@ -2381,7 +2513,19 @@ function toMenu() {
   $('nb-menu').classList.remove('hidden');
   $('nb-menu').querySelector('.card').scrollTop = 0;
 }
+function renderQuests() {
+  const n = QUESTS.filter(q => questDone(q.id)).length;
+  $('nb-qn').textContent = `${n}/${QUESTS.length}`;
+  $('nb-qlist').innerHTML = QUESTS.map(q => {
+    const done = questDone(q.id), v = Math.min(q.goal, q.val(META) || 0);
+    return `<div class="nb-q${done ? ' done' : ''}"><span class="ic">${done ? '✓' : q.ic}</span><span class="tx"><b>${tr('nb.q.' + q.id)}</b><small>${questReward(q)}</small></span>`
+      + `<span class="pr">${done ? '' : `<i><u style="width:${(v / q.goal * 100).toFixed(1)}%"></u></i>${num(Math.floor(v))} / ${num(q.goal)}`}</span></div>`;
+  }).join('');
+}
+$('nb-questbtn').onclick = () => { renderQuests(); $('nb-quests').classList.remove('hidden'); };
+$('nb-qclose').onclick = () => $('nb-quests').classList.add('hidden');
 function renderMenu() {
+  checkQuests(); renderQuests();   // une sauvegarde ancienne peut déjà remplir des quêtes
   const sl = $('nb-slidebtn'); sl.classList.toggle('nb-long', sl.textContent.trim().length > 6);   // RUTSCHEN, BARRIDA… : police réduite
   document.querySelector('#nb-menu .nb-keys').innerHTML = tr(TOUCH ? 'nb.keysTouch' : 'nb.keys') + (PAD.known ? '<br>' + tr('nb.keysPad') : '');
   const box = $('nb-chars'); box.innerHTML = '';
@@ -2426,6 +2570,17 @@ $('nb-start').onclick = () => { S = null; newRun(); clock.getDelta(); };
 $('nb-shopjump').onclick = () => { const c = $('nb-menu').querySelector('.card'), h = document.querySelector('#nb-menu .nb-shop-h'); c.scrollTo({ top: c.scrollTop + h.getBoundingClientRect().top - c.getBoundingClientRect().top - 8, behavior: 'smooth' }); };
 // entre deux runs : l'application peut placer une pause publicitaire (plafonnée, voir apps/synth-horde)
 $('nb-again').onclick = () => MON.pause().then(toMenu);
+// Prolongation infinie : après la victoire, on reste dans le Vide face à une nuée sans fin (record dans META.bestOT)
+$('nb-endless').onclick = () => {
+  if (!S || !S.won || S.endless) return;
+  S.endless = { t0: S.t, k0: S.kills, cr0: runCredits(S), ch0: S.chestsOpened, id0: S.dmgBy.item || 0 };
+  if (S.portal) { levelGroup.remove(S.portal.g); S.portal = null; }
+  $('nb-end').classList.add('hidden'); $('nb-hud').classList.remove('hidden');
+  if (TOUCH) ['nb-joy', 'nb-jumpbtn', 'nb-actbtn', 'nb-slidebtn', 'nb-pausebtn'].forEach(id => $(id).classList.remove('hidden'));
+  S.state = 'play'; S.iframe = 2; clock.getDelta(); lockPointer();
+  if (window.PT_MUSIC !== false) music.start(S.stage);
+  msg(tr('nb.otGo'), 3, '#ff8a4d');
+};
 $('nb-replay').onclick = () => MON.pause().then(() => { toMenu(); $('nb-menu').classList.add('hidden'); S = null; newRun(); clock.getDelta(); });
 $('nb-nums').onchange = e => { META.nums = e.target.value; saveMeta(); };
 $('nb-autolvl').onchange = e => { META.autoLvl = !!e.target.value; saveMeta(); };
@@ -2459,7 +2614,7 @@ window.addEventListener('pt-lang', () => {
   else if (S.state === 'end') renderEnd();
 });
 // Accès de débogage (console) à l'état de la run.
-window.__nb = { get S() { return S; }, get camDist() { return camDist; }, update, pick, keys, interact, jump, damage, hurt, spawnEnemy, spawnBoss, nextStage, music, newRun, addWeapon, openLevelUp, buildChoices, bossDeath, slide, giveItem: id => giveItem(ITEMS.find(i => i.id === id)), goldChest, banish, get vendor() { return S.vendor; } };
+window.__nb = { get S() { return S; }, get camDist() { return camDist; }, update, pick, keys, interact, jump, damage, hurt, spawnEnemy, spawnBoss, nextStage, music, newRun, addWeapon, openLevelUp, buildChoices, bossDeath, slide, giveItem: id => giveItem(ITEMS.find(i => i.id === id)), goldChest, banish, get vendor() { return S.vendor; }, get META() { return META; } };
 
 window.GAMES.bonk = {
   reward() { META.credits = (META.credits || 0) + 40; saveMeta(); if (!S || S.state === 'menu') try { renderMenu(); } catch (e) {} },   // objectif du jour
