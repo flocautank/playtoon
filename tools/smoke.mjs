@@ -269,7 +269,7 @@ const killBossAndEnter = () => page.evaluate(() => {
   S.state = 'play'; S.pending = 0; S.time = 0.02; S.stats.hp = S.p.hp = 1e6; S.stats.dmg = 50;
   for (let i = 0; i < 5; i++) nb.update(1 / 30);
   if (!S.boss) return 'pas de boss';
-  const name = S.boss && document.querySelector('#nb-boss span').textContent;
+  const name = S.boss && document.querySelector('#nb-boss span').textContent + ` (PV de départ ${Math.round(S.boss.max)})`;
   for (let i = 0; i < 900 && S.boss; i++) { S.enemies.length = 0; S.p.x = S.boss.x + 5; S.p.z = S.boss.z; S.state = 'play'; S.pending = 0; nb.update(1 / 30); }
   if (!S.portal) return 'boss vivant';
   S.p.x = S.portal.x + 1; S.p.z = S.portal.z; S.p.y = S.portal.y;

@@ -1143,8 +1143,9 @@ function damage(e, amount, canCrit = true, kx = 0, kz = 0) {
   if (canCrit && Math.random() < S.stats.crit) { amount *= S.stats.critMul; crit = true; }
   const s = S.stats;
   if (s.execute && !e.boss && e.hp - amount < e.max * s.execute) amount = Math.max(amount, e.hp);   // guillotine
-  S.dmgBy[dmgSrc] = (S.dmgBy[dmgSrc] || 0) + Math.min(amount, e.hp);   // dégâts utiles seulement (pas l'excès sur un ennemi achevé)
-  e.hp -= amount; e.flash = 1; S.dmgDealt += amount;
+  // dégâts utiles seulement (pas l'excès sur un ennemi achevé) ; les ondes « nettoyage » de la mort du boss ne comptent pas
+  if (dmgSrc !== 'none') { const u = Math.min(amount, e.hp); S.dmgBy[dmgSrc] = (S.dmgBy[dmgSrc] || 0) + u; S.dmgDealt += u; if (e.boss) e.dealt += u; }
+  e.hp -= amount; e.flash = 1;
   if (s.frost && e.hp > 0 && Math.random() < s.frost) e.slowT = 2;
   if (crit && s.critChain && Math.random() < s.critChain) asItem(() => chainFrom(e, amount * 0.5));
   if (!e.boss) { e.kx += kx; e.kz += kz; }
@@ -1564,7 +1565,9 @@ function updateStageBits(dt, p, st) {
       for (let k = 0; k < 60; k++) spawnPart(v.x + rand(-1.5, 1.5), v.y + 0.3, v.z + rand(-1.5, 1.5), rand(-2, 2), rand(8, 16), rand(-2, 2), [1, rand(0.3, 0.7), 0.05], rand(0.4, 0.7), 0.9);
       addRing(v.x, v.y + 0.2, v.z, 3.2, [1, 0.4, 0.05], 0.4);
       if (Math.hypot(p.x - v.x, p.z - v.z) < 3.2 && p.y < v.y + 4) hurt(22 * heatDmg(), 'vent');
-      asItem(() => near(v.x, v.z, 4.5, e => { if (Math.hypot(e.x - v.x, e.z - v.z) < 3.2 + e.r) damage(e, 40 + S.t * 0.4, false); }));
+      const ps = dmgSrc; dmgSrc = 'none';   // la lave n'est pas à toi : hors récap et hors quêtes
+      near(v.x, v.z, 4.5, e => { if (Math.hypot(e.x - v.x, e.z - v.z) < 3.2 + e.r) damage(e, 40 + S.t * 0.4, false); });
+      dmgSrc = ps;
     }
   }
   for (const r of S.rifts) {   // faille : tourne, aspire (le joueur un peu, les ennemis fort) et broie ceux qui touchent le cœur
@@ -1987,14 +1990,20 @@ function spawnBoss() {
   const ring2 = new THREE.Mesh(new THREE.TorusGeometry(5.4, 0.1, 6, 48), neonMat(B.ring2, 1)); g.add(ring2);
   const eye = new THREE.Mesh(new THREE.SphereGeometry(0.6, 12, 8), neonMat(B.ring, 0.5)); eye.position.z = 2.75; core.add(eye);   // œil teinté, plus blanc éclatant : il masquait le joueur
   levelGroup.add(g);
-  const hp = (9000 + S.dmgDealt / Math.max(60, S.t) * 12) * B.hp * heatHp();   // s'adapte à ta puissance de feu
-  S.boss = { boss: true, x, z, y: terrainH(x, z) + 4, hp, max: hp, r: 3.2, size: 3, g, core, ring, ring2, atkT: 3, phase: 0, dash: 0, dvx: 0, dvz: 0, flash: 0, pull: 0 };
+  // PV de départ fixes, puis calibrés sur les dégâts réellement portés AU BOSS pendant ses 6 premières secondes
+  // (un build de zone tue la foule bien plus vite qu'il ne blesse une cible unique : le DPS global trompait)
+  const hp = 9000 * B.hp * heatHp();
+  S.boss = { boss: true, x, z, y: terrainH(x, z) + 4, hp, max: hp, r: 3.2, size: 3, g, core, ring, ring2, atkT: 3, phase: 0, dash: 0, dvx: 0, dvz: 0, flash: 0, pull: 0, cal: 6, dealt: 0 };
   $('nb-boss').classList.remove('hidden'); $('nb-boss').querySelector('span').textContent = B.name;
   msg(tr('nb.bossComes', { name: B.name }), 3, '#ff4d6a'); sfx('boss');
 }
 function updateBoss(dt) {
   const b = S.boss; if (!b || b.hp <= 0) return;
   const p = S.p;
+  if (b.cal > 0 && (b.cal -= dt) <= 0) {   // durée visée du combat : 60 / 75 / 90 s (+10 % par cran de Chaleur)
+    const want = b.dealt + b.dealt / 6 * [60, 75, 90][S.stage] * (1 + 0.1 * (S.heat || 0));
+    if (want > b.max) { const k = Math.min(want, b.max * 40) / b.max; b.hp *= k; b.max *= k; }
+  }
   let dx = p.x - b.x, dz = p.z - b.z; const d = Math.hypot(dx, dz) || 1; dx /= d; dz /= d;
   if (b.pull > 0) {   // puits de gravité de l'Archonte : attire le joueur, qu'il faut fuir en courant ou en sautant
     b.pull -= dt; const k = 11 * Math.min(1, 40 / Math.max(8, d));
@@ -2036,11 +2045,13 @@ function bossDeath() {
   // l'XP du boss vaut ~3 niveaux, semée en anneau : on la ramasse en quelques pas au lieu d'enchaîner 8 fenêtres
   const bxp = Math.round(xpNeed(S.level) * 3 / S.stats.xp);
   for (let i = 0; i < 12; i++) { const a = i / 12 * TAU, r = rand(5, 10); addPickup('gem', b.x + Math.cos(a) * r, b.y, b.z + Math.sin(a) * r, Math.ceil(bxp / 12)); }
+  const ps = dmgSrc; dmgSrc = 'none';
   explode(b.x, b.y - 3, b.z, 12, 99999, [1, 0.3, 0.5]);
   levelGroup.remove(b.g); S.boss = null; S.bossDead = true;
   goldChest(clamp(b.x, -HALF + 4, HALF - 4), clamp(b.z, -HALF + 4, HALF - 4));
   // accalmie : la victoire sur le boss dégage le terrain autour du joueur, pour marcher jusqu'au portail
   explode(S.p.x, S.p.y, S.p.z, 22, 99999, [0.5, 1, 0.9]);
+  dmgSrc = ps;
   S.bullets.length = 0;
   META.bossKills++;
   if (S.stage === 1) META.hydraKills = (META.hydraKills || 0) + 1;
@@ -2632,9 +2643,9 @@ function dmgByHTML() {
 // feuille de stats (pause) : les valeurs actuelles, icônes des tomes, nom du tome en infobulle
 function statsHTML() {
   const s = S.stats, pc = v => Math.round(v * 100);
-  const L = [['power', `+${pc(s.dmg - 1)}%`], ['haste', `−${pc(1 - s.cd)}%`], ['crit', `${pc(s.crit)}% ×${dec(s.critMul)}`], ['area', `+${pc(s.area - 1)}%`], ['multi', `+${s.proj}`],
+  const L = [['power', `+${pc(s.dmg - 1)}%`], ['haste', pc(1 - s.cd) ? `−${pc(1 - s.cd)}%` : '0%'], ['crit', `${pc(s.crit)}% ×${dec(s.critMul)}`], ['area', `+${pc(s.area - 1)}%`], ['multi', `+${s.proj}`],
     ['agile', `+${pc(s.speed - 1)}%`], ['vital', Math.round(s.hp)], ['regen', `${dec(s.regen)}/s`], ['armor', `${pc(Math.min(0.75, s.armor))}%`], ['magnet', `+${pc(s.magnet - 1)}%`], ['luck', Math.round(s.luck)], ['wisdom', `+${pc(s.xp - 1)}%`]];
-  return `<div class="nb-stats"><h4>${tr('nb.statsT')}</h4>${L.map(([k, v]) => `<span title="${TOMES[k].name}">${TOMES[k].ic} ${v}</span>`).join('')}</div>`;
+  return `<div class="nb-stats"><h4>${tr('nb.statsT')}</h4>${L.map(([k, v]) => `<span title="${TOMES[k].name}">${TOMES[k].ic} <small>${tr('nb.sl.' + k)}</small> ${v}</span>`).join('')}</div>`;
 }
 function renderEnd() {
   const { surv, cr, newly, killedBy, best, heatRec, firstWin, ot, otRec } = S.endInfo;
