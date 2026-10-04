@@ -226,6 +226,19 @@ Révèle ce que les bots naïfs ne voyaient pas : un build complet devient tout-
 | T5 | Or qui s'accumule en étape 3 | S | **fait** (1.9.1) — dîme sans limite (prix ×1,8) |
 | — | Mineurs : quêtes qui poussent les boutons de fin sous le pli (3 max + « et N autres »), « 1 fois » (texte dédié), autel à confirmer (2e appui) | S | **fait** (1.9.1) |
 
+### Réévaluation n° 4 (2026-10-04, build 1.9.1) — verdict : 2 écarts + 2 bugs
+
+5 runs complètes du bot fort (ordinateur et téléphone, FR, ~150 min simulées). Tiennent : horde dense, courbe de niveau
+(34 à 5 min, ~100 en fin), un build moyen peut mourir, contenu, quêtes, récap, traduction, téléphone.
+
+| # | Écart | Effort | État |
+|---|---|---|---|
+| U1 | La Prolongation ne menace jamais (15 min sans perdre un PV) | S/M | **fait** (1.9.2) — en Prolongation : PV ennemis ×1,25 et dégâts ×1,2 par minute sans plafond, pression sans plafond, nuée qui se referme (moitié des apparitions à 14–20 m), débit jusqu'à 70/s, une élite toutes les 30 s et un Gardien toutes les 2 min ; chrono « ∞ m:ss » de survie. Bot fort : mort après 8:35 de Prolongation |
+| U2 | Calibrage des boss gonflé par la salve d'ouverture (boss 1 : 105–147 s au lieu de 60) | S | **fait** (1.9.2) — recalage chaque seconde sur une moyenne glissante, dans les deux sens, ±15 %/s ; test de l'évaluateur : 60 s avec ou sans salve (avant : 171 / 371 s) ; bot fort : 61 / 74 s |
+| B1 | Un coffre pouvait s'ouvrir deux fois (double appui avant la frame suivante) | S | **fait** (1.9.2) — une action par cible |
+| B2 | Exception en appuyant sur E juste après « Prolongation ∞ » (portail supprimé) | S | **fait** (1.9.2) |
+| — | Mineurs : boss collé à l'objectif sur le côté (translucide aussi désormais), PV « 209/208 » (corrigé) ; toast du site sur le récap, boutique pleine après ~1,5 victoire : laissés | S | partiel |
+
 ## Fait
 
 - **Itération E21** (2026-09-28, évaluation n° 7 : verdict « non ») — notifications retenues aussi pendant les choix de

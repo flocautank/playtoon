@@ -1007,11 +1007,12 @@ function spawnEnemy(type, x, z, elite = false) {
   if (S.enemies.length >= enemyCap()) return null;
   const T = ETYPES[type], m = diffMin();
   const lv = Math.max(0, S.level - 25);   // un build très avancé fait face à des ennemis plus solides et plus dangereux
-  const hpMul = (1 + m * 0.3 + m * m * 0.035) * (elite ? 14 : 1) * heatHp() * (S.press || 1) * (1 + lv * 0.03);
+  const ot = S.endless ? (S.t - S.endless.t0) / 60 : 0;   // Prolongation : +25 % PV et +20 % dégâts par minute, sans plafond
+  const hpMul = (1 + m * 0.3 + m * m * 0.035) * (elite ? 14 : 1) * heatHp() * (S.press || 1) * (1 + lv * 0.03) * Math.pow(1.25, ot);
   const e = {
     type, T, x, z, y: terrainH(x, z) + (T.fly ? 1.6 : 0), hp: T.hp * hpMul, max: T.hp * hpMul,
     r: T.size * 0.6 * (elite ? 2 : 1), size: T.size * (elite ? 2 : 1), speed: T.speed * (elite ? 0.85 : 1) * (1 + m * 0.02),
-    dmg: T.dmg * (1 + m * 0.08) * (elite ? 1.8 : 1) * heatDmg() * (1 + lv * 0.012), xp: Math.max(1, Math.round(T.xp * (1 + Math.min(m, 9) * 0.12) * (elite ? 25 : 1) * (elite || Math.random() < (S.dirFrac ?? 1) ? 1 : 0.35))), elite, flash: 0, kx: 0, kz: 0, rot: rand(0, TAU), shootT: rand(1, 3), spin: rand(1, 3),
+    dmg: T.dmg * (1 + m * 0.08) * (elite ? 1.8 : 1) * heatDmg() * (1 + lv * 0.012) * Math.pow(1.2, ot), xp: Math.max(1, Math.round(T.xp * (1 + Math.min(m, 9) * 0.12) * (elite ? 25 : 1) * (elite || Math.random() < (S.dirFrac ?? 1) ? 1 : 0.35))), elite, flash: 0, kx: 0, kz: 0, rot: rand(0, TAU), shootT: rand(1, 3), spin: rand(1, 3),
   };
   S.enemies.push(e); return e;
 }
@@ -1051,17 +1052,18 @@ function spawning(dt) {
   if (S.enemies.length < want) rate = Math.min(60, rate + (want - S.enemies.length) * 0.25);
   S.dirFrac = base / rate;   // part des apparitions « normales » : les renforts du directeur rapportent moins d'XP
   // pression : si un build vide l'écran malgré le débit maximal, les ennemis deviennent plus solides (jusqu'à ×6)
-  if (rate >= 60 && S.enemies.length < want * 0.7) { if ((S.pressT = (S.pressT || 0) + dt) > 5) { S.pressT = 0; S.press = Math.min(6, (S.press || 1) * 1.12); } }
+  if (rate >= 60 && S.enemies.length < want * 0.7) { if ((S.pressT = (S.pressT || 0) + dt) > 5) { S.pressT = 0; S.press = Math.min(S.endless ? 1e9 : 6, (S.press || 1) * 1.12); } }
   else { S.pressT = 0; if (S.enemies.length > want) S.press = Math.max(1, (S.press || 1) - dt * 0.01); }
   if (S.boss) rate *= 0.5;
   if (S.bossDead && !S.endless) rate *= 0.12;   // portail ouvert : accalmie jusqu'au passage
-  if (S.endless) rate = Math.min(40, rate * (1.6 + (S.t - S.endless.t0) / 45));   // la nuée finale ne fait que grossir
+  if (S.endless) rate = Math.min(70, rate * (1.6 + (S.t - S.endless.t0) / 45));   // la nuée finale ne fait que grossir
   rate *= 1 + 0.25 * (S.greed || 0);
   S.spawnAcc += rate * dt;
   while (S.spawnAcc >= 1) {
     S.spawnAcc--; if (S.enemies.length >= cap) continue;
     // renforts du directeur : de la chair à canon (drones, pointes), pas des tireurs — la horde, pas une pluie de balles
-    const far = Math.random() < 0.3, ty = Math.random() < (S.dirFrac ?? 1) ? pickType() : Math.random() < 0.5 ? 'drone' : 'spike', e = spawnAround(ty, far ? 45 : 26, far ? 55 : 42);
+    const far = !S.endless && Math.random() < 0.3, ty = Math.random() < (S.dirFrac ?? 1) ? pickType() : Math.random() < 0.5 ? 'drone' : 'spike';
+    const e = S.endless && Math.random() < 0.5 ? spawnAround(ty, 14, 20) : spawnAround(ty, far ? 45 : 26, far ? 55 : 42);   // en Prolongation, la nuée se referme
     // meutes : les petits arrivent par grappes de 3 à 6 (une horde, pas une pluie d'individus), comptées dans la cadence
     if (e && (ty === 'drone' || ty === 'spike') && Math.random() < 0.25) for (let k = 0, n = 2 + (Math.random() * 4 | 0); k < n && S.enemies.length < cap; k++) { spawnEnemy(ty, e.x + rand(-2.5, 2.5), e.z + rand(-2.5, 2.5)); S.spawnAcc -= 0.6; }
   }
@@ -1070,6 +1072,11 @@ function spawning(dt) {
     const n = Math.min(60, 18 + m * 5), type = m > 3 ? 'spike' : 'drone';
     for (let i = 0; i < n; i++) { const a = i / n * TAU; const x = S.p.x + Math.cos(a) * 24, z = S.p.z + Math.sin(a) * 24; if (Math.abs(x) < HALF - 2 && Math.abs(z) < HALF - 2) spawnEnemy(type, x, z); }
     msg(tr('nb.swarm'), 2);
+  }
+  if (S.endless && S.t >= (S.otElite ?? (S.otElite = S.t + 30))) {   // Prolongation : une élite toutes les 30 s, un Gardien toutes les 2 min
+    S.otElite = S.t + 30; S.otN = (S.otN || 0) + 1;
+    const w = spawnAround(S.otN % 4 === 0 ? 'warden' : Math.random() < 0.5 ? 'brute' : 'gunner', 16, 24, true);
+    if (w && S.otN % 4 === 0) { w.hp *= 2.2; w.max *= 2.2; w.size *= 0.75; w.r *= 0.75; w.warden = true; msg(tr('nb.wardenGo'), 2.5, '#ff2d7a'); }
   }
   if (S.wardenAt && S.wardenAt.length && S.time <= S.wardenAt[0]) {
     S.wardenAt.shift();
@@ -1944,7 +1951,8 @@ function updateInteract(dt) {
   }
 }
 function interact() {
-  const t = promptTarget; if (!t) return;
+  const t = promptTarget; if (!t || t.open) return;
+  promptTarget = null;   // une action par cible : un double appui avant la frame suivante n'ouvre plus deux fois le même coffre
   if (t === S.portal) { if (S.stage < STAGES.length - 1) nextStage(); else endRun(true); return; }
   if (t.kind === 'shop' || t.kind === 'dup') {   // marchand / duplicateur : une fenêtre de choix, l'achat consomme le sanctuaire
     if (t.kind === 'dup' && !Object.keys(S.items).length) { msg(tr('nb.dupNone'), 1.5); return; }
@@ -2061,9 +2069,15 @@ function updateBoss(dt) {
   // empêche de le faire fondre (un build énorme raccourcit le combat, sans le réduire à 1 s)
   b.age = (b.age || 0) + dt;
   const dur = bossDur(), live = b.age - 2;
-  if (live > 0.5 && live < 12) {
-    const want = b.dealt + b.dealt / live * (dur - live);
-    if (want > b.max) { const k = Math.min(want, b.max * 60) / b.max; b.hp *= k; b.max *= k; }
+  // recalage chaque seconde sur une moyenne glissante des dégâts reçus (dans les deux sens, ±15 % par seconde au plus) :
+  // une salve d'ouverture ne gonfle plus les PV pour tout le combat
+  if (live > 0 && (b.sec = (b.sec || 0) + dt) >= 1) {
+    b.sec -= 1; const d = b.dealt - (b.last || 0); b.last = b.dealt;
+    b.ema = b.ema === undefined ? d : b.ema * 0.65 + d * 0.35;
+    if (live < 20 && b.ema > 0) {
+      const k = clamp(b.ema * Math.max(5, dur - live) / Math.max(1, b.hp), 0.85, 1.15), lo = 9000 * ST().boss.hp * heatHp() * 0.4;
+      b.hp *= k; b.max = Math.max(b.max * k, lo); b.hp = Math.min(b.hp, b.max);
+    }
   }
   b.hp = Math.max(b.hp, bossFloor(b));
   let dx = p.x - b.x, dz = p.z - b.z; const d = Math.hypot(dx, dz) || 1; dx /= d; dz /= d;
@@ -2433,7 +2447,7 @@ function updateCamera(dt) {
     const b = S.boss, sx = tx - cx, sy = ty - cy, sz = tz - cz, sl = sx * sx + sy * sy + sz * sz || 1;
     const f = clamp(((b.x - cx) * sx + (b.y - cy) * sy + (b.z - cz) * sz) / sl, 0, 1);
     const q = (cx + sx * f - b.x) ** 2 + (cy + sy * f - b.y) ** 2 + (cz + sz * f - b.z) ** 2;
-    const ghost = f < 0.85 && q < 4.2 * 4.2;
+    const ghost = f < 0.85 && q < 4.2 * 4.2 || (b.x - cx) ** 2 + (b.y - cy) ** 2 + (b.z - cz) ** 2 < 8 * 8;   // devant, ou collé à l'objectif
     for (const o of [b.core, b.ring, b.ring2, b.core.children[0]]) { o.material.transparent = ghost; o.material.depthWrite = !ghost; o.material.uniforms.uAlpha.value = ghost ? 0.25 : 1; }
   }
   if (live) { S.trauma = Math.max(0, S.trauma - dt * 1.6); S.fovKick = Math.max(0, S.fovKick - dt * 14); }
@@ -2539,11 +2553,12 @@ function updateHUD(dt) {
   $('nb-xpbar').style.width = (S.xp / S.need * 100) + '%';
   $('nb-level').textContent = tr('nb.hudLvl', { n: S.level, s: S.stage + 1 }) + (S.heat ? ' · 🔥' + S.heat : '');
   $('nb-hpbar').style.width = (S.p.hp / S.stats.hp * 100) + '%';
-  $('nb-hptext').textContent = `${Math.ceil(S.p.hp)}/${Math.round(S.stats.hp)}`;
+  $('nb-hptext').textContent = `${Math.min(Math.ceil(S.p.hp), Math.round(S.stats.hp))}/${Math.round(S.stats.hp)}`;
   $('nb-gold').textContent = num(S.gold); $('nb-kills').textContent = num(S.kills); $('nb-keys').textContent = `${S.keysGot || 0}/3`;
   const tm = $('nb-timer');
   const tt = Math.abs(S.time), mm = Math.floor(tt / 60), ss = Math.floor(tt % 60);
-  tm.textContent = (S.time < 0 ? '+' : '') + mm + ':' + String(ss).padStart(2, '0');
+  if (S.endless) { const o = Math.floor(S.t - S.endless.t0); tm.textContent = `∞ ${Math.floor(o / 60)}:${String(o % 60).padStart(2, '0')}`; }
+  else tm.textContent = (S.time < 0 ? '+' : '') + mm + ':' + String(ss).padStart(2, '0');
   tm.classList.toggle('boss', S.time < 0);
   // intensité musicale : monte avec la minute de difficulté, la foule proche et le boss
   let close = 0; for (const e of S.enemies) if (Math.abs(e.x - S.p.x) < 12 && Math.abs(e.z - S.p.z) < 12) close++;
@@ -2822,6 +2837,7 @@ $('nb-again').onclick = () => MON.pause().then(toMenu);
 // Prolongation infinie : après la victoire, on reste dans le Vide face à une nuée sans fin (record dans META.bestOT)
 $('nb-endless').onclick = () => {
   if (!S || !S.won || S.endless) return;
+  promptTarget = null;
   S.endless = { t0: S.t, k0: S.kills, cr0: runCredits(S), ch0: S.chestsOpened, id0: S.dmgBy.item || 0 };
   if (S.portal) { levelGroup.remove(S.portal.g); S.portal = null; }
   $('nb-end').classList.add('hidden'); $('nb-hud').classList.remove('hidden');
