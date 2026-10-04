@@ -202,7 +202,7 @@ void main(){
   vec4 mv = viewMatrix * wp; vD = -mv.z; gl_Position = projectionMatrix * mv;
 }`;
 const NEON_FS = `
-uniform vec3 fogColor; uniform float fogNear; uniform float fogFar; uniform float uCore;
+uniform vec3 fogColor; uniform float fogNear; uniform float fogFar; uniform float uCore; uniform float uAlpha;
 varying vec3 vW; varying vec3 vC; varying float vD;
 void main(){
   vec3 n = normalize(cross(dFdx(vW), dFdy(vW)));
@@ -211,12 +211,12 @@ void main(){
   float rim = pow(1.0 - ndv, 1.6);
   vec3 c = vC * (uCore + 0.35 * ndv * ndv) + vC * rim * 1.5 + vec3(rim * rim * 0.35);
   c += vC * 0.25 * clamp(n.y, 0.0, 1.0);
-  gl_FragColor = vec4(mix(c, fogColor, smoothstep(fogNear, fogFar, vD)), 1.0);
+  gl_FragColor = vec4(mix(c, fogColor, smoothstep(fogNear, fogFar, vD)), uAlpha);
 }`;
-function neonMat(color, core = 0.22) {
+function neonMat(color, core = 0.22, alpha = 1) {
   return new THREE.ShaderMaterial({
-    uniforms: { ...fogU, uColor: { value: new THREE.Color(color) }, uCore: { value: core } },
-    vertexShader: NEON_VS, fragmentShader: NEON_FS,
+    uniforms: { ...fogU, uColor: { value: new THREE.Color(color) }, uCore: { value: core }, uAlpha: { value: alpha } },
+    vertexShader: NEON_VS, fragmentShader: NEON_FS, transparent: alpha < 1, depthWrite: alpha >= 1,
   });
 }
 const GROUND_VS = `varying vec3 vW; varying float vD;
@@ -332,14 +332,16 @@ function init() {
     bolt: new THREE.BoxGeometry(0.12, 0.12, 1.1), ball: new THREE.IcosahedronGeometry(0.3, 1), disc: new THREE.CylinderGeometry(0.6, 0.6, 0.1, 16),
     rocket: new THREE.ConeGeometry(0.2, 0.8, 6).rotateX(Math.PI / 2), heart: new THREE.OctahedronGeometry(0.4), bullet: new THREE.IcosahedronGeometry(0.35, 0),
   };
-  const mk = (name, geo, col, n, core) => {
-    const m = new THREE.InstancedMesh(geo, neonMat(0xffffff, core), n);
+  const mk = (name, geo, col, n, core, alpha) => {
+    const m = new THREE.InstancedMesh(geo, neonMat(0xffffff, core, alpha), n);
     m.frustumCulled = false; m.count = 0;
     for (let i = 0; i < n; i++) m.setColorAt(i, tmpC.set(col));
     m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     scene.add(m); meshes[name] = m;
   };
   for (const [k, t] of Object.entries(ETYPES)) mk('e_' + k, G[t.geo], t.col, MAX_ENEMIES);
+  // « fantômes » : les ennemis plantés entre la caméra et le joueur sont dessinés translucides (ils masquaient l'écran)
+  for (const [k, t] of Object.entries(ETYPES)) { mk('g_' + k, G[t.geo], t.col, 48, undefined, 0.22); meshes['g_' + k].renderOrder = 2; }
   mk('gem', G.gem, 0x27e0ff, 900, 0.6);
   mk('coin', G.coin, 0xffd84d, 250, 0.7);
   mk('heart', G.heart, 0xff4d8a, 30, 0.7);
@@ -573,7 +575,7 @@ function newRun() {
   const ch = CHARS.find(c => c.id === META.sel && unlocked(c)) || CHARS[0];
   S = {
     state: 'play', stage: 0, stageT: 0, ch, heat: Math.min(META.heatSel || 0, heatAvail()), t: 0, time: RUN_TIME, kills: 0, gold: 0, level: 1, xp: 0, need: xpNeed(1), pending: 0, rerolls: 2,
-    stats: null, weapons: [], tomes: [], items: {}, enemies: [], pickups: [], bolts: [], bullets: [], discs: [], rockets: [], mines: [], rings: [], dmgNums: [],
+    stats: null, weapons: [], tomes: [], items: {}, enemies: [], pickups: [], bolts: [], bullets: [], discs: [], rockets: [], mines: [], rings: [], dmgNums: [], pops: [], trauma: 0, hitstop: 0, fovKick: 0,
     spawnAcc: 0, nextSwarm: 90, eliteAt: [420, 240], boss: null, portal: null, won: false, dmgDealt: 0, chestsOpened: 0,
     iframe: 0, shieldT: 0, hurtFlash: 0, msgT: 0, chestCost: 12, orbPos: [], orbCount: 0, magnetAll: 0, bossDead: false,
     p: { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, onGround: true, jumps: 1, slide: 0, slideCd: 0, face: Math.PI, hp: 100 },
@@ -722,8 +724,13 @@ function slide() {
 }
 
 // ============================================================ audio
-let actx = null;
+let actx = null, sfxOut = null, noiseBuf = null, xpChain = 0, xpLast = 0;
 const sfxLast = {};
+// couche de bruit filtré (impact, souffle) ajoutée sous l'oscillateur : [filtre, fréquence, durée, volume]
+const SFX_NOISE = {
+  hit: ['bandpass', 2400, 0.04, 0.02], kill: ['bandpass', 1500, 0.09, 0.035], hurt: ['lowpass', 900, 0.22, 0.09], boom: ['lowpass', 500, 0.45, 0.12],
+  slide: ['highpass', 1800, 0.22, 0.03], chest: ['highpass', 4000, 0.5, 0.025], elite: ['lowpass', 700, 0.5, 0.12], level: ['highpass', 5000, 0.35, 0.02],
+};
 function sfx(kind) {
   if (window.PT_MUTE) return;
   const now = performance.now();
@@ -732,16 +739,33 @@ function sfx(kind) {
   sfxLast[kind] = now;
   try {
     actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    if (!sfxOut) {   // compresseur commun : les couches empilées ne saturent pas
+      sfxOut = actx.createDynamicsCompressor(); sfxOut.threshold.value = -14; sfxOut.ratio.value = 6; sfxOut.connect(actx.destination);
+      noiseBuf = actx.createBuffer(1, actx.sampleRate * 0.5, actx.sampleRate);
+      const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
     const t = actx.currentTime;
-    const o = actx.createOscillator(), g = actx.createGain(); o.connect(g); g.connect(actx.destination);
+    const N = SFX_NOISE[kind];
+    if (N) {
+      const src = actx.createBufferSource(), f = actx.createBiquadFilter(), ng = actx.createGain();
+      src.buffer = noiseBuf; f.type = N[0]; f.frequency.value = N[1] * (0.9 + Math.random() * 0.2); f.Q.value = 0.8;
+      src.connect(f); f.connect(ng); ng.connect(sfxOut);
+      ng.gain.setValueAtTime(N[3], t); ng.gain.exponentialRampToValueAtTime(0.0001, t + N[2]);
+      src.start(t, Math.random() * 0.2); src.stop(t + N[2] + 0.02);
+    }
+    if (kind === 'elite') kind = 'boom';
+    // gemmes ramassées à la suite : la note monte (arpège), puis repart du bas après une pause
+    let jit = 0.93 + Math.random() * 0.14;
+    if (kind === 'xp') { xpChain = now - xpLast < 450 ? Math.min(xpChain + 1, 14) : 0; xpLast = now; jit = Math.pow(2, [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24, 26, 28, 31, 33][xpChain] / 12); }
+    const o = actx.createOscillator(), g = actx.createGain(); o.connect(g); g.connect(sfxOut);
     const P = {
       jump: ['square', 300, 600, 0.08, 0.03], slide: ['sawtooth', 200, 80, 0.2, 0.03], hit: ['square', 180, 90, 0.05, 0.015],
-      kill: ['triangle', 520, 260, 0.06, 0.025], xp: ['sine', 900 + Math.random() * 300, 1400, 0.05, 0.02], hurt: ['sawtooth', 160, 60, 0.25, 0.08],
+      kill: ['triangle', 520, 260, 0.06, 0.025], xp: ['sine', 700, 1100, 0.05, 0.02], hurt: ['sawtooth', 160, 60, 0.25, 0.08],
       level: ['triangle', 440, 1320, 0.4, 0.06], chest: ['triangle', 660, 1760, 0.5, 0.06], boom: ['sawtooth', 120, 30, 0.35, 0.05],
       zap: ['square', 1200, 200, 0.1, 0.02], shoot: ['square', 900, 500, 0.04, 0.01], boss: ['sawtooth', 70, 40, 1.2, 0.1],
     }[kind];
     if (!P) return;
-    o.type = P[0]; o.frequency.setValueAtTime(P[1], t); o.frequency.exponentialRampToValueAtTime(P[2], t + P[3]);
+    o.type = P[0]; o.frequency.setValueAtTime(P[1] * jit, t); o.frequency.exponentialRampToValueAtTime(P[2] * jit, t + P[3]);
     g.gain.setValueAtTime(P[4], t); g.gain.exponentialRampToValueAtTime(0.0001, t + P[3]);
     o.start(t); o.stop(t + P[3] + 0.02);
   } catch (e) {}
@@ -903,6 +927,9 @@ function kill(e) {
   S.kills++; window.ptEvent && window.ptEvent('nb_kills', 1);
   const col = new THREE.Color(e.T.col);
   burst(e.x, e.y + 0.5, e.z, e.elite ? 60 : 10, [col.r, col.g, col.b], e.elite ? 9 : 5, 0.5);
+  burst(e.x, e.y + 0.5, e.z, e.elite ? 12 : 3, [1.4, 1.4, 1.4], e.elite ? 6 : 3.5, 0.18);   // éclat blanc bref
+  if (S.pops.length < 80) S.pops.push({ type: e.type, x: e.x, y: e.y + (e.T.fly ? 0 : e.size * 0.45), z: e.z, size: e.size, rot: e.rot, t: 0 });   // l'ennemi gonfle et s'évanouit (syncMeshes)
+  if (e.elite) { shake(0.45); hitstop(0.07); sfx('elite'); addRing(e.x, e.y + 0.3, e.z, 5, [1, 0.8, 0.3], 0.35); }
   dropXp(e.x, e.y + 0.4, e.z, e.xp);
   if (e.T.split && !e.child) for (let k = 0; k < 3; k++) { const c = spawnEnemy('spike', e.x + rand(-1, 1), e.z + rand(-1, 1)); if (c) { c.child = true; c.kx = rand(-8, 8); c.kz = rand(-8, 8); } }
   if (e.chal) { e.chal.left--; if (e.chal.left <= 0) shrineReward(e.chal); }
@@ -936,6 +963,7 @@ function explode(x, y, z, r, dmg, col) {
   if (S.boss && Math.hypot(S.boss.x - x, S.boss.z - z) < r + S.boss.r) damage(S.boss, dmg);
   burst(x, y + 0.5, z, 30, col, r * 2.2, 0.45);
   addRing(x, y + 0.2, z, r, col, 0.3);
+  if (r >= 3.5 && (x - S.p.x) ** 2 + (z - S.p.z) ** 2 < 144) shake(0.08);
   sfx('boom');
 }
 function hurt(d, src = '?') {
@@ -944,7 +972,7 @@ function hurt(d, src = '?') {
   if (s.shield && S.shieldT <= 0) { S.shieldT = s.shield; S.iframe = 0.5; addNum(S.p.x, S.p.y + 2.2, S.p.z, tr('nb.blocked'), true); return true; }
   if (s.dodge && Math.random() < s.dodge) { S.iframe = 0.3; addNum(S.p.x, S.p.y + 2.2, S.p.z, tr('nb.dodge'), false); return false; }
   d *= 1 - Math.min(0.75, s.armor);
-  S.p.hp -= d; S.iframe = 0.7; S.hurtFlash = 1; sfx('hurt');
+  S.p.hp -= d; S.iframe = 0.7; S.hurtFlash = 1; sfx('hurt'); shake(0.3 + Math.min(0.3, d / S.stats.hp)); hitstop(0.04);
   (S.hurtBy = S.hurtBy || {})[src] = (S.hurtBy[src] || 0) + d;   // statistiques d'équilibrage
   S.lastHurt = src;   // « tué par … » sur l'écran de fin
   (S.recentHurt = S.recentHurt || []).push({ t: S.t, src, d });
@@ -1341,7 +1369,7 @@ function openLevelUp(mode = 'level') {
     choiceMode = 'level'; curChoices = buildChoices('level');
     const i = bestChoice(), c = curChoices[i], title = (choiceHTML(c).match(/<b>(.*?)<\/b>/) || [])[1] || '';
     msg(tr('nb.autoPick', { n: S.level - S.pending + 1, title }), 1.6, RAR[c.rar].col);
-    sfx('level'); pick(i); return;
+    sfx('level'); fovKick(5); pick(i); return;
   }
   choiceMode = mode;
   S.state = 'levelup';
@@ -1350,6 +1378,7 @@ function openLevelUp(mode = 'level') {
   renderChoices();
   levelUpTitle();
   pickLockUntil = performance.now() + 400;
+  fovKick(5);
   PAD.sel = 0; setTimeout(padMark, 0);
   const box = $('nb-choices'); box.classList.add('locked'); clearTimeout(pickLockTimer);
   pickLockTimer = setTimeout(() => box.classList.remove('locked'), 400);
@@ -1472,13 +1501,14 @@ function interact() {
     const E = EVOS[ev.id]; ev.evo = true; E.fx(ev);
     burst(t.x, t.y + 1, t.z, 120, [1, 0.85, 0.3], 10, 0.9); addRing(t.x, t.y + 0.3, t.z, 8, [1, 0.8, 0.3], 0.6);
     msg(tr('nb.evolved', { w: WEAPONS[ev.id].name, e: `${E.ic} ${E.name}` }), 4.5, '#ffc94d');
-    sfx('level'); sfx('chest'); renderWeaponsHud(); return;
+    sfx('level'); sfx('chest'); shake(0.4); hitstop(0.12); fovKick(9); renderWeaponsHud(); return;
   }
   let rar = rollRarity(10), pool = ITEMS.filter(i => i.r === rar);
   while (!pool.length) { rar--; pool = ITEMS.filter(i => i.r === rar); }
   const it = pool[(Math.random() * pool.length) | 0];
   it.fx(S.stats, S.p);
   S.items[it.id] = (S.items[it.id] || 0) + 1;
+  shake(0.12 + rar * 0.06);
   burst(t.x, t.y + 1, t.z, 50, [1, 0.8, 0.3], 7, 0.6);
   msg(`${it.ic} ${it.name} — ${it.desc}`, 3.5, RAR[it.r].col);
   sfx('chest'); renderWeaponsHud();
@@ -1555,7 +1585,7 @@ function updateBoss(dt) {
       msg(tr(S.stage === 2 ? 'nb.archonCall' : 'nb.hydraSpawn'), 1, S.stage === 2 ? '#b98bff' : '#ffb020');
     }
     else { b.pull = enraged ? 3 : 2.2; b.atkT = 3.4; msg(tr('nb.gravWell'), 1.5, '#b98bff'); }
-    sfx('boom');
+    sfx('boom'); shake(0.18);
   }
   if (d < b.r + 0.8 && Math.abs(p.y + 1 - b.y) < 4) hurt(26 * heatDmg(), 'boss');
   const hp = $('nb-bossbar'); hp.style.width = (b.hp / b.max * 100) + '%';
@@ -1563,6 +1593,7 @@ function updateBoss(dt) {
 function bossDeath() {
   const b = S.boss;
   burst(b.x, b.y, b.z, 250, [1, 0.3, 0.5], 18, 1.2);
+  shake(1); hitstop(0.2); fovKick(10); sfx('elite');
   for (let i = 0; i < 40; i++) addPickup('coin', b.x + rand(-3, 3), b.y, b.z + rand(-3, 3), 5);
   // l'XP du boss vaut ~3 niveaux, semée en anneau : on la ramasse en quelques pas au lieu d'enchaîner 8 fenêtres
   const bxp = Math.round(xpNeed(S.level) * 3 / S.stats.xp);
@@ -1620,6 +1651,10 @@ function addNum(x, y, z, v, crit, col) {
   if (S.dmgNums.length > 40) S.dmgNums.shift();
   S.dmgNums.push({ x, y, z, v: typeof v === 'number' ? Math.round(v) : v, crit, t: 0, col, ox: rand(-0.4, 0.4) });
 }
+// « jus » : tremblement de caméra (trauma), gel d'image bref sur les gros coups, coup de focale
+function shake(a) { if (META.shake === false || !S) return; S.trauma = Math.min(1, S.trauma + a); }
+function hitstop(d) { if (S) S.hitstop = Math.min(0.2, Math.max(S.hitstop, d)); }
+function fovKick(a) { if (S) S.fovKick = Math.max(S.fovKick, a); }
 let msgTimer = 0;
 function msg(t, dur = 2, col) { const m = $('nb-msg'); m.textContent = t; m.style.color = col || ''; m.classList.add('show'); msgTimer = dur; }
 
@@ -1713,11 +1748,18 @@ function update(dt) {
 function syncMeshes(dt) {
   const t = S.t;
   // ennemis
-  const counts = {}; for (const k in ETYPES) counts[k] = 0;
+  const counts = {}, gcounts = {}; for (const k in ETYPES) counts[k] = gcounts[k] = 0;
+  // segment caméra → joueur (caméra de l'image précédente) : un ennemi posé dessus, côté caméra, devient translucide
+  const cp = camera.position, tx = S.p.x, ty = S.p.y + 1.2, tz = S.p.z, sx = tx - cp.x, sy = ty - cp.y, sz = tz - cp.z, sl = sx * sx + sy * sy + sz * sz || 1;
   for (const e of S.enemies) {
-    const m = meshes['e_' + e.type], i = counts[e.type]++;
+    const ey = e.y + (e.T.fly ? 0 : e.size * 0.45);
+    let m = meshes['e_' + e.type], i;
+    const f = clamp(((e.x - cp.x) * sx + (ey - cp.y) * sy + (e.z - cp.z) * sz) / sl, 0, 1);
+    const qx = cp.x + sx * f - e.x, qy = cp.y + sy * f - ey, qz = cp.z + sz * f - e.z, rr = e.size * 0.75 + 0.2;
+    if (f < 0.8 && qx * qx + qy * qy + qz * qz < rr * rr && gcounts[e.type] < 48) { m = meshes['g_' + e.type]; i = gcounts[e.type]++; }
+    else i = counts[e.type]++;
     const sc = e.size * (1 + e.flash * 0.15);
-    dummy.position.set(e.x, e.y + (e.T.fly ? 0 : e.size * 0.45), e.z);
+    dummy.position.set(e.x, ey, e.z);
     if (e.T.charge) dummy.rotation.set(0, e.face || 0, 0);
     else dummy.rotation.set(e.type === 'drone' ? e.rot : 0, e.rot, e.type === 'drone' ? e.rot * 0.7 : 0);
     dummy.scale.setScalar(sc); dummy.updateMatrix(); m.setMatrixAt(i, dummy.matrix);
@@ -1725,7 +1767,16 @@ function syncMeshes(dt) {
     else tmpC.set(e.elite ? 0xffc94d : e.T.col);
     m.setColorAt(i, tmpC);
   }
-  for (const k in ETYPES) { const m = meshes['e_' + k]; m.count = counts[k]; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; }
+  // morts en « pop » : l'ennemi gonfle et blanchit 0,1 s
+  for (let j = S.pops.length - 1; j >= 0; j--) {
+    const q = S.pops[j]; q.t += dt;
+    if (q.t > 0.1) { S.pops[j] = S.pops[S.pops.length - 1]; S.pops.pop(); continue; }
+    if (counts[q.type] >= MAX_ENEMIES) continue;
+    const m = meshes['e_' + q.type], i = counts[q.type]++, k = q.t / 0.1;
+    dummy.position.set(q.x, q.y, q.z); dummy.rotation.set(0, q.rot, 0); dummy.scale.setScalar(q.size * (1.15 + k * 0.45) * (1 - k * k * 0.6));
+    dummy.updateMatrix(); m.setMatrixAt(i, dummy.matrix); m.setColorAt(i, tmpC.setRGB(1, 1, 1));
+  }
+  for (const k in ETYPES) for (const pre of ['e_', 'g_']) { const m = meshes[pre + k]; m.count = (pre === 'e_' ? counts : gcounts)[k]; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; }
   // ramassables
   const pc = { gem: 0, coin: 0, heart: 0, magnetp: 0 };
   for (const k of S.pickups) {
@@ -1822,8 +1873,22 @@ function updateCamera(dt) {
     o.mesh.visible = !hide;
   }   // la caméra ne rentre pas dans les blocs
   camY += ((cy < gy ? gy : cy) - camY) * Math.min(1, dt * 10); cy = Math.max(camY, terrainH(cx, cz) + 0.4);
-  camera.position.set(cx, cy, cz);
-  camera.lookAt(tx, ty, tz);
+  // tremblement : amplitude au carré du trauma (les petits chocs restent discrets), bruit lisse de sinusoïdes
+  const live = S.state === 'play', tr2 = S.trauma * S.trauma, T = performance.now() / 1000;
+  const ox = tr2 * 0.35 * (Math.sin(T * 47) + Math.sin(T * 71 + 1.3)) * 0.5, oy = tr2 * 0.3 * (Math.sin(T * 53 + 2.1) + Math.sin(T * 89)) * 0.5, oz = tr2 * 0.35 * Math.sin(T * 61 + 4.2);
+  camera.position.set(cx + ox, cy + oy, cz + oz);
+  camera.lookAt(tx + ox * 0.6, ty + oy * 0.6, tz + oz * 0.6);
+  if (tr2 > 0) camera.rotateZ(tr2 * 0.04 * Math.sin(T * 43 + 0.7));
+  if (S.boss) {   // le boss planté devant la caméra devient translucide
+    const b = S.boss, sx = tx - cx, sy = ty - cy, sz = tz - cz, sl = sx * sx + sy * sy + sz * sz || 1;
+    const f = clamp(((b.x - cx) * sx + (b.y - cy) * sy + (b.z - cz) * sz) / sl, 0, 1);
+    const q = (cx + sx * f - b.x) ** 2 + (cy + sy * f - b.y) ** 2 + (cz + sz * f - b.z) ** 2;
+    const ghost = f < 0.85 && q < 4.2 * 4.2;
+    for (const o of [b.core, b.ring, b.ring2, b.core.children[0]]) { o.material.transparent = ghost; o.material.depthWrite = !ghost; o.material.uniforms.uAlpha.value = ghost ? 0.25 : 1; }
+  }
+  if (live) { S.trauma = Math.max(0, S.trauma - dt * 1.6); S.fovKick = Math.max(0, S.fovKick - dt * 14); }
+  const fov = 70 + S.fovKick;
+  if (Math.abs(camera.fov - fov) > 0.01) { camera.fov = fov; camera.updateProjectionMatrix(); }
   scene.userData.sky.position.copy(camera.position);
 }
 
@@ -1842,7 +1907,7 @@ function draw2D(dt) {
     if (v.z > 1) continue;
     const x = (v.x * 0.5 + 0.5) * W; let y = (-v.y * 0.5 + 0.5) * H;
     if (y < hudTop) continue;
-    const fs = d.crit ? 20 : typeof d.v === 'number' && d.v >= 100 ? 17 : 14;
+    const fs = Math.round((d.crit ? 20 : typeof d.v === 'number' && d.v >= 100 ? 17 : 14) * (d.crit && d.t < 0.12 ? 1.7 - d.t / 0.12 * 0.7 : 1));   // un crit naît gros puis se tasse
     ctx.font = `900 ${fs}px system-ui,sans-serif`;
     const hw = ctx.measureText(d.v).width / 2 + 2;
     let ok = false;
@@ -1992,19 +2057,22 @@ function frame() {
   const T = performance.now() / 1000;
   if (TOUCH && S && S.state === 'play') dynRes(raw);
   skyMat.uniforms.uTime.value = T; groundMat.uniforms.uTime.value = T; scene.userData.wallMat.uniforms.uTime.value = T;
-  if (S && S.state === 'play') {
+  let frozen = false;
+  if (S && S.state === 'play' && S.hitstop > 0) { S.hitstop = Math.max(0, S.hitstop - raw); frozen = true; }   // gel d'image : le monde s'arrête un instant
+  else if (S && S.state === 'play') {
     // sous-pas pour garder une physique stable
     const steps = dt > 0.034 ? 2 : 1;
     for (let i = 0; i < steps && S.state === 'play'; i++) update(dt / steps);
   }
   if (S && S.state !== 'menu') {
-    syncMeshes(S.state === 'play' ? dt : 0);
+    syncMeshes(S.state === 'play' && !frozen ? dt : 0);
     updateCamera(dt);
     if (S.state === 'play') updateHUD(dt);
     draw2D(S.state === 'play' ? dt : 0);
   } else {
     // menu : caméra qui tourne au-dessus de la grille
     camera.position.set(Math.sin(T * 0.1) * 40, 14, Math.cos(T * 0.1) * 40); camera.lookAt(0, 0, 0);
+    if (camera.fov !== 70) { camera.fov = 70; camera.updateProjectionMatrix(); }
     scene.userData.sky.position.copy(camera.position);
     if (g2) g2.clearRect(0, 0, W, H);
   }
@@ -2020,6 +2088,7 @@ function pause() {
   $('nb-music').checked = window.PT_MUSIC !== false;
   $('nb-nums').value = META.nums || 'merge';
   $('nb-autolvl').value = META.autoLvl ? '1' : '';
+  $('nb-shake').checked = META.shake !== false;
   music.stop(0.3);
   if (document.pointerLockElement) document.exitPointerLock();
 }
@@ -2150,6 +2219,7 @@ $('nb-again').onclick = () => MON.pause().then(toMenu);
 $('nb-replay').onclick = () => MON.pause().then(() => { toMenu(); $('nb-menu').classList.add('hidden'); S = null; newRun(); clock.getDelta(); });
 $('nb-nums').onchange = e => { META.nums = e.target.value; saveMeta(); };
 $('nb-autolvl').onchange = e => { META.autoLvl = !!e.target.value; saveMeta(); };
+$('nb-shake').onchange = e => { META.shake = e.target.checked; saveMeta(); };
 $('nb-resume').onclick = resume;
 $('nb-quit').onclick = () => endRun(false);
 $('nb-reroll').onclick = reroll;

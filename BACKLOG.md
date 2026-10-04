@@ -22,6 +22,180 @@ que par de vrais joueurs sur de vrais appareils :*
 - Synth Horde : gemmes laissées en hauteur en fin d'étape 2–3 par un bot — à confirmer par un humain (sinon, aimant périodique) ;
 - Nova Foundry : puits de Novae après la Constellation pour les joueurs de plus de 10 h (optionnel).
 
+## Synth Horde vs Megabonk
+
+*Évaluation du 2026-10-04 : lecture de `js/bonk.js` (2203 lignes), une run jouée sous Playwright (stage 1, niveau 20, boss, écran de fin), et des sources publiques sur Megabonk (v1.0.x, Vedinad, sept. 2025, plus de 2 M d'exemplaires vendus).*
+
+### Inventaire comparé
+
+| | Megabonk | Synth Horde (`bonk.js`) |
+|---|---|---|
+| Personnages | 21, avec un passif qui progresse | 6 (`CHARS`), bonus fixe à la création |
+| Armes | 31 | 9 (`WEAPONS`) + 9 évolutions (`EVOS`, arme niv. 8 + tome) |
+| Tomes | 23–26 | 12 (`TOMES`), 4 emplacements |
+| Objets | 85–86, 5 raretés, effets conditionnels | 14 (`ITEMS`), 4 raretés, que des stats plates |
+| Cartes | 3 (Forêt, Désert, Cimetière), tiers 1–3 | 3 étapes (`STAGES`), même générateur, palette et gravité différentes |
+| Ennemis / boss | Beaucoup de types par carte, mini-boss, boss final | 6 types (`ETYPES`) + variante élite, 3 boss (`spawnBoss`) |
+| Interactables | Sanctuaires de charge (15/carte), d'avarice (8), dorés, de défi ; coffres (30 or puis plus cher) ; Shady Guy ; Micro-ondes ; pots | 16 coffres (12 or, ×1,45+4), 4 sanctuaires de charge, 2 de défi, 2 d'avarice, 40 jarres |
+| Méta | Argent (silver) issu des quêtes, environ 200 quêtes qui débloquent persos, armes, tomes et objets | Crédits + boutique de 9 lignes (`SHOP`), 5 déblocages de personnages, Heat 1–5 |
+| Fin de run | Final Swarm sans fin, avec succès « survivre 60 s / 2 min / 6 min » | Prolongation : `spawning()` ajoute +4/s, puis +4/s par minute ; victoire après le 3e boss |
+
+Le cœur de la boucle est déjà présent : timer de 10 min, coffres payés en or, sanctuaires, rareté, portail, double saut, glissade sur pente et élan conservé en l'air.
+
+### Écarts classés par impact sur le plaisir de jeu
+
+**1. Le jeu manque de « jus » : pas de tremblement d'écran, pas de hit-stop, sons pauvres** — *S/M*
+- Megabonk : selon la critique, c'est un jeu « bouncy » et « satisfying when things pop off ». Chaque mort, crit ou coffre a son retour sonore et visuel.
+- Synth Horde : aucun tremblement de caméra ni gel d'image. On ne trouve ni `shake` ni `hitstop` dans le fichier, et `updateCamera` ne fait que suivre le joueur. Dans `sfx()`, chaque effet est un seul oscillateur ; les coups (`hit`) et les morts (`kill`) sont limités à un toutes les 40–45 ms. Un crit se voit seulement à un chiffre plus gros et jaune (`draw2D`). Une mort ordinaire produit 10 particules (`kill`).
+- Proposition :
+  - un « trauma » de caméra dans `updateCamera`, alimenté par `hurt`, `explode`, la mort d'un élite et le boss ;
+  - un hit-stop de 40–90 ms dans `frame()` sur les crits lourds, les morts d'élite et l'évolution d'une arme ;
+  - une mort en « pop » : l'ennemi grossit puis disparaît, avec des éclats instanciés ;
+  - des sons à deux couches (oscillateur + bruit déjà disponible dans `synthwave.js`) avec un léger écart de hauteur aléatoire, et une hauteur qui monte quand on ramasse des gemmes à la suite ;
+  - un petit coup de FOV à la montée de niveau.
+- Lisibilité, vue en jeu : les gros ennemis placés entre la caméra et le joueur remplissent l'écran (capture du boss). Il faut les rendre semi-transparents quand ils sont proches de la caméra, comme le fait déjà le « rayon X » des plateformes.
+
+**2. Les objets ne font pas de build** — *M/L*
+- Megabonk : 85 objets, dont beaucoup sont conditionnels (à la mort d'un ennemi, au crit, selon la vitesse, PV bas…). Les légendaires deviennent le centre d'un build, et le Micro-ondes duplique un objet.
+- Synth Horde : 14 objets, tous des stats plates sauf `bomb` (explosion à la mort) et `fang` (vol de vie). L'objet est tiré au hasard dans `interact()`, sans aucun choix.
+- Proposition : environ 25 objets à déclencheurs, en réutilisant les points d'entrée existants (`kill()`, `damage()` pour les crits, `jump()`, `slide()`, `hurt()`). Exemples :
+  - éclair à l'atterrissage ;
+  - dégâts proportionnels à la vitesse ;
+  - +X % de dégâts sous 30 % de PV ;
+  - une étoile tous les N kills ;
+  - une glissade qui enflamme le sol ;
+  - le dernier coup sur un élite qui double l'or.
+- Afficher les cumuls dans le HUD.
+
+**3. Rien à faire de l'or : pas de marchand, pas de duplication** — *M*
+- Megabonk : le Shady Guy vend un objet parmi plusieurs puis disparaît ; le Micro-ondes duplique un objet contre un autre de même rareté ; les coffres deviennent de plus en plus chers.
+- Synth Horde : l'or ne sert qu'aux coffres. Pendant la run de test, il restait **609 or** à la mort, convertis en crédits à 1/40 (`renderEnd`).
+- Proposition, à faire dans `buildLevel()` et `interact()` :
+  - un **marchand** (3 objets avec prix et rareté, un seul achat) ;
+  - un **micro-ondes** (2–3 utilisations) ;
+  - un **sanctuaire de malédiction** (il fait apparaître un mini-boss qui lâche un coffre doré) ;
+  - un **sanctuaire aimant** ;
+  - un **coffre doré** gratuit au boss.
+
+**4. Méta trop courte : pas de quêtes, pas de contenu à débloquer** — *M*
+- Megabonk : environ 200 quêtes (« tuer 7 500 ennemis → Revolver ») rapportent de l'argent et ajoutent des armes, tomes et objets au pool. C'est le moteur du « encore une run ».
+- Synth Horde : seuls 5 personnages se débloquent (`CHARS[].unlock`). La boutique (`SHOP`) se maxe et n'ajoute aucun contenu. La Heat se débloque après une victoire.
+- Proposition : une table `QUESTS` déclarative (environ 40 entrées, du type `{test: m => …, unlock: 'item:xxx'}`), évaluée dans `endRun()`. Une partie des armes, objets et tomes reste verrouillée au départ ; un écran « Quêtes » s'ajoute au menu, avec une notification en run quand une quête est remplie.
+
+**5. Foule clairsemée et ennemis peu variés** — *M/L*
+- Megabonk : des hordes très denses, plusieurs familles par carte, des mini-boss.
+- Synth Horde :
+  - `MAX_ENEMIES` vaut 420, et le plafond réel dans `spawning()` est `min(300, 70+36·min)`. Dans la run de test, il n'y avait que **27–32 ennemis vivants** entre la 4e et la 6e minute ;
+  - mêmes 6 types sur les 3 étapes, seulement 2 élites par étape (`eliteAt`) ;
+  - le boss enchaîne 3 à 5 attaques en boucle (`updateBoss`).
+- Proposition :
+  - 2 types propres à chaque étape (porte-bouclier, téléporteur, kamikaze, soigneur, tourelle) ;
+  - un mini-boss à 3 et 6 min ;
+  - un plafond porté à environ 700 sur ordinateur (`InstancedMesh` est déjà en place), avec des vagues en « mur » ;
+  - une deuxième phase de boss avec un pattern nouveau.
+
+**6. Récap de run et feuille de stats** — *S*
+- Megabonk : la demande pour des dégâts par arme et des stats détaillées est assez forte pour que des mods comme StatTracker et DetailedRunStats l'ajoutent.
+- Synth Horde : `damage()` ne cumule que `S.dmgDealt`, sans savoir quelle arme frappe. `renderEnd` affiche le temps, les kills, les dégâts totaux et les coffres. `renderBuild` (pause) liste noms et niveaux, mais aucune stat.
+- Proposition :
+  - un paramètre `src` dans `damage()`, cumulé dans `S.dmgBy` ;
+  - à la fin, des barres de dégâts et de DPS par arme, plus la liste des objets ;
+  - en pause, une feuille de stats lue dans `S.stats` (dégâts, cadence, crit, chance, vitesse, armure).
+
+**7. Le mouvement n'est pas assez récompensé** — *S/M*
+- Megabonk : le bunny hop et la glissade suivie d'un bond accumulent de la vitesse, la stat de vitesse n'a quasiment pas de plafond, un compteur de vitesse existe, et c'est la signature du jeu.
+- Synth Horde :
+  - en l'air, `update()` garde l'élan (`lim = max(maxSp, hs)`) ;
+  - au sol, la vitesse revient vers `maxSp` en quelques frames ;
+  - la glissade a 0,9 s de recharge ;
+  - un saut parfait n'apporte aucun gain.
+- Proposition :
+  - une fenêtre de 120 ms à l'atterrissage pendant laquelle un saut garde 100 % de l'élan, avec +4 % par saut enchaîné (plafond configurable) ;
+  - des traits de vitesse et un FOV qui s'élargit selon la vitesse ;
+  - des tremplins générés procéduralement ;
+  - des objets qui convertissent la vitesse en dégâts (lien avec l'écart 2).
+
+**8. Choix de niveau limités à la relance** — *S*
+- Megabonk : relancer, passer et bannir.
+- Synth Horde : `reroll()` seulement (2 + boutique).
+- Proposition : ajouter **Bannir** (retire une option du pool pour la run) et **Passer** (gagne un peu d'or) dans `buildChoices` et `renderChoices`, en les débloquant via les quêtes.
+
+**9. Personnages trop proches** — *M*
+- Megabonk : 21 personnages, chacun avec un passif qui progresse et souvent une mécanique propre.
+- Synth Horde : la fonction `bonus` de chaque personnage n'est appelée qu'une fois, dans `baseStats`.
+- Proposition : un passif par niveau (`onLevel(s, lvl)`) et une mécanique unique par personnage, puis 4 nouveaux personnages (un fragile qui coûte moins cher en or, un qui frappe au saut, etc.).
+
+**10. Peu d'armes** — *M/L*
+- Megabonk : 31 armes.
+- Synth Horde : 9 armes, dans le `switch` de `updateWeapons`.
+- Proposition : 6 armes procédurales :
+  - cône de flammes ;
+  - aura de givre qui ralentit ;
+  - rail perforant en ligne ;
+  - tornade errante ;
+  - flaques toxiques ;
+  - essaim de drones à tête chercheuse.
+- Chacune avec son évolution sur le modèle de `EVOS`.
+
+**11. Les étapes se ressemblent** — *M/L*
+- Megabonk : chaque carte a une identité (ruines, Crypte et ses 4 clés, Big Bob), et la critique reproche quand même le manque de décors.
+- Synth Horde : un seul générateur (`buildLevel`) ; les étapes ne changent que la palette, `amp`, la gravité et les plateformes du Vide.
+- Proposition :
+  - un **danger propre** à chaque étape : lave de la Fournaise (zones du sol shader qui brûlent), dalles du Vide qui tournent ;
+  - un **objectif caché** : 3 clés dispersées qui ouvrent un coffre légendaire ;
+  - des **repères** procéduraux (tour, arche) qui aident à se repérer.
+
+**12. Ouverture de coffre sans mise en scène, fin de run sans « score chase »** — *S*
+- Megabonk : la rareté se révèle à l'ouverture d'un coffre ; le Final Swarm sert de défi de survie, avec des succès à 60 s, 2 min et 6 min.
+- Synth Horde : `interact()` affiche simplement un `msg`. Après le 3e portail, la run est gagnée et s'arrête.
+- Proposition :
+  - une révélation de 0,6 s à l'ouverture (rayon de la couleur de rareté, montée de son, l'icône qui grossit) ;
+  - un mode **Prolongation infinie** après la victoire, avec un record « survécu X s » enregistré dans `META` et relié aux quêtes.
+
+### Hors de portée sans artistes, animateurs ou compositeurs
+
+- **Personnages animés et charismatiques** (squelette, CL4NK, Roberto…) : le joueur de Synth Horde reste une capsule avec visière et halo. Une animation procédurale (squash/stretch, inclinaison, membres en IK simple) améliore les choses, mais ne remplace pas des modèles riggés et des animations faites à la main.
+- **Modèles d'ennemis et de boss expressifs**, avec silhouettes, attaques animées et télégraphies lisibles : on reste sur des polyèdres néon.
+- **Décors construits à la main** (ruines, crypte, landmarks narratifs) : on peut seulement s'en rapprocher par génération procédurale.
+- **Bande-son composée** avec plusieurs morceaux par carte : `synthwave.js` génère une boucle par étape (intensité 0–3), honnête mais répétitive sur 30 minutes.
+- **Humour « meme » et mise en scène** (voix, gags visuels) : ce n'est pas souhaitable pour l'esthétique synthwave, et ça n'a de toute façon de sens qu'avec des assets faits main.
+
+### Sources
+
+- https://en.wikipedia.org/wiki/Megabonk
+- https://megabonkwiki.net/ (bloqué en lecture directe, résumé de recherche)
+- https://bonkmaster.com/database (bloqué en lecture directe, résumé de recherche)
+- https://megabonk.org/database/tomes/ · https://megabonk.org/database/items/ · https://megabonk.org/guides/progression/ · https://megabonk.org/guides/maps/
+- https://megabonk.wiki.fextralife.com/Megabonk_Shrines_and_Interactables
+- https://www.thegamer.com/megabonk-all-shrine-effects-what-they-do-guide/
+- https://steamcommunity.com/sharedfiles/filedetails/?id=3571240516
+- https://steamcommunity.com/sharedfiles/filedetails/?id=3575226808 (bunny hop)
+- https://www.dtgre.com/2025/10/megabonk-advanced-movement-bunny-hop-sliding-guide.html
+- https://steamcommunity.com/app/3405340/discussions/0/687493125920415796/ (Final Swarm)
+- https://www.megabonk.ninja/guides/dexafire/surviving-the-final-swarm-boss-late-game-strategy-guide
+- https://spot.monster/games/game-guides/megabonk-rarities-guide-item-rarities-explained-2/
+- https://www.nexusmods.com/megabonk/mods/110 · https://thunderstore.io/c/megabonk/p/maanu113/DetailedRunStats/
+- https://rogueliker.com/megabonk-review/ · https://www.gameshub.com/news/reviews/megabonk-review-2832477/ · https://game8.co/articles/reviews/megabonk-review
+- https://gamerant.com/megabonk-features-added-spooky-update/ · https://outrungaming.com/megabonk-sells-1-million-copies-in-two-weeks-vedinad-roguelike/
+- Non vérifié faute de source lue directement : l'existence de « Passer » et « Bannir » dans Megabonk, citée de mémoire. Le Steam Store est bloqué par le proxy.
+
+### Avancement
+
+| Écart | État |
+|---|---|
+| 1 | **fait** (1.4.0) — tremblement de caméra (trauma, réglage « Tremblement de l’écran » en pause), gel d'image (élite 70 ms, évolution 120 ms, boss 200 ms, coup reçu 40 ms), coup de focale (niveau, évolution, boss), mort en « pop » (l'ennemi gonfle et blanchit 0,1 s + éclat blanc), chiffres de crit qui naissent gros, sons à deux couches (bruit filtré + oscillateur, hauteur variée, compresseur), arpège montant des gemmes, ennemis et boss translucides entre caméra et joueur |
+| 2 | à faire |
+| 3 | à faire |
+| 4 | à faire |
+| 5 | à faire |
+| 6 | à faire |
+| 7 | à faire |
+| 8 | à faire |
+| 9 | à faire |
+| 10 | à faire |
+| 11 | à faire |
+| 12 | à faire |
+
 ## Fait
 
 - **Itération E21** (2026-09-28, évaluation n° 7 : verdict « non ») — notifications retenues aussi pendant les choix de
