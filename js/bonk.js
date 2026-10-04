@@ -910,6 +910,7 @@ const S_touch = { joy: { x: 0, y: 0 } };
 
 function jump() {
   const p = S.p;
+  S.sqV = (S.sqV || 0) + 6;   // impulsion d'étirement (l'animation procédurale du personnage la lit)
   if (p.onGround) {
     p.vy = S.stats.jumpV; p.onGround = false; p.jumps = S.stats.jumps - 1; sfx('jump');
     // saut parfait (dans les 150 ms après l'atterrissage) : l'élan est rendu intact, +5 % par saut enchaîné
@@ -1023,7 +1024,7 @@ function spawnEnemy(type, x, z, elite = false) {
     r: T.size * 0.6 * (elite ? 2 : 1), size: T.size * (elite ? 2 : 1), speed: T.speed * (elite ? 0.85 : 1) * (1 + m * 0.02),
     dmg: T.dmg * (1 + m * 0.08) * (elite ? 1.8 : 1) * heatDmg() * (1 + lv * 0.012) * Math.pow(1.2, ot), xp: Math.max(1, Math.round(T.xp * (1 + Math.min(m, 9) * 0.12) * (elite ? 25 : 1) * (elite || Math.random() < (S.dirFrac ?? 1) ? 1 : 0.35))), elite, flash: 0, kx: 0, kz: 0, rot: rand(0, TAU), shootT: rand(1, 3), spin: rand(1, 3),
   };
-  S.enemies.push(e); return e;
+  e.born = S.t; S.enemies.push(e); return e;
 }
 function spawnAround(type, dMin, dMax, elite) {
   const p = S.p;
@@ -1281,7 +1282,7 @@ function hurt(d, src = '?') {
   if (s.dodge && Math.random() < s.dodge) { S.iframe = 0.3; addNum(S.p.x, S.p.y + 2.2, S.p.z, tr('nb.dodge'), false); return false; }
   d *= 1 - Math.min(0.75, s.armor);
   if (s.hurtFreeze) { near(S.p.x, S.p.z, 7, e => { e.slowT = 1.5 + s.hurtFreeze; }); addRing(S.p.x, S.p.y + 0.3, S.p.z, 7, [0.5, 0.8, 1], 0.4); }
-  S.p.hp -= d; S.iframe = 0.7; S.hurtFlash = 1; sfx('hurt'); shake(0.3 + Math.min(0.3, d / S.stats.hp)); hitstop(0.04);
+  S.p.hp -= d; S.iframe = 0.7; S.hurtFlash = 1; sfx('hurt'); S.flinch = 1; shake(0.3 + Math.min(0.3, d / S.stats.hp)); hitstop(0.04);
   (S.hurtBy = S.hurtBy || {})[src] = (S.hurtBy[src] || 0) + d;   // statistiques d'équilibrage
   S.lastHurt = src;   // « tué par … » sur l'écran de fin
   (S.recentHurt = S.recentHurt || []).push({ t: S.t, src, d });
@@ -2105,10 +2106,13 @@ function updateBoss(dt) {
   b.x = clamp(b.x, -HALF + 5, HALF - 5); b.z = clamp(b.z, -HALF + 5, HALF - 5);
   const gy = terrainH(b.x, b.z) + 4 + Math.sin(S.t * 1.5) * 0.5; b.y += (gy - b.y) * Math.min(1, dt * 3);
   b.g.position.set(b.x, b.y, b.z);
+  const tele = b.atkT < 0.7 ? 1 - b.atkT / 0.7 : 0;   // l'attaque arrive : le boss gonfle, vibre et s'illumine
+  const breathe = 1 + Math.sin(S.t * 2.2) * 0.03;
+  b.core.scale.setScalar(breathe * (1 + tele * 0.18) + (tele > 0.6 ? Math.sin(S.t * 60) * 0.03 : 0));
   b.core.rotation.y = Math.atan2(dx, dz); b.core.rotation.x = Math.sin(S.t) * 0.2;
   b.ring.rotation.x = S.t * 1.2; b.ring.rotation.y = S.t * 0.7; b.ring2.rotation.x = -S.t * 0.9; b.ring2.rotation.z = S.t * 0.5;
   b.flash = Math.max(0, b.flash - dt * 5);
-  b.core.material.uniforms.uCore.value = 0.25 + b.flash * 1.5;
+  b.core.material.uniforms.uCore.value = 0.25 + Math.max(b.flash * 1.5, tele * 1.1);
   const enraged = b.hp < b.max * 0.4;
   b.atkT -= dt * (enraged ? 1.5 : 1) * ST().boss.speed;
   if (b.atkT <= 0) {
@@ -2370,7 +2374,8 @@ function update(dt) {
   if (p.y <= g) {
     if (!p.onGround && p.vy < -18) burst(p.x, g + 0.1, p.z, 14, [1, 0.3, 0.9], 5, 0.35);
     if (!p.onGround && p.vy < -10 && st.landShock) asItem(() => explode(p.x, g, p.z, 3.2 * st.area, itemDmg(18 * st.landShock), [0.5, 0.9, 1]));
-    const landing = !p.onGround;
+    const landing = !p.onGround, vy0 = p.vy;
+    if (landing && vy0 < -4) S.sqV = (S.sqV || 0) - Math.min(9, -vy0 * 0.35);   // atterrissage : on s'écrase
     p.y = g; p.vy = 0; p.onGround = true; p.jumps = st.jumps - 1;
     if (landing) { S.landT = S.t; S.landHs = hs; if (S.t - S.jumpBuf < 0.15) { S.jumpBuf = -9; jump(); } }
   } else if (p.y > g + 0.05) {
@@ -2460,11 +2465,15 @@ function syncMeshes(dt) {
     const nc = (e.x - cp.x) ** 2 + (ey - cp.y) ** 2 + (e.z - cp.z) ** 2 < (e.size + 2.2) ** 2;   // tout ennemi collé à l'objectif
     if ((nc || f < 0.8 && qx * qx + qy * qy + qz * qz < rr * rr) && gcounts[e.type] < 48) { m = meshes['g_' + e.type]; i = gcounts[e.type]++; }
     else i = counts[e.type]++;
-    const sc = e.size * (1 + e.flash * 0.15);
-    dummy.position.set(e.x, ey, e.z);
-    if (e.T.charge) dummy.rotation.set(0, e.face || 0, 0);
-    else dummy.rotation.set(e.type === 'drone' ? e.rot : 0, e.rot, e.type === 'drone' ? e.rot * 0.7 : 0);
-    dummy.scale.setScalar(sc); dummy.updateMatrix(); m.setMatrixAt(i, dummy.matrix);
+    const age = t - (e.born ?? -9), k = age < 0.3 ? Math.max(0.05, 1 + 2.7 * Math.pow(age / 0.3 - 1, 3) + 1.7 * Math.pow(age / 0.3 - 1, 2)) : 1;   // jaillit avec un léger rebond
+    const sc = e.size * k;
+    const hop = e.T.fly ? 0 : Math.abs(Math.sin(t * (e.T.speed * 1.6) + e.rot * 7)) * e.size * (e.type === 'brute' || e.elite ? 0.08 : 0.16);
+    dummy.position.set(e.x, ey + hop - (1 - k) * e.size * 0.6, e.z);
+    if (e.T.charge) dummy.rotation.set(e.cst === 2 ? 0.45 : e.cst === 1 ? -0.2 : 0, e.face || 0, 0);   // se ramasse puis fonce penché
+    else if (e.T.fly) dummy.rotation.set(e.type === 'drone' ? e.rot : 0, e.rot, e.type === 'drone' ? e.rot * 0.7 : 0);
+    else dummy.rotation.set(Math.sin(t * 9 + e.rot * 5) * 0.12, e.rot, Math.cos(t * 7 + e.rot * 3) * 0.1);   // balancement de démarche
+    dummy.scale.set(sc * (1 + e.flash * 0.22), sc * (1 - e.flash * 0.18), sc * (1 + e.flash * 0.22));   // encaisse : s'écrase
+    dummy.updateMatrix(); m.setMatrixAt(i, dummy.matrix);
     if (e.flash > 0.05) tmpC.setRGB(1, 1, 1).lerp(tmpC2.set(e.elite ? 0xffc94d : e.T.col), 1 - e.flash);
     else tmpC.set(e.elite ? 0xffc94d : e.T.col);
     m.setColorAt(i, tmpC);
@@ -2538,10 +2547,24 @@ function syncMeshes(dt) {
   // joueur
   const p = S.p;
   player.position.set(p.x, p.y, p.z);
+  // animation procédurale : ressort d'écrasement/étirement (pivot aux pieds), inclinaison vers l'avant avec la vitesse,
+  // roulis dans les virages, sursaut en arrière quand on est touché, foulée qui rebondit
+  const prevYaw = player.rotation.y;
+  player.rotation.order = 'YXZ';
   player.rotation.y = lerpAngle(player.rotation.y, p.face + Math.PI, Math.min(1, dt * 12));
+  const turn = dt > 0 ? Math.atan2(Math.sin(player.rotation.y - prevYaw), Math.cos(player.rotation.y - prevYaw)) / dt : 0;
+  const hsp = Math.hypot(p.vx, p.vz), msp = 8.5 * S.stats.speed;
+  S.sq = S.sq ?? 0; S.sqV = S.sqV ?? 0;
+  if (dt > 0) { S.sqV += (-S.sq * 260 - S.sqV * 13) * dt; S.sq = clamp(S.sq + S.sqV * dt, -0.45, 0.45); }
+  const st2 = 1 + S.sq, sq2 = 1 / Math.sqrt(Math.max(0.3, st2));
+  player.scale.set(sq2, st2, sq2);
+  S.flinch = Math.max(0, (S.flinch || 0) - dt * 4);
+  S.lean = (S.lean || 0) + ((p.slide > 0 ? 0 : -Math.min(0.32, hsp / msp * 0.18)) + S.flinch * 0.45 - (S.lean || 0)) * Math.min(1, dt * 10);
+  S.roll = (S.roll || 0) + (clamp(-turn * 0.06, -0.35, 0.35) * Math.min(1, hsp / msp) - (S.roll || 0)) * Math.min(1, dt * 8);
+  player.rotation.x = S.lean; player.rotation.z = S.roll;
   const b = player.userData.body;
-  b.rotation.x = p.slide > 0 ? -1.2 : 0; b.position.y = p.slide > 0 ? 0.5 : 0.9 + (p.onGround ? Math.abs(Math.sin(S.t * 12)) * Math.min(1, Math.hypot(p.vx, p.vz) / 8) * 0.12 : 0);
-  player.userData.halo.rotation.z += dt * 3;
+  b.rotation.x = p.slide > 0 ? -1.2 : 0; b.position.y = p.slide > 0 ? 0.5 : 0.9 + (p.onGround ? Math.abs(Math.sin(S.t * 12)) * Math.min(1, hsp / 8) * 0.12 : 0);
+  player.userData.halo.rotation.z += dt * (3 + hsp * 0.4); player.userData.halo.position.y = 2 + Math.sin(S.t * 4) * 0.06 + S.sq * 0.4;
   player.visible = !(S.iframe > 0 && Math.floor(S.t * 20) % 2);
   if (S.ptrail) {   // traînée du joueur : visible quand il va vite (glissade, rebonds, tremplins)
     const hs = Math.hypot(p.vx, p.vz), ms = 8.5 * S.stats.speed;

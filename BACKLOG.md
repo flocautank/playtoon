@@ -259,8 +259,8 @@ longue (6–7 min), répartition des dégâts objets/armes, grille d'objets sur 
 | Lot | Contenu | État |
 |---|---|---|
 | V1 — effets | Traînées en ruban (joueur rapide, missiles, disques, ruée des chargeurs), particules à cœur chaud, marques au sol (brûlures d'explosion, d'éruption et de mort de boss, flaques toxiques et braises lumineuses), ondes de choc en pool (élites, évolutions, boss, niveaux, tremplins, bouches de lave), halo lumineux (bloom) sur ordinateur seulement, réglable en pause. Un appel de dessin par système ; téléphone mesuré sans surcoût | **fait** (1.10.0) |
-| V2 — animation procédurale | Joueur : ressort d'écrasement/étirement, inclinaison avec la vitesse et dans les virages, sursaut quand il est touché. Ennemis : apparition qui jaillit, démarche, écrasement à l'impact, ruée penchée. Boss : respiration et télégraphie avant chaque attaque | en cours |
-| V3 — personnages | Direction artistique propre au jeu (pas un robot générique), modèles et animations Blender, horde animée par texture (VAT) pour rester fluide sur téléphone | à faire |
+| V2 — animation procédurale | Joueur : ressort d'écrasement/étirement, inclinaison avec la vitesse et dans les virages, sursaut quand il est touché. Ennemis : apparition qui jaillit, démarche, écrasement à l'impact, ruée penchée. Boss : respiration et télégraphie avant chaque attaque | **fait** (1.11.0) |
+| V3 — personnages | Direction artistique propre au jeu (pas un robot générique), modèles et animations Blender, horde animée par texture (VAT) pour rester fluide sur téléphone | en cours |
 
 ## Fait
 
