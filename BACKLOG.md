@@ -239,6 +239,21 @@ Révèle ce que les bots naïfs ne voyaient pas : un build complet devient tout-
 | B2 | Exception en appuyant sur E juste après « Prolongation ∞ » (portail supprimé) | S | **fait** (1.9.2) |
 | — | Mineurs : boss collé à l'objectif sur le côté (translucide aussi désormais), PV « 209/208 » (corrigé) ; toast du site sur le récap, boutique pleine après ~1,5 victoire : laissés | S | partiel |
 
+### Réévaluation n° 5 (2026-10-04, build 1.9.2) — **VERDICT : plus d'écart de qualité atteignable**
+
+3 runs complètes du bot fort (ordinateur EN Nova + Prolongation, téléphone FR Blitz, ordinateur FR Hex + Prolongation),
+repro des bugs et du calibrage. Tiennent : Prolongation mortelle (6:35 et 7:07), boss 42–89 s (test isolé : 60,0 s avec ou
+sans salve), coffres et Prolongation sans bug, horde dense, 437 clés de texte dans les 6 langues. À parité ou mieux :
+jus, mouvement, horde, boss, contenu, économie, choix de niveau, méta ; mieux que Megabonk : récap par source, 6 langues,
+tactile, manette. **Boucle terminée.** Restent hors de portée sans humains : modèles riggés et animés, cartes faites main,
+bande-son composée, humour/voix ; et le volume brut de Megabonk (21 persos, 31 armes, 85 objets), extensible en code mais
+écart de quantité, pas de qualité.
+
+Mineurs traités dans 1.9.3 : un build faible ne voit plus la barre du boss fondre sans raison (PV jamais sous la base) ;
+l'écran de fin après une mort en Prolongation titre « Victoire · fin de la Prolongation » ; salves d'élite un peu moins fortes (1re cause de mort du bot débutant). Mineurs laissés (équilibrage ou
+préférence) : étape 3 sans danger pour un build très fort (comme Megabonk, la Prolongation sanctionne), Prolongation un peu
+longue (6–7 min), répartition des dégâts objets/armes, grille d'objets sur téléphone, toast du site sur le récap.
+
 ## Fait
 
 - **Itération E21** (2026-09-28, évaluation n° 7 : verdict « non ») — notifications retenues aussi pendant les choix de

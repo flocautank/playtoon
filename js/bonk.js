@@ -1121,7 +1121,7 @@ function updateEnemies(dt) {
     }
     if (e.T.warden) {   // gardien : anneau de balles toutes les 4 s
       e.wt = (e.wt ?? 3) - dt;
-      if (e.wt <= 0 && d < 30) { e.wt = 4; const n = 14, off = rand(0, TAU); for (let i = 0; i < n; i++) fireBullet(e.x, e.y + 1, e.z, off + i * TAU / n, 7.5, e.dmg * 0.55, 'eliteShot'); addRing(e.x, e.y + 0.3, e.z, 3, [1, 0.18, 0.48], 0.3); }
+      if (e.wt <= 0 && d < 30) { e.wt = 4.5; const n = 10, off = rand(0, TAU); for (let i = 0; i < n; i++) fireBullet(e.x, e.y + 1, e.z, off + i * TAU / n, 6.5, e.dmg * 0.4, 'wardenShot'); addRing(e.x, e.y + 0.3, e.z, 3, [1, 0.18, 0.48], 0.3); }   // anneau plus lâche : on passe entre les balles
     }
     if (e.T.ranged && d < 13) sp = d < 9 ? -e.speed * 0.6 : 0;
     if (e.T.charge) {
@@ -1159,7 +1159,7 @@ function updateEnemies(dt) {
         else {
           e.shootT = e.elite ? 1.5 : 3.4;
           const n = e.elite ? 5 : 1;
-          for (let k = 0; k < n; k++) fireBullet(e.x, e.y + 0.6, e.z, Math.atan2(dz, dx) + (k - (n - 1) / 2) * 0.22, 8.5, e.dmg * 0.75, e.elite ? 'eliteShot' : 'bullet');
+          for (let k = 0; k < n; k++) fireBullet(e.x, e.y + 0.6, e.z, Math.atan2(dz, dx) + (k - (n - 1) / 2) * 0.22, 8.5, e.dmg * (e.elite ? 0.55 : 0.75), e.elite ? 'eliteShot' : 'bullet');   // la salve de 5 d'une élite : 1re cause de mort des débutants
           if (!e.elite) gunInFlight++;
         }
       }
@@ -2075,8 +2075,9 @@ function updateBoss(dt) {
     b.sec -= 1; const d = b.dealt - (b.last || 0); b.last = b.dealt;
     b.ema = b.ema === undefined ? d : b.ema * 0.65 + d * 0.35;
     if (live < 20 && b.ema > 0) {
-      const k = clamp(b.ema * Math.max(5, dur - live) / Math.max(1, b.hp), 0.85, 1.15), lo = 9000 * ST().boss.hp * heatHp() * 0.4;
-      b.hp *= k; b.max = Math.max(b.max * k, lo); b.hp = Math.min(b.hp, b.max);
+      // jamais sous les PV de base : un build faible garde le boss d'origine (sa barre ne fond pas sans raison)
+      const k = clamp(b.ema * Math.max(5, dur - live) / Math.max(1, b.hp), 0.85, 1.15), lo = 9000 * ST().boss.hp * heatHp();
+      const nm = Math.max(b.max * k, lo), k2 = nm / b.max; b.hp = Math.min(b.hp * k2, nm); b.max = nm;
     }
   }
   b.hp = Math.max(b.hp, bossFloor(b));
@@ -2708,7 +2709,7 @@ function endRun(win) {
   ['nb-joy', 'nb-jumpbtn', 'nb-actbtn', 'nb-slidebtn', 'nb-pausebtn'].forEach(id => $(id).classList.add('hidden'));
   $('nb-prompt').classList.remove('show');
 }
-const KB = { vent: 1, drone: 1, spike: 1, brute: 1, gunner: 1, charger: 1, splitter: 1, bomber: 1, blinker: 1, healer: 1, elite: 1, bullet: 1, eliteShot: 1, boss: 1, bossShot: 1, wave: 1 };
+const KB = { wardenShot: 1, vent: 1, drone: 1, spike: 1, brute: 1, gunner: 1, charger: 1, splitter: 1, bomber: 1, blinker: 1, healer: 1, elite: 1, bullet: 1, eliteShot: 1, boss: 1, bossShot: 1, wave: 1 };
 // récap des dégâts par arme (et par objets), en barres : ce qui a vraiment porté la run
 function dmgByHTML() {
   const tot = Object.values(S.dmgBy).reduce((a, b) => a + b, 0); if (!tot) return '';
@@ -2730,7 +2731,7 @@ function statsHTML() {
 function renderEnd() {
   const { surv, cr, newly, killedBy, best, heatRec, firstWin, ot, otRec } = S.endInfo;
   $('nb-endless').classList.toggle('hidden', !(S.won && !S.endless));
-  $('nb-endtitle').innerHTML = S.won ? `<span class="neon" style="font-size:30px">${tr('nb.victory')}</span>` : tr('nb.dead');
+  $('nb-endtitle').innerHTML = S.endless ? `<span class="neon" style="font-size:26px">${tr('nb.otOver')}</span>` : S.won ? `<span class="neon" style="font-size:30px">${tr('nb.victory')}</span>` : tr('nb.dead');
   const row = (a, b) => `<div><span class="muted">${tr(a)}</span><b>${b}</b></div>`;
   const full = (txt, col) => `<div class="nb-efull" style="color:${col}">${txt}</div>`;
   const notes = (killedBy ? full(tr('nb.kb.' + (killedBy in KB ? killedBy : 'other')), '#ff7a95') : '')
