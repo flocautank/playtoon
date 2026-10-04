@@ -212,6 +212,20 @@ Le cœur de la boucle est déjà présent : timer de 10 min, coffres payés en o
 | R6 | Lisibilité en étape 3 : fondu étendu à tout ennemi proche de la caméra, silhouette du joueur à travers les obstacles | S | **fait** (1.9.0) — tout ennemi collé à l'objectif devient translucide (en plus de ceux entre caméra et joueur) ; la silhouette du joueur à travers les obstacles existait déjà |
 | — | Mineurs : « Dégâts » de fin = excès (corrigé, 1.8.1) ; lave comptée comme objets (corrigé) ; « −0% » et icônes sans libellé sur tactile (corrigé : libellés courts) | S | **fait** (1.8.1) |
 
+### Réévaluation n° 3 (2026-10-04, build 1.9.0) — verdict : écarts atteignables restants
+
+Évaluateur indépendant, bot « joueur fort » (coffres, sanctuaires, marchand, dîme, autel ; 4 runs, ~100 min simulées).
+Révèle ce que les bots naïfs ne voyaient pas : un build complet devient tout-puissant (niveau 136–191, 73–90 k kills).
+
+| # | Écart | Effort | État |
+|---|---|---|---|
+| T1 | Boss 2 et 3 tués en 1–2 s (la calibration n'agissait qu'après 6 s, à la hausse) | S | **fait** (1.9.1) — entrée de 2 s invulnérable à 16 m, recalage continu des PV pendant 10 s, plancher de PV lié au temps dans `damage()` : un build énorme met au moins la moitié de la durée visée (mesuré ×200 dégâts : 51 / 48 / 80 s ; bot fort de l'évaluateur : 55 / 62 / 70 s) |
+| T2 | Puissance sans plafond, horde vide après l'étape 1 | M | **fait** (1.9.1) — « pression » : PV ennemis ×1,12 toutes les 5 s tant que l'écran se vide au débit maximal (jusqu'à ×6) ; 30 % des apparitions à 45–55 m ; renforts du directeur à 35 % d'XP et seulement des drones et des pointes ; bénédictions de fin de build dégressives (−5 % chacune) ; courbe d'XP plus raide après 25, ennemis +3 % PV / +1,2 % dégâts par niveau au-delà de 25. Bot fort : niveau 191 → 105, horde 130–360 en étapes 2–3, dégâts subis ×2 (surtout aux boss) |
+| T3 | Méta épuisée en une run (+6 000 à 15 000 crédits par victoire) | S | **fait** (1.9.1) — crédits sous-linéaires (4·√kills, niveau plafonné à 60) ; paliers de quêtes de kills recalés (3 k → 600 k) |
+| T4 | Disque évolué qui couvre l'écran | S | **fait** (1.9.1) — taille visuelle plafonnée |
+| T5 | Or qui s'accumule en étape 3 | S | **fait** (1.9.1) — dîme sans limite (prix ×1,8) |
+| — | Mineurs : quêtes qui poussent les boutons de fin sous le pli (3 max + « et N autres »), « 1 fois » (texte dédié), autel à confirmer (2e appui) | S | **fait** (1.9.1) |
+
 ## Fait
 
 - **Itération E21** (2026-09-28, évaluation n° 7 : verdict « non ») — notifications retenues aussi pendant les choix de

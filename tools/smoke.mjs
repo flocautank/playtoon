@@ -278,6 +278,7 @@ const killBossAndEnter = () => page.evaluate(() => {
   for (let i = 0; i < 5; i++) nb.update(1 / 30);
   if (!S.boss) return 'pas de boss';
   const name = S.boss && document.querySelector('#nb-boss span').textContent + ` (PV de départ ${Math.round(S.boss.max)})`;
+  if (S.boss) S.boss.age = 999;   // le smoke vérifie le chemin de victoire, pas la durée du combat (mesurée à part)
   for (let i = 0; i < 900 && S.boss; i++) { S.enemies.length = 0; S.p.x = S.boss.x + 5; S.p.z = S.boss.z; S.state = 'play'; S.pending = 0; nb.update(1 / 30); }
   if (!S.portal) return 'boss vivant';
   S.p.x = S.portal.x + 1; S.p.z = S.portal.z; S.p.y = S.portal.y;

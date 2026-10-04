@@ -133,7 +133,7 @@ const ITEMS = [
 // Quêtes : objectifs permanents qui débloquent des objets (absents des coffres tant que la quête n'est pas faite),
 // des crédits ou des bonus de run. Évaluées pendant la run (compteurs instantanés) et à la fin.
 const QUESTS = [
-  { id: 'k500', ic: '☠', goal: 500, val: m => m.totalKills, item: 'star' },
+  { id: 'k500', tk: 'kills', ic: '☠', goal: 3000, val: m => m.totalKills, item: 'star' },
   { id: 'boss1', ic: '👑', goal: 1, val: m => m.bossKills, item: 'turbine' },
   { id: 'stage2', ic: '🌋', goal: 2, val: m => m.bestStage || 0, item: 'ember' },
   { id: 'evo1', ic: '⭐', goal: 1, val: m => m.evos || 0, item: 'soles' },
@@ -142,28 +142,28 @@ const QUESTS = [
   { id: 'lvl25', ic: '▲', goal: 25, val: m => m.maxLevel, item: 'clock' },
   { id: 'warden', ic: '🛡', goal: 1, val: m => m.wardens || 0, item: 'burner' },
   { id: 'gold3', ic: '✨', goal: 3, val: m => m.goldChests || 0, item: 'midas' },
-  { id: 'bombers', ic: '💥', goal: 100, val: m => m.bombers || 0, item: 'adren' },
+  { id: 'bombers', tk: 'bombers', ic: '💥', goal: 300, val: m => m.bombers || 0, item: 'adren' },
   { id: 'itemdmg', ic: '🎒', goal: 25000, val: m => m.itemDmg || 0, item: 'keg' },
   { id: 'win', ic: '🏁', goal: 1, val: m => m.wins, item: 'chrono' },
-  { id: 'k5000', ic: '☠', goal: 5000, val: m => m.totalKills, item: 'mirror' },
+  { id: 'k5000', tk: 'kills', ic: '☠', goal: 40000, val: m => m.totalKills, item: 'mirror' },
   { id: 'ot60', ic: '∞', goal: 60, val: m => m.bestOT || 0, item: 'axe' },
   { id: 'vendor5', ic: '🛒', goal: 5, val: m => m.vendorBuys || 0, reroll: 1 },
   { id: 'evo10', ic: '⭐', goal: 10, val: m => m.evos || 0, banish: 1 },
   { id: 'time10', ic: '⏱', goal: 600, val: m => m.bestTime, credits: 300 },
   { id: 'chests100', ic: '📦', goal: 100, val: m => m.chestsTotal || 0, credits: 500 },
   { id: 'boss5', ic: '👑', goal: 5, val: m => m.bossKills, credits: 600 },
-  { id: 'k20000', ic: '☠', goal: 20000, val: m => m.totalKills, credits: 1000 },
+  { id: 'k20000', tk: 'kills', ic: '☠', goal: 250000, val: m => m.totalKills, credits: 1000 },
   { id: 'heat3', ic: '🔥', goal: 3, val: m => Math.max(0, ...Object.values(m.heatWon || {})), credits: 1500 },
 ];
 // paliers (texte générique « {n} ») : les 6 nouvelles armes et des crédits ; puis une victoire avec chaque personnage
 const heatMax = m => Math.max(0, ...Object.values(m.heatWon || {}));
-[['kills', '☠', m => m.totalKills, [[2000, { weapon: 'flame' }], [10000, { credits: 800 }], [50000, { credits: 2500 }]]],
+[['kills', '☠', m => m.totalKills, [[12000, { weapon: 'flame' }], [100000, { credits: 800 }], [600000, { credits: 2500 }]]],
  ['bosses', '👑', m => m.bossKills, [[3, { weapon: 'rail' }], [10, { credits: 900 }], [25, { credits: 2000 }]]],
  ['evos', '⭐', m => m.evos || 0, [[5, { weapon: 'toxic' }], [25, { credits: 1500 }]]],
  ['chests', '📦', m => m.chestsTotal || 0, [[250, { credits: 1200 }]]],
  ['gold', '✨', m => m.goldChests || 0, [[10, { weapon: 'drones' }], [30, { credits: 1500 }]]],
  ['wardens', '🛡', m => m.wardens || 0, [[5, { credits: 600 }], [15, { credits: 1500 }]]],
- ['bombers', '💥', m => m.bombers || 0, [[500, { credits: 800 }]]],
+ ['bombers', '💥', m => m.bombers || 0, [[2000, { credits: 800 }]]],
  ['vendor', '🛒', m => m.vendorBuys || 0, [[20, { credits: 900 }]]],
  ['itemdmg', '🎒', m => m.itemDmg || 0, [[100000, { credits: 700 }], [500000, { banish: 1 }]]],
  ['ot', '∞', m => m.bestOT || 0, [[180, { credits: 1000 }], [300, { credits: 2000 }]]],
@@ -176,7 +176,7 @@ const heatMax = m => Math.max(0, ...Object.values(m.heatWon || {}));
 ['glitch', 'ronin', 'volt', 'bastion', 'nova', 'orbit', 'blitz', 'miser', 'hex'].forEach(c => QUESTS.push({ id: 'win_' + c, ch: c, ic: '🏆', goal: 1, val: m => (m.winsBy || {})[c] || 0, credits: 500 }));
 const WQUEST_OF = Object.fromEntries(QUESTS.filter(q => q.weapon).map(q => [q.weapon, q.id]));
 const weaponOK = id => !WQUEST_OF[id] || questDone(WQUEST_OF[id]);
-const questText = q => q.ch ? tr('nb.qt.winWith', { c: CHARS.find(c => c.id === q.ch).name }) : q.tk ? tr('nb.qt.' + q.tk, { n: num(q.goal) }) : tr('nb.q.' + q.id);
+const questText = q => q.tk === 'keys' && q.goal === 1 ? tr('nb.q.keysOnce') : q.ch ? tr('nb.qt.winWith', { c: CHARS.find(c => c.id === q.ch).name }) : q.tk ? tr('nb.qt.' + q.tk, { n: num(q.goal) }) : tr('nb.q.' + q.id);
 const QUEST_OF = Object.fromEntries(QUESTS.filter(q => q.item).map(q => [q.item, q.id]));
 const questDone = id => !!(META.quests && META.quests[id]);
 const itemOK = it => !QUEST_OF[it.id] || questDone(QUEST_OF[it.id]);
@@ -282,7 +282,7 @@ const SHOP = [
 ];
 const shopLvl = id => (META.shop && META.shop[id]) || 0;
 const shopCost = it => Math.round(it.base * Math.pow(1.8, shopLvl(it.id)));
-function runCredits(S) { return Math.floor(((S.gold || 0) / 40 + S.kills / 15 + S.t / 10 + (S.earlyTotal || 0) / 6 + S.level * 2 + (S.stage || 0) * 120 + (S.bossDead ? 100 : 0) + (S.won ? 80 : 0)) * (1 + 0.25 * (S.heat || 0))); }
+function runCredits(S) { return Math.floor(((S.gold || 0) / 40 + 4 * Math.sqrt(S.kills) + S.t / 10 + (S.earlyTotal || 0) / 6 + Math.min(S.level, 60) * 2 + (S.stage || 0) * 120 + (S.bossDead ? 100 : 0) + (S.won ? 80 : 0)) * (1 + 0.25 * (S.heat || 0))); }
 // Chaleur (Heat) 1–5 : débloquée par une première victoire ; chaque cran ajoute PV, dégâts et cadence d'apparition, et rapporte plus de crédits.
 const HEAT_MAX = 5;
 const heatWon = id => { const h = META.heatWon && META.heatWon[id]; return typeof h === 'number' ? h : -1; };
@@ -786,7 +786,7 @@ function newRun() {
   lockPointer();
   renderWeaponsHud();
 }
-const xpNeed = l => Math.floor(3 + (l - 1) * 2.4 + Math.pow(l - 1, 1.55) * 0.7 + Math.max(0, l - 25) ** 2 * 0.6);   // plus raide après 25 : pas de rafales de niveaux en fin de run
+const xpNeed = l => Math.floor((3 + (l - 1) * 2.4 + Math.pow(l - 1, 1.55) * 0.7 + Math.max(0, l - 25) ** 2 * 0.6) * (1 + Math.max(0, l - 25) * 0.045));   // la horde du directeur rapporte beaucoup d'XP : la courbe se raidit après 25   // plus raide après 25 : pas de rafales de niveaux en fin de run
 
 function addWeapon(id) {
   const b = WEAPONS[id];
@@ -1006,11 +1006,12 @@ function near(x, z, r, cb) {
 function spawnEnemy(type, x, z, elite = false) {
   if (S.enemies.length >= enemyCap()) return null;
   const T = ETYPES[type], m = diffMin();
-  const hpMul = (1 + m * 0.3 + m * m * 0.035) * (elite ? 14 : 1) * heatHp();
+  const lv = Math.max(0, S.level - 25);   // un build très avancé fait face à des ennemis plus solides et plus dangereux
+  const hpMul = (1 + m * 0.3 + m * m * 0.035) * (elite ? 14 : 1) * heatHp() * (S.press || 1) * (1 + lv * 0.03);
   const e = {
     type, T, x, z, y: terrainH(x, z) + (T.fly ? 1.6 : 0), hp: T.hp * hpMul, max: T.hp * hpMul,
     r: T.size * 0.6 * (elite ? 2 : 1), size: T.size * (elite ? 2 : 1), speed: T.speed * (elite ? 0.85 : 1) * (1 + m * 0.02),
-    dmg: T.dmg * (1 + m * 0.08) * (elite ? 1.8 : 1) * heatDmg(), xp: Math.round(T.xp * (1 + Math.min(m, 9) * 0.12) * (elite ? 25 : 1)), elite, flash: 0, kx: 0, kz: 0, rot: rand(0, TAU), shootT: rand(1, 3), spin: rand(1, 3),
+    dmg: T.dmg * (1 + m * 0.08) * (elite ? 1.8 : 1) * heatDmg() * (1 + lv * 0.012), xp: Math.max(1, Math.round(T.xp * (1 + Math.min(m, 9) * 0.12) * (elite ? 25 : 1) * (elite || Math.random() < (S.dirFrac ?? 1) ? 1 : 0.35))), elite, flash: 0, kx: 0, kz: 0, rot: rand(0, TAU), shootT: rand(1, 3), spin: rand(1, 3),
   };
   S.enemies.push(e); return e;
 }
@@ -1046,7 +1047,12 @@ function spawning(dt) {
   // directeur de foule : vise un nombre d'ennemis en vie selon le temps (≈25 à 0:30, ≈90 à 3:00, ≈200 à 7:00) ;
   // si un bon build vide l'écran, le débit monte (jusqu'à 60/s) pour garder une vraie horde
   const want = Math.min(cap, 12 + m * 27) * (S.boss || S.bossDead ? 0.5 : 1);
+  const base = rate;
   if (S.enemies.length < want) rate = Math.min(60, rate + (want - S.enemies.length) * 0.25);
+  S.dirFrac = base / rate;   // part des apparitions « normales » : les renforts du directeur rapportent moins d'XP
+  // pression : si un build vide l'écran malgré le débit maximal, les ennemis deviennent plus solides (jusqu'à ×6)
+  if (rate >= 60 && S.enemies.length < want * 0.7) { if ((S.pressT = (S.pressT || 0) + dt) > 5) { S.pressT = 0; S.press = Math.min(6, (S.press || 1) * 1.12); } }
+  else { S.pressT = 0; if (S.enemies.length > want) S.press = Math.max(1, (S.press || 1) - dt * 0.01); }
   if (S.boss) rate *= 0.5;
   if (S.bossDead && !S.endless) rate *= 0.12;   // portail ouvert : accalmie jusqu'au passage
   if (S.endless) rate = Math.min(40, rate * (1.6 + (S.t - S.endless.t0) / 45));   // la nuée finale ne fait que grossir
@@ -1054,7 +1060,8 @@ function spawning(dt) {
   S.spawnAcc += rate * dt;
   while (S.spawnAcc >= 1) {
     S.spawnAcc--; if (S.enemies.length >= cap) continue;
-    const ty = pickType(), e = spawnAround(ty, 26, 42);
+    // renforts du directeur : de la chair à canon (drones, pointes), pas des tireurs — la horde, pas une pluie de balles
+    const far = Math.random() < 0.3, ty = Math.random() < (S.dirFrac ?? 1) ? pickType() : Math.random() < 0.5 ? 'drone' : 'spike', e = spawnAround(ty, far ? 45 : 26, far ? 55 : 42);
     // meutes : les petits arrivent par grappes de 3 à 6 (une horde, pas une pluie d'individus), comptées dans la cadence
     if (e && (ty === 'drone' || ty === 'spike') && Math.random() < 0.25) for (let k = 0, n = 2 + (Math.random() * 4 | 0); k < n && S.enemies.length < cap; k++) { spawnEnemy(ty, e.x + rand(-2.5, 2.5), e.z + rand(-2.5, 2.5)); S.spawnAcc -= 0.6; }
   }
@@ -1169,7 +1176,7 @@ function fireBullet(x, y, z, ang, speed, dmg, src = 'bullet') {
 let dmgSrc = 'item';
 function asItem(f) { const ps = dmgSrc; dmgSrc = 'item'; f(); dmgSrc = ps; }
 function damage(e, amount, canCrit = true, kx = 0, kz = 0) {
-  if (e.hp <= 0) return;
+  if (e.hp <= 0 || e.boss && (e.age || 0) < 2) return;   // le boss arrive : 2 s d'invulnérabilité
   let crit = false;
   if (canCrit && Math.random() < S.stats.crit) { amount *= S.stats.critMul; crit = true; }
   const s = S.stats;
@@ -1177,6 +1184,7 @@ function damage(e, amount, canCrit = true, kx = 0, kz = 0) {
   // dégâts utiles seulement (pas l'excès sur un ennemi achevé) ; les ondes « nettoyage » de la mort du boss ne comptent pas
   if (dmgSrc !== 'none') { const u = Math.min(amount, e.hp); S.dmgBy[dmgSrc] = (S.dmgBy[dmgSrc] || 0) + u; S.dmgDealt += u; if (e.boss) e.dealt += u; }
   e.hp -= amount; e.flash = 1;
+  if (e.boss) e.hp = Math.max(e.hp, bossFloor(e));
   if (s.frost && e.hp > 0 && Math.random() < s.frost) e.slowT = 2;
   if (crit && s.critChain && Math.random() < s.critChain) asItem(() => chainFrom(e, amount * 0.5));
   if (!e.boss) { e.kx += kx; e.kz += kz; }
@@ -1710,6 +1718,8 @@ function rollRarity(bonus = 0) {
   for (let i = 0; i < 4; i++) { r -= w[i]; if (r <= 0) return i; }
   return 0;
 }
+// bénédictions de fin de build : dégressives (−5 % par bénédiction déjà prise au choix de niveau), sauf aux sanctuaires
+function statVal(c) { const v = TOMES[c.key].v[c.rar], k = choiceMode === 'level' ? Math.pow(0.95, S.blessN || 0) : 1; return c.key === 'multi' ? v : Math.round(v * k * 1000) / 1000; }
 function makeWeaponUpgrade(w, rar) {
   const b = WEAPONS[w.id];
   const pool = b.ups.slice();
@@ -1767,7 +1777,7 @@ function choiceHTML(c) {
   else if (c.kind === 'tnew' || c.kind === 'tup' || c.kind === 'stat') {
     const t = TOMES[c.key || c.id]; ic = t.ic; const tt = S.tomes.find(x => x.id === c.id);
     title = c.kind === 'stat' ? t.bless : c.kind === 'tnew' ? t.name : tr('nb.wLvl', { w: t.name, n: tt.lvl + 1 });
-    lines = [t.txt(t.v[c.rar])];
+    lines = [t.txt(c.kind === 'stat' ? statVal(c) : t.v[c.rar])];
     if (c.kind === 'tnew') lines.unshift(tr('nb.newTome'));
     const evoW = Object.keys(EVOS).find(k => EVOS[k].tome === (c.key || c.id));
     if (c.kind === 'tnew' && evoW && S.weapons.some(w => w.id === evoW && !w.evo)) lines.push(`<span class="muted small">${tr('nb.evolvesW', { w: WEAPONS[evoW].name })}</span>`);
@@ -1875,7 +1885,7 @@ function pick(i) {
     }
   } else if (c.kind === 'tnew') { S.tomes.push({ id: c.id, lvl: 1 }); applyStat(c.id, TOMES[c.id].v[c.rar]); }
   else if (c.kind === 'tup') { S.tomes.find(t => t.id === c.id).lvl++; applyStat(c.id, TOMES[c.id].v[c.rar]); }
-  else if (c.kind === 'stat') applyStat(c.key, TOMES[c.key].v[c.rar]);
+  else if (c.kind === 'stat') { applyStat(c.key, statVal(c)); if (choiceMode === 'level') S.blessN = (S.blessN || 0) + 1; }
   else if (c.kind === 'gold') S.gold += 25;
   else S.p.hp = Math.min(S.stats.hp, S.p.hp + S.stats.hp * 0.5);
   if (choiceMode === 'level') S.pending--;
@@ -1943,12 +1953,13 @@ function interact() {
   }
   if (t.kind === 'altar') {
     if (S.boss || S.bossDead || S.time <= 1) return;
+    if (!(S.altarAsk > S.t)) { S.altarAsk = S.t + 3; msg(tr('nb.altarConfirm'), 3, '#ff2d55'); return; }   // 2e appui pour confirmer
     shrineUsed(t); S.early = S.time; S.earlyTotal = (S.earlyTotal || 0) + S.time; S.time = 0.01;
     burst(t.x, t.y + 2, t.z, 60, [1, 0.18, 0.33], 8, 0.7); shake(0.4); return;
   }
   if (t.kind === 'tithe') {
     if (S.gold < tithePrice()) { msg(tr('nb.noGold'), 1); return; }
-    S.gold -= tithePrice(); S.titheN = (S.titheN || 0) + 1; if (S.titheN >= 3) shrineUsed(t);
+    S.gold -= tithePrice(); S.titheN = (S.titheN || 0) + 1;   // sans limite : le prix monte (×1,8)
     burst(t.x, t.y + 2, t.z, 40, [1, 0.95, 0.6], 7, 0.6); openLevelUp('shrine'); return;
   }
   if (t.kind) {   // sanctuaire
@@ -2021,9 +2032,12 @@ function nextStage() {
 }
 
 // ============================================================ boss
+const bossDur = () => [60, 75, 90][S.stage] * (1 + 0.1 * (S.heat || 0));
+// plancher de PV lié au temps : même un build énorme met au moins la moitié de la durée visée
+function bossFloor(b) { const live = (b.age || 0) - 2, half = bossDur() / 2; return live > 0 && live < half ? b.max * (1 - live / half) * 0.6 : 0; }
 function spawnBoss() {
   const p = S.p; const a = rand(0, TAU);
-  const x = clamp(p.x + Math.cos(a) * 30, -HALF + 10, HALF - 10), z = clamp(p.z + Math.sin(a) * 30, -HALF + 10, HALF - 10);
+  const x = clamp(p.x + Math.cos(a) * 16, -HALF + 10, HALF - 10), z = clamp(p.z + Math.sin(a) * 16, -HALF + 10, HALF - 10);
   const g = new THREE.Group();
   const B = ST().boss;
   const geo = [new THREE.DodecahedronGeometry(3), new THREE.IcosahedronGeometry(3.4, 0), new THREE.OctahedronGeometry(3.8, 0)][S.stage];
@@ -2042,10 +2056,16 @@ function spawnBoss() {
 function updateBoss(dt) {
   const b = S.boss; if (!b || b.hp <= 0) return;
   const p = S.p;
-  if (b.cal > 0 && (b.cal -= dt) <= 0) {   // durée visée du combat : 60 / 75 / 90 s (+10 % par cran de Chaleur)
-    const want = b.dealt + b.dealt / 6 * [60, 75, 90][S.stage] * (1 + 0.1 * (S.heat || 0));
-    if (want > b.max) { const k = Math.min(want, b.max * 40) / b.max; b.hp *= k; b.max *= k; }
+  // durée visée du combat : 60 / 75 / 90 s (+10 % par cran de Chaleur). Entrée de 2 s invulnérable ; pendant les 10 s
+  // suivantes, les PV se recalent en continu sur les dégâts réellement portés ; ensuite un plancher lié au temps
+  // empêche de le faire fondre (un build énorme raccourcit le combat, sans le réduire à 1 s)
+  b.age = (b.age || 0) + dt;
+  const dur = bossDur(), live = b.age - 2;
+  if (live > 0.5 && live < 12) {
+    const want = b.dealt + b.dealt / live * (dur - live);
+    if (want > b.max) { const k = Math.min(want, b.max * 60) / b.max; b.hp *= k; b.max *= k; }
   }
+  b.hp = Math.max(b.hp, bossFloor(b));
   let dx = p.x - b.x, dz = p.z - b.z; const d = Math.hypot(dx, dz) || 1; dx /= d; dz /= d;
   if (b.pull > 0) {   // puits de gravité de l'Archonte : attire le joueur, qu'il faut fuir en courant ou en sautant
     b.pull -= dt; const k = 11 * Math.min(1, 40 / Math.max(8, d));
@@ -2326,7 +2346,7 @@ function syncMeshes(dt) {
   put('bullet', S.bullets, b => { dummy.position.set(b.x, b.y, b.z); dummy.rotation.set(t * 5, t * 3, 0); dummy.scale.setScalar(0.85); });
   put('bulletGlow', S.bullets, b => { dummy.position.set(b.x, b.y, b.z); dummy.rotation.set(0, 0, 0); dummy.scale.setScalar(0.62 + 0.1 * Math.sin(t * 18 + b.x)); });
   put('bulletTrail', S.bullets, b => { dummy.position.set(b.x, b.y, b.z); dummy.lookAt(b.x - b.vx, b.y - b.vy, b.z - b.vz); dummy.scale.set(1, 1, 2.2); });
-  put('disc', S.discs, d => { dummy.position.set(d.x, d.y, d.z); dummy.rotation.set(0, d.t * 20, 0); dummy.scale.setScalar(d.r / 0.9 * 1.2); });
+  put('disc', S.discs, d => { dummy.position.set(d.x, d.y, d.z); dummy.rotation.set(0, d.t * 20, 0); dummy.scale.setScalar(Math.min(2.6, d.r / 0.9 * 1.2)); });   // taille visuelle plafonnée (la zone de coupe ne l'est pas)
   scene.userData.beams.forEach((g, i) => {
     const b = S.beamVis && S.beamVis[i];
     g.visible = !!b && S.state === 'play';
@@ -2707,7 +2727,8 @@ function renderEnd() {
     + (S.heat ? row('nb.heat', '🔥 ' + S.heat) : '')
     + (S.endless ? full(tr(otRec ? 'nb.otRec' : 'nb.otDone', { n: `${Math.floor(ot / 60)}:${String(ot % 60).padStart(2, '0')}` }), '#ff8a4d') : '')
     + notes + full(tr('nb.eCredits', { n: num(cr) }), '#7ff6ff')
-    + (S.questsNew || []).map(q => full(`🏆 ${questText(q)} — ${questReward(q)}`, '#ffc94d')).join('')
+    + (S.questsNew || []).slice(0, 3).map(q => full(`🏆 ${questText(q)} — ${questReward(q)}`, '#ffc94d')).join('')
+    + ((S.questsNew || []).length > 3 ? full(tr('nb.qMore', { n: S.questsNew.length - 3 }), '#ffc94d') : '')
     + (newly.length ? full(tr('nb.eUnlocked', { list: newly.map(c => c.name).join(', ') }), '#ffc94d') : '')
     + dmgByHTML();
   const dbl = $('nb-double');
