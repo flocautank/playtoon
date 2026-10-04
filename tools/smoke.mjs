@@ -232,6 +232,18 @@ log('familles d’ennemis / gardien / quêtes :', await page.evaluate(() => {
   S.enemies.length = 0;
   return r.join(' · ');
 }));
+log('nouvelles armes / clés :', await page.evaluate(() => {
+  const nb = window.__nb, S = nb.S, r = [];
+  S.state = 'play'; S.pending = 0; const keep = S.weapons.slice();
+  for (const id of ['flame', 'aura', 'rail', 'tornado', 'toxic', 'drones']) {
+    S.weapons.length = 0; nb.addWeapon(id); S.enemies.length = 0; const d0 = S.dmgBy[id] || 0;
+    for (let i = 0; i < 90; i++) { if (i % 15 === 0) for (let k = 0; k < 3; k++) { const e = nb.spawnEnemy('brute', S.p.x + 3 + k, S.p.z + 2); if (e) e.speed = 0.5; } S.state = 'play'; S.pending = 0; S.p.hp = S.stats.hp; nb.update(1 / 30); }
+    r.push(`${id}=${Math.round((S.dmgBy[id] || 0) - d0)}`);
+  }
+  S.weapons.length = 0; keep.forEach(w => S.weapons.push(w)); S.enemies.length = 0;
+  r.push(`clés=${S.keys.length}`);
+  return r.join(' · ');
+}));
 log('laser + mines :', await page.evaluate(() => {
   const nb = window.__nb, S = nb.S, out = [];
   S.state = 'play'; S.enemies.length = 0; S.weapons = S.weapons.filter(w => w.id === 'blaster'); S.weapons[0].t = 999;   // blaster muet

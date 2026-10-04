@@ -218,7 +218,8 @@ main{position:fixed;inset:var(--nav-h) 0 0 0}
 .nb-bosstrack{height:12px;margin-top:3px;background:rgba(255,45,85,.15);border:1px solid rgba(255,45,85,.45);border-radius:4px;overflow:hidden}
 #nb-bossbar{height:100%;background:#ff2d55;box-shadow:0 0 12px #ff2d55;transition:width .2s}
 @media (min-width:601px){.nb-root.bossing .nb-msg{top:136px}}
-.nb-chars{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.nb-chars{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+@media (max-width:520px){.nb-chars{grid-template-columns:repeat(2,1fr)}}
 .nb-char{background:var(--panel2);border:2px solid var(--line);border-radius:12px;padding:10px;text-align:left}
 .nb-char.on{border-color:#ff3df0;box-shadow:0 0 16px rgba(255,61,240,.35)}
 .nb-char.lock{opacity:.4}

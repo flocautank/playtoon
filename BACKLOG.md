@@ -191,9 +191,9 @@ Le cœur de la boucle est déjà présent : timer de 10 min, coffres payés en o
 | 6 | **fait** (1.5.0) — dégâts par source (chaque arme, objets) en barres sur l'écran de fin, feuille de stats dans la pause, description des objets en infobulle |
 | 7 | **fait** (1.6.0) — saut parfait dans les 150 ms après l'atterrissage : élan rendu +5 % par saut enchaîné (plafond 2,6× la marche), « REBOND ×N », tampon de saut, focale qui s'ouvre avec la vitesse, 8 tremplins par étape (sur le radar) |
 | 8 | **fait** (1.6.0) — Bannir (2 par run, nouvelles armes / tomes / bénédictions, touche B, manette X) et Passer (+◆ 10 + 5×étape, touche N, manette Select) ; Partir chez le marchand (Échap, manette B) |
-| 9 | à faire |
-| 10 | à faire |
-| 11 | à faire |
+| 9 | **fait** (1.8.0) — chaque personnage a une mécanique propre (Ronin : la glissade tranche ; Volt : crits en chaîne ; Bastion : épines ; Nova : explosions ; Orbite : dégâts en l'air) et un passif qui grandit à chaque niveau ; 3 nouveaux personnages : Blitz (disque, vitesse = dégâts), Avare (mines, or, coffres moins chers), Hex (satellites, soin, givre) — 9 au total |
+| 10 | **fait** (1.8.0) — 6 armes : lance-flammes (cône), aura de givre, canon rail, tornades errantes, flaques toxiques, essaim de drones, chacune avec son évolution (15 armes au total) ; dégâts calibrés dans la fourchette des armes existantes |
+| 11 | **fait** (1.8.0) — 3 clés de données par étape (souvent perchées, phares visibles de loin, sur le radar) → coffre légendaire ; bouches de lave dans la Fournaise (éruption annoncée, blesse tout le monde) ; 3 failles dans le Vide (aspirent, broient les ennemis) |
 | 12 | **fait** (1.7.0) — ouverture de coffre : colonne de lumière de la couleur de la rareté, son et annonce retardée (plus longue pour les raretés hautes) ; Prolongation ∞ après la victoire (nuée qui grossit sans fin, record en META, crédits seulement pour la prolongation) ; récap de dégâts sans l'excès sur un ennemi achevé |
 
 ## Fait

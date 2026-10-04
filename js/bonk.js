@@ -41,6 +41,12 @@ const WEAPONS = {
   beam:    { ic: '🔦', cd: 0.18, dmg: 4.5, count: 1, area: 1, ups: ['dmg', 'cd', 'area', 'count'] },
   mine:    { ic: '🧨', cd: 1.3, dmg: 42, count: 1, area: 3, ups: ['dmg', 'cd', 'count', 'area'] },
   rocket:  { ic: '🚀', cd: 2.6, dmg: 34, count: 1, area: 3.6, speed: 18, ups: ['dmg', 'cd', 'count', 'area'] },
+  flame:   { ic: '🔥', cd: 0.15, dmg: 3, count: 1, area: 6, ups: ['dmg', 'cd', 'area', 'count'] },        // cône de flammes vers l'ennemi le plus proche
+  aura:    { ic: '❄️', cd: 0.5, dmg: 4, count: 1, area: 3.4, ups: ['dmg', 'cd', 'area'] },                // aura de givre : blesse et ralentit autour de toi
+  rail:    { ic: '🎯', cd: 2.2, dmg: 50, count: 1, area: 1, ups: ['dmg', 'cd', 'count', 'area'] },         // rail : une ligne qui traverse tout
+  tornado: { ic: '🌪️', cd: 3, dmg: 5, count: 1, area: 2, speed: 5, ups: ['dmg', 'cd', 'count', 'area', 'speed'] }, // tornade errante qui aspire
+  toxic:   { ic: '☣️', cd: 2, dmg: 5, count: 1, area: 2.4, ups: ['dmg', 'cd', 'count', 'area'] },        // flaques toxiques sous les ennemis
+  drones:  { ic: '🛸', cd: 0.8, dmg: 9, count: 2, area: 1, speed: 30, ups: ['dmg', 'cd', 'count', 'speed'] },  // drones qui tirent tout seuls
 };
 // Évolutions : arme au niveau 8+ et tome associé possédé → le prochain coffre fait évoluer l'arme.
 const EVO_LVL = 8;
@@ -54,6 +60,12 @@ const EVOS = {
   beam:    { tome: 'wisdom', ic: '☄️', fx: w => { w.dmgM *= 2; w.count += 1; w.areaM += 0.5; } },
   mine:    { tome: 'armor', ic: '💣', fx: w => { w.dmgM *= 2; w.count += 2; w.areaM += 0.4; } },
   rocket:  { tome: 'haste', ic: '🎆', fx: w => { w.dmgM *= 1.6; w.count += 3; w.areaM += 0.3; } },
+  flame:   { tome: 'regen', ic: '🌋', fx: w => { w.dmgM *= 2; w.areaM += 0.4; w.count += 1; } },
+  aura:    { tome: 'magnet', ic: '🧊', fx: w => { w.dmgM *= 2.2; w.areaM += 0.5; } },
+  rail:    { tome: 'luck', ic: '🔱', fx: w => { w.dmgM *= 2; w.count += 2; w.areaM += 0.5; } },
+  tornado: { tome: 'agile', ic: '🌀', fx: w => { w.dmgM *= 2; w.count += 2; w.areaM += 0.4; } },
+  toxic:   { tome: 'area', ic: '🦠', fx: w => { w.dmgM *= 2; w.count += 2; w.areaM += 0.3; } },
+  drones:  { tome: 'multi', ic: '🛰️', fx: w => { w.dmgM *= 1.8; w.count += 3; } },
 };
 const wName = w => w.evo ? EVOS[w.id].name : WEAPONS[w.id].name;
 const wIc = w => w.evo ? EVOS[w.id].ic : WEAPONS[w.id].ic;
@@ -168,13 +180,17 @@ function checkQuests() {
   return fresh;
 }
 
+// bonus : appliqué une fois au départ (avec une mécanique propre) ; lv : passif qui grandit à chaque niveau
 const CHARS = [
-  { id: 'glitch', col: '#27e0ff', weapon: 'blaster', bonus: () => {} },
-  { id: 'ronin', col: '#ff3df0', weapon: 'blade', bonus: s => s.speed += 0.1, unlock: { test: m => m.totalKills >= 1000 } },
-  { id: 'volt', col: '#ffe04d', weapon: 'arc', bonus: s => s.luck += 15, unlock: { test: m => m.maxLevel >= 15 } },
-  { id: 'bastion', col: '#7cff8a', weapon: 'pulse', bonus: s => { s.hp += 40; s.armor += 0.05; }, unlock: { test: m => m.bestTime >= 300 } },
-  { id: 'nova', col: '#ff8a4d', weapon: 'rocket', bonus: s => s.area += 0.15, unlock: { test: m => m.bossKills >= 1 } },
-  { id: 'orbit', col: '#b98bff', weapon: 'beam', bonus: s => { s.jumps += 1; s.magnet += 0.2; }, unlock: { test: m => (m.hydraKills || 0) >= 1 } },
+  { id: 'glitch', col: '#27e0ff', weapon: 'blaster', bonus: () => {}, lv: s => { s.dmg += 0.01; } },
+  { id: 'ronin', col: '#ff3df0', weapon: 'blade', bonus: s => { s.speed += 0.1; s.slideCut = 1; }, lv: s => { s.speed += 0.006; }, unlock: { test: m => m.totalKills >= 1000 } },
+  { id: 'volt', col: '#ffe04d', weapon: 'arc', bonus: s => { s.luck += 15; s.critChain += 0.1; }, lv: s => { s.luck += 1; }, unlock: { test: m => m.maxLevel >= 15 } },
+  { id: 'bastion', col: '#7cff8a', weapon: 'pulse', bonus: s => { s.hp += 40; s.armor += 0.05; s.thorns += 20; }, lv: (s, p) => { s.hp += 3; p.hp += 3; }, unlock: { test: m => m.bestTime >= 300 } },
+  { id: 'nova', col: '#ff8a4d', weapon: 'rocket', bonus: s => { s.area += 0.15; s.boomPow += 0.15; }, lv: s => { s.area += 0.01; }, unlock: { test: m => m.bossKills >= 1 } },
+  { id: 'orbit', col: '#b98bff', weapon: 'beam', bonus: s => { s.jumps += 1; s.magnet += 0.2; s.airDmg += 0.15; }, lv: s => { s.magnet += 0.01; }, unlock: { test: m => (m.hydraKills || 0) >= 1 } },
+  { id: 'blitz', col: '#ff3050', weapon: 'disc', bonus: s => { s.speed += 0.15; s.hp -= 20; s.speedDmg += 0.3; }, lv: s => { s.speed += 0.008; }, unlock: { test: m => (m.bestHops || 0) >= 5 } },
+  { id: 'miser', col: '#ffd84d', weapon: 'mine', bonus: s => { s.gold += 0.5; s.chestDisc *= 0.8; }, lv: s => { s.gold += 0.02; }, unlock: { test: m => (m.chestsTotal || 0) >= 50 } },
+  { id: 'hex', col: '#5cffb0', weapon: 'orbit', bonus: s => { s.regen += 0.5; s.gemHeal += 0.3; s.frost += 0.1; }, lv: s => { s.regen += 0.05; }, unlock: { test: m => (m.wardens || 0) >= 1 } },
 ];
 
 const ETYPES = {
@@ -603,6 +619,38 @@ function buildLevel() {
     g.position.set(x, y, z); levelGroup.add(g);
     S.shrines.push({ kind, x, y, z, charge: 0, used: false, mesh: g, crystal, fill, ring });
   }
+  // clés de données : 3 par étape, souvent perchées ; chacune a un phare visible de loin. Les 3 → coffre légendaire
+  S.keys = []; S.keysGot = 0;
+  const tops = S.obst.filter(o => o.kind !== 'cyl' && o.top > terrainH(o.x, o.z) + 2.5 && (o.bot !== undefined || o.top < terrainH(o.x, o.z) + 6) && Math.hypot(o.x, o.z) > 25);   // perchées mais atteignables
+  for (let t = 0; S.keys.length < 3 && t < 300; t++) {
+    let x, z, y;
+    if (tops.length && Math.random() < 0.7) { const o = tops[(Math.random() * tops.length) | 0]; x = o.x; z = o.z; y = o.top; }
+    else { x = rand(-HALF + 10, HALF - 10); z = rand(-HALF + 10, HALF - 10); if (!free(x, z, 2)) continue; y = terrainH(x, z); }
+    if (Math.hypot(x, z) < 25 || S.keys.some(k => Math.hypot(k.x - x, k.z - z) < 45)) continue;
+    const g = new THREE.Group();
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.45, 0.12, 8, 20), neonMat(0x7ff6ff, 1.2)); ring.position.y = 1.5; g.add(ring);
+    const bit = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.7, 0.16), neonMat(0x7ff6ff, 1.2)); bit.position.y = 0.85; g.add(bit);
+    const beacon = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 60, 8, 1, true).translate(0, 30, 0), new THREE.MeshBasicMaterial({ color: 0x7ff6ff, transparent: true, opacity: 0.18, blending: THREE.AdditiveBlending, depthWrite: false }));
+    g.add(beacon); g.position.set(x, y, z); levelGroup.add(g);
+    S.keys.push({ x, y, z, g, ring, got: false });
+  }
+  // dangers propres à l'étape : bouches de lave (Fournaise, éruption annoncée), failles du Vide (aspirent et broient)
+  S.vents = []; S.rifts = [];
+  if (S.stage === 1) for (let t = 0; S.vents.length < 10 && t < 300; t++) {
+    const x = rand(-HALF + 8, HALF - 8), z = rand(-HALF + 8, HALF - 8);
+    if (!free(x, z, 3.5) || Math.hypot(x, z) < 18 || S.vents.some(v => Math.hypot(v.x - x, v.z - z) < 22)) continue;
+    const y = terrainH(x, z), m = new THREE.Mesh(new THREE.CircleGeometry(3, 32).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xff5a10, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false }));
+    m.position.set(x, y + 0.08, z); levelGroup.add(m);
+    S.vents.push({ x, y, z, m, t: rand(2, 9) });
+  }
+  if (S.stage === 2) for (let i = 0; i < 3; i++) {
+    const a = i / 3 * TAU + rand(-0.4, 0.4), r = rand(35, 70), x = Math.cos(a) * r, z = Math.sin(a) * r;
+    const g = new THREE.Group(), y = terrainH(x, z);
+    for (let k = 0; k < 3; k++) { const tor = new THREE.Mesh(new THREE.TorusGeometry(1.2 + k * 0.9, 0.06, 6, 40), neonMat(0xb98bff, 1.1)); tor.rotation.x = Math.PI / 2; tor.position.y = 0.6 + k * 0.3; g.add(tor); }
+    const core = new THREE.Mesh(new THREE.SphereGeometry(0.8, 16, 12), neonMat(0x1a0830, 0.05)); core.position.y = 1.2; g.add(core);
+    g.position.set(x, y, z); levelGroup.add(g);
+    S.rifts.push({ x, y, z, g, a: rand(0, TAU) });
+  }
   // tremplins : propulsent haut et loin, en gardant (et gonflant) l'élan
   S.pads = [];
   for (let t = 0; S.pads.length < 8 && t < 400; t++) {
@@ -629,8 +677,8 @@ function addChestMesh(c) {
   if (c.gold) g.scale.setScalar(1.3);
   g.position.set(c.x, c.y, c.z); g.rotation.y = rand(0, TAU); levelGroup.add(g); c.mesh = g; c.lid = l;
 }
-function goldChest(x, z, y) {   // coffre doré : gratuit, objet épique ou légendaire
-  const c = { x, y: y ?? terrainH(x, z), z, open: false, free: true, gold: true };
+function goldChest(x, z, y, legend) {   // coffre doré : gratuit, objet épique ou légendaire (légendaire garanti avec les 3 clés)
+  const c = { x, y: y ?? terrainH(x, z), z, open: false, free: true, gold: true, legend };
   addChestMesh(c); S.chests.push(c);
   burst(x, c.y + 1, z, 80, [1, 0.85, 0.3], 9, 0.8); addRing(x, c.y + 0.3, z, 5, [1, 0.85, 0.3], 0.5);
   msg(tr('nb.goldChest'), 3, '#ffd84d'); sfx('chest');
@@ -670,15 +718,15 @@ function pushOut(o, p, r) {
 
 // ============================================================ nouvelle run
 function baseStats(ch) {
-  const s = { hp: 100, regen: 0.3, armor: 0, speed: 1, dmg: 1, cd: 1, area: 1, proj: 0, magnet: 1, luck: 0, xp: 1, crit: 0.05, critMul: 2, jumps: 2, jumpV: 11, gold: 1, vamp: 0, shield: 0, thorns: 0, dodge: 0, boom: 0,
+  const s = { slideCut: 0, hp: 100, regen: 0.3, armor: 0, speed: 1, dmg: 1, cd: 1, area: 1, proj: 0, magnet: 1, luck: 0, xp: 1, crit: 0.05, critMul: 2, jumps: 2, jumpV: 11, gold: 1, vamp: 0, shield: 0, thorns: 0, dodge: 0, boom: 0,
     landShock: 0, jumpBurst: 0, speedDmg: 0, airDmg: 0, lowHpDmg: 0, killNova: 0, slideFire: 0, critChain: 0, execute: 0, frost: 0, hurtFreeze: 0, boomPow: 0, gemHeal: 0, midas: 0, chestDisc: 1, rush: 0 };
-  ch.bonus(s); return s;
+  ch.bonus(s); s.hp = Math.max(40, s.hp); return s;
 }
 function newRun() {
   const ch = CHARS.find(c => c.id === META.sel && unlocked(c)) || CHARS[0];
   S = {
     state: 'play', stage: 0, stageT: 0, ch, heat: Math.min(META.heatSel || 0, heatAvail()), t: 0, time: RUN_TIME, kills: 0, gold: 0, level: 1, xp: 0, need: xpNeed(1), pending: 0, rerolls: 2,
-    stats: null, weapons: [], tomes: [], items: {}, enemies: [], pickups: [], bolts: [], bullets: [], discs: [], rockets: [], mines: [], rings: [], dmgNums: [], pops: [], dmgBy: {}, banned: new Set(), banishes: 2, banishOn: false, landT: -9, landHs: 0, jumpBuf: -9, hops: 0, pads: [], trauma: 0, hitstop: 0, fovKick: 0, fires: [], novaK: 0, rushT: 0, fireT: 0,
+    stats: null, weapons: [], tomes: [], items: {}, enemies: [], pickups: [], bolts: [], bullets: [], discs: [], rockets: [], mines: [], rings: [], dmgNums: [], pops: [], dmgBy: {}, keys: [], vents: [], rifts: [], twisters: [], puddles: [], banned: new Set(), banishes: 2, banishOn: false, landT: -9, landHs: 0, jumpBuf: -9, hops: 0, pads: [], trauma: 0, hitstop: 0, fovKick: 0, fires: [], novaK: 0, rushT: 0, fireT: 0,
     spawnAcc: 0, nextSwarm: 90, eliteAt: [420, 240], wardenAt: [300], boss: null, portal: null, won: false, dmgDealt: 0, chestsOpened: 0,
     iframe: 0, shieldT: 0, hurtFlash: 0, msgT: 0, chestCost: 12, orbPos: [], orbCount: 0, magnetAll: 0, bossDead: false,
     p: { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, onGround: true, jumps: 1, slide: 0, slideCd: 0, face: Math.PI, hp: 100 },
@@ -853,7 +901,7 @@ function slide() {
   let dx = p.vx, dz = p.vz;
   if (sp < 1) { dx = -Math.sin(S.cam.yaw); dz = -Math.cos(S.cam.yaw); } else { dx /= sp; dz /= sp; }
   const ns = Math.max(sp, 17 * S.stats.speed);
-  p.vx = dx * ns; p.vz = dz * ns; p.slide = 0.55; p.slideCd = 0.9;
+  p.vx = dx * ns; p.vz = dz * ns; p.slide = 0.55; p.slideCd = 0.9; S.cutHit = new Set();
   if (!p.onGround) p.vy = Math.min(p.vy, -4);
   sfx('slide');
 }
@@ -1387,6 +1435,72 @@ function updateWeapons(dt) {
         }
         break;
       }
+      case 'flame': {   // cône de flammes : 50° (+15° par cran), portée = zone
+        if (w.t > 0) break;
+        w.t = st.cd;
+        const tg = nearestEnemies(1, st.area + 2)[0] || S.boss && Math.hypot(S.boss.x - px, S.boss.z - pz) < st.area + 4 && S.boss;
+        const fa = tg ? Math.atan2(tg.z - pz, tg.x - px) : Math.atan2(-Math.cos(S.cam.yaw), -Math.sin(S.cam.yaw));
+        const half = (25 + 7.5 * (st.count - 1)) * Math.PI / 180, R = st.area;
+        near(px, pz, R + 1, e => { const dx = e.x - px, dz = e.z - pz, d = Math.hypot(dx, dz); let da = Math.atan2(dz, dx) - fa; da = Math.atan2(Math.sin(da), Math.cos(da)); if (d < R + e.r && Math.abs(da) < half + 0.15) damage(e, st.dmg, true, dx / (d || 1) * 1.5, dz / (d || 1) * 1.5); });
+        if (S.boss) { const B = S.boss, d = Math.hypot(B.x - px, B.z - pz); let da = Math.atan2(B.z - pz, B.x - px) - fa; da = Math.atan2(Math.sin(da), Math.cos(da)); if (d < R + B.r && Math.abs(da) < half + 0.3) damage(B, st.dmg); }
+        for (let k = 0; k < 5; k++) { const a = fa + rand(-half, half), v = rand(0.7, 1) * R * 2.2; spawnPart(px + Math.cos(a) * 0.6, py, pz + Math.sin(a) * 0.6, Math.cos(a) * v, rand(0.5, 2.5), Math.sin(a) * v, w.evo ? [1, 0.3, 0.05] : [1, rand(0.45, 0.7), 0.1], rand(0.35, 0.6), 0.42); }
+        break;
+      }
+      case 'aura': {   // aura de givre : ralentit et blesse tout ce qui entre
+        const R = st.area;
+        if (Math.random() < 0.6) { const a = rand(0, TAU), r = rand(0.5, R); spawnPart(px + Math.cos(a) * r, p.y + rand(0.2, 1.5), pz + Math.sin(a) * r, 0, -0.5, 0, [0.6, 0.85, 1], 0.25, 0.6); }
+        if (w.t > 0) break;
+        w.t = st.cd;
+        near(px, pz, R + 1, e => { if (Math.hypot(e.x - px, e.z - pz) < R + e.r) { e.slowT = Math.max(e.slowT || 0, w.evo ? 1.2 : 0.7); damage(e, st.dmg, true); } });
+        if (S.boss && Math.hypot(S.boss.x - px, S.boss.z - pz) < R + S.boss.r) damage(S.boss, st.dmg);
+        addRing(px, p.y + 0.15, pz, R, [0.35, 0.6, 0.9], 0.5);
+        break;
+      }
+      case 'rail':   // rail : une ligne droite qui perce tout, vers l'ennemi le plus proche (+ éventail)
+        if (w.t <= 0) {
+          const tg = nearestEnemies(1, 40)[0] || S.boss;
+          if (!tg) { w.t = 0.2; break; }
+          w.t = st.cd;
+          const base = Math.atan2(tg.z - pz, tg.x - px), len = 42, wd = 0.6 * st.area;
+          for (let k = 0; k < st.count; k++) {
+            const a = base + (k - (st.count - 1) / 2) * 0.22, cx = Math.cos(a), cz = Math.sin(a);
+            near(px + cx * len / 2, pz + cz * len / 2, len / 2 + 2, e => { const rx = e.x - px, rz = e.z - pz, al = rx * cx + rz * cz; if (al > 0 && al < len && Math.abs(rx * cz - rz * cx) < wd + e.r) damage(e, st.dmg, true, cx * 4, cz * 4); });
+            const B = S.boss; if (B && B.hp > 0) { const rx = B.x - px, rz = B.z - pz, al = rx * cx + rz * cz; if (al > 0 && al < len && Math.abs(rx * cz - rz * cx) < wd + B.r) damage(B, st.dmg); }
+            const col = w.evo ? [1, 0.85, 0.3] : [0.6, 0.95, 1];
+            for (let j = -1; j <= 1; j++) addSeg(px, py + j * 0.06, pz, px + cx * len, py + j * 0.06, pz + cz * len, col, 0.22);
+            for (let j = 0; j < 16; j++) { const f = rand(0, len); spawnPart(px + cx * f, py, pz + cz * f, rand(-1, 1), rand(0, 1.5), rand(-1, 1), col, 0.3, 0.35); }
+          }
+          sfx('zap');
+        }
+        break;
+      case 'tornado':   // tornades errantes : elles dérivent vers la foule, aspirent et blessent
+        if (w.t <= 0) {
+          w.t = st.cd;
+          for (let k = 0; k < st.count && S.twisters.length < 12; k++) { const a = rand(0, TAU); S.twisters.push({ x: px + Math.cos(a) * 2, z: pz + Math.sin(a) * 2, a, t: 4 + (w.evo ? 2 : 0), tick: 0, dmg: st.dmg, r: st.area, sp: st.speed, w: w.id, evo: w.evo }); }
+        }
+        break;
+      case 'toxic':   // flaques toxiques : posées sous des ennemis au hasard, 4 s de dégâts
+        if (w.t <= 0) {
+          w.t = st.cd;
+          for (let k = 0; k < st.count && S.puddles.length < 16; k++) { const e = randomEnemyNear(16); const x = e ? e.x : px + rand(-5, 5), z = e ? e.z : pz + rand(-5, 5); S.puddles.push({ x, z, y: terrainH(x, z), t: 4, tick: 0, dmg: st.dmg, r: st.area, w: w.id, evo: w.evo }); addRing(x, terrainH(x, z) + 0.15, z, st.area, [0.4, 1, 0.3], 0.4); }
+        }
+        break;
+      case 'drones': {   // drones : tournent autour de toi et tirent chacun sur l'ennemi le plus proche d'eux
+        const n = st.count; w.ang = (w.ang || 0) + dt * 1.6;
+        if (w.t <= 0) w.t = st.cd;
+        const fire = w.t === st.cd;
+        for (let k = 0; k < n; k++) {
+          const a = w.ang + k * TAU / n, dx = px + Math.cos(a) * 2.6, dz = pz + Math.sin(a) * 2.6, dy = p.y + 2.2 + Math.sin(S.t * 3 + k) * 0.3;
+          spawnPart(dx, dy, dz, 0, 0, 0, w.evo ? [1, 0.85, 0.4] : [0.55, 0.9, 1], 0.55, 0.05);
+          if (!fire) continue;
+          let best = null, bd = 18 * 18; near(dx, dz, 18, e => { const d = (e.x - dx) ** 2 + (e.z - dz) ** 2; if (d < bd) { bd = d; best = e; } });
+          if (!best && S.boss && Math.hypot(S.boss.x - dx, S.boss.z - dz) < 20) best = S.boss;
+          if (!best) continue;
+          const tx = best.x - dx, ty = best.y + 0.6 - dy, tz = best.z - dz, d = Math.hypot(tx, ty, tz) || 1, v = st.speed;
+          S.bolts.push({ x: dx, y: dy, z: dz, vx: tx / d * v, vy: ty / d * v, vz: tz / d * v, life: 1, dmg: st.dmg, pierce: w.evo ? 1 : 0, hit: new Set(), w: w.id });
+        }
+        break;
+      }
       case 'mine':
         if (w.t <= 0) {
           w.t = st.cd;
@@ -1410,7 +1524,58 @@ function updateWeapons(dt) {
     if (!boom && S.boss && Math.hypot(S.boss.x - m.x, S.boss.z - m.z) < S.boss.r + 1.2) boom = true;
     if (boom) { dmgSrc = m.w; explode(m.x, m.y, m.z, m.r, m.dmg, [1, 0.3, 0.3]); S.mines.splice(i, 1); }
   }
+  for (let i = S.twisters.length - 1; i >= 0; i--) {
+    const q = S.twisters[i]; q.t -= dt; q.tick -= dt;
+    if (q.t <= 0) { S.twisters.splice(i, 1); continue; }
+    const tg = nearestTo(q.x, q.z, 14);
+    if (tg) q.a += Math.atan2(Math.sin(Math.atan2(tg.z - q.z, tg.x - q.x) - q.a), Math.cos(Math.atan2(tg.z - q.z, tg.x - q.x) - q.a)) * Math.min(1, dt * 2);
+    else q.a += rand(-2, 2) * dt;
+    q.x = clamp(q.x + Math.cos(q.a) * q.sp * dt, -HALF + 2, HALF - 2); q.z = clamp(q.z + Math.sin(q.a) * q.sp * dt, -HALF + 2, HALF - 2);
+    const y = terrainH(q.x, q.z);
+    for (let k = 0; k < 3; k++) { const h = rand(0, 3.2), a = S.t * 9 + h * 2.2 + k * 2.1, r = q.r * (0.25 + h / 4.5); spawnPart(q.x + Math.cos(a) * r, y + h, q.z + Math.sin(a) * r, -Math.sin(a) * 4, 1, Math.cos(a) * 4, q.evo ? [1, 0.6, 1] : [0.7, 0.95, 1], 0.3, 0.25); }
+    near(q.x, q.z, q.r + 2, e => { const dx = q.x - e.x, dz = q.z - e.z, d = Math.hypot(dx, dz) || 1; if (d < q.r + 1.5 && !e.elite) { e.kx += dx / d * 6 * dt * 10; e.kz += dz / d * 6 * dt * 10; } });
+    if (q.tick <= 0) { q.tick = 0.3; dmgSrc = q.w; near(q.x, q.z, q.r + 1, e => { if (Math.hypot(e.x - q.x, e.z - q.z) < q.r + e.r) damage(e, q.dmg, true); }); if (S.boss && Math.hypot(S.boss.x - q.x, S.boss.z - q.z) < q.r + S.boss.r) damage(S.boss, q.dmg); }
+  }
+  for (let i = S.puddles.length - 1; i >= 0; i--) {
+    const q = S.puddles[i]; q.t -= dt; q.tick -= dt;
+    if (q.t <= 0) { S.puddles.splice(i, 1); continue; }
+    if (Math.random() < 0.7) { const a = rand(0, TAU), r = rand(0, q.r); spawnPart(q.x + Math.cos(a) * r, q.y + 0.1, q.z + Math.sin(a) * r, 0, rand(0.6, 1.6), 0, q.evo ? [0.75, 0.3, 1] : [0.35, 1, 0.3], rand(0.2, 0.4), 0.5); }
+    if (q.tick <= 0) { q.tick = 0.4; dmgSrc = q.w; near(q.x, q.z, q.r + 1, e => { if (Math.hypot(e.x - q.x, e.z - q.z) < q.r + e.r) { damage(e, q.dmg, true); if (q.evo) e.slowT = Math.max(e.slowT || 0, 0.5); } }); if (S.boss && Math.hypot(S.boss.x - q.x, S.boss.z - q.z) < q.r + S.boss.r) damage(S.boss, q.dmg); }
+  }
 }
+function updateStageBits(dt, p, st) {
+  for (const k of S.keys) {
+    if (k.got) continue;
+    k.ring.rotation.y += dt * 2.5; k.ring.position.y = 1.5 + Math.sin(S.t * 3 + k.x) * 0.2;
+    if (Math.hypot(p.x - k.x, p.z - k.z) < 1.6 && Math.abs(p.y - k.y) < 2.2) {
+      k.got = true; levelGroup.remove(k.g); S.keysGot++;
+      burst(k.x, k.y + 1.5, k.z, 40, [0.5, 0.97, 1], 6, 0.6); sfx('chest'); shake(0.15);
+      if (S.keysGot >= 3) { msg(tr('nb.keysAll'), 3.5, '#7ff6ff'); goldChest(p.x + 2, p.z + 2, undefined, true); }
+      else msg(tr('nb.keyGot', { n: S.keysGot }), 2, '#7ff6ff');
+    }
+  }
+  for (const v of S.vents) {   // éruption : 1,2 s de lueur croissante, puis colonne de feu (toi et les ennemis)
+    v.t -= dt;
+    const warn = v.t < 1.2 && v.t > 0;
+    v.m.material.opacity = warn ? 0.35 + 0.5 * (1 - v.t / 1.2) * (0.6 + 0.4 * Math.sin(S.t * 30)) : 0.25 + 0.08 * Math.sin(S.t * 2 + v.x);
+    if (warn && Math.random() < 0.5) spawnPart(v.x + rand(-2, 2), v.y + 0.2, v.z + rand(-2, 2), 0, rand(1, 3), 0, [1, 0.4, 0.05], 0.3, 0.5);
+    if (v.t <= 0) {
+      v.t = rand(6, 11);
+      for (let k = 0; k < 60; k++) spawnPart(v.x + rand(-1.5, 1.5), v.y + 0.3, v.z + rand(-1.5, 1.5), rand(-2, 2), rand(8, 16), rand(-2, 2), [1, rand(0.3, 0.7), 0.05], rand(0.4, 0.7), 0.9);
+      addRing(v.x, v.y + 0.2, v.z, 3.2, [1, 0.4, 0.05], 0.4);
+      if (Math.hypot(p.x - v.x, p.z - v.z) < 3.2 && p.y < v.y + 4) hurt(22 * heatDmg(), 'vent');
+      asItem(() => near(v.x, v.z, 4.5, e => { if (Math.hypot(e.x - v.x, e.z - v.z) < 3.2 + e.r) damage(e, 40 + S.t * 0.4, false); }));
+    }
+  }
+  for (const r of S.rifts) {   // faille : tourne, aspire (le joueur un peu, les ennemis fort) et broie ceux qui touchent le cœur
+    r.a += dt; r.g.rotation.y = r.a; r.g.children.forEach((c, i) => { if (i < 3) c.rotation.z = r.a * (1 + i * 0.5); });
+    const dx = r.x - p.x, dz = r.z - p.z, d = Math.hypot(dx, dz) || 1;
+    if (d < 10) { const f = (1 - d / 10) * 7; p.vx += dx / d * f * dt; p.vz += dz / d * f * dt; }
+    near(r.x, r.z, 10, e => { if (e.elite) return; const ex = r.x - e.x, ez = r.z - e.z, ed = Math.hypot(ex, ez) || 1; const f = (2 + 9 * (1 - ed / 10)) * dt; e.x += ex / ed * f; e.z += ez / ed * f; if (ed < 1.4) { e.hp = 0; kill(e); } });
+    if (Math.random() < 0.6) { const a = rand(0, TAU), rr = rand(3, 8); spawnPart(r.x + Math.cos(a) * rr, r.y + rand(0.3, 2), r.z + Math.sin(a) * rr, -Math.cos(a) * rr, 0, -Math.sin(a) * rr, [0.7, 0.55, 1], 0.25, 0.8); }
+  }
+}
+function nearestTo(x, z, r) { let best = null, bd = r * r; near(x, z, r, e => { const d = (e.x - x) ** 2 + (e.z - z) ** 2; if (d < bd) { bd = d; best = e; } }); return best; }
 
 function updateProjectiles(dt) {
   // traits laser
@@ -1496,7 +1661,7 @@ function updatePickups(dt) {
     }
   }
   if (S.magnetAll) { S.magnetAll -= dt; if (S.magnetAll <= 0) S.magnetAll = 0; }
-  while (S.xp >= S.need) { S.xp -= S.need; S.level++; S.need = xpNeed(S.level); S.pending++; }
+  while (S.xp >= S.need) { S.xp -= S.need; S.level++; S.need = xpNeed(S.level); S.pending++; if (S.ch.lv) S.ch.lv(S.stats, S.p); }
   if (S.pending > 0 && S.state === 'play' && !(S.lvlDelay > 0)) openLevelUp();
 }
 
@@ -1775,7 +1940,7 @@ function interact() {
     msg(tr('nb.evolved', { w: WEAPONS[ev.id].name, e: `${E.ic} ${E.name}` }), 4.5, '#ffc94d');
     sfx('level'); sfx('chest'); shake(0.4); hitstop(0.12); fovKick(9); renderWeaponsHud(); return;
   }
-  let rar = t.gold ? Math.max(2, rollRarity(30)) : rollRarity(10), pool = ITEMS.filter(i => i.r === rar && itemOK(i));
+  let rar = t.legend ? 3 : t.gold ? Math.max(2, rollRarity(30)) : rollRarity(10), pool = ITEMS.filter(i => i.r === rar && itemOK(i));
   while (!pool.length) { rar--; pool = ITEMS.filter(i => i.r === rar && itemOK(i)); }
   const it = pool[(Math.random() * pool.length) | 0];
   giveItem(it);
@@ -1797,7 +1962,7 @@ function nextStage() {
   const portalGold = Math.round((gems - take) / S.stats.xp / 10);
   S.gold += portalGold;
   S.rings.forEach(r => { if (r.mesh) { scene.remove(r.mesh); if (!r.hostile) r.mesh.material.dispose(); } });
-  S.enemies = []; S.pickups = []; S.bolts = []; S.bullets = []; S.discs = []; S.rockets = []; S.mines = []; S.rings = []; S.dmgNums = [];
+  S.enemies = []; S.pickups = []; S.bolts = []; S.bullets = []; S.discs = []; S.rockets = []; S.mines = []; S.rings = []; S.dmgNums = []; S.twisters = []; S.puddles = []; S.fires = [];
   partSys.list.length = 0; scene.userData.lines.segs.length = 0;
   S.stage++; S.stageT = S.t; S.time = ST().time; S.boss = null; S.bossDead = false; S.portal = null;
   S.eliteAt = [ST().time - 120, ST().time - 300]; S.nextSwarm = S.t + 50; S.spawnAcc = 0;
@@ -2010,7 +2175,12 @@ function update(dt) {
     if (h > 0.5) { p.vx *= k; p.vz *= k; } else { p.vx = -Math.sin(S.cam.yaw) * want; p.vz = -Math.cos(S.cam.yaw) * want; }
     burst(d.x, d.y + 0.4, d.z, 30, [0.5, 1, 0.6], 7, 0.5); addRing(d.x, d.y + 0.3, d.z, 3, [0.5, 1, 0.6], 0.35); sfx('level'); fovKick(6);
   }
+  updateStageBits(dt, p, st);
   updateFires(dt, p, st);
+  if (st.slideCut && p.slide > 0 && S.cutHit) asItem(() => near(p.x, p.z, 2, e => {   // Ronin : la glissade tranche
+    if (S.cutHit.has(e) || Math.hypot(e.x - p.x, e.z - p.z) > 1.6 + e.r) return;
+    S.cutHit.add(e); damage(e, itemDmg(26), true, p.vx * 0.4, p.vz * 0.4); bolt(p.x, p.y + 0.8, p.z, e.x, e.y + 0.6, e.z, [1, 0.3, 0.95]);
+  }));
 
   // --- monde
   rebuildGrid();
@@ -2258,6 +2428,8 @@ function drawRadar(ctx, R, cx, cy, own) {
   };
   for (const e of S.enemies) if (Math.abs(e.x - S.p.x) < 60 && Math.abs(e.z - S.p.z) < 60) dot(e.x, e.z, e.elite ? '#ffc94d' : 'rgba(255,61,120,.7)', e.elite ? 3 : 1.3);
   for (const d of S.pads || []) dot(d.x, d.z, 'rgba(124,255,138,.55)', 2.2);
+  for (const k of S.keys || []) if (!k.got) dot(k.x, k.z, '#7ff6ff', 3.2);
+  for (const r of S.rifts || []) dot(r.x, r.z, '#b98bff', 4);
   for (const c of S.chests) if (!c.open) dot(c.x, c.z, '#ffd84d', 3);
   for (const s of S.shrines) if (!s.used) dot(s.x, s.z, SHRINES[s.kind].css, 3.5);
   if (S.boss) dot(S.boss.x, S.boss.z, '#ff2d55', 6);
@@ -2292,7 +2464,7 @@ function updateHUD(dt) {
   $('nb-level').textContent = tr('nb.hudLvl', { n: S.level, s: S.stage + 1 }) + (S.heat ? ' · 🔥' + S.heat : '');
   $('nb-hpbar').style.width = (S.p.hp / S.stats.hp * 100) + '%';
   $('nb-hptext').textContent = `${Math.ceil(S.p.hp)}/${Math.round(S.stats.hp)}`;
-  $('nb-gold').textContent = num(S.gold); $('nb-kills').textContent = num(S.kills);
+  $('nb-gold').textContent = num(S.gold); $('nb-kills').textContent = num(S.kills); $('nb-keys').textContent = `${S.keysGot || 0}/3`;
   const tm = $('nb-timer');
   const tt = Math.abs(S.time), mm = Math.floor(tt / 60), ss = Math.floor(tt % 60);
   tm.textContent = (S.time < 0 ? '+' : '') + mm + ':' + String(ss).padStart(2, '0');
@@ -2445,7 +2617,7 @@ function endRun(win) {
   ['nb-joy', 'nb-jumpbtn', 'nb-actbtn', 'nb-slidebtn', 'nb-pausebtn'].forEach(id => $(id).classList.add('hidden'));
   $('nb-prompt').classList.remove('show');
 }
-const KB = { drone: 1, spike: 1, brute: 1, gunner: 1, charger: 1, splitter: 1, bomber: 1, blinker: 1, healer: 1, elite: 1, bullet: 1, eliteShot: 1, boss: 1, bossShot: 1, wave: 1 };
+const KB = { vent: 1, drone: 1, spike: 1, brute: 1, gunner: 1, charger: 1, splitter: 1, bomber: 1, blinker: 1, healer: 1, elite: 1, bullet: 1, eliteShot: 1, boss: 1, bossShot: 1, wave: 1 };
 // récap des dégâts par arme (et par objets), en barres : ce qui a vraiment porté la run
 function dmgByHTML() {
   const tot = Object.values(S.dmgBy).reduce((a, b) => a + b, 0); if (!tot) return '';
