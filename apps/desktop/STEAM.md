@@ -91,7 +91,7 @@ Application → **Steam Cloud**: byte quota 50 MB, number of files 2000. Enable 
 1. **Store page** (each game): paste the texts, tags, genres, languages and system requirements from `steam/<game>/store.md`,
    upload the images from `steam/<game>/art/` (header, small, main, vertical capsules, page background) and the
    screenshots. **Library assets**: library capsule, header, hero, logo. **Community icon** and **client icon**.
-2. **Content survey**: Block Quarry and Nova Foundry: nothing. Synth Horde: fantasy violence against abstract shapes only.
+2. **Content survey**: Block Quarry and Nova Foundry: nothing. Synth Horde: cartoon fantasy violence against living audio gear (speakers, cassettes, TVs) only, no blood.
 3. **Pricing**: Steamworks → *Pricing* → base price in USD, accept Valve's recommended regional prices.
 4. **Steam Input** (Steam Deck): Synth Horde → default configuration *Gamepad*; Block Quarry and Nova Foundry →
    *Mouse only / Web browser* template (touchscreen also works). Then *Request Steam Deck compatibility review*.
