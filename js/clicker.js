@@ -32,6 +32,55 @@ const GEN_TIERS = [1, 5, 25, 50, 100, 150, 200, 250];
 const TIER_COST = [10, 50, 500, 5e4, 5e6, 5e8, 5e10, 5e12];
 const MILESTONES = [10, 25, 50, 100, 150, 200, 250, 300, 350, 400, 500];
 
+// ---------- gravures : icônes au trait (fini les emoji) — forges, familles d'améliorations, onglets ; tout le reste
+// (nœuds, succès, défis, galaxie) reçoit une petite constellation tirée de son identifiant : chaque objet a la sienne
+const ENG = {
+  spark: '<path d="M12 6l1.6 4.4L18 12l-4.4 1.6L12 18l-1.6-4.4L6 12l4.4-1.6z"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2" class="h"/>',
+  lantern: '<path d="M9 5h6M10 5V3.5h4V5M8 7h8l-1 11H9zM7.5 18h9M12 18v2.5"/><path d="M10 9.5l4 5M10 12.5l3 3.5M11 8.5l3.5 4" class="h"/>',
+  comet: '<circle cx="16" cy="8" r="3.2"/><path d="M13.6 10.2L3 21M14.8 11L6 21.5M12.6 9L3.5 17"/><path d="M15 6.5l2 3M14.5 8l2.6 1.2" class="h"/>',
+  moon: '<path d="M15 3.5a8.5 8.5 0 1 0 5.5 14A7 7 0 0 1 15 3.5z"/><path d="M7.5 9l3 3M7 12.5l4 4M9 16.5l3 2.5" class="h"/>',
+  sun: '<circle cx="12" cy="12" r="4.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9L7 7M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/><path d="M10 11l3 3M10.5 13.5l2 1.5" class="h"/>',
+  pulsar: '<circle cx="12" cy="12" r="2.4"/><path d="M12 2.5v6M12 15.5v6"/><ellipse cx="12" cy="12" rx="8.5" ry="3.2"/><ellipse cx="12" cy="12" rx="5.2" ry="1.8" class="h"/>',
+  nebula: '<path d="M12 12c0-1.5 2-1.8 2.6-.4.8 1.9-1.4 3.6-3.3 3.1-2.8-.8-3.3-4.4-1.3-6.3 2.6-2.4 7-1.4 8.2 1.8 1.5 3.9-1.4 7.9-5.4 8.2-4.6.3-8.1-3.6-7.4-8"/><circle cx="18.5" cy="5.5" r=".7" class="f"/><circle cx="5" cy="17.5" r=".7" class="f"/>',
+  white: '<circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="6.2" stroke-dasharray="2 1.7" class="h"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/>',
+  metro: '<path d="M8.5 21h7L13.6 4h-3.2z"/><path d="M12 17l4.5-11"/><circle cx="15.3" cy="9" r="1"/><path d="M7 21h10M10 13h4M9.6 15.5h4.8" class="h"/>',
+  bang: '<circle cx="12" cy="12" r="1.6"/><path d="M12 7V2.5M12 17v4.5M7 12H2.5M17 12h4.5M8.4 8.4L5 5M15.6 15.6L19 19M8.4 15.6L5 19M15.6 8.4L19 5"/><path d="M10 6.5l-.8-2.5M14 17.5l.8 2.5M6.5 14l-2.5.8M17.5 10l2.5-.8" class="h"/>',
+  quasar: '<ellipse cx="12" cy="12" rx="9" ry="2.6"/><circle cx="12" cy="12" r="1.8"/><path d="M12 9.5V2M12 14.5V22M10.8 4l1.2-2 1.2 2M10.8 20l1.2 2 1.2-2"/>',
+  anvil: '<path d="M4 8h12c0 2 1.5 3 4 3v1.5h-5.5c-.8 0-1.5.7-1.5 1.5v2h3v2.5H7.5V16h3v-2c0-.8-.7-1.5-1.5-1.5H6C4.9 12.5 4 11 4 8z"/><path d="M6.5 9.8h7" class="h"/>',
+  hand: '<path d="M9 11V5.2a1.4 1.4 0 0 1 2.8 0V10M11.8 9.5V4a1.4 1.4 0 0 1 2.8 0v6M14.6 10V5.5a1.4 1.4 0 0 1 2.8 0V13c0 4.5-2.4 7.5-6 7.5-2.8 0-4.4-1.6-5.7-4l-2-3.6a1.3 1.3 0 0 1 2.2-1.4L9 14"/>',
+  sphere: '<circle cx="12" cy="11" r="7"/><ellipse cx="12" cy="11" rx="7" ry="2.5"/><ellipse cx="12" cy="11" rx="2.5" ry="7" transform="rotate(30 12 11)" class="h"/><path d="M12 18v3M8.5 21.5h7"/>',
+  scope: '<path d="M3.5 13.5l13-6 2 4.2-13 6z"/><path d="M16.5 7.5l2.6-1.2 1.8 4-2.6 1.2"/><path d="M10 15l-3 6.5M11 14.5l3 7"/><path d="M6.5 13.2l1 2.2M9 12l1 2.2" class="h"/>',
+  compass: '<circle cx="12" cy="12" r="8.5"/><path d="M12 4.5l2 7.5-2 7.5-2-7.5z"/><path d="M4.5 12h2M17.5 12h2" class="h"/>',
+  glass: '<path d="M7 3h10M7 21h10M8 3c0 5 8 6 8 9s-8 4-8 9M16 3c0 5-8 6-8 9s8 4 8 9"/><path d="M10 18.5h4" class="h"/>',
+  medal: '<circle cx="12" cy="9" r="5"/><path d="M9 13.5L7.5 21l4.5-2.5 4.5 2.5L15 13.5"/><path d="M12 6.5l.8 1.7 1.9.2-1.4 1.3.4 1.9-1.7-1-1.7 1 .4-1.9-1.4-1.3 1.9-.2z" class="h"/>',
+  gear: '<circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>',
+  seal: '<circle cx="12" cy="12" r="8"/><path d="M12 6l1.5 4.5H18l-3.7 2.7 1.4 4.4L12 15l-3.7 2.6 1.4-4.4L6 10.5h4.5z" class="h"/>',
+};
+const engSvg = (k, cls = '') => `<svg class="eng ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ENG[k]}</svg>`;
+function hashStr(str) { let h = 2166136261; for (let i = 0; i < str.length; i++) h = Math.imul(h ^ str.charCodeAt(i), 16777619); return h >>> 0; }
+const CGLY = new Map();
+function constGlyph(id) {
+  if (CGLY.has(id)) return CGLY.get(id);
+  let h = hashStr(id) || 1; const rn = () => ((h = Math.imul(h ^ (h >>> 15), 2246822507) ^ Math.imul(h, 3266489909)) >>> 0) / 4294967296;
+  const n = 4 + (rn() * 3 | 0), pts = [];
+  for (let t = 0; pts.length < n && t < 60; t++) { const x = 3.5 + rn() * 17, y = 3.5 + rn() * 17; if (pts.every(q => Math.hypot(q[0] - x, q[1] - y) > 4.2)) pts.push([x, y]); }
+  pts.sort((a, b) => a[0] - b[0]);
+  const f = v => v.toFixed(1);
+  let d = `M${f(pts[0][0])} ${f(pts[0][1])}`; for (let i = 1; i < pts.length; i++) d += `L${f(pts[i][0])} ${f(pts[i][1])}`;
+  if (pts.length > 4 && rn() < 0.5) d += `M${f(pts[1][0])} ${f(pts[1][1])}L${f(pts[pts.length - 2][0])} ${f(pts[pts.length - 2][1])}`;
+  const m = (rn() * pts.length) | 0, [mx, my] = pts[m];
+  const dots = pts.map((q, i) => i === m ? '' : `<circle cx="${f(q[0])}" cy="${f(q[1])}" r="${f(0.8 + rn() * 0.6)}" class="f"/>`).join('');
+  const star = `<path d="M${f(mx)} ${f(my - 3.2)}L${f(mx + 0.8)} ${f(my - 0.8)}L${f(mx + 3.2)} ${f(my)}L${f(mx + 0.8)} ${f(my + 0.8)}L${f(mx)} ${f(my + 3.2)}L${f(mx - 0.8)} ${f(my + 0.8)}L${f(mx - 3.2)} ${f(my)}L${f(mx - 0.8)} ${f(my - 0.8)}Z" class="f"/>`;
+  const svg = `<svg class="eng cg" viewBox="0 0 24 24" aria-hidden="true"><path d="${d}" class="h"/>${dots}${star}</svg>`;
+  CGLY.set(id, svg); return svg;
+}
+const GEN_ENG = { spark: 'spark', lantern: 'lantern', comet: 'comet', moon: 'moon', sun: 'sun', pulsar: 'pulsar', nebula: 'nebula', white: 'white', metro: 'metro', bang: 'bang', quasar: 'quasar', anvil: 'anvil' };
+// icône d'une amélioration : la gravure de sa forge, ou de sa famille
+function upgIcon(u) {
+  const g = /^g(\d+)t/.exec(u.id); if (g) return engSvg(GEN_ENG[GENS[+g[1]].id] || 'spark');
+  return engSvg(/^click/.test(u.id) ? 'hand' : /^glob/.test(u.id) ? 'sphere' : /^luck/.test(u.id) ? 'scope' : 'seal');
+}
+
 const UPGRADES = [];
 // repère court sur les tuiles d'amélioration (deux tuiles de la même forge ne se ressemblent plus)
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
@@ -320,7 +369,7 @@ function buyUpg(u) {
 function buyMeta(m) {
   if (S.meta[m.id] || S.novaBank < m.cost || !m.req.every(r => S.meta[r])) return;
   S.novaBank -= m.cost; S.meta[m.id] = 1;
-  toast(t('sf.unlocked', { ic: m.ic, name: m.name }));
+  toast(t('sf.unlocked', { ic: '✦', name: m.name }));
   sfx(660, 0.2, 'sine'); sfx(990, 0.3, 'sine', 0.1);
   refresh(true);
 }
@@ -337,15 +386,15 @@ function resetRun(extra) {
 }
 async function startChal(c) {
   if (S.chal || chalDone(c.id) || S.prestiges < c.need) return;
-  if (!await ptConfirm(t('sf.chalConfirm', { ic: c.ic, name: c.name, desc: c.desc, goal: fmt(c.goal), time: c.time ? t('sf.inMin', { n: c.time / 60 }) : '', reward: c.reward }), t('sf.chalStart'))) return;
+  if (!await ptConfirm(noEmoji(t('sf.chalConfirm', { ic: c.ic, name: c.name, desc: c.desc, goal: fmt(c.goal), time: c.time ? t('sf.inMin', { n: c.time / 60 }) : '', reward: c.reward })), t('sf.chalStart'))) return;
   resetRun({ chal: c.id, chalT: 0 });
   S.gens[0] = Math.max(S.gens[0], 10); S.gens[1] = Math.max(S.gens[1], 5);   // départ du Pack de démarrage : jamais de départ mort (Mains libres)
-  comet = null; flash = 0.6; toast(t('sf.chalStarted', { ic: c.ic, name: c.name })); sfx(330, 0.4, 'square', 0.05);
+  comet = null; flash = 0.6; toast(t('sf.chalStarted', { ic: '✦', name: c.name })); sfx(330, 0.4, 'square', 0.05);
   save(); refresh(true);
 }
 async function quitChal(silent) {
   if (!S.chal) return;
-  if (!silent && !await ptConfirm(t('sf.chalQuitQ'), t('sf.giveUp'))) return;
+  if (!silent && !await ptConfirm(noEmoji(t('sf.chalQuitQ')), t('sf.giveUp'))) return;
   resetRun({ chal: null }); save(); refresh(true);
 }
 function checkChal(dt) {
@@ -365,7 +414,7 @@ async function bigBang() {
   if (S.chal) { toast(t('sf.bbChal')); return; }
   const g = singGain();
   if (S.novaTotal < BIGBANG_MIN || g < 1) return;
-  if (!await ptConfirm(t('sf.bbConfirm', { nova: num(S.novaTotal), g, np: Math.round((effSing((S.sing || 0) + g) - effSing()) * 50), pp: Math.round((effSing((S.sing || 0) + g) - effSing()) * (gal('g_big') ? 20 : 10)) }), t('sf.bbOk'))) return;
+  if (!await ptConfirm(noEmoji(t('sf.bbConfirm', { nova: num(S.novaTotal), g, np: Math.round((effSing((S.sing || 0) + g) - effSing()) * 50), pp: Math.round((effSing((S.sing || 0) + g) - effSing()) * (gal('g_big') ? 20 : 10)) })), t('sf.bbOk'))) return;
   const start = gal('g_nova') ? 10 : 0;
   resetRun({ snBase: 0, mast: 0, novaTotal: start, novaBank: start, meta: {}, sing: (S.sing || 0) + g * (has('m_genesis') ? 2 : 1), singBank: (S.singBank || 0) + g, bigbangs: (S.bigbangs || 0) + 1 });
   if (gal('g_nova')) S.meta = { m_click: 1 };
@@ -375,7 +424,7 @@ async function bigBang() {
 }
 function buyGal(x) {
   if (gal(x.id) || (S.singBank || 0) < x.cost) return;
-  S.singBank -= x.cost; S.gal[x.id] = 1; toast(t('sf.unlocked', { ic: x.ic, name: x.name })); sfx(660, 0.3, 'triangle', 0.08); refresh(true);
+  S.singBank -= x.cost; S.gal[x.id] = 1; toast(t('sf.unlocked', { ic: '✦', name: x.name })); sfx(660, 0.3, 'triangle', 0.08); refresh(true);
 }
 
 async function prestige() {
@@ -383,7 +432,7 @@ async function prestige() {
   const g = novaGain();
   if (g < 1) return;
   const warn = g <= 3 ? t('sf.snWarn', { n: novaGainAt(S.runTotal * 4) }) : '';
-  if (!await ptConfirm(t('sf.snConfirm', { g: fmt(g), n: g, pct: Math.round((soft(S.novaTotal + g, NOVA.cap) - effNova()) * novaPct() * 100), warn }), t('sf.snOk'))) return;
+  if (!await ptConfirm(noEmoji(t('sf.snConfirm', { g: fmt(g), n: g, pct: Math.round((soft(S.novaTotal + g, NOVA.cap) - effNova()) * novaPct() * 100), warn })), t('sf.snOk'))) return;
   resetRun({ novaTotal: S.novaTotal + g, novaBank: S.novaBank + g, prestiges: S.prestiges + 1 });
   snAnim = 1.8; snBoom = false;
   sfx(110, 1.2, 'sawtooth', 0.08);
@@ -453,6 +502,23 @@ function resizeStar() {
 }
 // l'étoile grossit quand le cadre est bas (mobile) : les orbites se resserrent pour tenir
 const starR = () => Math.min(cw, ch) * (ch < 260 ? 0.3 : 0.2);
+// gravure du disque : hachures croisées et pointillé sur la face à l'ombre (calculée une fois par taille, puis recopiée)
+let engC = null, engR = 0;
+function engraving(r) {
+  const rq = Math.round(r); if (engC && engR === rq) return engC;
+  engR = rq; engC = document.createElement('canvas'); const s = Math.ceil(rq * 2 + 4); engC.width = engC.height = Math.ceil(s * dpr);
+  const g = engC.getContext('2d'); g.scale(dpr, dpr); g.translate(s / 2, s / 2);
+  g.beginPath(); g.arc(0, 0, rq, 0, Math.PI * 2); g.clip();
+  g.beginPath(); g.rect(-s, -s, 2 * s, 2 * s); g.arc(-rq * 0.32, -rq * 0.36, rq * 0.98, 0, Math.PI * 2); g.clip('evenodd');   // croissant d'ombre
+  g.strokeStyle = 'rgba(70,45,15,.22)'; g.lineWidth = 0.8;
+  for (let k = -14; k <= 14; k++) { const y = k * rq / 12; g.beginPath(); g.moveTo(-rq, y); g.quadraticCurveTo(0, y + rq * 0.22, rq, y); g.stroke(); }
+  g.strokeStyle = 'rgba(70,45,15,.14)'; g.rotate(0.9);
+  for (let k = -14; k <= 14; k++) { const y = k * rq / 10; g.beginPath(); g.moveTo(-rq, y); g.quadraticCurveTo(0, y + rq * 0.18, rq, y); g.stroke(); }
+  g.rotate(-0.9);
+  let h = 7; const rn = () => ((h = Math.imul(h ^ (h >>> 13), 1274126177) >>> 0) / 4294967296);
+  g.fillStyle = 'rgba(60,38,12,.35)'; for (let k = 0; k < 260; k++) { const a = rn() * Math.PI * 2, d = rq * Math.sqrt(0.35 + rn() * 0.65); g.fillRect(Math.cos(a) * d, Math.sin(a) * d, 0.9, 0.9); }
+  return engC;
+}
 function drawStar(dt, time) {
   const c = cx2; c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, cw, ch);
   bgStars.forEach(s => { c.globalAlpha = 0.3 + 0.3 * Math.sin(time * 1.5 + s.p); c.fillStyle = '#fff'; c.fillRect(s.x, s.y, s.s, s.s); });
@@ -504,23 +570,22 @@ function drawStar(dt, time) {
   const gr = c.createRadialGradient(X, Y, R * 0.5, X, Y, R * 2.4);
   gr.addColorStop(0, `hsla(${hue},${sat}%,72%,.55)`); gr.addColorStop(0.4, `hsla(${hue},${sat}%,60%,.14)`); gr.addColorStop(1, 'hsla(0,0%,0%,0)');
   c.fillStyle = gr; c.beginPath(); c.arc(X, Y, R * 2.4, 0, Math.PI * 2); c.fill();
-  for (const [w, nr, al] of [[0.07, 16, 0.07], [-0.045, 9, 0.09]]) {
-    c.save(); c.translate(X, Y); c.rotate(time * w * (frenzy ? 6 : 1));
-    for (let k = 0; k < nr; k++) { c.rotate(Math.PI * 2 / nr); c.fillStyle = `hsla(${hue},${sat}%,80%,${al + 0.04 * Math.sin(time * 2 + k)})`; c.beginPath(); c.moveTo(-R * 0.18, 0); c.lineTo(0, -R * (1.55 + 0.25 * Math.sin(time * 1.3 + k * 1.7))); c.lineTo(R * 0.18, 0); c.fill(); }
-    c.restore();
+  // rayons gravés, comme les soleils des atlas anciens : traits droits et traits ondulés en alternance
+  c.save(); c.translate(X, Y); c.rotate(time * 0.03 * (frenzy ? 6 : 1)); c.lineCap = 'round';
+  for (let k = 0; k < 40; k++) {
+    const a = k / 40 * Math.PI * 2, wavy = k % 2, l = R * (wavy ? 1.32 : 1.5 + 0.22 * Math.sin(k * 2.3) + 0.08 * Math.sin(time * 1.3 + k)), r0 = R * 0.98;
+    c.strokeStyle = `hsla(${hue},${Math.min(60, sat)}%,82%,${wavy ? 0.32 : 0.45})`; c.lineWidth = wavy ? 0.9 : 1.2; c.beginPath();
+    if (!wavy) { c.moveTo(Math.cos(a) * r0, Math.sin(a) * r0); c.lineTo(Math.cos(a) * l, Math.sin(a) * l); }
+    else for (let q = 0; q <= 12; q++) { const rr = r0 + (l - r0) * q / 12, off = Math.sin(q * 1.6 + time * 2) * R * 0.025, x = Math.cos(a) * rr - Math.sin(a) * off, y = Math.sin(a) * rr + Math.cos(a) * off; q ? c.lineTo(x, y) : c.moveTo(x, y); }
+    c.stroke();
   }
+  c.restore();
   // cœur : plasma (granulation qui bouge), bord assombri, double liseré doré gravé
   c.save(); c.translate(X, Y);
   const core = c.createRadialGradient(-R * 0.15, -R * 0.2, R * 0.05, 0, 0, R);
   core.addColorStop(0, '#fffdf2'); core.addColorStop(0.45, `hsl(${hue},${sat}%,${72 + sp * 12}%)`); core.addColorStop(0.85, `hsl(${hue - 12},${sat}%,${52 + sp * 14}%)`); core.addColorStop(1, `hsl(${hue - 20},${sat}%,${38 + sp * 12}%)`);
-  c.shadowColor = `hsl(${hue},${sat}%,65%)`; c.shadowBlur = 34; c.fillStyle = core; c.beginPath(); c.arc(0, 0, R * 0.82, 0, Math.PI * 2); c.fill(); c.shadowBlur = 0;
-  c.save(); c.beginPath(); c.arc(0, 0, R * 0.82, 0, Math.PI * 2); c.clip();
-  for (let k = 0; k < 16; k++) {
-    const a = k * 2.399 + time * 0.07 * (k % 2 ? 1 : -1), d = R * 0.62 * Math.sqrt((k + 0.5) / 16), rr = R * (0.16 + 0.05 * Math.sin(time * 0.9 + k));
-    c.fillStyle = k % 3 ? `hsla(${hue + 8},${sat}%,95%,.12)` : `hsla(${hue - 10},${sat}%,55%,.07)`;
-    c.beginPath(); c.arc(Math.cos(a) * d, Math.sin(a) * d, rr, 0, Math.PI * 2); c.fill();
-  }
-  c.restore();
+  c.shadowColor = `hsl(${hue},${sat}%,65%)`; c.shadowBlur = 18; c.fillStyle = core; c.beginPath(); c.arc(0, 0, R * 0.82, 0, Math.PI * 2); c.fill(); c.shadowBlur = 0;
+  const eg = engraving(R * 0.82); c.drawImage(eg, -eg.width / dpr / 2, -eg.height / dpr / 2, eg.width / dpr, eg.height / dpr);
   c.strokeStyle = `rgba(243,212,138,${0.55 + pulse * 0.45})`; c.lineWidth = 1.2; c.beginPath(); c.arc(0, 0, R * 0.9, 0, Math.PI * 2); c.stroke();
   c.strokeStyle = 'rgba(243,212,138,.3)'; c.beginPath(); c.arc(0, 0, R * 0.96, 0, Math.PI * 2); c.stroke();
   c.restore();
@@ -609,7 +674,7 @@ function build() {
   if (tab === 'gen') {
     GENS.forEach((g, i) => {
       const b = document.createElement('button'); b.className = 'sf-item'; b.dataset.i = i;
-      b.innerHTML = `<div class="ic" style="background:${g.col}22">${g.ic}</div><div class="mid"><b>${g.name}</b><span class="d"></span></div><div class="rt"><b class="n">0</b><span class="c"></span></div>`;
+      b.innerHTML = `<div class="ic">${engSvg(GEN_ENG[g.id] || 'spark')}</div><div class="mid"><b>${g.name}</b><span class="d"></span></div><div class="rt"><b class="n">0</b><span class="c"></span></div>`;
       b.onclick = () => buyGen(i);   // au doigt, achat direct : la ligne affiche déjà l'essentiel
       b.onmouseenter = () => { if (lastPT === 'mouse') showTip(b, () => t('sf.genTip', { name: g.name, desc: g.desc, each: fmt(g.prod * genMult(i) * globalMult()), total: fmt(S.gens[i] * g.prod * genMult(i) * globalMult()), next: MILESTONES.find(m => m > S.gens[i]) || '—' })); };
       b.onmouseleave = () => { if (lastPT === 'mouse') hideTip(); };
@@ -628,21 +693,21 @@ function build() {
     let svg = '<svg viewBox="0 0 100 100" preserveAspectRatio="none">';
     META.forEach(m => m.req.forEach(r => { const p = META.find(q => q.id === r); svg += `<line x1="${p.x}" y1="${p.y}" x2="${m.x}" y2="${m.y}" stroke="#4a3a78" stroke-width="0.6" vector-effect="non-scaling-stroke" data-l="${m.id}" />`; }));
     tree.innerHTML = svg + '</svg>';
-    const ms = document.createElement('button'); ms.className = 'sf-item'; ms.id = 'sf-mast'; ms.innerHTML = `<div class="ic">✴️</div><div class="mid"><b>${t('sf.mastName')}</b><span></span></div><div class="rt"><b class="nova"></b></div>`;
+    const ms = document.createElement('button'); ms.className = 'sf-item'; ms.id = 'sf-mast'; ms.innerHTML = `<div class="ic">${engSvg('seal')}</div><div class="mid"><b>${t('sf.mastName')}</b><span></span></div><div class="rt"><b class="nova"></b></div>`;
     ms.onclick = () => { if (buyMastery()) { sfx(660, 0.25, 'sine', 0.08); sfx(990, 0.3, 'sine', 0.06); save(); refresh(true); } };
     const bb = document.createElement('div'); bb.id = 'sf-bigbang'; bb.className = 'sf-bb';
     bb.innerHTML = `<div class="sf-h">${t('sf.bbTitle')}</div><p class="muted small" id="sf-bb-info"></p><button class="btn nova-btn" id="sf-bb-btn">${t('sf.bbBtn')}</button><div class="sf-h">${t('sf.galaxy')}</div><div id="sf-gal"></div>`;
     setTimeout(() => {
       const gl = $('sf-gal'); if (!gl) return;
-      GALAXY.forEach(x => { const d = document.createElement('button'); d.className = 'sf-item'; d.dataset.id = x.id; d.innerHTML = `<div class="ic" style="background:#2b1f4a">${x.ic}</div><div class="mid"><b>${x.name}</b><span>${x.desc}</span></div><div class="rt"><b class="nova">${x.cost}✧</b></div>`; d.onclick = () => buyGal(x); gl.appendChild(d); });
-      const en = document.createElement('button'); en.className = 'sf-item'; en.id = 'sf-eng'; en.innerHTML = `<div class="ic" style="background:#2b1f4a">⚙️</div><div class="mid"><b>${t('sf.engName')}</b><span></span></div><div class="rt"><b class="nova"></b></div>`;
+      GALAXY.forEach(x => { const d = document.createElement('button'); d.className = 'sf-item'; d.dataset.id = x.id; d.innerHTML = `<div class="ic">${constGlyph(x.id)}</div><div class="mid"><b>${x.name}</b><span>${x.desc}</span></div><div class="rt"><b class="nova">${x.cost}✧</b></div>`; d.onclick = () => buyGal(x); gl.appendChild(d); });
+      const en = document.createElement('button'); en.className = 'sf-item'; en.id = 'sf-eng'; en.innerHTML = `<div class="ic">${engSvg('gear')}</div><div class="mid"><b>${t('sf.engName')}</b><span></span></div><div class="rt"><b class="nova"></b></div>`;
       en.onclick = () => { if (buyEngine()) { sfx(660, 0.3, 'triangle', 0.08); save(); refresh(true); } }; gl.appendChild(en);
       $('sf-bb-btn').onclick = bigBang; refresh();
     });
     META.forEach(m => {
       const n = document.createElement('button'); n.className = 'sf-node'; n.dataset.id = m.id;
       n.style.left = m.x + '%'; n.style.top = m.y + '%';
-      n.innerHTML = `${m.ic}<small>${m.cost}✦</small>`;
+      n.innerHTML = `${constGlyph(m.id)}<small>${m.cost}✦</small>`;
       tipify(n, () => `<b>${m.name}</b> — <span class="nova">${t('sf.novaeN', { n: m.cost })}</span>${S.meta[m.id] ? ' ✓' : ''}<br>${m.desc}${m.req.length ? '<br><span class="muted">' + t('sf.requires', { list: m.req.map(r => META.find(q => q.id === r).name).join(', ') }) + '</span>' : ''}`, () => buyMeta(m));
       tree.appendChild(n);
     });
@@ -653,14 +718,14 @@ function build() {
     const info = document.createElement('div'); info.className = 'muted small'; info.textContent = t('sf.chalInfo'); panel.appendChild(info);
     CHALS.forEach(c => {
       const d = document.createElement('div'); d.className = 'sf-ch'; d.dataset.id = c.id;
-      d.innerHTML = `<div class="ic">${c.ic}</div><div class="mid"><b>${c.name}</b><span>${c.desc} ${t('sf.goalTxt', { n: fmt(c.goal), time: c.time ? t('sf.inMin', { n: c.time / 60 }) : '' })}</span><span class="rw">🏅 ${c.reward}</span></div><button class="btn small">${t('sf.launch')}</button>`;
+      d.innerHTML = `<div class="ic">${constGlyph(c.id)}</div><div class="mid"><b>${c.name}</b><span>${c.desc} ${t('sf.goalTxt', { n: fmt(c.goal), time: c.time ? t('sf.inMin', { n: c.time / 60 }) : '' })}</span><span class="rw">🏅 ${c.reward}</span></div><button class="btn small">${t('sf.launch')}</button>`;
       d.querySelector('button').onclick = () => startChal(c);
       panel.appendChild(d);
     });
   } else if (tab === 'ach') {
     const info = document.createElement('div'); info.className = 'muted small'; info.id = 'sf-ach-info'; panel.appendChild(info);
     const g = document.createElement('div'); g.className = 'sf-ach';
-    ACH.forEach(a => { const d = document.createElement('div'); d.dataset.id = a.id; d.textContent = a.ic; tipify(d, () => `<b>${a.name}</b>${S.ach[a.id] ? ' ✓' : ''}<br>${a.desc}`); g.appendChild(d); });
+    ACH.forEach(a => { const d = document.createElement('div'); d.dataset.id = a.id; d.innerHTML = constGlyph(a.id); tipify(d, () => `<b>${a.name}</b>${S.ach[a.id] ? ' ✓' : ''}<br>${a.desc}`); g.appendChild(d); });
     panel.appendChild(g);
     const st = document.createElement('div'); st.className = 'muted small'; st.id = 'sf-stats'; st.style.marginTop = '12px'; panel.appendChild(st);
   } else if (tab === 'opt') {
@@ -676,7 +741,7 @@ function build() {
     $('sf-sci').onchange = e => { SCI = e.target.checked; try { localStorage.setItem('starforge.sci', SCI ? '1' : '0'); } catch (x) {} refresh(true); };
     $('sf-exp').onclick = () => { save(); $('sf-io').value = btoa(unescape(encodeURIComponent(JSON.stringify(S)))); };
     $('sf-imp').onclick = () => { try { const d = JSON.parse(decodeURIComponent(escape(atob($('sf-io').value.trim())))); S = Object.assign(fresh(), d); save(); toast(t('sf.imported')); refresh(true); } catch (e) { toast(t('sf.invalid')); } };
-    $('sf-wipe').onclick = async () => { if (await ptConfirm(t('sf.wipeQ'), t('sf.wipe'))) { S = fresh(); save(); refresh(true); } };
+    $('sf-wipe').onclick = async () => { if (await ptConfirm(noEmoji(t('sf.wipeQ')), t('sf.wipe'))) { S = fresh(); save(); refresh(true); } };
   }
   refresh();
 }
@@ -686,13 +751,13 @@ function fillUpgrades() {
   const av = UPGRADES.filter(u => !S.upg[u.id] && u.req(S)).sort((a, b) => upgCost(a) - upgCost(b));
   if (!av.length) grid.innerHTML = `<p class="muted small" style="grid-column:1/-1">${t('sf.nothing')}</p>`;
   av.forEach(u => {
-    const b = document.createElement('button'); b.className = 'sf-upg'; b.dataset.id = u.id; b.innerHTML = `<span>${u.ic}</span><small>${fmt(upgCost(u))}</small>${upgTag(u) ? `<i class="sf-utag">${upgTag(u)}</i>` : ''}`;
+    const b = document.createElement('button'); b.className = 'sf-upg'; b.dataset.id = u.id; b.innerHTML = `<span>${upgIcon(u)}</span><small>${fmt(upgCost(u))}</small>${upgTag(u) ? `<i class="sf-utag">${upgTag(u)}</i>` : ''}`;
     tipify(b, () => `<b>${u.name}</b><br>${u.desc}<br><span style="color:var(--gold)">${fmt(upgCost(u))}</span>${S.dust < upgCost(u) ? ` <span class="muted">${t('sf.notEnough')}</span>` : ''}`, () => buyUpg(u));
     grid.appendChild(b);
   });
   const owned = UPGRADES.filter(u => S.upg[u.id]);
   $('sf-upg-owned-h').textContent = t('sf.boughtHdr', { n: owned.length, t: UPGRADES.length });
-  owned.forEach(u => { const d = document.createElement('div'); d.className = 'sf-upg'; d.style.opacity = .6; d.innerHTML = `${u.ic}${upgTag(u) ? `<i class="sf-utag">${upgTag(u)}</i>` : ''}`; tipify(d, () => `<b>${u.name}</b> ✓<br>${u.desc}`); grid2.appendChild(d); });
+  owned.forEach(u => { const d = document.createElement('div'); d.className = 'sf-upg'; d.style.opacity = .6; d.innerHTML = `${upgIcon(u)}${upgTag(u) ? `<i class="sf-utag">${upgTag(u)}</i>` : ''}`; tipify(d, () => `<b>${u.name}</b> ✓<br>${u.desc}`); grid2.appendChild(d); });
   upgSig = sigUpg();
 }
 let upgSig = '';
@@ -706,6 +771,7 @@ function refresh(structural) {
   const BN = { frenzy: [t('sf.bFrenzy'), ''], click: [t('sf.bClick'), ''], meteor: [t('sf.bMeteor'), 'met'], eclipse: [t('sf.bEclipse'), 'ecl'], echo: [t('sf.bEcho'), 'ecl'], void: [t('sf.bVoid'), 'ecl'], surge: [null, ''] };
   const bname = b => b.type === 'surge' ? t('sf.bSurge', { gen: GENS[b.g].name, m: fmt(b.m) }) : BN[b.type][0], stack = S.buffs.reduce((m, b) => m * buffMult(b), 1);
   $('sf-buffs').innerHTML = (eternal() ? `<span class="met">${t('sf.eternalBuff')}</span>` : boostLeft() > 0 ? `<span class="met">${t('sf.boostBuff', { t: hm(boostLeft()) })}</span>` : '') + S.buffs.map(b => `<span class="${BN[b.type][1]}">${bname(b)} · ${Math.ceil(b.t)} s</span>`).join('') + (S.buffs.filter(b => buffMult(b) > 1).length >= 2 ? `<span class="met">${t('sf.stack', { m: fmt(stack) })}</span>` : '');
+  { const bb = $('sf-buffs'); if (/\p{Extended_Pictographic}/u.test(bb.innerHTML)) bb.innerHTML = noEmoji(bb.innerHTML); }
   const canAd = !!(MON() && MON().canReward());
   $('sf-adboost').classList.toggle('hidden', !canAd || eternal() || boostLeft() > (BOOST_MAX_H - BOOST_H) * 3600e3);
   $('sf-adboost').textContent = boostLeft() > 0 ? t('sf.adBoostMore') : t('sf.adBoost');
@@ -723,7 +789,7 @@ function refresh(structural) {
   $('sf-tab-chal').classList.toggle('hidden', S.prestiges < 1);
   const ch = S.chal && CHALS.find(x => x.id === S.chal);
   $('sf-chal').classList.toggle('hidden', !ch);
-  if (ch) $('sf-chal-txt').textContent = `${ch.ic} ${ch.name} : ${fmt(Math.min(S.runTotal, ch.goal))} / ${fmt(ch.goal)}${ch.time ? ` · ⏱ ${Math.max(0, Math.ceil((ch.time - S.chalT) / 60))} min` : ''}`;
+  if (ch) $('sf-chal-txt').textContent = `✦ ${ch.name} : ${fmt(Math.min(S.runTotal, ch.goal))} / ${fmt(ch.goal)}${ch.time ? ` · ⏱ ${Math.max(0, Math.ceil((ch.time - S.chalT) / 60))} min` : ''}`;
   // pastille "améliorations dispo"
   const anyUpg = UPGRADES.some(u => !S.upg[u.id] && u.req(S) && S.dust >= upgCost(u));
   document.querySelector('[data-sf=upg]').classList.toggle('badge', anyUpg);
@@ -791,8 +857,9 @@ function refresh(structural) {
   }
 }
 
+const noEmoji = s => String(s).replace(/(\p{Extended_Pictographic}|\p{Regional_Indicator})\uFE0F?/gu, '✦');   // gravure : pas d'emoji dans les textes du jeu
 function toast(t) {
-  const z = $('sf-toasts'); const d = document.createElement('div'); d.className = 'toast'; d.textContent = t; z.appendChild(d);
+  const z = $('sf-toasts'); const d = document.createElement('div'); d.className = 'toast'; d.textContent = noEmoji(t); z.appendChild(d);
   setTimeout(() => d.remove(), 3200);
   while (z.children.length > 3) z.firstChild.remove();
 }
@@ -889,6 +956,7 @@ window.GAMES.forge = {
     const n = Math.max(1, Math.round(S.novaTotal * 0.02)); S.novaTotal += n; S.novaBank += n; save(); if (built) refresh(true);
   },
   show() {
+    document.querySelectorAll('.sf-tabs button').forEach(b => { const k = { gen: 'anvil', upg: 'compass', meta: 'spark', chal: 'glass', ach: 'medal', opt: 'gear' }[b.dataset.sf], i = b.querySelector('i'); if (!k || b.dataset.eng) return; b.dataset.eng = 1; if (i) i.innerHTML = engSvg(k); else b.innerHTML = engSvg(k); });
     visible = true; loadFonts();
     if (!inited) { inited = true; load(); lastT = performance.now(); requestAnimationFrame(loop); }
     try { if (!localStorage.getItem('starforge.intro') && !S.lifeTotal) $('sf-intro').classList.remove('hidden'); } catch (e) {}

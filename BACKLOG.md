@@ -335,6 +335,16 @@ paliers jusqu'à 500), 150+ succès qui nourrissent un multiplicateur, codex des
 jus (chiffres qui roulent, ETA), couche quotidienne (Stardrops, mini-jeu), Big Bang qui
 débloque des systèmes, saisons, défis à paliers.
 
+## Block Quarry et Nova Foundry — « ça fait encore IA par endroits » (2026-10-05) → 1.6.0
+
+Diagnostic : emoji en guise d'icônes, boutons « pilule » en dégradé, police système dans les textes et boutons, cadres
+parfaitement réguliers, fenêtre de confirmation générique (sombre et rose) commune aux jeux.
+
+| Jeu | Correction |
+|---|---|
+| Block Quarry | Dalles de pierre aux arêtes irrégulières (trois découpes alternées) avec grain, plaques de cuivre rivetées pour les actions, titre sur planche de bois, défi du jour en panneau cloué, Chrono en plaque émaillée, niveaux en pierres taillées, Big Shoulders partout ; tous les emoji remplacés à la volée par des icônes dessinées (cadenas, gemme, calendrier, chrono, carte, dynamite, trophée…), dans les 6 langues ; confirmation en tablette de pierre |
+| Nova Foundry | Gravures au trait à la place des emoji (12 forges, familles d'améliorations, onglets), petite constellation propre à chaque nœud, succès, défi et automatisation ; grain de papier, filets tracés à la main légèrement tremblés, souligné calligraphié des onglets ; Supernova en sceau de cire de travers ; plaque dorée mate ; confirmation sur papier vergé à l'encre ; disque de l'étoile gravé (hachures croisées et pointillé sur l'ombre) et rayons gravés droits et ondulés |
+
 ## Synth Horde — retour de partie n° 2 (2026-10-05) → 1.14.0
 
 | Retour | Correction |

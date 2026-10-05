@@ -51,6 +51,38 @@ const MON = {
   reward: kind => window.PT_MON ? window.PT_MON.reward(kind) : Promise.resolve(false),
   pause: () => window.PT_MON ? window.PT_MON.pause() : Promise.resolve(),   // pause publicitaire éventuelle (plafonnée) entre deux parties
 };
+// ---------- icônes dessinées (plus d'emoji dans l'interface) : chaque emoji des textes du jeu est remplacé à la volée
+// par son dessin, dans toutes les langues ; un emoji inconnu disparaît
+const BQI = {
+  '🪙': '<circle cx="12" cy="12" r="9.5" fill="#e0a93a" stroke="#5a3a0c" stroke-width="1.4"/><circle cx="12" cy="12" r="6.6" fill="#ffd24d" stroke="#b07a1c" stroke-width="1.2"/><path d="M9 9.5h6l-1.6 5h-2.8z" fill="#b07a1c"/>',
+  '💎': '<path d="M6 4h12l4 5-10 12L2 9z" fill="#4dd4ff" stroke="#0c2a38" stroke-width="1.2" stroke-linejoin="round"/><path d="M2 9h20M9 4l-1 5 4 12 4-12-1-5" fill="none" stroke="#c8f6ff" stroke-width=".9"/>',
+  '🔒': '<path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" fill="none" stroke="#6b6f78" stroke-width="2.4"/><rect x="5" y="10.5" width="14" height="10" rx="1.5" fill="#9aa0aa" stroke="#24262b" stroke-width="1.2"/><circle cx="12" cy="15" r="1.5" fill="#24262b"/><path d="M12 15.5v2.6" stroke="#24262b" stroke-width="1.5"/>',
+  '🎯': '<rect x="3.5" y="5" width="17" height="15.5" rx="1" fill="#e8d3b0" stroke="#3a2412" stroke-width="1.3"/><path d="M3.5 9.5h17" stroke="#3a2412" stroke-width="1.3"/><path d="M8 3v4M16 3v4" stroke="#3a2412" stroke-width="1.9" stroke-linecap="round"/><path d="M8.5 15l2.3 2.2L15.5 12" fill="none" stroke="#b5321e" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>',
+  '⏱': '<circle cx="12" cy="13.5" r="7.5" fill="#e8d3b0" stroke="#3a2412" stroke-width="1.4"/><path d="M10 3h4M12 3v3M18 7l1.5-1.5" stroke="#3a2412" stroke-width="1.7" stroke-linecap="round"/><path d="M12 13.5V9.5M12 13.5l3 2" stroke="#b5321e" stroke-width="1.7" stroke-linecap="round"/>',
+  '🗺': '<path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z" fill="#e8d3b0" stroke="#3a2412" stroke-width="1.2" stroke-linejoin="round"/><path d="M9 4v14M15 6v14" stroke="#3a2412" stroke-width=".8"/><path d="M5 14l3-3 3 2 3-4 3 2" fill="none" stroke="#b5321e" stroke-width="1.4" stroke-dasharray="1.6 1.2"/>',
+  '🎨': '<path d="M3.5 12.5l3-4h4l3 4-5 6z" fill="#e0567a" stroke="#2a1410" stroke-width="1.1" stroke-linejoin="round"/><path d="M10.5 8.5l3-4h4l3 4-5 6z" fill="#3d8fe0" stroke="#10182a" stroke-width="1.1" stroke-linejoin="round"/><path d="M8.5 15.5l2.5-3h3.5l2.5 3-4.2 5z" fill="#f0b23a" stroke="#2a1a08" stroke-width="1.1" stroke-linejoin="round"/>',
+  '💥': '<rect x="5" y="9" width="4.2" height="12" rx="1.2" fill="#e0483a" stroke="#4a120c" stroke-width="1.2"/><rect x="9.9" y="9" width="4.2" height="12" rx="1.2" fill="#e85a3f" stroke="#4a120c" stroke-width="1.2"/><rect x="14.8" y="9" width="4.2" height="12" rx="1.2" fill="#e0483a" stroke="#4a120c" stroke-width="1.2"/><rect x="4.4" y="13" width="15.2" height="2.6" fill="#3a2412"/><path d="M12 9c0-3 2-4 4-5" fill="none" stroke="#3a2412" stroke-width="1.4"/><circle cx="16.6" cy="3.6" r="2" fill="#ffd24d"/>',
+  '🔨': '<path d="M13.5 9.5L4 19a1.6 1.6 0 0 0 2.3 2.3l9.5-9.5" fill="#c9a26b" stroke="#3a2412" stroke-width="1.3"/><path d="M10.5 4.5L15 2l7 7-2.5 4.5z" fill="#9aa3b5" stroke="#2a2f3a" stroke-width="1.3" stroke-linejoin="round"/>',
+  '🏆': '<path d="M7 3h10v5a5 5 0 0 1-10 0z" fill="#ffd24d" stroke="#5a3a0c" stroke-width="1.2"/><path d="M7 5H4c0 3 1.5 4.5 3.5 4.5M17 5h3c0 3-1.5 4.5-3.5 4.5" fill="none" stroke="#5a3a0c" stroke-width="1.2"/><path d="M10 13h4l1 4H9z" fill="#e0a93a" stroke="#5a3a0c"/><rect x="7" y="17" width="10" height="3" fill="#7a5f45" stroke="#3a2412"/>',
+  '📤': '<path d="M12 3v11M8 7l4-4 4 4" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 12v7h14v-7" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/>',
+  '🔥': '<path d="M12 3c1 4 6 6 6 11a6 6 0 0 1-12 0c0-3 2-4.5 2-7 1.5 1 2 2.5 2 4 1-2 2-5 2-8z" fill="#ff7a3d" stroke="#5a1a08" stroke-width="1.2"/><path d="M12 13c.5 2 2.5 3 2.5 5a2.5 2.5 0 0 1-5 0c0-1.5 1.5-2.5 2.5-5z" fill="#ffd24d"/>',
+  '↻': '<path d="M19 12a7 7 0 1 1-2.1-5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><path d="M18.5 3.5V8H14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>',
+};
+const EMO = /(\p{Extended_Pictographic}|↻)️?/gu;
+const bqIcon = e => BQI[e.replace('️', '')] ? `<svg class="bqi" viewBox="0 0 24 24" aria-hidden="true">${BQI[e.replace('️', '')]}</svg>` : '';
+function deEmoji(root) {
+  if (!root) return;
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), hits = [];
+  for (let n = w.nextNode(); n; n = w.nextNode()) { EMO.lastIndex = 0; if (EMO.test(n.nodeValue)) hits.push(n); }
+  for (const n of hits) {
+    if (!n.parentNode) continue;
+    const sp = document.createElement('span'); sp.className = 'bqt';
+    sp.innerHTML = n.nodeValue.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]).replace(EMO, m => bqIcon(m));
+    n.parentNode.replaceChild(sp, n);
+  }
+}
+const stripEmoji = s => String(s).replace(EMO, '').replace(/\s{2,}/g, ' ').trim();
+
 let TUTO = false;
 try { TUTO = !localStorage.getItem('blocparty.tuto'); } catch (e) {}
 let TIPS = {};
@@ -387,7 +419,7 @@ function openThemes() {
     d.innerHTML = `<canvas width="200" height="100"></canvas><b>${tr('bp.th.' + th.id)}</b><small>${cur ? tr('bp.equipped') : owned ? tr('bp.equip') : '🪙 ' + th.cost}</small>`;
     // aperçu : 4 cases dans le style du thème, sur son fond
     const cv = d.querySelector('canvas'), g = cv.getContext('2d'), prev = THEME.cur;
-    THEME.cur = th.id; g.fillStyle = '#15122e'; g.fillRect(0, 0, 200, 100);
+    THEME.cur = th.id; g.fillStyle = '#211d24'; g.fillRect(0, 0, 200, 100); g.strokeStyle = 'rgba(0,0,0,.6)'; g.lineWidth = 4; g.strokeRect(2, 2, 196, 96);
     [0, 1, 2, 3].forEach(i => cell(18 + i * 42, 30, 40, COLORS[i], 1, g)); THEME.cur = prev;
     d.onclick = () => {
       if (!owned) { if (COINS < th.cost) { beep(180, 0.1, 'square', 0.03); return; } COINS -= th.cost; saveCoins(); THEME.owned.push(th.id); beep(880, 0.2, 'triangle', 0.06); }
@@ -937,6 +969,7 @@ function draw(dt) {
     ctx.save(); ctx.globalAlpha = a; ctx.translate(W / 2, L.by + L.bs * 0.42 - k * 40); ctx.scale(sc, sc);
     ctx.textAlign = 'center'; ctx.font = `${Math.round(L.cs * (p.big ? 0.78 : 0.62))}px 'BQ Display',system-ui,sans-serif`;
     const mw = L.bs * 0.96 / sc;   // jamais plus large que la grille (textes longs, petits écrans)
+    if (!p.clean) { p.text = stripEmoji(p.text); p.sub = stripEmoji(p.sub); p.clean = 1; }
     ctx.lineJoin = 'round'; ctx.lineWidth = L.cs * 0.2; ctx.strokeStyle = '#26140c'; ctx.strokeText(p.text, 0, 0, mw);
     const gr = ctx.createLinearGradient(0, -30, 0, 10); gr.addColorStop(0, '#fff6a8'); gr.addColorStop(1, '#ff9d2e');
     ctx.fillStyle = gr; ctx.fillText(p.text, 0, 0, mw);
@@ -1145,6 +1178,9 @@ document.querySelectorAll('#bp-boost button').forEach(b => b.onclick = () => {
 paintBoost();
 // langue : le HTML se traduit tout seul, le reste se redessine
 applyI18n();
+deEmoji($('tab-blocks'));
+new MutationObserver(ms => { for (const m of ms) { if (m.type === 'characterData') deEmoji(m.target.parentNode); else m.addedNodes.forEach(n => n.nodeType === 3 ? deEmoji(n.parentNode) : n.nodeType === 1 && deEmoji(n)); } }).observe($('tab-blocks'), { subtree: true, childList: true, characterData: true });
+new MutationObserver(() => { if (document.body.dataset.tab === 'blocks') deEmoji($('pt-modal-txt')); }).observe($('pt-modal-txt'), { childList: true, subtree: true, characterData: true });
 const sel = document.getElementById('pt-langsel'); if (sel) import('./i18n.js').then(m => m.langSelect(sel));
 window.addEventListener('pt-lang', () => { updateHUD(); if (!$('bp-themes').classList.contains('hidden')) openThemes(); if (!$('bp-map').classList.contains('hidden')) openMap(); });
 $('bp-mapclose').onclick = () => { $('bp-map').classList.add('hidden'); if (S.over && S.mode !== 'adv') $('bp-over').classList.remove('hidden'); };   // fermer la carte après une fin de partie ramène à l'écran de fin
