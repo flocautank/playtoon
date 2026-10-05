@@ -335,6 +335,23 @@ paliers jusqu'à 500), 150+ succès qui nourrissent un multiplicateur, codex des
 jus (chiffres qui roulent, ETA), couche quotidienne (Stardrops, mini-jeu), Big Bang qui
 débloque des systèmes, saisons, défis à paliers.
 
+## Retour de partie n° 3 (2026-10-05) → Synth Horde 1.15.0, Block Quarry 1.7.0
+
+| Retour | Correction |
+|---|---|
+| SH : ne pas pouvoir grimper les murs verticaux (les ennemis, si) | Étages de 4,8 à 6 m (le double saut fait ~4 m) ; sur une paroi de plus de ~52° le joueur glisse sans regagner ses sauts. Garde-fous : dans un creux en V on tient debout, et une glissade qui n'avance pas redevient un sol (sinon le joueur restait figé — trouvé par le bot) |
+| SH : carte trop petite, plus de verticalité, pentes, plateaux, falaises, décor | Arène 300 × 300 m (×2,25) ; 4 à 7 étages ; mesas à une seule rampe et fosses (bords de rampe fondus) ; vinyles géants à demi enterrés ; contenu à l'échelle (34 coffres, 24 tremplins, 32 piliers, sanctuaires ×1,6, 68 tours) |
+| SH : cartes procédurales, jamais pareilles | Chaque run tire un style (terrasses, mesas, canyons, hauts plateaux), des tailles, une hauteur d'étage, une densité de rampes et ses reliefs |
+| SH : écran pause bogué (textes superposés), listes déroulantes laides | Étiquettes imbriquées corrigées (l'indice d'évolution n'est plus une boîte dans la boîte) ; boutons segmentés, interrupteurs et curseur au style « flyer » |
+| SH : icônes en emoji « très cheap » | 168 icônes dessinées (js/bonk-icons.js) : armes, évolutions, tomes, objets, sanctuaires, personnages, statistiques, HUD, quêtes ; remplacement automatique dans les textes traduits |
+| SH : zoomer / dézoomer, téléphone et ordinateur | Molette, touches +/−, pincement à deux doigts ; mémorisé |
+| SH : des nœuds à activer comme les crânes de Megabonk | Pédales d'effet FUZZ (+20 % d'ennemis, +15 % XP), BOOST (+25 % PV ennemis, +30 % or), ECHO (une élite de plus ~toutes les 40 s, +1 chance), DRIVE (ennemis plus vifs et plus forts ; +20 % or et XP) — cumulables, compteur GAIN au HUD |
+| BQ : icônes qui font emoji | Glyphes d'une seule couleur frappés dans la pierre (relief en CSS), main du tutoriel dessinée |
+| BQ : marteau, bombe, mélange peu compréhensibles | Boutons en schéma (1 case brisée / zone 3×3 / nouvelles pièces) avec libellé et prix ; à la sélection, un bandeau explique l'outil et comment l'annuler |
+
+Équilibrage (bot naïf, qui contourne désormais une falaise quand il bute) : médiane 5:33, niveau 14,9 à 3:00 (avant : 5:22 / 14,3).
+Portée de ramassage de base +25 % et dégâts des étapes 1–2 un peu baissés : la horde suit partout sur un terrain plus haché.
+
 ## Block Quarry et Nova Foundry — « ça fait encore IA par endroits » (2026-10-05) → 1.6.0
 
 Diagnostic : emoji en guise d'icônes, boutons « pilule » en dégradé, police système dans les textes et boutons, cadres

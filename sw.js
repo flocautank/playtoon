@@ -1,9 +1,9 @@
 // Service worker Playtoon : le réseau d'abord (toujours la dernière version publiée),
 // le cache seulement quand on est hors-ligne. Aucune version périmée n'est servie en ligne.
-const CACHE = 'playtoon-v5';
+const CACHE = 'playtoon-v6';
 const CORE = ['./', 'index.html', 'css/style.css', 'js/main.js', 'js/blocks.js', 'js/clicker.js', 'js/bonk.js', 'js/synthwave.js',
   'js/i18n.js', 'js/version.js', 'js/lang/shell.js', 'js/lang/forge.js', 'js/lang/forge-more.js', 'js/lang/bonk.js',
-  'js/bonk-cast.js', 'js/bonk-cast-data.js', 'js/bonk-fonts.js', 'js/forge-fonts.js', 'js/quarry-fonts.js', 'vendor/three.module.min.js', 'vendor/addons/postprocessing/EffectComposer.js', 'vendor/addons/postprocessing/MaskPass.js',
+  'js/bonk-cast.js', 'js/bonk-cast-data.js', 'js/bonk-fonts.js', 'js/bonk-icons.js', 'js/forge-fonts.js', 'js/quarry-fonts.js', 'vendor/three.module.min.js', 'vendor/addons/postprocessing/EffectComposer.js', 'vendor/addons/postprocessing/MaskPass.js',
   'vendor/addons/postprocessing/Pass.js', 'vendor/addons/postprocessing/RenderPass.js', 'vendor/addons/postprocessing/ShaderPass.js', 'vendor/addons/postprocessing/UnrealBloomPass.js',
   'vendor/addons/shaders/CopyShader.js', 'vendor/addons/shaders/LuminosityHighPassShader.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png'];
 

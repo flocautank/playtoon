@@ -710,3 +710,41 @@ body[data-tab=blocks] #pt-modal .card{border:none;border-radius:0;clip-path:poly
 body[data-tab=blocks] #pt-modal .btn{font-family:'BQ Label',system-ui,sans-serif;font-weight:800;text-transform:uppercase;letter-spacing:.08em;border:none;border-radius:0;clip-path:polygon(1.5% 9%,7% 0,48% 4%,94% 0,100% 15%,98.6% 62%,100% 91%,92% 100%,46% 95%,5% 100%,0 83%,1.2% 38%)}
 body[data-tab=blocks] #pt-ok{background:radial-gradient(circle at 9px 9px,#f6dcae 0 1.4px,#5a3412 2.2px,transparent 3px),radial-gradient(circle at calc(100% - 9px) 9px,#f6dcae 0 1.4px,#5a3412 2.2px,transparent 3px),radial-gradient(circle at 9px calc(100% - 9px),#f6dcae 0 1.4px,#5a3412 2.2px,transparent 3px),radial-gradient(circle at calc(100% - 9px) calc(100% - 9px),#f6dcae 0 1.4px,#5a3412 2.2px,transparent 3px),linear-gradient(180deg,#d07a2c,#9a4c16);color:#fff3df}
 body[data-tab=blocks] #pt-cancel{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.55' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .1 0 0 0 0 .07 0 0 0 0 .05 0 0 0 .9 -.32'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23n%29'/%3E%3C/svg%3E"),linear-gradient(180deg,#5d4a3c,#3a2d24);color:#f3dcb4;clip-path:polygon(0 13%,5% 1%,52% 0,97% 5%,100% 32%,99% 87%,95% 100%,50% 96%,3% 100%,.5% 69%)}
+/* ---------- Synth Horde 1.15 : pause — étiquettes du build sans boîtes imbriquées, réglages en boutons segmentés et interrupteurs */
+#nb-root .nb-build > span{display:inline-flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.15}
+#nb-root .nb-build .nb-evo{display:block;font:600 11px var(--lab);font-style:normal;color:#ffe04d;opacity:.9;border:none;background:none;padding:0;letter-spacing:.02em}
+#nb-root .nb-build span span{border:none;background:none;padding:0}
+#nb-root .nb-hidesel{display:none}
+#nb-root .nb-seg{display:inline-flex;margin-left:8px;transform:skewX(-8deg)}
+#nb-root .nb-seg button{font:800 italic 13px var(--lab);text-transform:uppercase;letter-spacing:.04em;padding:5px 10px;background:#160c22;color:#cfc3e8;border:2px solid #fff;margin-left:-2px;border-radius:0}
+#nb-root .nb-seg button.on{background:#ff3df0;color:#0a0612;box-shadow:3px 3px 0 #27e0ff;position:relative;z-index:1}
+#nb-root .nb-pset label{display:flex;align-items:center;gap:8px;font:700 italic 14px var(--lab);flex-wrap:wrap}
+#nb-root .nb-pset input[type=checkbox]{appearance:none;-webkit-appearance:none;width:38px;height:18px;border:2px solid #fff;background:#160c22;position:relative;cursor:pointer;transform:skewX(-8deg);flex:none;margin:0}
+#nb-root .nb-pset input[type=checkbox]::after{content:'';position:absolute;top:2px;left:2px;width:12px;height:10px;background:#6b5f80;transition:left .12s,background .12s}
+#nb-root .nb-pset input[type=checkbox]:checked{background:#2a0c30}
+#nb-root .nb-pset input[type=checkbox]:checked::after{left:20px;background:#ff3df0;box-shadow:2px 2px 0 #27e0ff}
+#nb-root .nb-pset input[type=range]{appearance:none;-webkit-appearance:none;width:150px;height:6px;background:#160c22;border:2px solid #fff;transform:skewX(-8deg)}
+#nb-root .nb-pset input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:20px;background:#ff3df0;border:2px solid #fff;box-shadow:2px 2px 0 #27e0ff;cursor:pointer}
+#nb-root .nb-pset input[type=range]::-moz-range-thumb{width:12px;height:18px;background:#ff3df0;border:2px solid #fff;border-radius:0;cursor:pointer}
+/* ---------- Block Quarry 1.7 : glyphes frappés dans la pierre (une couleur, relief), boosters qui montrent ce qu'ils font */
+#tab-blocks svg.bqi,#tab-blocks .bp-boost button svg,#tab-blocks svg.bp-coin{fill:currentColor;filter:drop-shadow(0 1px 0 rgba(255,235,200,.22)) drop-shadow(0 -1px 0 rgba(0,0,0,.6))}
+#tab-blocks .bp-lv small svg.bqi{color:#8fe3ef}
+#tab-blocks .bp-lv.lock svg.bqi{color:#9c8b76}
+#tab-blocks .bp-coins{color:#ffd24d}
+#tab-blocks .bp-boost{gap:6px}
+#tab-blocks .bp-boost button{display:flex;align-items:center;gap:7px;padding:5px 11px 5px 8px;color:#f3dcb4}
+#tab-blocks .bp-boost button svg{width:30px;height:30px;flex:none}
+#tab-blocks .bp-boost .bl{display:flex;flex-direction:column;align-items:flex-start;line-height:1.05}
+#tab-blocks .bp-boost .bl em{font:800 12px 'BQ Label',system-ui,sans-serif;font-style:normal;text-transform:uppercase;letter-spacing:.06em;color:#fff1d6;white-space:nowrap}
+#tab-blocks .bp-boost .bl small{font:400 13px 'BQ Display',system-ui,sans-serif;letter-spacing:0;color:#ffd24d}
+#tab-blocks .bp-boost .bl small::before{content:'';display:inline-block;width:9px;height:9px;border:2px solid currentColor;border-radius:50%;margin-right:3px;vertical-align:-1px}
+#tab-blocks .bp-boost button.on{color:#fff8ea}
+@media (max-width:420px){#tab-blocks .bp-boost{gap:4px}#tab-blocks .bp-boost button{padding:4px 7px 4px 5px;gap:4px}#tab-blocks .bp-boost button svg{width:24px;height:24px}#tab-blocks .bp-boost .bl em{font-size:10px}.bp-coins{padding:6px 8px;min-width:0}}
+/* ---------- Synth Horde 1.15 : icônes dessinées (js/bonk-icons.js) */
+#nb-root svg.nbi{width:1.3em;height:1.3em;display:inline-block;vertical-align:-.28em;overflow:visible}
+#nb-root .nb-slot svg.nbi,#nb-root #nb-weapons svg.nbi,#nb-root #nb-tomes svg.nbi,#nb-root #nb-items svg.nbi{width:26px;height:26px;vertical-align:middle}
+#nb-root .nb-card svg.nbi,#nb-root .nb-choice svg.nbi{width:48px;height:48px}
+#nb-root .nb-q .ic svg.nbi{width:24px;height:24px}
+#nb-root .nb-gold svg.nbi{width:20px;height:20px}
+#nb-root .nb-gain{color:#ff8a1a;font-weight:800}
+#nb-root .nb-build svg.nbi{width:22px;height:22px;vertical-align:-6px}#nb-root .nb-stats svg.nbi{width:18px;height:18px}

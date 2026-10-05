@@ -30,7 +30,7 @@ const runs = [];
 for (let i = 0; i < N; i++) {
   let timer; const watchdog = new Promise(r => { timer = setTimeout(() => r('GEL'), 90000); });
   const res = await Promise.race([watchdog, p.evaluate(() => {
-    const nb = window.__nb; nb.newRun(); const S = nb.S; let lv3 = 0, en3 = 0;
+    const nb = window.__nb; nb.newRun(); const S = nb.S; let lv3 = 0, en3 = 0, lx = 0, lz = 0, still = 0, detour = 0, da = 0;   // détour : bloqué contre une falaise, il part ailleurs 2 s (comme un joueur)
     for (let step = 0; step < 30 * 660; step++) {
       if (S.state === 'end') break;
       if (S.state === 'levelup') { nb.pick((Math.random() * 3) | 0); continue; }
@@ -39,7 +39,10 @@ for (let i = 0; i < N; i++) {
       for (const k of S.pickups) { const d = (k.x - S.p.x) ** 2 + (k.z - S.p.z) ** 2; if (d < bd) { bd = d; best = k; } }
       if (best) { const d = Math.sqrt(bd) || 1; vx += (best.x - S.p.x) / d * 1.5; vz += (best.z - S.p.z) / d * 1.5; }
       for (const e of S.enemies) { const dx = S.p.x - e.x, dz = S.p.z - e.z, d2 = dx * dx + dz * dz; if (d2 < 64) { const w = 6 / (d2 + 0.5); vx += dx * w; vz += dz * w; } }
-      if (Math.abs(S.p.x) > 80) vx -= Math.sign(S.p.x) * 2; if (Math.abs(S.p.z) > 80) vz -= Math.sign(S.p.z) * 2;
+      if (Math.abs(S.p.x) > 125) vx -= Math.sign(S.p.x) * 2; if (Math.abs(S.p.z) > 125) vz -= Math.sign(S.p.z) * 2;
+      if (Math.hypot(S.p.x - lx, S.p.z - lz) < 0.05) still++; else still = 0; lx = S.p.x; lz = S.p.z;
+      if (still > 20 && detour <= 0) { detour = 60; da = Math.random() * 6.283; }
+      if (detour-- > 0) { vx = Math.cos(da); vz = Math.sin(da); }
       S.cam.yaw = Math.atan2(-vx, -vz); nb.keys.KeyW = true; nb.update(1 / 30);
       if (step === 30 * 180) { lv3 = S.level; en3 = S.enemies.length; }
     }

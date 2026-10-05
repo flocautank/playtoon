@@ -53,22 +53,24 @@ const MON = {
 };
 // ---------- icônes dessinées (plus d'emoji dans l'interface) : chaque emoji des textes du jeu est remplacé à la volée
 // par son dessin, dans toutes les langues ; un emoji inconnu disparaît
-const BQI = {
-  '🪙': '<circle cx="12" cy="12" r="9.5" fill="#e0a93a" stroke="#5a3a0c" stroke-width="1.4"/><circle cx="12" cy="12" r="6.6" fill="#ffd24d" stroke="#b07a1c" stroke-width="1.2"/><path d="M9 9.5h6l-1.6 5h-2.8z" fill="#b07a1c"/>',
-  '💎': '<path d="M6 4h12l4 5-10 12L2 9z" fill="#4dd4ff" stroke="#0c2a38" stroke-width="1.2" stroke-linejoin="round"/><path d="M2 9h20M9 4l-1 5 4 12 4-12-1-5" fill="none" stroke="#c8f6ff" stroke-width=".9"/>',
-  '🔒': '<path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" fill="none" stroke="#6b6f78" stroke-width="2.4"/><rect x="5" y="10.5" width="14" height="10" rx="1.5" fill="#9aa0aa" stroke="#24262b" stroke-width="1.2"/><circle cx="12" cy="15" r="1.5" fill="#24262b"/><path d="M12 15.5v2.6" stroke="#24262b" stroke-width="1.5"/>',
-  '🎯': '<rect x="3.5" y="5" width="17" height="15.5" rx="1" fill="#e8d3b0" stroke="#3a2412" stroke-width="1.3"/><path d="M3.5 9.5h17" stroke="#3a2412" stroke-width="1.3"/><path d="M8 3v4M16 3v4" stroke="#3a2412" stroke-width="1.9" stroke-linecap="round"/><path d="M8.5 15l2.3 2.2L15.5 12" fill="none" stroke="#b5321e" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>',
-  '⏱': '<circle cx="12" cy="13.5" r="7.5" fill="#e8d3b0" stroke="#3a2412" stroke-width="1.4"/><path d="M10 3h4M12 3v3M18 7l1.5-1.5" stroke="#3a2412" stroke-width="1.7" stroke-linecap="round"/><path d="M12 13.5V9.5M12 13.5l3 2" stroke="#b5321e" stroke-width="1.7" stroke-linecap="round"/>',
-  '🗺': '<path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z" fill="#e8d3b0" stroke="#3a2412" stroke-width="1.2" stroke-linejoin="round"/><path d="M9 4v14M15 6v14" stroke="#3a2412" stroke-width=".8"/><path d="M5 14l3-3 3 2 3-4 3 2" fill="none" stroke="#b5321e" stroke-width="1.4" stroke-dasharray="1.6 1.2"/>',
-  '🎨': '<path d="M3.5 12.5l3-4h4l3 4-5 6z" fill="#e0567a" stroke="#2a1410" stroke-width="1.1" stroke-linejoin="round"/><path d="M10.5 8.5l3-4h4l3 4-5 6z" fill="#3d8fe0" stroke="#10182a" stroke-width="1.1" stroke-linejoin="round"/><path d="M8.5 15.5l2.5-3h3.5l2.5 3-4.2 5z" fill="#f0b23a" stroke="#2a1a08" stroke-width="1.1" stroke-linejoin="round"/>',
-  '💥': '<rect x="5" y="9" width="4.2" height="12" rx="1.2" fill="#e0483a" stroke="#4a120c" stroke-width="1.2"/><rect x="9.9" y="9" width="4.2" height="12" rx="1.2" fill="#e85a3f" stroke="#4a120c" stroke-width="1.2"/><rect x="14.8" y="9" width="4.2" height="12" rx="1.2" fill="#e0483a" stroke="#4a120c" stroke-width="1.2"/><rect x="4.4" y="13" width="15.2" height="2.6" fill="#3a2412"/><path d="M12 9c0-3 2-4 4-5" fill="none" stroke="#3a2412" stroke-width="1.4"/><circle cx="16.6" cy="3.6" r="2" fill="#ffd24d"/>',
-  '🔨': '<path d="M13.5 9.5L4 19a1.6 1.6 0 0 0 2.3 2.3l9.5-9.5" fill="#c9a26b" stroke="#3a2412" stroke-width="1.3"/><path d="M10.5 4.5L15 2l7 7-2.5 4.5z" fill="#9aa3b5" stroke="#2a2f3a" stroke-width="1.3" stroke-linejoin="round"/>',
-  '🏆': '<path d="M7 3h10v5a5 5 0 0 1-10 0z" fill="#ffd24d" stroke="#5a3a0c" stroke-width="1.2"/><path d="M7 5H4c0 3 1.5 4.5 3.5 4.5M17 5h3c0 3-1.5 4.5-3.5 4.5" fill="none" stroke="#5a3a0c" stroke-width="1.2"/><path d="M10 13h4l1 4H9z" fill="#e0a93a" stroke="#5a3a0c"/><rect x="7" y="17" width="10" height="3" fill="#7a5f45" stroke="#3a2412"/>',
-  '📤': '<path d="M12 3v11M8 7l4-4 4 4" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 12v7h14v-7" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/>',
-  '🔥': '<path d="M12 3c1 4 6 6 6 11a6 6 0 0 1-12 0c0-3 2-4.5 2-7 1.5 1 2 2.5 2 4 1-2 2-5 2-8z" fill="#ff7a3d" stroke="#5a1a08" stroke-width="1.2"/><path d="M12 13c.5 2 2.5 3 2.5 5a2.5 2.5 0 0 1-5 0c0-1.5 1.5-2.5 2.5-5z" fill="#ffd24d"/>',
+const BQI = {   // glyphes d'une seule couleur, « frappés » dans la pierre (relief en CSS) — pas d'imitation d'emoji
+  '🪙': '<circle cx="12" cy="12" r="8.6" fill="none" stroke="currentColor" stroke-width="2.6"/><rect x="9.4" y="9.4" width="5.2" height="5.2" transform="rotate(45 12 12)"/>',
+  '💎': '<path d="M6 4h12l4 5-10 12L2 9z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M2.5 9h19M9 4.5l3 15.5 3-15.5" fill="none" stroke="currentColor" stroke-width="1.3"/>',
+  '🔒': '<path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2.4"/><path fill-rule="evenodd" d="M5 11h14v10H5zM12 13.6a1.7 1.7 0 1 0 .01 0zM11.1 16h1.8v3h-1.8z"/>',
+  '🎯': '<path fill-rule="evenodd" d="M4 5h16v16H4zM6.2 10h11.6v8.8H6.2z"/><path d="M8 2.8v4.4M16 2.8v4.4" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M8.6 14.6l2.3 2.2 4.6-4.6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>',
+  '⏱': '<circle cx="12" cy="13.5" r="7.4" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M9.5 2.8h5M12 3v3.2M18.2 6.8l1.6-1.6M12 13.5V9.2M12 13.5l3.2 2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>',
+  '🗺': '<path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 4v14M15 6v14" stroke="currentColor" stroke-width="1.2"/><path d="M5.5 13.5l2.5-2.5 3 2 3-3.6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="1.6 1.3"/>',
+  '🎨': '<rect x="3" y="12" width="8" height="8"/><rect x="13" y="12" width="8" height="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 4h8v6H8z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15 17l3-3M14.5 14.5l1.5-1.5" stroke="currentColor" stroke-width="1.2"/>',
+  '💥': '<path d="M5 9h4v12H5zM10 9h4v12h-4zM15 9h4v12h-4z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4 13.5h16" stroke="currentColor" stroke-width="2.6"/><path d="M12 9c0-3 1.8-4.2 3.8-5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M17.5 1.5l.6 1.6 1.6.6-1.6.6-.6 1.6-.6-1.6-1.6-.6 1.6-.6z"/>',
+  '🔨': '<path d="M13.5 9.5L4.2 18.8a1.6 1.6 0 0 0 2.3 2.3l9.3-9.3" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M10.5 4.5L15 2l7 7-2.5 4.5z"/>',
+  '🏆': '<path d="M7 3h10v5a5 5 0 0 1-10 0z"/><path d="M7 5H4c0 3 1.5 4.5 3.5 4.5M17 5h3c0 3-1.5 4.5-3.5 4.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M10.5 13h3l.8 4h-4.6zM7 18h10v3H7z"/>',
+  '📤': '<path d="M12 3v11M8 7l4-4 4 4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 12v7h14v-7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>',
+  '🔥': '<path d="M12 3c1 4 6 6 6 11a6 6 0 0 1-12 0c0-3 2-4.5 2-7 1.5 1 2 2.5 2 4 1-2 2-5 2-8z"/>',
   '↻': '<path d="M19 12a7 7 0 1 1-2.1-5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><path d="M18.5 3.5V8H14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>',
+  '▶': '<path d="M7 4l13 8-13 8z"/>',
+  '👆': '<path d="M9 11V5.2a1.4 1.4 0 0 1 2.8 0V10M11.8 9.5V4a1.4 1.4 0 0 1 2.8 0v6M14.6 10V5.5a1.4 1.4 0 0 1 2.8 0V13c0 4.5-2.4 7.5-6 7.5-2.8 0-4.4-1.6-5.7-4l-2-3.6a1.3 1.3 0 0 1 2.2-1.4L9 14" fill="none" stroke="currentColor" stroke-width="2"/>',
 };
-const EMO = /(\p{Extended_Pictographic}|↻)️?/gu;
+const EMO = /(\p{Extended_Pictographic}|↻|▶)\uFE0F?/gu;
 const bqIcon = e => BQI[e.replace('️', '')] ? `<svg class="bqi" viewBox="0 0 24 24" aria-hidden="true">${BQI[e.replace('️', '')]}</svg>` : '';
 function deEmoji(root) {
   if (!root) return;
@@ -931,7 +933,7 @@ function draw(dt) {
     const hx = sx + (tx - sx) * e, hy = sy + (ty - sy) * e;
     ctx.globalAlpha = T > 1.9 ? Math.max(0, 1 - (T - 1.9) / 0.3) : 1;
     const p = S.tray[0]; for (const [x, y] of p.cells) cell(hx - p.w * L.cs / 2 + x * L.cs, hy - p.h * L.cs / 2 + y * L.cs, L.cs, p.color, 0.45 * ctx.globalAlpha);
-    ctx.font = `${Math.round(L.cs * 0.9)}px system-ui`; ctx.textAlign = 'center'; ctx.fillText('👆', hx + L.cs * 0.3, hy + L.cs * 0.9);
+    { const k = L.cs * 0.045; ctx.save(); ctx.translate(hx - L.cs * 0.1, hy + L.cs * 0.1); ctx.scale(k, k); ctx.lineWidth = 2.4; ctx.strokeStyle = '#26140c'; ctx.fillStyle = '#f3dcb4'; const hp = new Path2D('M9 11V5.2a1.4 1.4 0 0 1 2.8 0V10M11.8 9.5V4a1.4 1.4 0 0 1 2.8 0v6M14.6 10V5.5a1.4 1.4 0 0 1 2.8 0V13c0 4.5-2.4 7.5-6 7.5-2.8 0-4.4-1.6-5.7-4l-2-3.6a1.3 1.3 0 0 1 2.2-1.4L9 14z'); ctx.fill(hp); ctx.stroke(hp); ctx.restore(); }
     ctx.globalAlpha = 1;
     ctx.font = `800 ${Math.round(L.cs * 0.4)}px 'BQ Label',system-ui,sans-serif`; ctx.fillStyle = '#fff';
     ctx.fillText(t('bp.tuto'), L.bx + L.bs / 2, L.by - 14 + (L.by < 30 ? 30 : 0));
@@ -1168,12 +1170,14 @@ $('bp-vidcoins').onclick = () => MON.reward('coins').then(ok => {
 });
 $('bp-share').onclick = shareDaily;
 $('bp-overmap').onclick = () => { $('bp-over').classList.add('hidden'); openMap(); };
+const t2 = k => t(k);   // (t est masqué dans ce gestionnaire)
 document.querySelectorAll('#bp-boost button').forEach(b => b.onclick = () => {
   const t = b.dataset.tool;
   if (S.mode === 'daily') { S.pops.length = 0; S.pops.push({ text: t('bp.noBoostDaily'), sub: '', t: 0 }); beep(180, 0.1, 'square', 0.03); return; }
   if (S.over || (COINS < TOOLS[t] && !(S.freeTool && t === 'hammer'))) { beep(180, 0.1, 'square', 0.03); return; }
   if (t === 'shuffle') { useTool('shuffle'); return; }
   tool = tool === t ? null : t; S.aim = null; paintBoost();
+  if (tool) { S.pops.length = 0; S.pops.push({ text: t2(tool === 'bomb' ? 'bp.bombHow' : 'bp.hammerHow'), sub: t2('bp.toolCancel'), t: 0 }); }   // chaque outil s'explique au moment où on le prend
 });
 paintBoost();
 // langue : le HTML se traduit tout seul, le reste se redessine
