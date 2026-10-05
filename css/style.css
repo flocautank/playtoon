@@ -589,6 +589,14 @@ body[data-tab=blocks] .pt-toasts{bottom:auto;top:calc(env(safe-area-inset-top, 0
 .sf-tip b{font-family:'NF Title',Georgia,serif;font-weight:400;font-size:15px;color:#f3d48a}
 @media (max-width:760px){#tab-forge .sf-dust{font-size:32px}#tab-forge .sf-item .mid b{font-size:16px}#tab-forge .sf-item .rt b{font-size:20px}#tab-forge .sf-tabs button{font-size:14px}}
 
+/* ---------- Nova Foundry 1.7 : Constellation à 66 nœuds sur 13 rangs, tuiles de synergie, puces des évènements du ciel */
+#tab-forge .sf-panel .sf-meta-tree{min-height:1260px}
+@media (min-width:601px) and (max-width:1100px){#tab-forge .sf-panel .sf-node{width:52px;height:52px}#tab-forge .sf-meta-tree .sf-node svg.eng{width:22px;height:22px}}
+@media (max-width:600px){#tab-forge .sf-panel .sf-meta-tree{min-height:1120px}}
+#tab-forge .sf-upg .sf-pair{display:flex;align-items:center;font-weight:400}
+#tab-forge .sf-upg .sf-pair svg.eng{width:18px;height:18px}#tab-forge .sf-upg .sf-pair svg.eng + svg.eng{margin-left:-2px;margin-top:8px}
+#tab-forge .sf-buffs span.sky{border-color:#8fb8d8;color:#dcecff;background:#0f1a3a}
+#tab-forge .sf-buffs span svg.eng{width:15px;height:15px;vertical-align:-3px}
 /* ---------- Block Quarry 1.4 : polices de la carrière (tous thèmes) et habillage « Carrière » (thème par défaut) */
 #tab-blocks .bp-stat b{font-family:'BQ Display',system-ui,sans-serif;font-weight:400;letter-spacing:.02em}
 #tab-blocks .bp-stat small,#tab-blocks .bp-boost small,#tab-blocks .bp-lv small{font-family:'BQ Label',system-ui,sans-serif;font-weight:800;letter-spacing:.18em}

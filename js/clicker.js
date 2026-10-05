@@ -55,6 +55,14 @@ const ENG = {
   medal: '<circle cx="12" cy="9" r="5"/><path d="M9 13.5L7.5 21l4.5-2.5 4.5 2.5L15 13.5"/><path d="M12 6.5l.8 1.7 1.9.2-1.4 1.3.4 1.9-1.7-1-1.7 1 .4-1.9-1.4-1.3 1.9-.2z" class="h"/>',
   gear: '<circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>',
   seal: '<circle cx="12" cy="12" r="8"/><path d="M12 6l1.5 4.5H18l-3.7 2.7 1.4 4.4L12 15l-3.7 2.6 1.4-4.4L6 10.5h4.5z" class="h"/>',
+  // 1.7 : synergies et évènements du ciel
+  link: '<circle cx="8.5" cy="12" r="5"/><circle cx="15.5" cy="12" r="5"/><path d="M12 8.4v7.2" class="h"/>',
+  eclipse: '<circle cx="12" cy="12" r="7"/><path d="M12 5a7 7 0 0 1 0 14a4.6 7 0 0 0 0-14z" class="f"/><path d="M12 1.8v2M12 20.2v2M1.8 12h2M20.2 12h2" class="h"/>',
+  shower: '<path d="M3.5 4.5l7 7M8.5 2.5l8 8M14 3.5l6 6"/><circle cx="11.5" cy="12.5" r="1.3" class="f"/><circle cx="17.5" cy="11.5" r="1" class="f"/><circle cx="20.8" cy="10.3" r=".8" class="f"/><path d="M4 15l3 3M9 17.5l2 2" class="h"/>',
+  conj: '<circle cx="12" cy="12" r="3"/><circle cx="4.5" cy="15.8" r="1.6"/><circle cx="19.4" cy="8.2" r="2"/><path d="M2 17l20-10" class="h"/>',
+  flare: '<circle cx="10.5" cy="13.5" r="5.5"/><path d="M14 9.2c1.5-4 6-4.5 6.5-1.2.4 2.8-2.6 3.8-4.6 3.4"/><path d="M14.8 10.3c1-2 3.2-2.3 3.6-.8" class="h"/>',
+  aurora: '<path d="M3 14c3-6 5 2 9-4s6 1 9-5"/><path d="M3 19c3-5 5 1 9-3s6 0 9-4" class="h"/><path d="M6 12.5v6M10 11v6M14 9v6M18 6.5v6" class="h"/>',
+  star: '<path d="M12 2.5l2.2 7.3 7.3 2.2-7.3 2.2L12 21.5l-2.2-7.3L2.5 12l7.3-2.2z"/><circle cx="12" cy="12" r="2.2" class="h"/>',
 };
 const engSvg = (k, cls = '') => `<svg class="eng ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ENG[k]}</svg>`;
 function hashStr(str) { let h = 2166136261; for (let i = 0; i < str.length; i++) h = Math.imul(h ^ str.charCodeAt(i), 16777619); return h >>> 0; }
@@ -78,7 +86,9 @@ const GEN_ENG = { spark: 'spark', lantern: 'lantern', comet: 'comet', moon: 'moo
 // icône d'une amélioration : la gravure de sa forge, ou de sa famille
 function upgIcon(u) {
   const g = /^g(\d+)t/.exec(u.id); if (g) return engSvg(GEN_ENG[GENS[+g[1]].id] || 'spark');
-  return engSvg(/^click/.test(u.id) ? 'hand' : /^glob/.test(u.id) ? 'sphere' : /^luck/.test(u.id) ? 'scope' : 'seal');
+  if (u.fx.syn) return `<b class="sf-pair">${engSvg(GEN_ENG[GENS[u.fx.syn[0]].id])}${engSvg(GEN_ENG[GENS[u.fx.syn[1]].id])}</b>`;   // synergie : les deux forges liées
+  if (u.fx.cf !== undefined) return `<b class="sf-pair">${engSvg('hand')}${engSvg(GEN_ENG[GENS[u.fx.cf].id])}</b>`;
+  return engSvg(/^click/.test(u.id) ? 'hand' : /^glob/.test(u.id) ? 'sphere' : /^luck/.test(u.id) ? 'scope' : /^cmt/.test(u.id) ? 'comet' : /^off/.test(u.id) ? 'moon' : /^cab/.test(u.id) ? 'medal' : /^sky/.test(u.id) ? SKY[+u.id.slice(3)] : 'seal');
 }
 
 const UPGRADES = [];
@@ -105,49 +115,124 @@ GENS.forEach((g, gi) => GEN_TIERS.forEach((th, ti) => UPGRADES.push({
   id: 'luck' + i, ic: '🔭', cost: c, get name() { return t('sf.luck')[i]; }, get desc() { return t('sf.luckDesc'); }, req: s => s.cometsTotal >= i, get reqTxt() { return t('sf.reqComets', { n: i }); }, fx: { luck: 0.15 },
 }));
 
-// Constellation (méta-progression, payée en Novae, survit aux Supernovae)
+// 1.7 : améliorations « de côté », puissance alignée sur la courbe (vérifié avec tools/sf-pace.mjs) — synergies entre forges
+// éloignées de trois rangs (la petite profite beaucoup de la grande, la grande un peu de la petite), clics indexés sur une forge,
+// comètes, évènements du ciel, hors-ligne, succès
+const SYN = [[0, 3], [1, 4], [2, 5], [3, 6], [4, 7], [5, 8], [6, 9], [7, 10], [8, 11]];
+SYN.forEach(([a, b], k) => UPGRADES.push({
+  id: 'syn' + k, cost: GENS[b].cost * 2000, get name() { return t('sf.syn')[k]; }, get desc() { return t('sf.synDesc', { a: GENS[a].name, b: GENS[b].name }); },
+  req: s => s.gens[a] >= 15 && s.gens[b] >= 15, get reqTxt() { return `15 ${GENS[a].name} · 15 ${GENS[b].name}`; }, fx: { syn: [a, b] },
+}));
+[1, 3, 5, 7].forEach((g, k) => UPGRADES.push({
+  id: 'cf' + k, cost: GENS[g].cost * 150, get name() { return t('sf.cf')[k]; }, get desc() { return t('sf.cfDesc', { gen: GENS[g].name }); },
+  req: s => s.gens[g] >= 10, get reqTxt() { return `10 ${GENS[g].name}`; }, fx: { cf: g },
+}));
+const XUPG = [   // [id, coût, condition, effet] — textes : sf.xupg, dans cet ordre
+  ['cmt0', 5e5, s => s.cometsTotal >= 2, { rain: 2 }], ['cmt1', 5e8, s => s.cometsTotal >= 5, { frenzyT: 1.5 }], ['cmt2', 5e11, s => s.cometsTotal >= 9, { surge: 0.05 }],
+  ['sky0', 2e7, s => (s.st.sky_eclipse || 0) >= 1, { sky: 1 }], ['sky1', 2e8, s => (s.st.sky_shower || 0) >= 1, { sky: 1 }], ['sky2', 2e10, s => (s.st.sky_conj || 0) >= 1, { sky: 1 }],
+  ['sky3', 2e12, s => (s.st.sky_flare || 0) >= 1, { sky: 1 }], ['sky4', 2e14, s => (s.st.sky_aurora || 0) >= 1, { sky: 1 }],
+  ['off0', 1e6, s => s.runTotal >= 2.5e5, { off: 1.5 }], ['off1', 1e12, s => s.runTotal >= 2.5e11, { off: 2 }],
+  ['cab0', 1e9, s => Object.keys(s.ach).length >= 15, { cab: 0.005 }], ['cab1', 1e15, s => Object.keys(s.ach).length >= 40, { cab: 0.005 }],
+];
+XUPG.forEach(([id, cost, req, fx], k) => UPGRADES.push({ id, cost, req, fx, get name() { return t('sf.xupg')[k][0]; }, get desc() { return t('sf.xupg')[k][1]; }, get reqTxt() { return ''; } }));
+const upgOn = id => !!S.upg[id];
+
 // Constellation (méta-progression, payée en Novae, survit aux Supernovae). v2 (2026-10-05) : 34 nœuds, coûts de 1 à
 // 500 000 Novae — l'ancienne carte (14 nœuds) était complète en ~2 h 20 de jeu appliqué (tools/sf-long.mjs).
+// v3 (1.7) : 66 nœuds sur 13 rangs, de 1 à 180 000 Novae (~1 M au total) — les 34 premiers gardent leur rang dans sf.meta, les 32 nouveaux
+// suivent dans sf.metaX (ordre de META_X). Les coordonnées x/y sont en % de .sf-meta-tree.
 const META = [
-  { id: 'm_click', ic: '👆', cost: 1, x: 50, y: 4, req: [] },
-  { id: 'm_start', ic: '🎁', cost: 3, x: 20, y: 12, req: ['m_click'] },
-  { id: 'm_auto', ic: '🤖', cost: 5, x: 50, y: 12, req: ['m_click'] },
-  { id: 'm_cheap', ic: '🏷️', cost: 5, x: 80, y: 12, req: ['m_click'] },
-  { id: 'm_off', ic: '🌙', cost: 10, x: 8, y: 22, req: ['m_start'] },
-  { id: 'm_keep', ic: '📜', cost: 15, x: 26, y: 22, req: ['m_start'] },
-  { id: 'm_comet', ic: '☄️', cost: 10, x: 58, y: 22, req: ['m_auto'] },
-  { id: 'm_econ', ic: '📉', cost: 20, x: 92, y: 22, req: ['m_cheap'] },
-  { id: 'm_long', ic: '⏳', cost: 25, x: 52, y: 32, req: ['m_comet'] },
-  { id: 'm_ach', ic: '🏆', cost: 60, x: 10, y: 43, req: ['m_off', 'm_mile'] },
-  { id: 'm_upg', ic: '🛠️', cost: 40, x: 86, y: 32, req: ['m_econ'] },
-  { id: 'm_nova', ic: '🌟', cost: 150, x: 50, y: 53, req: ['m_syn'] },
-  { id: 'm_sing', ic: '🕳️', cost: 1500, x: 30, y: 63, req: ['m_nova'] },
-  { id: 'm_crunch', ic: '♾️', cost: 2000, x: 70, y: 63, req: ['m_nova'] },
-  // nouveaux nœuds
-  { id: 'm_crit', ic: '🎯', cost: 15, x: 42, y: 22, req: ['m_auto'] },
-  { id: 'm_click2', ic: '✋', cost: 25, x: 74, y: 22, req: ['m_cheap'] },
-  { id: 'm_mile', ic: '🪜', cost: 30, x: 18, y: 32, req: ['m_keep'] },
-  { id: 'm_auto2', ic: '⚙️', cost: 60, x: 36, y: 32, req: ['m_crit'] },
-  { id: 'm_shower', ic: '🌠', cost: 50, x: 68, y: 32, req: ['m_comet'] },
-  { id: 'm_start2', ic: '🧰', cost: 80, x: 28, y: 43, req: ['m_mile'] },
-  { id: 'm_syn', ic: '🔗', cost: 100, x: 50, y: 43, req: ['m_long', 'm_auto2'] },
-  { id: 'm_lucky', ic: '🍀', cost: 90, x: 70, y: 43, req: ['m_shower'] },
-  { id: 'm_eclipse', ic: '🌑', cost: 120, x: 90, y: 43, req: ['m_upg'] },
-  { id: 'm_off2', ic: '🛌', cost: 400, x: 12, y: 53, req: ['m_ach'] },
-  { id: 'm_keep2', ic: '🗃️', cost: 800, x: 30, y: 53, req: ['m_start2'] },
-  { id: 'm_quasar', ic: '🔆', cost: 1500, x: 72, y: 53, req: ['m_lucky'] },
-  { id: 'm_ach2', ic: '🎖️', cost: 6000, x: 10, y: 63, req: ['m_off2'] },
-  { id: 'm_meteor', ic: '🔮', cost: 4000, x: 90, y: 63, req: ['m_eclipse', 'm_quasar'] },
-  { id: 'm_nova2', ic: '💠', cost: 20000, x: 22, y: 74, req: ['m_sing'] },
-  { id: 'm_auto3', ic: '🦾', cost: 35000, x: 50, y: 74, req: ['m_sing', 'm_crunch'] },
-  { id: 'm_crunch2', ic: '🌀', cost: 60000, x: 78, y: 74, req: ['m_crunch'] },
-  { id: 'm_loom', ic: '⚒️', cost: 120000, x: 34, y: 85, req: ['m_nova2'] },
-  { id: 'm_genesis', ic: '🌱', cost: 200000, x: 66, y: 85, req: ['m_crunch2'] },
-  { id: 'm_omega', ic: 'Ω', cost: 500000, x: 50, y: 96, req: ['m_loom', 'm_genesis', 'm_auto3'] },
+  { id: 'm_click', cost: 1, x: 50, y: 3, req: [] },
+  { id: 'm_start', cost: 3, x: 22, y: 11, req: ['m_click'] },
+  { id: 'm_auto', cost: 5, x: 50, y: 11, req: ['m_click'] },
+  { id: 'm_cheap', cost: 5, x: 78, y: 11, req: ['m_click'] },
+  { id: 'm_off', cost: 10, x: 8, y: 19, req: ['m_start'] },
+  { id: 'm_keep', cost: 15, x: 22, y: 19, req: ['m_start'] },
+  { id: 'm_comet', cost: 10, x: 50, y: 19, req: ['m_auto'] },
+  { id: 'm_econ', cost: 20, x: 92, y: 19, req: ['m_cheap'] },
+  { id: 'm_long', cost: 25, x: 50, y: 26.5, req: ['m_comet'] },
+  { id: 'm_ach', cost: 60, x: 8, y: 34.5, req: ['m_sky', 'm_mile'] },
+  { id: 'm_upg', cost: 40, x: 92, y: 26.5, req: ['m_econ'] },
+  { id: 'm_nova', cost: 150, x: 50, y: 42.5, req: ['m_syn'] },
+  { id: 'm_sing', cost: 1500, x: 36, y: 50, req: ['m_nova'] },
+  { id: 'm_crunch', cost: 2000, x: 64, y: 50, req: ['m_nova'] },
+  { id: 'm_crit', cost: 15, x: 36, y: 19, req: ['m_auto'] },
+  { id: 'm_click2', cost: 25, x: 64, y: 19, req: ['m_cheap'] },
+  { id: 'm_mile', cost: 30, x: 22, y: 26.5, req: ['m_keep'] },
+  { id: 'm_auto2', cost: 60, x: 36, y: 26.5, req: ['m_crit'] },
+  { id: 'm_shower', cost: 50, x: 64, y: 26.5, req: ['m_comet'] },
+  { id: 'm_start2', cost: 80, x: 22, y: 34.5, req: ['m_mile'] },
+  { id: 'm_syn', cost: 100, x: 50, y: 34.5, req: ['m_long', 'm_auto2'] },
+  { id: 'm_lucky', cost: 90, x: 64, y: 34.5, req: ['m_shower'] },
+  { id: 'm_eclipse', cost: 120, x: 92, y: 34.5, req: ['m_upg'] },
+  { id: 'm_off2', cost: 400, x: 8, y: 42.5, req: ['m_ach'] },
+  { id: 'm_keep2', cost: 800, x: 22, y: 42.5, req: ['m_start2'] },
+  { id: 'm_quasar', cost: 1500, x: 64, y: 42.5, req: ['m_lucky'] },
+  { id: 'm_ach2', cost: 6000, x: 8, y: 58, req: ['m_off2'] },
+  { id: 'm_meteor', cost: 4000, x: 78, y: 58, req: ['m_shower3', 'm_conj'] },
+  { id: 'm_nova2', cost: 20000, x: 50, y: 66, req: ['m_stage', 'm_sing'] },
+  { id: 'm_auto3', cost: 35000, x: 36, y: 73.5, req: ['m_sn'] },
+  { id: 'm_crunch2', cost: 60000, x: 64, y: 73.5, req: ['m_comet3'] },
+  { id: 'm_loom', cost: 90000, x: 15, y: 81.5, req: ['m_mile2'] },
+  { id: 'm_genesis', cost: 120000, x: 64, y: 81.5, req: ['m_crunch2'] },
+  { id: 'm_omega', cost: 200000, x: 50, y: 89.5, req: ['m_loom', 'm_genesis', 'm_auto3'] },
+];
+const META_X = [
+  { id: 'm_streak', cost: 12, x: 78, y: 19, req: ['m_cheap'] },
+  { id: 'm_sky', cost: 600, x: 8, y: 26.5, req: ['m_off'] },
+  { id: 'm_crit2', cost: 150, x: 78, y: 26.5, req: ['m_streak'] },
+  { id: 'm_idle', cost: 350, x: 36, y: 34.5, req: ['m_auto2'] },
+  { id: 'm_dark', cost: 70, x: 78, y: 34.5, req: ['m_shower', 'm_crit2'] },
+  { id: 'm_cheap2', cost: 500, x: 36, y: 42.5, req: ['m_idle'] },
+  { id: 'm_surge', cost: 300, x: 78, y: 42.5, req: ['m_dark'] },
+  { id: 'm_flare', cost: 900, x: 92, y: 42.5, req: ['m_eclipse'] },
+  { id: 'm_off3', cost: 1500, x: 8, y: 50, req: ['m_off2'] },
+  { id: 'm_upg2', cost: 600, x: 22, y: 50, req: ['m_keep2'] },
+  { id: 'm_syn2', cost: 700, x: 50, y: 50, req: ['m_nova', 'm_cheap2'] },
+  { id: 'm_shower3', cost: 1500, x: 78, y: 50, req: ['m_surge', 'm_quasar'] },
+  { id: 'm_conj', cost: 1200, x: 92, y: 50, req: ['m_flare'] },
+  { id: 'm_keep3', cost: 2500, x: 22, y: 58, req: ['m_upg2'] },
+  { id: 'm_buffs', cost: 2000, x: 36, y: 58, req: ['m_sing', 'm_syn2'] },
+  { id: 'm_stage', cost: 4000, x: 50, y: 58, req: ['m_syn2'] },
+  { id: 'm_echo', cost: 3000, x: 64, y: 58, req: ['m_crunch'] },
+  { id: 'm_aurora', cost: 2500, x: 92, y: 58, req: ['m_conj'] },
+  { id: 'm_start3', cost: 5000, x: 8, y: 66, req: ['m_ach2'] },
+  { id: 'm_click3', cost: 6000, x: 22, y: 66, req: ['m_keep3'] },
+  { id: 'm_sn', cost: 8000, x: 36, y: 66, req: ['m_buffs'] },
+  { id: 'm_comet3', cost: 10000, x: 64, y: 66, req: ['m_echo'] },
+  { id: 'm_sky2', cost: 12000, x: 78, y: 66, req: ['m_meteor', 'm_aurora'] },
+  { id: 'm_gold', cost: 15000, x: 92, y: 66, req: ['m_aurora'] },
+  { id: 'm_mile2', cost: 40000, x: 15, y: 73.5, req: ['m_start3', 'm_click3'] },
+  { id: 'm_quasar2', cost: 60000, x: 85, y: 73.5, req: ['m_sky2', 'm_gold'] },
+  { id: 'm_auto4', cost: 100000, x: 36, y: 81.5, req: ['m_auto3'] },
+  { id: 'm_nova3', cost: 130000, x: 50, y: 81.5, req: ['m_nova2', 'm_auto3'] },
+  { id: 'm_ach3', cost: 140000, x: 85, y: 81.5, req: ['m_quasar2'] },
+  { id: 'm_crunch3', cost: 150000, x: 29, y: 89.5, req: ['m_loom', 'm_auto4'] },
+  { id: 'm_mast', cost: 160000, x: 71, y: 89.5, req: ['m_genesis', 'm_ach3'] },
+  { id: 'm_omega2', cost: 250000, x: 50, y: 97, req: ['m_omega', 'm_crunch3', 'm_mast'] },
 ];
 // Maîtrise stellaire : puits de Novae sans fin (×1,15 de production par niveau, coût doublé à chaque niveau)
 const mastCost = () => Math.round(500 * Math.pow(1.5, S.mast || 0));
+const mastK = () => has('m_mast') ? 1.17 : 1.15;
 function buyMastery() { if (S.novaBank < mastCost()) return false; S.novaBank -= mastCost(); S.mast = (S.mast || 0) + 1; return true; }
+
+// Évolution de l'étoile : stades atteints par la production totale de toute la partie (lifeTotal, jamais remise à zéro).
+// D'un stade à l'autre l'étoile grossit (k), change de couleur (teinte h, saturation s), gagne rayons, couronne et ornements ;
+// chaque stade donne +5 % de production (+15 % avec Nucléosynthèse). Noms : sf.stages.
+const STAGES = [
+  { at: 0, h: 8, s: 85, k: 0.72 },        // naine rouge
+  { at: 1e5, h: 26, s: 95, k: 0.77 },     // naine orange
+  { at: 1e8, h: 44, s: 100, k: 0.82 },    // étoile jaune
+  { at: 1e11, h: 50, s: 22, k: 0.87 },    // étoile blanche
+  { at: 1e14, h: 208, s: 55, k: 0.92 },   // géante bleue
+  { at: 1e18, h: 218, s: 75, k: 0.97 },   // supergéante bleue
+  { at: 1e22, h: 196, s: 60, k: 1.02 },   // hypergéante
+  { at: 1e26, h: 182, s: 70, k: 1.06 },   // pulsar
+  { at: 1e30, h: 268, s: 65, k: 1.1 },    // magnétar
+  { at: 1e34, h: 290, s: 55, k: 1.14 },   // quasar
+];
+const stageOf = (life = S.lifeTotal) => { let k = 0; while (k + 1 < STAGES.length && life >= STAGES[k + 1].at) k++; return k; };
+const SKY = ['eclipse', 'shower', 'conj', 'flare', 'aurora'];   // évènements du ciel (ordre des améliorations sky0…sky4)
 
 const ACH = [];
 [1e3, 1e6, 1e9, 1e12, 1e15, 1e18, 1e21].forEach((n, i) =>
@@ -161,6 +246,26 @@ ACH.push({ id: 'allchal', ic: '🏅', get name() { return t('sf.aAllChal'); }, g
 [[1, '💥'], [5, '🌠'], [20, '🌌']].forEach(([n, ic]) => ACH.push({ id: 'pre' + n, ic, get name() { return t('sf.aPre', { n }); }, get desc() { return t('sf.aPreDesc', { n }); }, test: s => s.prestiges >= n }));
 [[1, '⭐'], [10, '🌟'], [50, '🎇']].forEach(([n, ic]) => ACH.push({ id: 'com' + n, ic, get name() { return t('sf.aCom', { n }); }, get desc() { return t('sf.aComDesc', { n }); }, test: s => s.lifeComets >= n }));
 [1e3, 1e6, 1e9].forEach(n => ACH.push({ id: 'dps' + n, ic: '⚡', name: `${fmt(n)} /s`, get desc() { return t('sf.aDpsDesc', { n: fmt(n) }); }, test: s => dps() >= n }));
+// 1.7 : succès plus originaux (séries de clics, comètes sombres, évènements du ciel, comptes exacts, patience…) ; textes :
+// sf.achX, dans cet ordre ({n} = le seuil). Les compteurs vivent dans S.st et survivent à tout, Big Bang compris.
+const st = k => S.st[k] || 0, nG = s => s.gens.reduce((a, b) => a + b, 0);
+const ACH_X = [
+  ['tot1e24', 1e24, s => s.lifeTotal >= 1e24], ['clk1e5', 1e5, s => s.lifeClicks >= 1e5], ['dps1e12', 1e12, () => dps() >= 1e12], ['dps1e15', 1e15, () => dps() >= 1e15],
+  ['str25', 25, () => st('streak') >= 25], ['str100', 100, () => st('streak') >= 100], ['str300', 300, () => st('streak') >= 300], ['crit100', 100, () => st('crit') >= 100],
+  ['dark1', 1, () => st('dark') >= 1], ['dark10', 10, () => st('dark') >= 10], ['drain1', 1, () => st('drain') >= 1], ['met1', 1, () => st('meteor') >= 1],
+  ['com200', 200, s => s.lifeComets >= 200], ['eclClk', 30, () => st('eclClk') >= 30], ['buf3', 3, () => st('maxBuffs') >= 3], ['buf5', 5, () => st('maxBuffs') >= 5],
+  ['stack', 1000, () => st('maxStack') >= 1000], ['surge10', 10, () => st('maxSurge') >= 10], ['idle600', 10, () => st('idleMax') >= 600], ['idle3600', 60, () => st('idleMax') >= 3600],
+  ['snFast', 5, () => st('snFast') >= 1], ['snBig100', 100, () => st('snBest') >= 100], ['snBig1e4', 1e4, () => st('snBest') >= 1e4], ['nova1e3', 1e3, s => s.novaTotal >= 1e3],
+  ['nova1e6', 1e6, s => s.novaTotal >= 1e6], ['meta10', 10, s => Object.keys(s.meta).length >= 10], ['meta33', 33, s => Object.keys(s.meta).length >= 33], ['metaAll', 0, s => META.every(m => s.meta[m.id])],
+  ['mast5', 5, s => (s.mast || 0) >= 5], ['upg50', 50, s => Object.keys(s.upg).length >= 50], ['noUpg', 100, s => nG(s) >= 100 && !Object.keys(s.upg).length], ['bonfire', 250, s => s.gens[0] >= 250 && s.gens[0] > nG(s) - s.gens[0]],
+  ['answer', 42, s => s.gens[2] === 42], ['sevens', 77, s => [0, 1, 2, 3].every(i => s.gens[i] === 77)], ['sym', 25, s => s.gens[0] >= 25 && s.gens.slice(0, 10).every(n => n === s.gens[0])], ['skyEcl', 1, () => st('sky_eclipse') >= 1],
+  ['shoot10', 10, () => st('shoot') >= 10], ['shoot100', 100, () => st('shoot') >= 100], ['skyConj', 1, () => st('sky_conj') >= 1], ['flareClk', 50, () => st('flareClk') >= 50],
+  ['skyAur', 1, () => st('sky_aurora') >= 1], ['skyAll', 5, () => SKY.every(k => st('sky_' + k) >= 1)], ['eng10', 10, s => (s.eng || 0) >= 10], ['chal1', 1, s => Object.keys(s.chalDone || {}).length >= 1],
+  ['back8h', 8, () => st('away') >= 8 * 3600], ['hoard', 1, s => s.dust >= 1e6 && s.dust >= dps() * 3600 && dps() > 0], ['night', 0, () => st('night') >= 1], ['clickBig', 1e12, () => st('clickMax') >= 1e12],
+];
+ACH_X.forEach(([id, n, test], k) => ACH.push({ id, test, get name() { return t('sf.achX')[k][0]; }, get desc() { return t('sf.achX')[k][1].replace('{n}', n >= 1e6 ? fmt(n) : num(n)); } }));
+// un succès par stade d'évolution de l'étoile (le stade 0 est le départ)
+STAGES.forEach((g, k) => k && ACH.push({ id: 'stage' + k, get name() { return t('sf.stages')[k]; }, get desc() { return t('sf.aStageDesc', { s: t('sf.stages')[k] }); }, test: s => stageOf(s.lifeTotal) >= k }));
 
 // Défis : une run sous contrainte (entrer = repartir de zéro, sans Novae), objectif en poussière
 // produite ; la réussite débloque une récompense permanente et lève la contrainte.
@@ -186,6 +291,7 @@ const GALAXY = [
 const i18nProps = (arr, key, fields) => arr.forEach((o, i) => fields.forEach((f, k) => Object.defineProperty(o, f, { get: () => t(key)[i][k], configurable: true })));
 i18nProps(GENS, 'sf.gens', ['name', 'desc']);
 i18nProps(META, 'sf.meta', ['name', 'desc']);
+i18nProps(META_X, 'sf.metaX', ['name', 'desc']); META.push(...META_X);
 i18nProps(CHALS, 'sf.chal', ['name', 'desc', 'reward']);
 i18nProps(GALAXY, 'sf.gal', ['name', 'desc']);
 const gal = id => !!(S.gal && S.gal[id]);
@@ -193,7 +299,7 @@ const gal = id => !!(S.gal && S.gal[id]);
 // s'entretenaient l'une l'autre et la partie s'emballait en quelques minutes (tools/sf-long.mjs).
 const soft = (x, cap) => x <= cap ? x : cap * Math.sqrt(x / cap);
 // en défi, ni Novae ni Singularités ne comptent (« repart de zéro, sans Novae ») : le défi reste un vrai défi
-const NOVA = { d: 2e5, x: 1e11, r: 5, cap: 100 };
+const NOVA = { d: 2e5, x: 1e11, r: 5, cap: 100, x2: 1e20, r2: 9 };
 const effNova = () => S.chal ? 0 : soft(S.novaTotal, NOVA.cap);   // au-delà du plafond doux, le bonus croît en racine : la Constellation et la Maîtrise prennent le relais
 const effSing = (n = S.sing || 0) => S.chal && n === (S.sing || 0) ? 0 : soft(n, 10);
 // Moteur stellaire : puits de Singularités sans fin (×1,25 de production par niveau, coût doublé à chaque niveau)
@@ -211,10 +317,11 @@ const chalDone = id => !!(S.chalDone && S.chalDone[id]);
 function fresh() {
   return {
     dust: 0, runTotal: 0, lifeTotal: 0, clicks: 0, lifeClicks: 0, gens: GENS.map(() => 0), upg: {}, cometsTotal: 0, lifeComets: 0,
-    novaTotal: 0, novaBank: 0, meta: {}, ach: {}, prestiges: 0, chal: null, chalT: 0, chalDone: {}, sing: 0, singBank: 0, gal: {}, bigbangs: 0, buffs: [], last: Date.now(), started: Date.now(),
+    novaTotal: 0, novaBank: 0, meta: {}, ach: {}, prestiges: 0, chal: null, chalT: 0, chalDone: {}, sing: 0, singBank: 0, gal: {}, bigbangs: 0, buffs: [], last: Date.now(), started: Date.now(), st: {}, stage: 0, runT: 0,
   };
 }
 let S = fresh();
+let idleT = 0, streak = 0, lastClk = 0;   // secondes sans clic manuel (Contemplation), série de clics en cours
 
 const has = id => !!S.meta[id];
 function fmt(n) {
@@ -233,19 +340,30 @@ function fmt(n) {
 function genMult(i) {
   let m = 1;
   for (const u of UPGRADES) if (S.upg[u.id] && u.fx.gen === i) m *= u.fx.mult;
-  const mk = has('m_mile') ? 2.5 : 2; for (const t of MILESTONES) if (S.gens[i] >= t) m *= mk;
+  const mk = has('m_mile2') ? 2.6 : has('m_mile') ? 2.5 : 2; for (const t of MILESTONES) if (S.gens[i] >= t) m *= mk;
   if (has('m_syn') && i > 0) m *= 1 + S.gens[i - 1] * 0.005;   // chaque forge du rang d'en dessous : +0,5 %
   if (i < 3 && chalDone('c_short')) m *= 3;
+  const sk = has('m_syn2') ? 2 : 1;   // synergies : la petite forge +5 % par grande, la grande +0,1 % par petite
+  SYN.forEach(([a, b], k) => { if (!S.upg['syn' + k]) return; if (i === a) m *= 1 + 0.05 * sk * S.gens[b]; else if (i === b) m *= 1 + 0.001 * sk * S.gens[a]; });
+  if (i >= 10 && has('m_quasar2')) m *= 3;
+  for (const b of S.buffs) if (b.type === 'conj' && b.g.includes(i)) m *= b.m;   // conjonction : deux forges alignées
   return m;
 }
-const novaPct = () => 0.05 + (has('m_nova') ? 0.01 : 0) + (has('m_nova2') ? 0.01 : 0);   // +5 % par Nova, plafond doux à 100 Novae (effNova)
+const novaPct = () => 0.05 + (has('m_nova') ? 0.01 : 0) + (has('m_nova2') ? 0.01 : 0) + (has('m_nova3') ? 0.01 : 0);   // +5 % par Nova, plafond doux à 100 Novae (effNova)
 function globalMult() {
   let m = 1;
   for (const u of UPGRADES) if (S.upg[u.id] && u.fx.global) m *= u.fx.global;
   m *= 1 + effNova() * novaPct();
-  m *= 1 + Object.keys(S.ach).length * (has('m_ach2') ? 0.05 : has('m_ach') ? 0.03 : 0.01);
+  const na = Object.keys(S.ach).length;
+  m *= 1 + na * (has('m_ach3') ? 0.07 : has('m_ach2') ? 0.05 : has('m_ach') ? 0.03 : 0.01);
+  for (const u of UPGRADES) if (S.upg[u.id] && u.fx.cab) m *= 1 + na * u.fx.cab;   // cabinets : +0,5 % par succès
+  m *= 1 + stageOf() * (has('m_stage') ? 0.15 : 0.05);   // stades de l'étoile
+  if (has('m_idle')) m *= 1 + Math.min(60, idleT / 60) * 0.01;   // Contemplation : +1 % par minute sans cliquer (60 % max)
+  if (has('m_sn')) m *= 1 + Math.min(50, S.prestiges) * 0.02;   // Mémoire des cendres : +2 % par Supernova (100 % max)
+  if (has('m_buffs')) m *= 1 + 0.25 * S.buffs.length;
   if (has('m_omega')) m *= 10;
-  if (S.mast && !S.chal) m *= Math.pow(1.15, S.mast);
+  if (has('m_omega2')) m *= 3;
+  if (S.mast && !S.chal) m *= Math.pow(mastK(), S.mast);
   if (has('m_sing')) m *= 3;
   if (chalDone('c_hands')) m *= 1.5;
   m *= 1 + effSing() * (gal('g_big') ? 0.2 : 0.1);
@@ -258,7 +376,7 @@ function globalMult() {
 function baseDps() { let d = 0; GENS.forEach((g, i) => d += S.gens[i] * g.prod * genMult(i)); return d; }
 function dps() { return baseDps() * globalMult(); }
 // revenu de l'Automate, compté dans le « /s » affiché et dans les gains hors ligne
-const autoDps = () => has('m_auto') && !inChal('c_hands') ? autoRate() * clickValue() * (1 + critP(true) * 9) : 0;
+const autoDps = () => has('m_auto') && !inChal('c_hands') ? autoRate() * clickValue() * (1 + critP(true) * (critX() - 1)) : 0;
 const totalDps = () => dps() + autoDps();
 function clickValue() {
   if (inChal('c_hands') || (!has('m_eclipse') && S.buffs.some(b => b.type === 'eclipse'))) return 0;
@@ -267,31 +385,39 @@ function clickValue() {
   if (has('m_click')) c *= 3;
   let pct = 0; for (const u of UPGRADES) if (S.upg[u.id] && u.fx.clickPct) pct += u.fx.clickPct;
   if (has('m_click2')) pct += 0.02;
-  c = c * (1 + effNova() * 0.03) + dps() * pct;
-  for (const b of S.buffs) if (b.type === 'click') c *= 777; else if (b.type === 'void') c *= 100;
+  if (has('m_click3')) pct += 0.03;
+  let cf = 0; for (const u of UPGRADES) if (S.upg[u.id] && u.fx.cf !== undefined) cf += 0.01 * S.gens[u.fx.cf];   // gants indexés : +1 % par forge, sur le clic de base
+  c = c * (1 + effNova() * 0.03) * (1 + cf) + dps() * pct;   // (multiplier aussi la part « % de la production » faisait exploser le rythme : ×40 dès la 2e partie)
+  if (has('m_streak')) c *= 1 + 0.02 * Math.min(50, streak);   // Cadence : +2 % par clic de la série (×2 max)
+  for (const b of S.buffs) if (b.type === 'click') c *= 777; else if (b.type === 'void') c *= 100; else if (b.type === 'flare') c *= flareK();
   return c;
 }
+const flareK = () => (has('m_flare') ? 30 : 10) * (upgOn('sky3') ? 2 : 1);
 const growth = () => inChal('c_infl') ? 1.25 : (has('m_econ') ? 1.14 : 1.15) - (chalDone('c_infl') ? 0.005 : 0);
-const genBase = i => GENS[i].cost * (has('m_cheap') ? 0.9 : 1);
+const genBase = i => GENS[i].cost * (has('m_cheap') ? 0.9 : 1) * (has('m_cheap2') ? 0.9 : 1);
 function costN(i, n) { const r = growth(), b = genBase(i) * Math.pow(r, S.gens[i]); return b * (Math.pow(r, n) - 1) / (r - 1); }
 function maxAffordable(i) {
   const r = growth(), b = genBase(i) * Math.pow(r, S.gens[i]);
   return Math.max(0, Math.floor(Math.log(S.dust * (r - 1) / b + 1) / Math.log(r)));
 }
-const upgCost = u => u.cost * (has('m_upg') ? 0.75 : 1) * (chalDone('c_noupg') ? 0.85 : 1);
+const upgCost = u => u.cost * (has('m_upg') ? 0.75 : 1) * (has('m_upg2') ? 0.8 : 1) * (chalDone('c_noupg') ? 0.85 : 1);
 // v2 : les Novae suivent la racine CUBIQUE de toute la poussière produite depuis le dernier Big Bang (comme les puces
 // célestes de Cookie Clicker) : pour gagner autant qu'à la run précédente, il faut produire bien plus — la carte se remplit
 // en dizaines d'heures, pas en deux.
-const novaMult = () => (has('m_crunch') ? 2 : 1) * (has('m_crunch2') ? 1.5 : 1) * (chalDone('c_dim') ? 1.25 : 1) * (1 + 0.5 * effSing());
+const novaMult = () => (has('m_crunch') ? 2 : 1) * (has('m_crunch2') ? 1.5 : 1) * (has('m_crunch3') ? 1.5 : 1) * (chalDone('c_dim') ? 1.25 : 1) * (1 + 0.5 * effSing());
 // Courbe des Novae, sur le total cumulé depuis le dernier Big Bang : racine cubique jusqu'à 1e11 (premières parties
 // généreuses), racine 5e au-delà. La production réagit à peu près à la puissance 6 du multiplicateur de départ d'une
 // partie : en racine cubique pure, chaque partie rapportait ~500× la précédente et la Constellation était finie en 2 h.
-const novaCurve = tot => (tot <= NOVA.x ? Math.cbrt(Math.max(0, tot) / NOVA.d) : Math.cbrt(NOVA.x / NOVA.d) * Math.pow(tot / NOVA.x, 1 / NOVA.r)) * novaMult();
+// au-delà de 1e20, racine 9e : les multiplicateurs de fin de partie s'empilent et faisaient exploser les gains (arbre fini en 4 h)
+const novaRaw = tot => tot <= NOVA.x ? Math.cbrt(Math.max(0, tot) / NOVA.d) : tot <= NOVA.x2 ? Math.cbrt(NOVA.x / NOVA.d) * Math.pow(tot / NOVA.x, 1 / NOVA.r) : Math.cbrt(NOVA.x / NOVA.d) * Math.pow(NOVA.x2 / NOVA.x, 1 / NOVA.r) * Math.pow(tot / NOVA.x2, 1 / NOVA.r2);
+const novaCurve = tot => novaRaw(tot) * novaMult();
 function novaGainAt(total) { const b = S.snBase || 0; return Math.max(0, Math.floor(novaCurve(b + total)) - Math.floor(novaCurve(b))); }
 function novaGain() { if (S.chal) return 0; return novaGainAt(S.runTotal); }
 // multiplicateur de production d'un effet en cours (les clics ×777 / ×100 sont comptés dans clickValue)
-function buffMult(b) { return b.type === 'frenzy' ? 7 : b.type === 'meteor' ? 77 : b.type === 'eclipse' ? (has('m_eclipse') ? 6 : 2) : b.type === 'echo' ? 15 : b.type === 'surge' ? b.m : 1; }
-function luck() { let l = 1; for (const u of UPGRADES) if (S.upg[u.id] && u.fx.luck) l += u.fx.luck; if (has('m_comet')) l *= 2; if (has('m_shower')) l *= 1.5; if (has('m_lucky')) l *= 1.5; if (chalDone('c_rush')) l *= 1.25; return l; }
+function buffMult(b) { return b.type === 'frenzy' ? (has('m_comet3') ? 10 : 7) : b.type === 'meteor' ? 77 : b.type === 'eclipse' ? (has('m_eclipse') ? 6 : 2) * (upgOn('sky0') ? 1.5 : 1) : b.type === 'echo' ? (has('m_echo') ? 30 : 15) : b.type === 'surge' ? b.m : b.type === 'aurora' ? auroraK() : 1; }
+const auroraK = () => (has('m_aurora') ? 3 : 1.5) * (upgOn('sky4') ? 1.5 : 1);
+const conjK = () => (has('m_conj') ? 5 : 3) * (upgOn('sky2') ? 1.5 : 1);
+function luck() { let l = 1; for (const u of UPGRADES) if (S.upg[u.id] && u.fx.luck) l += u.fx.luck; if (has('m_comet')) l *= 2; if (has('m_shower')) l *= 1.5; if (S.buffs.some(b => b.type === 'aurora')) l *= 2; if (has('m_lucky')) l *= 1.5; if (chalDone('c_rush')) l *= 1.25; return l; }
 
 // ---------- monétisation (application Android uniquement ; sur le web, PT_MON n'existe pas) ----------
 const BOOST_H = 4, BOOST_MAX_H = 8, ETERNAL = 'eternal_boost';
@@ -376,12 +502,14 @@ function buyMeta(m) {
 // Repart de zéro en gardant tout ce qui est permanent (utilisé par Supernova et par les défis).
 function resetRun(extra) {
   const snBase = (extra && extra.prestiges > S.prestiges) ? (S.snBase || 0) + S.runTotal : (S.snBase || 0);
-  const keep = { snBase, mast: S.mast || 0, novaTotal: S.novaTotal, novaBank: S.novaBank, meta: S.meta, ach: S.ach, prestiges: S.prestiges, lifeTotal: S.lifeTotal, lifeClicks: S.lifeClicks, lifeComets: S.lifeComets, chalDone: S.chalDone || {}, sing: S.sing || 0, singBank: S.singBank || 0, gal: S.gal || {}, eng: S.eng || 0, bigbangs: S.bigbangs || 0, adBoostUntil: S.adBoostUntil || 0, ...extra };   // le boost vidéo survit aux Supernovae
+  const keep = { snBase, mast: S.mast || 0, novaTotal: S.novaTotal, novaBank: S.novaBank, meta: S.meta, ach: S.ach, prestiges: S.prestiges, lifeTotal: S.lifeTotal, lifeClicks: S.lifeClicks, lifeComets: S.lifeComets, st: S.st || {}, stage: S.stage || 0, chalDone: S.chalDone || {}, sing: S.sing || 0, singBank: S.singBank || 0, gal: S.gal || {}, eng: S.eng || 0, bigbangs: S.bigbangs || 0, adBoostUntil: S.adBoostUntil || 0, ...extra };   // le boost vidéo survit aux Supernovae
   const kept = {};
   if (has('m_keep')) for (const k of ['click0', 'click1', 'click2']) if (S.upg[k]) kept[k] = 1;
   if (has('m_keep2')) for (const k in S.upg) if (/^g\d+t0$/.test(k)) kept[k] = 1;   // les améliorations « I » de chaque forge
+  if (has('m_keep3')) for (const k in S.upg) if (/^click[3-7]$/.test(k)) kept[k] = 1;   // les Doigts d'étoile
   S = Object.assign(fresh(), keep); S.upg = kept;
-  if (has('m_start2')) { S.gens[0] = 50; S.gens[1] = 25; S.gens[2] = 15; S.gens[3] = 5; }
+  if (has('m_start3')) [75, 50, 35, 25, 10].forEach((n, i) => { S.gens[i] = n; });   // 75 Étincelles : le succès des « 77 » reste possible
+  else if (has('m_start2')) { S.gens[0] = 50; S.gens[1] = 25; S.gens[2] = 15; S.gens[3] = 5; }
   else if (has('m_start')) { S.gens[0] = 10; S.gens[1] = 5; }
 }
 async function startChal(c) {
@@ -433,6 +561,8 @@ async function prestige() {
   if (g < 1) return;
   const warn = g <= 3 ? t('sf.snWarn', { n: novaGainAt(S.runTotal * 4) }) : '';
   if (!await ptConfirm(noEmoji(t('sf.snConfirm', { g: fmt(g), n: g, pct: Math.round((soft(S.novaTotal + g, NOVA.cap) - effNova()) * novaPct() * 100), warn })), t('sf.snOk'))) return;
+  if (S.runT < 300) S.st.snFast = 1;
+  S.st.snBest = Math.max(st('snBest'), g);
   resetRun({ novaTotal: S.novaTotal + g, novaBank: S.novaBank + g, prestiges: S.prestiges + 1 });
   snAnim = 1.8; snBoom = false;
   sfx(110, 1.2, 'sawtooth', 0.08);
@@ -447,27 +577,28 @@ function spawnComet() {
   const fromLeft = Math.random() < 0.5;
   const meteor = Math.random() < 0.08 * luck() * (has('m_meteor') ? 2 : 1);   // rare, plus fréquent avec la Chance
   const dark = !meteor && (S.prestiges || 0) >= 1 && Math.random() < 0.12;   // comète sombre : bonus fort ou perte, au choix du joueur
-  comet = { meteor, dark, x: fromLeft ? -0.1 : 1.1, y: 0.15 + Math.random() * 0.5, vx: (fromLeft ? 1 : -1) * (0.05 + Math.random() * 0.03) / (0.8 + luck() * 0.2), vy: 0.01 * (Math.random() - 0.5), t: 0 };
+  comet = { meteor, dark, x: fromLeft ? -0.1 : 1.1, y: 0.15 + Math.random() * 0.5, vx: (fromLeft ? 1 : -1) * (0.05 + Math.random() * 0.03) / (0.8 + luck() * 0.2) / (has('m_comet3') ? 2 : 1), vy: 0.01 * (Math.random() - 0.5), t: 0 };
 }
 function catchComet() {
   window.ptEvent && window.ptEvent('sf_comets', 1);
   S.cometsTotal++; S.lifeComets++;
   const r = Math.random();
   if (comet.meteor) {
-    const md = 7 * buffDur() * (has('m_meteor') ? 2 : 1); S.buffs.push({ type: 'meteor', t: md, max: md }); toast(t('sf.meteorT', { s: md })); flash = 0.5;
+    const md = 7 * buffDur() * (has('m_meteor') ? 2 : 1); S.buffs.push({ type: 'meteor', t: md, max: md }); toast(t('sf.meteorT', { s: md })); flash = 0.5; S.st.meteor = st('meteor') + 1;
   } else if (comet.dark) {
-    if (r < 0.5) { const d = 20 * buffDur(); S.buffs.push({ type: 'echo', t: d, max: d }); toast(t('sf.echoT', { s: d })); flash = 0.6; }
-    else if (r < 0.8) { const v = Math.min(S.dust * 0.05, dps() * 1800); S.dust -= v; toast(t('sf.drainT', { v: fmt(v) })); }
-    else { const d = 10 * buffDur(); S.buffs.push({ type: 'void', t: d, max: d }); toast(t('sf.voidT', { s: d })); }
+    S.st.dark = st('dark') + 1;
+    if (r < 0.5 || (r < 0.8 && has('m_dark'))) { const d = 20 * buffDur(); S.buffs.push({ type: 'echo', t: d, max: d }); toast(t('sf.echoT', { s: d, m: has('m_echo') ? 30 : 15 })); flash = 0.6; }   // Ombre apprivoisée : la perte devient un écho
+    else if (r < 0.8) { const v = Math.min(S.dust * 0.05, dps() * 1800); S.dust -= v; S.st.drain = st('drain') + 1; toast(t('sf.drainT', { v: fmt(v) })); }
+    else { const d = 10 * buffDur() * (has('m_echo') ? 2 : 1); S.buffs.push({ type: 'void', t: d, max: d }); toast(t('sf.voidT', { s: d })); }
   } else if (r < 0.42) {
-    const v = (Math.min(S.dust * 0.15, dps() * 900) + 13) * (has('m_shower') ? 3 : 1);
+    const v = (Math.min(S.dust * 0.15, dps() * 900) + 13) * (has('m_shower') ? 3 : 1) * (has('m_gold') ? 5 : 1) * (upgOn('cmt0') ? 2 : 1);
     earn(v); toast(t('sf.goldRain', { v: fmt(v) }));
   } else if (r < 0.9 && r >= 0.78 && S.gens.some((n, i) => n > 0 && !GENS[i].meta)) {
     // élan de forge (le « bâtiment spécial » de Cookie Clicker) : +10 % par forge possédée d'un type tiré au sort
-    const own = S.gens.map((n, i) => [n, i]).filter(([n, i]) => n > 0), [n, i] = own[(Math.random() * own.length) | 0], d = 30 * buffDur(), m = 1 + n * 0.1;
-    S.buffs.push({ type: 'surge', t: d, max: d, m, g: i }); toast(t('sf.surgeT', { gen: GENS[i].name, m: fmt(m), s: d }));
+    const own = S.gens.map((n, i) => [n, i]).filter(([n, i]) => n > 0), [n, i] = own[(Math.random() * own.length) | 0], d = 30 * buffDur(), m = 1 + n * (0.1 + (has('m_surge') ? 0.1 : 0) + (upgOn('cmt2') ? 0.05 : 0));
+    S.buffs.push({ type: 'surge', t: d, max: d, m, g: i }); S.st.maxSurge = Math.max(st('maxSurge'), m); toast(t('sf.surgeT', { gen: GENS[i].name, m: fmt(m), s: d }));
   } else if (r < 0.85) {
-    S.buffs.push({ type: 'frenzy', t: 60 * buffDur(), max: 60 * buffDur() }); toast(t('sf.frenzyT', { s: 60 * buffDur() }));
+    const d = 60 * buffDur() * (upgOn('cmt1') ? 1.5 : 1); S.buffs.push({ type: 'frenzy', t: d, max: d }); toast(t('sf.frenzyT', { s: d, m: has('m_comet3') ? 10 : 7 }));
   } else {
     S.buffs.push({ type: 'click', t: 13 * buffDur(), max: 13 * buffDur() }); toast(t('sf.strikeT', { s: 13 * buffDur() }));
   }
@@ -501,7 +632,17 @@ function resizeStar() {
   bgStars = Array.from({ length: 70 }, () => ({ x: Math.random() * cw, y: Math.random() * ch, s: Math.random() * 1.5 + 0.3, p: Math.random() * 6 }));
 }
 // l'étoile grossit quand le cadre est bas (mobile) : les orbites se resserrent pour tenir
-const starR = () => Math.min(cw, ch) * (ch < 260 ? 0.3 : 0.2);
+const starR = () => Math.min(cw, ch) * (ch < 260 ? 0.3 : 0.2) * starK();
+// taille du stade (cadre bas : écart resserré pour tenir) ; pendant l'évolution, l'étoile passe de l'ancienne taille à la nouvelle avec un rebond
+let evoAnim = 0, evoFrom = 0;
+const evoQ = () => 1 - evoAnim / 2.6;   // 0 → 0,3 : l'étoile se contracte ; 0,3 : éclat ; puis elle gonfle jusqu'à sa nouvelle taille
+const shownStage = () => evoAnim > 0 && evoQ() < 0.3 ? evoFrom : (S.stage || 0);
+function starK() {
+  const sm = ch < 260, f = k => sm ? 0.86 + (k - 0.72) * 0.5 : k, k1 = f(STAGES[S.stage || 0].k);
+  if (evoAnim <= 0) return k1;
+  const q = evoQ(), k0 = f(STAGES[evoFrom].k);
+  return q < 0.3 ? k0 * (1 - 0.25 * q / 0.3) : k0 * 0.75 + (k1 * (1 + 0.12 * Math.sin((q - 0.3) / 0.7 * Math.PI)) - k0 * 0.75) * Math.min(1, (q - 0.3) / 0.35);
+}
 // gravure du disque : hachures croisées et pointillé sur la face à l'ombre (calculée une fois par taille, puis recopiée)
 let engC = null, engR = 0;
 function engraving(r) {
@@ -533,7 +674,9 @@ function drawStar(dt, time) {
   const X = cw / 2, Y = ch / 2, R = starR() * (1 + pulse * 0.08) * snScale;
   pulse = Math.max(0, pulse - dt * 5);
   // couleur spectrale : jaune au début, blanc puis bleu-blanc à mesure que les Novae s'accumulent
-  const sp = Math.min(1, Math.log10(1 + S.novaTotal) / 4), hue = sp < 0.5 ? 44 : 215, sat = sp < 0.5 ? 100 * (1 - 2 * sp) + 8 : (sp - 0.5) * 120 + 8;   // jaune → blanc → bleu-blanc, sans passer par le vert
+  // couleur et ornements du stade d'évolution (naine rouge → … → quasar)
+  const sg = shownStage(), stg = STAGES[sg], hue = stg.h, sat = stg.s, sp = sg / (STAGES.length - 1);
+  if (evoAnim > 0) { const q0 = 1 - evoAnim / 2.6; evoAnim = Math.max(0, evoAnim - dt); const q = 1 - evoAnim / 2.6; if (q0 < 0.3 && q >= 0.3) evoBurst(hue, sat); }
   const frenzy = S.buffs.some(b => b.type === 'frenzy');
   const lim = Math.min(cw, ch) * 0.49;
   // astrolabe : anneaux gravés, graduations, glyphes de constellations (tournent lentement, en sens contraires)
@@ -566,14 +709,16 @@ function drawStar(dt, time) {
     }
     c.globalAlpha = 1;
   });
-  // couronne : halo et deux voiles de rayons doux qui tournent
-  const gr = c.createRadialGradient(X, Y, R * 0.5, X, Y, R * 2.4);
-  gr.addColorStop(0, `hsla(${hue},${sat}%,72%,.55)`); gr.addColorStop(0.4, `hsla(${hue},${sat}%,60%,.14)`); gr.addColorStop(1, 'hsla(0,0%,0%,0)');
-  c.fillStyle = gr; c.beginPath(); c.arc(X, Y, R * 2.4, 0, Math.PI * 2); c.fill();
+  // couronne : halo, plus large et plus dense à chaque stade
+  const crn = R * (2 + sg * 0.14), gr = c.createRadialGradient(X, Y, R * 0.5, X, Y, crn);
+  gr.addColorStop(0, `hsla(${hue},${sat}%,72%,${0.45 + sp * 0.3})`); gr.addColorStop(0.4, `hsla(${hue},${sat}%,60%,${0.1 + sp * 0.12})`); gr.addColorStop(1, 'hsla(0,0%,0%,0)');
+  c.fillStyle = gr; c.beginPath(); c.arc(X, Y, crn, 0, Math.PI * 2); c.fill();
+  drawStageBack(c, X, Y, R, sg, hue, sat, time);
   // rayons gravés, comme les soleils des atlas anciens : traits droits et traits ondulés en alternance
   c.save(); c.translate(X, Y); c.rotate(time * 0.03 * (frenzy ? 6 : 1)); c.lineCap = 'round';
-  for (let k = 0; k < 40; k++) {
-    const a = k / 40 * Math.PI * 2, wavy = k % 2, l = R * (wavy ? 1.32 : 1.5 + 0.22 * Math.sin(k * 2.3) + 0.08 * Math.sin(time * 1.3 + k)), r0 = R * 0.98;
+  const nRay = 24 + sg * 6, rl = 1 + sg * 0.05;   // plus de rayons, plus longs, à chaque stade
+  for (let k = 0; k < nRay; k++) {
+    const a = k / nRay * Math.PI * 2, wavy = k % 2, l = R * rl * (wavy ? 1.32 : 1.5 + 0.22 * Math.sin(k * 2.3) + 0.08 * Math.sin(time * 1.3 + k)), r0 = R * 0.98;
     c.strokeStyle = `hsla(${hue},${Math.min(60, sat)}%,82%,${wavy ? 0.32 : 0.45})`; c.lineWidth = wavy ? 0.9 : 1.2; c.beginPath();
     if (!wavy) { c.moveTo(Math.cos(a) * r0, Math.sin(a) * r0); c.lineTo(Math.cos(a) * l, Math.sin(a) * l); }
     else for (let q = 0; q <= 12; q++) { const rr = r0 + (l - r0) * q / 12, off = Math.sin(q * 1.6 + time * 2) * R * 0.025, x = Math.cos(a) * rr - Math.sin(a) * off, y = Math.sin(a) * rr + Math.cos(a) * off; q ? c.lineTo(x, y) : c.moveTo(x, y); }
@@ -589,6 +734,8 @@ function drawStar(dt, time) {
   c.strokeStyle = `rgba(243,212,138,${0.55 + pulse * 0.45})`; c.lineWidth = 1.2; c.beginPath(); c.arc(0, 0, R * 0.9, 0, Math.PI * 2); c.stroke();
   c.strokeStyle = 'rgba(243,212,138,.3)'; c.beginPath(); c.arc(0, 0, R * 0.96, 0, Math.PI * 2); c.stroke();
   c.restore();
+  drawStageFront(c, X, Y, R, sg, hue, sat, time);
+  drawSky(c, X, Y, R, time, dt);
   if (S.buffs.some(b => b.type === 'eclipse')) {
     c.fillStyle = 'rgba(6,6,18,.72)'; c.beginPath(); c.arc(X + R * 0.35, Y - R * 0.1, R * 1.05, 0, Math.PI * 2); c.fill();
     c.strokeStyle = 'rgba(200,200,255,.35)'; c.lineWidth = 3; c.beginPath(); c.arc(X + R * 0.35, Y - R * 0.1, R * 1.05, 0, Math.PI * 2); c.stroke();
@@ -616,14 +763,179 @@ function drawStar(dt, time) {
   } else if (snK >= 0) {   // effondrement : la lumière est aspirée
     c.fillStyle = `rgba(0,0,10,${snK / 0.33 * 0.5})`; c.fillRect(0, 0, cw, ch);
   }
+  // nom du stade, gravé sous l'étoile
+  c.save(); c.textAlign = 'center'; c.textBaseline = 'alphabetic'; const fs = ch < 260 ? 12 : 15; c.font = `${fs}px 'NF Title',Georgia,serif`;
+  if ('letterSpacing' in c) c.letterSpacing = '2px';
+  const lbl = String(t('sf.stages')[sg] || '').toUpperCase(), lw = c.measureText(lbl).width, ly = ch - (ch < 260 ? 5 : 9);
+  c.globalAlpha = 0.85 * (evoAnim > 0 ? Math.min(1, Math.abs(evoAnim - 1.3) / 1.3) : 1);
+  c.fillStyle = 'rgba(11,16,40,.55)'; c.fillRect(cw / 2 - lw / 2 - 6, ly - fs, lw + 12, fs + 4);   // fond discret : le nom reste lisible sur les orbites
+  c.fillStyle = '#f3d48a'; c.fillText(lbl, cw / 2, ly);
+  c.strokeStyle = 'rgba(184,151,85,.7)'; c.lineWidth = 1;
+  for (const sgn of [-1, 1]) { const x0 = cw / 2 + sgn * (lw / 2 + 8), x1 = x0 + sgn * 34; c.beginPath(); c.moveTo(x0, ly - fs * 0.33); c.lineTo(x1, ly - fs * 0.33); c.stroke(); c.beginPath(); c.moveTo(x1 + sgn * 4, ly - fs * 0.33 - 3); c.lineTo(x1 + sgn * 7, ly - fs * 0.33); c.lineTo(x1 + sgn * 4, ly - fs * 0.33 + 3); c.lineTo(x1 + sgn, ly - fs * 0.33); c.closePath(); c.fillStyle = '#b89755'; c.fill(); }
+  c.restore();
   if (flash > 0) { c.fillStyle = `rgba(255,240,255,${flash})`; c.fillRect(0, 0, cw, ch); flash = Math.max(0, flash - dt * 0.8); }
 }
 
-const autoRate = () => has('m_auto3') ? 50 : has('m_auto2') ? 20 : 5;
+// ornements de stade, derrière l'étoile : rayons fins (étoile blanche), aigrettes (géante bleue), faisceaux (pulsar),
+// lignes de champ (magnétar), disque d'accrétion et jets (quasar)
+function drawStageBack(c, X, Y, R, sg, hue, sat, time) {
+  c.save(); c.translate(X, Y); c.lineCap = 'round';
+  if (sg >= 9) {   // jets du quasar
+    c.save(); c.rotate(-0.35); c.globalCompositeOperation = 'lighter';
+    for (const d of [-1, 1]) { const J = Math.min(R * 4.5, ch * 0.5); const g = c.createLinearGradient(0, 0, 0, d * J); g.addColorStop(0, `hsla(${hue},80%,85%,.55)`); g.addColorStop(1, 'hsla(0,0%,0%,0)'); c.fillStyle = g; c.beginPath(); c.moveTo(-R * 0.12, 0); c.lineTo(-R * 0.35, d * J); c.lineTo(R * 0.35, d * J); c.lineTo(R * 0.12, 0); c.fill(); c.strokeStyle = `hsla(${hue},70%,85%,.35)`; c.lineWidth = 0.8; for (let q = -2; q <= 2; q++) { c.beginPath(); c.moveTo(q * R * 0.04, 0); c.lineTo(q * R * 0.11, d * J * 0.93); c.stroke(); } }
+    c.restore();
+  }
+  if (sg >= 8) {   // magnétar : lignes de champ d'un dipôle, en pointillé qui coule
+    c.save(); c.rotate(-0.35); c.setLineDash([3, 5]); c.lineDashOffset = -time * 14; c.lineWidth = 1;
+    for (let k = 1; k <= 4; k++) for (const d of [-1, 1]) { c.strokeStyle = `hsla(${hue},60%,78%,${0.42 - k * 0.07})`; c.beginPath(); c.ellipse(d * R * (0.55 + k * 0.42), 0, R * (0.55 + k * 0.42), R * (0.35 + k * 0.28), 0, 0, Math.PI * 2); c.stroke(); }
+    c.restore();
+  }
+  if (sg >= 7) {   // pulsar : deux faisceaux de phare qui balaient le ciel
+    c.save(); c.rotate(time * 0.9); c.globalCompositeOperation = 'lighter';
+    for (const d of [0, Math.PI]) {
+      c.save(); c.rotate(d); const L = Math.min(R * 4.6, Math.max(cw, ch) * 0.5), g = c.createRadialGradient(0, 0, R * 0.6, 0, 0, L);
+      g.addColorStop(0, `hsla(${hue},70%,85%,.4)`); g.addColorStop(1, 'hsla(0,0%,0%,0)');
+      c.fillStyle = g; c.beginPath(); c.moveTo(0, 0); c.lineTo(L, -L * 0.13); c.lineTo(L, L * 0.13); c.closePath(); c.fill();
+      c.strokeStyle = `hsla(${hue},60%,88%,.28)`; c.lineWidth = 0.7; for (let q = -2; q <= 2; q++) { c.beginPath(); c.moveTo(R, q * R * 0.03); c.lineTo(L * 0.9, q * L * 0.045); c.stroke(); }
+      c.restore();
+    }
+    c.restore();
+  }
+  if (sg >= 9) disk(c, R, hue, time, true);
+  if (sg >= 4) {   // aigrettes de diffraction, de plus en plus longues
+    const L = R * (2.1 + sg * 0.22);
+    c.save(); c.rotate(Math.PI / 4); c.globalCompositeOperation = 'lighter';
+    for (let k = 0; k < 4; k++) { c.rotate(Math.PI / 2); const g = c.createLinearGradient(0, 0, L, 0); g.addColorStop(0, `hsla(${hue},${sat}%,90%,.6)`); g.addColorStop(1, 'hsla(0,0%,0%,0)'); c.strokeStyle = g; c.lineWidth = 1.6; c.beginPath(); c.moveTo(R * 0.8, 0); c.lineTo(L, 0); c.stroke(); }
+    c.restore();
+  }
+  if (sg >= 3) {   // couronne fine : soixante traits courts, à contre-sens
+    c.save(); c.rotate(-time * 0.05); c.strokeStyle = `hsla(${hue},${Math.min(60, sat)}%,85%,.3)`; c.lineWidth = 0.6;
+    for (let k = 0; k < 60; k++) { const a = k / 60 * Math.PI * 2, l = R * (1.12 + 0.1 * ((k * 7) % 3)); c.beginPath(); c.moveTo(Math.cos(a) * R * 1.02, Math.sin(a) * R * 1.02); c.lineTo(Math.cos(a) * l, Math.sin(a) * l); c.stroke(); }
+    c.restore();
+  }
+  c.restore();
+}
+// disque d'accrétion (quasar) : moitié arrière avant le cœur, moitié avant après
+function disk(c, R, hue, time, back) {
+  c.save(); c.rotate(-0.35 + Math.PI / 2); c.globalCompositeOperation = 'lighter';
+  for (let k = 0; k < 7; k++) {
+    const rx = R * (1.35 + k * 0.17), ry = rx * 0.26;
+    c.strokeStyle = `hsla(${hue + k * 8},70%,${80 - k * 4}%,${0.5 - k * 0.05})`; c.lineWidth = k % 2 ? 0.8 : 2.2;
+    c.beginPath(); c.ellipse(0, 0, ry, rx, 0, back ? Math.PI / 2 : -Math.PI / 2, back ? Math.PI * 1.5 : Math.PI / 2); c.stroke();
+  }
+  c.fillStyle = '#fff'; for (let k = 0; k < 10; k++) { const a = time * (0.8 - k * 0.03) + k * 0.63, ry = R * (1.4 + (k % 7) * 0.17); if ((Math.cos(a) < 0) !== back) continue; c.fillRect(Math.cos(a) * ry * 0.26 - 1, Math.sin(a) * ry - 1, 2, 2); }
+  c.restore();
+}
+// ornements de stade, devant l'étoile : protubérances sur le bord (supergéante et au-delà), moitié avant du disque
+function drawStageFront(c, X, Y, R, sg, hue, sat, time) {
+  c.save(); c.translate(X, Y);
+  if (sg >= 5) {
+    const n = sg - 2; c.lineCap = 'round';
+    for (let j = 0; j < n; j++) {
+      const a = j / n * Math.PI * 2 + time * 0.03 + j, h = R * (1.22 + 0.1 * Math.sin(time * 0.8 + j * 2)), w = 0.16;
+      c.strokeStyle = `hsla(${hue - 25},${Math.max(50, sat)}%,72%,.55)`; c.lineWidth = 1.8;
+      c.beginPath(); c.moveTo(Math.cos(a - w) * R * 0.84, Math.sin(a - w) * R * 0.84); c.quadraticCurveTo(Math.cos(a) * h * 1.15, Math.sin(a) * h * 1.15, Math.cos(a + w) * R * 0.84, Math.sin(a + w) * R * 0.84); c.stroke();
+      c.lineWidth = 0.7; c.beginPath(); c.moveTo(Math.cos(a - w * 0.6) * R * 0.86, Math.sin(a - w * 0.6) * R * 0.86); c.quadraticCurveTo(Math.cos(a) * h, Math.sin(a) * h, Math.cos(a + w * 0.6) * R * 0.86, Math.sin(a + w * 0.6) * R * 0.86); c.stroke();
+    }
+  }
+  if (sg >= 9) disk(c, R, hue, time, false);
+  c.restore();
+}
+// éclat de l'évolution : onde aux couleurs du nouveau stade, gerbe d'étincelles, accord montant
+function evoBurst(hue, sat) {
+  flash = Math.max(flash, 0.55); pulse = 1;
+  for (let k = 0; k < 120; k++) { const a = Math.random() * 6.3, v = 2 + Math.random() * 8; parts.push({ x: cw / 2, y: ch / 2, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 1.6, col: `hsl(${hue},${sat}%,${70 + Math.random() * 25}%)`, s: 2 + Math.random() * 3 }); }
+  sfx(330, 0.6, 'triangle', 0.06); sfx(495, 0.7, 'triangle', 0.05); sfx(660, 0.9, 'sine', 0.05); sfx(990, 1.2, 'sine', 0.04);
+}
+// nouveau stade atteint : l'étoile se contracte, éclate et renaît plus grosse ; toast et succès suivent
+function checkStage() {
+  const k = stageOf(); if (k <= (S.stage || 0)) return;
+  evoFrom = S.stage || 0; S.stage = k;
+  if (visible) evoAnim = 2.6;
+  toast(t('sf.stageToast', { s: t('sf.stages')[k] }));
+}
+
+// ---------- évènements du ciel ----------
+const SKY_T = { eclipse: 45, shower: 30, conj: 60, flare: 20, aurora: 60 };
+const skyGap = () => (360 + Math.random() * 360) * (has('m_sky') ? 0.5 : 1);   // un évènement toutes les 6 à 12 min : chacun ne revient que toutes les ~45 min
+function startSky(type) {
+  const own = S.gens.map((n, i) => [n, i]).filter(([n]) => n > 0);
+  type = type || SKY[(Math.random() * SKY.length) | 0];
+  if (type === 'conj' && own.length < 2) type = 'flare';
+  const d = SKY_T[type] * (has('m_sky2') ? 1.5 : 1), b = { type, t: d, max: d };
+  if (type === 'conj') { const a = own.splice((Math.random() * own.length) | 0, 1)[0][1], z = own[(Math.random() * own.length) | 0][1]; b.g = [a, z].sort((p, q) => p - q); b.m = conjK(); }
+  S.buffs = S.buffs.filter(x => x.type !== type); S.buffs.push(b);
+  S.st['sky_' + type] = st('sky_' + type) + 1; S.st.sky = st('sky') + 1;
+  const v = { s: Math.round(d), m: fmt(type === 'flare' ? flareK() : type === 'aurora' ? auroraK() : b.m || 0), a: b.g ? GENS[b.g[0]].name : '', b: b.g ? GENS[b.g[1]].name : '' };
+  toast(t({ eclipse: 'sf.eclipseT', shower: 'sf.showerT', conj: 'sf.conjT', flare: 'sf.flareT', aurora: 'sf.auroraT' }[type], v));
+  sfx(type === 'eclipse' ? 90 : 440, 1, 'sine', 0.06); if (type !== 'eclipse') sfx(660, 1.2, 'sine', 0.04, 0.2);
+}
+// pluie d'étoiles filantes : elles traversent le ciel pendant l'évènement, chacune attrapée rapporte quelques secondes de production
+let shoots = [], shootAcc = 0;
+function tickShoots(dt) {
+  shoots.forEach(o => { o.x += o.vx * dt; o.y += o.vy * dt; o.life -= dt; }); shoots = shoots.filter(o => o.life > 0);
+  if (!S.buffs.some(b => b.type === 'shower')) { shootAcc = 0; return; }
+  shootAcc += dt; const every = has('m_shower3') ? 0.45 : 0.75;
+  while (shootAcc >= every) { shootAcc -= every; const l = Math.random() < 0.5; shoots.push({ x: l ? 0.05 + Math.random() * 0.4 : 0.55 + Math.random() * 0.4, y: 0.02 + Math.random() * 0.3, vx: (l ? 1 : -1) * (0.22 + Math.random() * 0.12), vy: 0.2 + Math.random() * 0.1, life: 1.8 }); }
+}
+const shootVal = () => Math.max(dps() * 8, clickValue() * 10, 50) * (has('m_shower3') ? 2 : 1) * (upgOn('sky1') ? 2 : 1);
+function catchShoot(o) {
+  shoots = shoots.filter(q => q !== o); const v = shootVal(); earn(v); S.st.shoot = st('shoot') + 1;
+  if (cw) { floats.push({ x: o.x * cw, y: o.y * ch, t: '+' + fmt(v), life: 1, col: '#cfe6ff', small: 1 }); for (let k = 0; k < 14; k++) parts.push({ x: o.x * cw, y: o.y * ch, vx: (Math.random() - .5) * 5, vy: (Math.random() - .5) * 5, life: 0.8, col: '#e8f2ff', s: 2 }); }
+  sfx(1400 + Math.random() * 300, 0.12, 'sine', 0.04);
+}
+// visuels des évènements sur le ciel de l'étoile
+function drawSky(c, X, Y, R, time) {
+  const fade = b => Math.min(1, (b.max - b.t) / 1.5, b.t / 1.5);
+  for (const b of S.buffs) {
+    const f = fade(b);
+    if (b.type === 'aurora') {   // rideaux de lumière, en haut du ciel
+      c.save(); c.globalCompositeOperation = 'lighter';
+      for (let k = 0; k < 60; k++) {
+        const x = k / 59 * cw, top = ch * (0.04 + 0.05 * Math.sin(k * 0.35 + time * 0.6)), h = ch * (0.22 + 0.1 * Math.sin(k * 0.21 + time * 0.9)), hu = k % 3 ? 150 : 280;
+        const g = c.createLinearGradient(0, top, 0, top + h); g.addColorStop(0, 'hsla(0,0%,0%,0)'); g.addColorStop(0.35, `hsla(${hu},80%,65%,${0.22 * f})`); g.addColorStop(1, 'hsla(0,0%,0%,0)');
+        c.strokeStyle = g; c.lineWidth = cw / 60 * 1.5; c.beginPath(); c.moveTo(x + Math.sin(time + k) * 3, top); c.lineTo(x, top + h); c.stroke();
+      }
+      c.restore();
+    } else if (b.type === 'conj') {   // deux planètes alignées avec l'étoile, aux couleurs des deux forges
+      const a = -0.5 + time * 0.015, lim = Math.min(cw, ch) * 0.48, d1 = Math.min(R * 1.85, lim * 0.6), d2 = Math.min(R * 2.6, lim * 0.92);
+      c.save(); c.globalAlpha = f; c.translate(X, Y); c.rotate(a);
+      c.setLineDash([2, 5]); c.strokeStyle = 'rgba(243,212,138,.55)'; c.lineWidth = 1; c.beginPath(); c.moveTo(-d2 * 0.5, 0); c.lineTo(d2 + 20, 0); c.stroke(); c.setLineDash([]);
+      [[d1, R * 0.17, GENS[b.g[0]].col], [d2, R * 0.23, GENS[b.g[1]].col]].forEach(([d, r, col], k) => {
+        c.save(); c.translate(d, 0); c.rotate(-a); c.fillStyle = col; c.shadowColor = col; c.shadowBlur = 12; c.beginPath(); c.arc(0, 0, r, 0, 7); c.fill(); c.shadowBlur = 0;
+        c.strokeStyle = 'rgba(11,16,40,.55)'; c.lineWidth = 0.7; for (let q = -3; q <= 3; q++) { c.beginPath(); c.moveTo(-r, q * r / 4); c.quadraticCurveTo(0, q * r / 4 + r * 0.2, r, q * r / 4); c.stroke(); }
+        c.strokeStyle = '#f3d48a'; c.lineWidth = 1; c.beginPath(); c.arc(0, 0, r, 0, 7); c.stroke();
+        if (k) { c.beginPath(); c.ellipse(0, 0, r * 1.8, r * 0.45, -0.4, 0, 7); c.stroke(); }
+        c.restore();
+      });
+      c.restore();
+    } else if (b.type === 'flare') {   // éruption : boucles de plasma qui jaillissent du bord
+      const q = 1 - b.t / b.max, a0 = -0.8;
+      c.save(); c.translate(X, Y); c.globalCompositeOperation = 'lighter'; c.lineCap = 'round';
+      for (let j = 0; j < 5; j++) {
+        const a = a0 + (j - 2) * 0.22, h = R * (1.3 + 0.9 * Math.sin(Math.min(1, q * 3) * Math.PI / 2) * (1 - j * 0.12)) * (1 + 0.05 * Math.sin(time * 6 + j));
+        c.strokeStyle = `rgba(255,${150 + j * 18},${80 + j * 20},${0.75 * f})`; c.lineWidth = 3 - j * 0.4; c.shadowColor = '#ff9a40'; c.shadowBlur = 14;
+        c.beginPath(); c.moveTo(Math.cos(a - 0.12) * R * 0.85, Math.sin(a - 0.12) * R * 0.85); c.bezierCurveTo(Math.cos(a - 0.25) * h, Math.sin(a - 0.25) * h, Math.cos(a + 0.25) * h, Math.sin(a + 0.25) * h, Math.cos(a + 0.12) * R * 0.85, Math.sin(a + 0.12) * R * 0.85); c.stroke();
+      }
+      c.shadowBlur = 0; c.restore();
+      if (Math.random() < 0.3) { const a = a0 + (Math.random() - 0.5) * 0.8; parts.push({ x: X + Math.cos(a) * R, y: Y + Math.sin(a) * R, vx: Math.cos(a) * 3, vy: Math.sin(a) * 3, life: 0.7, col: '#ffc070', s: 2 }); }
+    }
+  }
+  // étoiles filantes de la pluie (on peut les attraper)
+  for (const o of shoots) {
+    const px = o.x * cw, py = o.y * ch, tx = px - o.vx * cw * 0.35, ty = py - o.vy * ch * 0.35, g = c.createLinearGradient(px, py, tx, ty);
+    g.addColorStop(0, `rgba(232,242,255,${Math.min(1, o.life)})`); g.addColorStop(1, 'rgba(232,242,255,0)');
+    c.strokeStyle = g; c.lineWidth = 2.5; c.lineCap = 'round'; c.beginPath(); c.moveTo(px, py); c.lineTo(tx, ty); c.stroke();
+    c.fillStyle = '#fff'; c.shadowColor = '#bcd8ff'; c.shadowBlur = 10; c.beginPath(); c.arc(px, py, 3.5, 0, 7); c.fill(); c.shadowBlur = 0;
+  }
+}
+
+const autoRate = () => has('m_auto4') ? 100 : has('m_auto3') ? 50 : has('m_auto2') ? 20 : 5;
+const critX = () => has('m_crit2') ? 25 : 10;
 const critP = auto => has('m_crit') && (!auto || has('m_auto3')) ? 0.05 : 0;   // clic critique : ×10
 let autoN = 0;
 function autoClick() {
-  const v = clickValue() * (Math.random() < critP(true) ? 10 : 1); earn(v); S.clicks++; S.lifeClicks++; window.ptEvent && window.ptEvent('sf_clicks', 1);
+  const v = clickValue() * (Math.random() < critP(true) ? critX() : 1); earn(v); S.clicks++; S.lifeClicks++; window.ptEvent && window.ptEvent('sf_clicks', 1);
   if (!visible || !cw || v <= 0) return;
   pulse = Math.max(pulse, 0.35);
   if (++autoN % 3 === 0) {   // une main fantôme : un nombre plus discret que le clic du joueur
@@ -633,14 +945,25 @@ function autoClick() {
 }
 function clickStar(x, y) {
   if (comet && Math.hypot(x - comet.x * cw, y - comet.y * ch) < 34) { catchComet(); return; }
+  const sh = shoots.find(o => Math.hypot(x - o.x * cw, y - o.y * ch) < 30); if (sh) { catchShoot(sh); return; }
   const X = cw / 2, Y = ch / 2, R = starR();
   if (Math.hypot(x - X, y - Y) > R * 1.3) return;
-  const crit = Math.random() < critP(false), v = clickValue() * (crit ? 10 : 1);
+  manualClick();
+  const crit = Math.random() < critP(false), v = clickValue() * (crit ? critX() : 1);
   earn(v); S.clicks++; S.lifeClicks++; pulse = 1; window.ptEvent && window.ptEvent('sf_clicks', 1);
-  if (crit) S.crits = (S.crits || 0) + 1;
+  if (crit) S.st.crit = st('crit') + 1;
+  if (v > st('clickMax')) S.st.clickMax = v;
   floats.push({ x: x + (Math.random() - .5) * 20, y, t: (crit ? '✦ ' : '+') + fmt(v), life: crit ? 1.4 : 1, col: crit ? '#ffffff' : S.buffs.some(b => b.type === 'click') ? '#ff9dfc' : '#ffe38a', big: crit });
   for (let k = 0; k < 6; k++) parts.push({ x, y, vx: (Math.random() - .5) * 5, vy: -Math.random() * 5, life: 1, col: '#ffe38a', s: 2 + Math.random() * 2 });
   sfx(700 + Math.random() * 200, 0.04, 'sine', 0.03);
+}
+// clic du joueur (pas de l'Automate) : série de clics (moins d'une seconde d'écart), fin de la contemplation, compteurs d'évènements
+function manualClick() {
+  const now = performance.now(); streak = now - lastClk < 1000 ? streak + 1 : 1; lastClk = now;
+  if (streak > st('streak')) S.st.streak = streak;
+  S.st.idleMax = Math.max(st('idleMax'), idleT); idleT = 0;
+  if (S.buffs.some(b => b.type === 'eclipse')) S.st.eclClk = st('eclClk') + 1;
+  if (S.buffs.some(b => b.type === 'flare')) S.st.flareClk = st('flareClk') + 1;
 }
 cv.addEventListener('pointerdown', e => { const r = cv.getBoundingClientRect(); clickStar(e.clientX - r.left, e.clientY - r.top); });
 
@@ -707,7 +1030,7 @@ function build() {
     META.forEach(m => {
       const n = document.createElement('button'); n.className = 'sf-node'; n.dataset.id = m.id;
       n.style.left = m.x + '%'; n.style.top = m.y + '%';
-      n.innerHTML = `${constGlyph(m.id)}<small>${m.cost}✦</small>`;
+      n.innerHTML = `${constGlyph(m.id)}<small>${m.cost >= 1e4 ? m.cost / 1e3 + 'k' : m.cost}✦</small>`;   // 20k : tient dans un nœud de 46 px
       tipify(n, () => `<b>${m.name}</b> — <span class="nova">${t('sf.novaeN', { n: m.cost })}</span>${S.meta[m.id] ? ' ✓' : ''}<br>${m.desc}${m.req.length ? '<br><span class="muted">' + t('sf.requires', { list: m.req.map(r => META.find(q => q.id === r).name).join(', ') }) + '</span>' : ''}`, () => buyMeta(m));
       tree.appendChild(n);
     });
@@ -768,8 +1091,9 @@ function refresh(structural) {
   if (tip) { if (!tip.el.isConnected) hideTip(); else tip.innerHTML = tip.fn(); }
   $('sf-dust').textContent = fmt(S.dust);
   $('sf-rate').textContent = fmt(totalDps());
-  const BN = { frenzy: [t('sf.bFrenzy'), ''], click: [t('sf.bClick'), ''], meteor: [t('sf.bMeteor'), 'met'], eclipse: [t('sf.bEclipse'), 'ecl'], echo: [t('sf.bEcho'), 'ecl'], void: [t('sf.bVoid'), 'ecl'], surge: [null, ''] };
-  const bname = b => b.type === 'surge' ? t('sf.bSurge', { gen: GENS[b.g].name, m: fmt(b.m) }) : BN[b.type][0], stack = S.buffs.reduce((m, b) => m * buffMult(b), 1);
+  const BN = { frenzy: [t('sf.bFrenzy', { m: has('m_comet3') ? 10 : 7 }), ''], click: [t('sf.bClick'), ''], meteor: [t('sf.bMeteor'), 'met'], eclipse: [t('sf.bEclipse'), 'ecl'], echo: [t('sf.bEcho', { m: has('m_echo') ? 30 : 15 }), 'ecl'], void: [t('sf.bVoid'), 'ecl'], surge: [null, ''],
+    shower: [engSvg('shower') + ' ' + t('sf.bShower'), 'sky'], conj: [null, 'sky'], flare: [engSvg('flare') + ' ' + t('sf.bFlare', { m: fmt(flareK()) }), 'sky'], aurora: [engSvg('aurora') + ' ' + t('sf.bAurora', { m: fmt(auroraK()) }), 'sky'] };
+  const bname = b => b.type === 'surge' ? t('sf.bSurge', { gen: GENS[b.g].name, m: fmt(b.m) }) : b.type === 'conj' ? engSvg('conj') + ' ' + t('sf.bConj', { a: GENS[b.g[0]].name, b: GENS[b.g[1]].name, m: fmt(b.m) }) : BN[b.type][0], stack = S.buffs.reduce((m, b) => m * buffMult(b), 1);
   $('sf-buffs').innerHTML = (eternal() ? `<span class="met">${t('sf.eternalBuff')}</span>` : boostLeft() > 0 ? `<span class="met">${t('sf.boostBuff', { t: hm(boostLeft()) })}</span>` : '') + S.buffs.map(b => `<span class="${BN[b.type][1]}">${bname(b)} · ${Math.ceil(b.t)} s</span>`).join('') + (S.buffs.filter(b => buffMult(b) > 1).length >= 2 ? `<span class="met">${t('sf.stack', { m: fmt(stack) })}</span>` : '');
   { const bb = $('sf-buffs'); if (/\p{Extended_Pictographic}/u.test(bb.innerHTML)) bb.innerHTML = noEmoji(bb.innerHTML); }
   const canAd = !!(MON() && MON().canReward());
@@ -832,7 +1156,7 @@ function refresh(structural) {
       document.querySelectorAll('#sf-gal .sf-item[data-id]').forEach(d => { const x = GALAXY.find(y => y.id === d.dataset.id); d.classList.toggle('done', gal(x.id)); d.querySelector('.rt b').textContent = gal(x.id) ? t('sf.owned') : x.cost + '✧'; d.classList.toggle('can', !gal(x.id) && (S.singBank || 0) >= x.cost); d.classList.toggle('no', !gal(x.id) && (S.singBank || 0) < x.cost); });
     }
     $('sf-meta-info').innerHTML = t('sf.metaInfo', { bank: num(S.novaBank), pct: num(Math.round(effNova() * novaPct() * 100)) });
-    const mst = $('sf-mast'); if (mst) { mst.classList.toggle('hidden', !META.every(m => S.meta[m.id]) && !(S.mast > 0) && Object.keys(S.meta).length < 12); mst.querySelector('.mid span').textContent = t('sf.mastDesc', { n: S.mast || 0, m: fmt(Math.pow(1.15, S.mast || 0)) }); mst.querySelector('.rt b').textContent = fmt(mastCost()) + '✦'; mst.classList.toggle('can', S.novaBank >= mastCost()); mst.classList.toggle('no', S.novaBank < mastCost()); }
+    const mst = $('sf-mast'); if (mst) { mst.classList.toggle('hidden', !META.every(m => S.meta[m.id]) && !(S.mast > 0) && Object.keys(S.meta).length < 12); mst.querySelector('.mid span').textContent = t('sf.mastDesc', { n: S.mast || 0, m: fmt(Math.pow(mastK(), S.mast || 0)), p: has('m_mast') ? 17 : 15 }); mst.querySelector('.rt b').textContent = fmt(mastCost()) + '✦'; mst.classList.toggle('can', S.novaBank >= mastCost()); mst.classList.toggle('no', S.novaBank < mastCost()); }
     panel.querySelectorAll('.sf-node').forEach(n => {
       const m = META.find(q => q.id === n.dataset.id);
       const open = m.req.every(r => S.meta[r]);
@@ -853,7 +1177,7 @@ function refresh(structural) {
     const got = Object.keys(S.ach).length;
     $('sf-ach-info').textContent = t('sf.achInfo', { got, tot: ACH.length, p: has('m_ach2') ? 5 : has('m_ach') ? 3 : 1 });
     panel.querySelectorAll('.sf-ach div').forEach(d => d.classList.toggle('got', !!S.ach[d.dataset.id]));
-    $('sf-stats').innerHTML = t('sf.stats', { run: fmt(S.runTotal), life: fmt(S.lifeTotal), clicks: fmt(S.lifeClicks), comets: num(S.lifeComets), sn: num(S.prestiges) });
+    $('sf-stats').innerHTML = t('sf.stats', { run: fmt(S.runTotal), life: fmt(S.lifeTotal), clicks: fmt(S.lifeClicks), comets: num(S.lifeComets), sn: num(S.prestiges) }) + '<br>' + t('sf.statStage', { s: t('sf.stages')[S.stage || 0], n: (S.stage || 0) + 1, t: STAGES.length, p: Math.round(stageOf() * (has('m_stage') ? 15 : 5)) });
   }
 }
 
@@ -864,6 +1188,11 @@ function toast(t) {
   while (z.children.length > 3) z.firstChild.remove();
 }
 function checkAch() {
+  const live = S.buffs.filter(b => buffMult(b) > 1 || ['click', 'void', 'flare', 'shower', 'conj'].includes(b.type));
+  S.st.maxBuffs = Math.max(st('maxBuffs'), live.length); S.st.maxStack = Math.max(st('maxStack'), S.buffs.reduce((m, b) => m * buffMult(b), 1));
+  if (dps() > 0) S.st.idleMax = Math.max(st('idleMax'), idleT);
+  const hr = new Date().getHours(); if (hr >= 2 && hr < 5) S.st.night = 1;
+  checkStage();
   for (const a of ACH) if (!S.ach[a.id] && a.test(S)) { S.ach[a.id] = 1; toast(t('sf.achToast', { name: a.name })); }
 }
 
@@ -892,8 +1221,12 @@ function tick(dt) {
   // clic automatique : compte comme un vrai clic (compteurs de run et de vie, objectifs du jour) et se voit sur l'étoile
   if (has('m_auto') && !inChal('c_hands')) { autoAcc += dt * autoRate(); while (autoAcc >= 1) { autoAcc--; autoClick(); } }
   S.buffs.forEach(b => b.t -= dt); S.buffs = S.buffs.filter(b => b.t > 0);
-  // éclipse : de temps en temps, production ×2 mais clics sans effet pendant 45 s
-  if (visible && !S.chal) { nextEclipse -= dt; if (nextEclipse <= 0) { nextEclipse = 480 + Math.random() * 480; S.buffs.push({ type: 'eclipse', t: 45, max: 45 }); toast(t('sf.eclipseT')); sfx(90, 1, 'sine', 0.08); } }
+  // évènements du ciel : de temps en temps, un phénomène tiré au sort (éclipse, pluie d'étoiles filantes, conjonction, éruption, aurore)
+  if (visible && !S.chal) { nextSky -= dt; if (nextSky <= 0) { nextSky = skyGap(); startSky(); } }
+  tickShoots(dt);
+  S.runT = (S.runT || 0) + dt;
+  if (S.gens.some(n => n > 0)) idleT += dt;
+  if (streak && performance.now() - lastClk > 1000) streak = 0;
   galAcc += dt;
   if (galAcc >= 1) {
     galAcc = 0;
@@ -910,9 +1243,10 @@ function tick(dt) {
   if (!comet) { nextComet -= dt; if (nextComet <= 0 && visible && !inChal('c_dim')) spawnComet(); }
   else { comet.x += comet.vx * dt; comet.y += comet.vy * dt; if (comet.x < -0.2 || comet.x > 1.2) { comet = null; nextComet = (60 + Math.random() * 120) / luck(); } }
 }
-let autoAcc = 0, galAcc = 0, nextEclipse = 300 + Math.random() * 300;
+let autoAcc = 0, galAcc = 0, nextSky = 240 + Math.random() * 240;
 
-const offCap = () => (has('m_off2') ? 24 : 8) * 3600;
+const offCap = () => (has('m_off3') ? 72 : has('m_off2') ? 24 : 8) * 3600;
+const offK = () => (has('m_off') ? 1 : 0.25) * UPGRADES.reduce((m, u) => S.upg[u.id] && u.fx.off ? m * u.fx.off : m, 1);   // veilleuses : ×1,5 et ×2
 function save() { if (window.PT_NOSAVE) return; S.last = Date.now(); try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
 function load() {
   try {
@@ -922,9 +1256,10 @@ function load() {
     if (S.chal) S.chalT += Math.min(8 * 3600, (Date.now() - (d.last || Date.now())) / 1000);   // le chrono tourne aussi hors-ligne
     while (S.gens.length < GENS.length) S.gens.push(0);
     S.buffs = [];
+    if (!d.st) S.stage = stageOf();   // sauvegarde d'avant 1.7 : pas de cinématique pour les stades déjà atteints
     const away = Math.min(offCap(), (Date.now() - (d.last || Date.now())) / 1000);
     if (away > 30) {
-      const v = totalDps() * away * (has('m_off') ? 1 : 0.25);
+      const v = totalDps() * away * offK(); S.st.away = Math.max(st('away'), away);
       if (v > 0) { earn(v); if (away > 300) { offPending = v; offUntil = Date.now() + 60000; } setTimeout(() => welcomeBack(away, v), 400); }
     }
   } catch (e) {}
@@ -944,7 +1279,7 @@ function loop(t) {
   requestAnimationFrame(loop);
 }
 // La production continue même quand l'onglet est masqué (rattrapage à la reprise, cf. dt plafonné + hors-ligne).
-document.addEventListener('visibilitychange', () => { if (document.hidden) save(); else if (inited) { const d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (d) { const away = Math.min(offCap(), (Date.now() - d.last) / 1000); if (away > 5) { if (S.chal) S.chalT += away; const v = totalDps() * away * (has('m_off') ? 1 : 0.25); earn(v); if (away > 60 && v > 0) { if (away > 300) { offPending = v; offUntil = Date.now() + 60000; } welcomeBack(away, v); refresh(true); } } } } });
+document.addEventListener('visibilitychange', () => { if (document.hidden) save(); else if (inited) { const d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (d) { const away = Math.min(offCap(), (Date.now() - d.last) / 1000); if (away > 5) { if (S.chal) S.chalT += away; const v = totalDps() * away * offK(); S.st.away = Math.max(st('away'), away); earn(v); if (away > 60 && v > 0) { if (away > 300) { offPending = v; offUntil = Date.now() + 60000; } welcomeBack(away, v); refresh(true); } } } } });
 window.addEventListener('beforeunload', save);
 window.addEventListener('resize', () => visible && resizeStar());
 // la zone cliquable suit la taille réelle du cadre (la mise en page mobile change après le premier calcul)
@@ -965,4 +1300,4 @@ window.GAMES.forge = {
   hide() { visible = false; hideTip(); save(); },
 };
 // Accès de test (tools/sf-balance.mjs, console).
-window.__sf = { NOVA, buyMastery, mastCost, novaCurve, GALAXY, singGain, buyEngine, fmt, boostOn, get offPending() { return offPending; }, set offPending(v) { offPending = v; offUntil = Date.now() + 60000; }, watchBoost, watchOffline, get S() { return S; }, get comet() { return comet; }, spawnComet, catchComet, set S(v) { S = v; }, tick, buyGen, buyUpg, UPGRADES, GENS, costN, upgCost, dps, clickValue, novaGain, earn, fresh, resetRun, META, buyMeta, setMult: m => { buyMult = m; } };
+window.__sf = { STAGES, stageOf, startSky, SKY, get shoots() { return shoots; }, catchShoot, checkAch, ACH, set idleT(v) { idleT = v; }, NOVA, buyMastery, mastCost, novaCurve, GALAXY, singGain, buyEngine, fmt, boostOn, get offPending() { return offPending; }, set offPending(v) { offPending = v; offUntil = Date.now() + 60000; }, watchBoost, watchOffline, get S() { return S; }, get comet() { return comet; }, spawnComet, catchComet, set S(v) { S = v; }, tick, buyGen, buyUpg, UPGRADES, GENS, costN, upgCost, dps, clickValue, novaGain, earn, fresh, resetRun, META, buyMeta, setMult: m => { buyMult = m; } };
