@@ -299,7 +299,7 @@ const gal = id => !!(S.gal && S.gal[id]);
 // s'entretenaient l'une l'autre et la partie s'emballait en quelques minutes (tools/sf-long.mjs).
 const soft = (x, cap) => x <= cap ? x : cap * Math.sqrt(x / cap);
 // en défi, ni Novae ni Singularités ne comptent (« repart de zéro, sans Novae ») : le défi reste un vrai défi
-const NOVA = { d: 2e5, x: 1e11, r: 5, cap: 100 };
+const NOVA = { d: 2e5, x: 1e11, r: 5, cap: 100, x2: 1e20, r2: 9 };
 const effNova = () => S.chal ? 0 : soft(S.novaTotal, NOVA.cap);   // au-delà du plafond doux, le bonus croît en racine : la Constellation et la Maîtrise prennent le relais
 const effSing = (n = S.sing || 0) => S.chal && n === (S.sing || 0) ? 0 : soft(n, 10);
 // Moteur stellaire : puits de Singularités sans fin (×1,25 de production par niveau, coût doublé à chaque niveau)
@@ -408,7 +408,9 @@ const novaMult = () => (has('m_crunch') ? 2 : 1) * (has('m_crunch2') ? 1.5 : 1) 
 // Courbe des Novae, sur le total cumulé depuis le dernier Big Bang : racine cubique jusqu'à 1e11 (premières parties
 // généreuses), racine 5e au-delà. La production réagit à peu près à la puissance 6 du multiplicateur de départ d'une
 // partie : en racine cubique pure, chaque partie rapportait ~500× la précédente et la Constellation était finie en 2 h.
-const novaCurve = tot => (tot <= NOVA.x ? Math.cbrt(Math.max(0, tot) / NOVA.d) : Math.cbrt(NOVA.x / NOVA.d) * Math.pow(tot / NOVA.x, 1 / NOVA.r)) * novaMult();
+// au-delà de 1e20, racine 9e : les multiplicateurs de fin de partie s'empilent et faisaient exploser les gains (arbre fini en 4 h)
+const novaRaw = tot => tot <= NOVA.x ? Math.cbrt(Math.max(0, tot) / NOVA.d) : tot <= NOVA.x2 ? Math.cbrt(NOVA.x / NOVA.d) * Math.pow(tot / NOVA.x, 1 / NOVA.r) : Math.cbrt(NOVA.x / NOVA.d) * Math.pow(NOVA.x2 / NOVA.x, 1 / NOVA.r) * Math.pow(tot / NOVA.x2, 1 / NOVA.r2);
+const novaCurve = tot => novaRaw(tot) * novaMult();
 function novaGainAt(total) { const b = S.snBase || 0; return Math.max(0, Math.floor(novaCurve(b + total)) - Math.floor(novaCurve(b))); }
 function novaGain() { if (S.chal) return 0; return novaGainAt(S.runTotal); }
 // multiplicateur de production d'un effet en cours (les clics ×777 / ×100 sont comptés dans clickValue)
