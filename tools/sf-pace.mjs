@@ -1,7 +1,8 @@
 // Rythme de la méta de Nova Foundry : un bot (3 clics/s, 70 % des comètes, achats au meilleur rendement) enchaîne les
 // Supernovae et achète la Constellation (puis la Maîtrise). Une ligne par partie : heure cumulée, gain, Novae totales,
 // nœuds possédés, niveau de Maîtrise, améliorations achetées après 2 min et en fin de partie.
-//   node tools/sf-pace.mjs [time30|time15|time60|double|rate|meta] [clics/s]      RUNS=40 HRS=20 TUNE='{"cap":100}'
+//   node tools/sf-pace.mjs [time30|time15|time60|double|rate|meta] [clics/s]      RUNS=40 HRS=20 TUNE='{"cap":100}' ACH=1
+// (1.7) le bot attrape la moitié des étoiles filantes ; ACH=1 lui fait aussi gagner les succès (par défaut : non, comme avant)
 import { createRequire } from 'module'; import { execSync } from 'child_process';
 import http from 'http'; import fs from 'fs'; import path from 'path'; import url from 'url';
 const require = createRequire(import.meta.url);
@@ -15,7 +16,7 @@ const CPS = +(process.argv[3] || 3);
   p.on('pageerror', e => console.log('ERR', e.message));
   await p.addInitScript(() => { window.PT_NOSAVE = 1; window.PT_MUTE = 1; localStorage.setItem('playtoon.welcomed', '1'); localStorage.setItem('starforge.intro', '1'); });
   await p.goto(`http://localhost:${srv.address().port}/#forge`); await p.waitForTimeout(1000);
-  const out = await p.evaluate(({ POLICY, CPS, RUNS, HRS, TUNE }) => {
+  const out = await p.evaluate(({ POLICY, CPS, RUNS, HRS, TUNE, ACH }) => {
     const F = window.__sf; if (TUNE) Object.assign(F.NOVA, TUNE); F.S = F.fresh(); let S = F.S;
     const NU = F.UPGRADES.length, NM = F.META.length;
     const runs = []; let T = 0;
@@ -36,7 +37,9 @@ const CPS = +(process.argv[3] || 3);
       for (;;) {
         for (let k = 0; k < 5; k++) F.tick(0.2);
         if (F.comet) { if (Math.random() < 0.7) F.catchComet(); }
-        for (let c = 0; c < CPS; c++) { const v = F.clickValue(); F.earn(v); S.clicks++; S.lifeClicks++; }
+        for (const o of [...F.shoots]) if (Math.random() < 0.5) F.catchShoot(o);   // pluie d'étoiles filantes : la moitié attrapée
+        for (let c = 0; c < CPS; c++) { const v = F.clickValue(); F.earn(v); S.clicks++; S.lifeClicks++; } F.idleT = 0;
+        if (ACH && t % 5 === 0) F.checkAch();
         buyBest(); t++; T++; if (t % 5 === 0) { for (const a of [1]) {} }
         for (const m of [30, 60, 120, 300, 600, 1800]) if (t === m) rec.upgAt[m / 60 + 'min'] = nUpg();
         if (rec.firstNova === null && F.novaGain() >= 1) rec.firstNova = t;
@@ -52,13 +55,13 @@ const CPS = +(process.argv[3] || 3);
         if (go || t > 4 * 3600) {
           Object.assign(rec, { dur: t, gain: g, runTotal: S.runTotal, upgEnd: nUpg(), gens: S.gens.reduce((a, b) => a + b, 0), dps: F.dps(), reachPrev, avail: F.UPGRADES.filter(u => !S.upg[u.id] && u.req(S)).length, lockedUpg: F.UPGRADES.filter(u => !S.upg[u.id] && !u.req(S)).length });
           F.resetRun({ novaTotal: S.novaTotal + g, novaBank: S.novaBank + g, prestiges: S.prestiges + 1 });
-          S = F.S; rec.bought = metaBuy().join(','); rec.mast = S.mast; rec.metaAfter = Object.keys(S.meta).length; rec.bankAfter = S.novaBank; rec.novaTotalAfter = S.novaTotal; rec.ach = Object.keys(S.ach).length;
+          S = F.S; rec.bought = metaBuy().join(','); rec.mast = S.mast; rec.metaAfter = Object.keys(S.meta).length; rec.bankAfter = S.novaBank; rec.novaTotalAfter = S.novaTotal; rec.ach = Object.keys(S.ach).length; rec.life = S.lifeTotal.toExponential(1); rec.stage = F.stageOf();
           rec.T = +(T / 3600).toFixed(2); runs.push(rec); break;
         }
       }
     }
     return { NU, NM, runs, fmt: null };
-  }, { POLICY, CPS, RUNS: +(process.env.RUNS||12), HRS: +(process.env.HRS||30), TUNE: process.env.TUNE ? JSON.parse(process.env.TUNE) : null });
+  }, { POLICY, CPS, RUNS: +(process.env.RUNS||12), HRS: +(process.env.HRS||30), TUNE: process.env.TUNE ? JSON.parse(process.env.TUNE) : null, ACH: process.env.ACH === '1' });
   console.log('POLICY', POLICY, 'CPS', CPS, 'upgrades', out.NU, 'meta', out.NM);
-  for (const r of out.runs) console.log([r.run, 'h' + r.T, 'gain ' + r.gain, 'nova ' + r.novaTotalAfter, 'meta ' + r.metaAfter, 'mast ' + r.mast, 'upg2m ' + r.upgAt['2min'], 'upgEnd ' + r.upgEnd, 'first ' + r.firstNova].join(' | '));
+  for (const r of out.runs) console.log([r.run, 'h' + r.T, 'gain ' + r.gain, 'nova ' + r.novaTotalAfter, 'meta ' + r.metaAfter, 'mast ' + r.mast, 'upg2m ' + r.upgAt['2min'], 'upgEnd ' + r.upgEnd, 'first ' + r.firstNova, 'life ' + r.life, 'stade ' + r.stage, 'succès ' + r.ach].join(' | '));
   await b.close(); srv.close();
