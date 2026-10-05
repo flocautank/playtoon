@@ -621,3 +621,12 @@ body[data-tab=blocks] .pt-toasts{bottom:auto;top:calc(env(safe-area-inset-top, 0
 .bp-boost button svg{width:22px;height:22px;display:block}
 .bp-coins svg.bp-coin{width:18px;height:18px;vertical-align:-3px;display:inline-block}
 @media (max-width:600px){#tab-forge .sf-node{width:46px;height:46px;font-size:16px;box-shadow:0 0 0 2px var(--ink),0 0 0 3px rgba(184,151,85,.35)}#tab-forge .sf-node small{font-size:9px}#tab-forge .sf-meta-tree{min-height:880px}#tab-forge .sf-node.owned::after{width:14px;height:14px;font-size:9px}}
+.bp-cal{margin:6px auto 8px;max-width:300px}
+.bp-calh{font:600 14px 'BQ Label',system-ui,sans-serif;letter-spacing:.06em;margin-bottom:4px;color:#e8d3b0}
+.bp-calg{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.bp-calg i{font-style:normal;font-size:11px;line-height:1.1;padding:3px 0;border-radius:5px;background:rgba(0,0,0,.25);color:#a8957a;display:flex;flex-direction:column;align-items:center;min-height:30px}
+.bp-calg i:empty{background:none}
+.bp-calg i b{font-size:8px;color:#ffd24d;letter-spacing:-1px;min-height:9px}
+.bp-calg i.s1{background:rgba(255,210,77,.15);color:#f3e3c6}.bp-calg i.s2{background:rgba(255,210,77,.28);color:#fff}.bp-calg i.s3{background:rgba(255,170,60,.45);color:#fff}
+.bp-calg i.today{outline:2px solid #ffd24d}.bp-calg i.fut{opacity:.4}
+#bp-dstars{font-size:34px;margin:0}

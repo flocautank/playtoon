@@ -300,7 +300,7 @@ toujours jouables, reprise garantie, pubs plafonnées et facultatives, niveaux c
 | G10 | Prise en main sèche | moyen | ✅ agrandissement de 90 ms, ombre portée, aperçu pointillé, contour rouge si ça ne rentre pas, petit son à chaque case |
 | G11 | Place perdue sur mobile, grille collée au bord | moyen | ✅ mise en page recalculée (bandeau + cadre + grille + plateau), marges de 12 px, pièces du plateau à 0,8 case |
 | G7 | Aventure courte (40 niveaux), deux objectifs | moyen-haut | à faire — génération ouverte, couleurs à collecter, glace, caisses, chapitres de 10 |
-| G8 | Défi du jour sans objectif ni calendrier ni partage | moyen | à faire — 1–3★, calendrier du mois, partage façon Wordle |
+| G8 | Défi du jour sans objectif ni calendrier ni partage ; et il ne finissait jamais (bienveillance des tirages permanente : un glouton atteignait 400 coups) | moyen | ✅ 1.5.0 — bienveillance qui s'estompe après 150 pièces comme en classique ; objectifs ★ 500 / ★★ 1 500 / ★★★ 3 000 (glouton sur 30 graines : médiane 1 360, p90 3 029), barre vers l'étoile suivante, calendrier du mois, trophée à 20 jours étoilés, partage (feuille du système ou presse-papiers) |
 | G9 | Scores petits (≈ 700) | moyen | à faire — ×10 avec migration des records |
 | G13–G16 | Événement hebdomadaire, thèmes en plus, Chrono plus lisible, monétisation | bas | à faire |
 

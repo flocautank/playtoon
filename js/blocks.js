@@ -206,7 +206,7 @@ function fillTray() {
   // Tirage équitable : les trois pièces doivent pouvoir être posées (dans un ordre au moins) ; plus la grille est
   // pleine, plus on écarte les grosses pièces. À défaut, au moins une pièce qui rentre.
   const filled = S.board.reduce((a, r) => a + r.filter(c => c).length, 0) / (N * N);
-  const mercy = S.mode !== 'classic' || (S.placed || 0) < 150;   // classique : la bienveillance s'estompe après 150 pièces
+  const mercy = S.mode === 'adv' || S.mode === 'chrono' || (S.placed || 0) < 150;   // classique et défi : la bienveillance s'estompe après 150 pièces (sinon le défi ne finit jamais)
   // Grille chargée : on cherche d'abord un tirage où une pièce complète une ligne (coup de pouce).
   let best = null, fair = null;
   for (let k = 0; k < 60; k++) {
@@ -328,6 +328,31 @@ const todayLabel = () => date(new Date(), { day: 'numeric', month: 'long' });
 let DAILY = { day: 0, best: 0, streak: 0, last: 0 };
 try { DAILY = Object.assign(DAILY, JSON.parse(localStorage.getItem('blocparty.daily') || '{}')); } catch (e) {}
 if (!DAILY.last && DAILY.day && DAILY.streak) DAILY.last = DAILY.day;   // avant 1.4.0, la série comptait les jours ouverts
+// objectifs du défi (mesurés : glouton sur 30 graines, médiane ≈ 1 360) et historique pour le calendrier du mois
+const DAILY_GOALS = [500, 1500, 3000];
+const dailyStars = sc => DAILY_GOALS.filter(g => sc >= g).length;
+function dailyRecord() {
+  const st = dailyStars(DAILY.best); DAILY.hist = DAILY.hist || {};
+  if (st > (DAILY.hist[DAILY.day] || 0)) {
+    DAILY.hist[DAILY.day] = st;
+    const keys = Object.keys(DAILY.hist).sort(); while (keys.length > 70) delete DAILY.hist[keys.shift()];
+    const ym = Math.floor(DAILY.day / 100), n = Object.keys(DAILY.hist).filter(k => Math.floor(k / 100) === ym && DAILY.hist[k] > 0).length;
+    DAILY.trophies = DAILY.trophies || {}; if (n >= 20 && !DAILY.trophies[ym]) { DAILY.trophies[ym] = 1; window.ptToast && window.ptToast(t('bp.trophy')); }
+  }
+  saveDaily();
+}
+function calendarHTML() {
+  const d0 = new Date(), y = d0.getFullYear(), m = d0.getMonth(), first = (new Date(y, m, 1).getDay() + 6) % 7, days = new Date(y, m + 1, 0).getDate();
+  const h = DAILY.hist || {}, ym = y * 100 + m + 1, got = Object.keys(h).filter(k => Math.floor(k / 100) === ym && h[k] > 0).length;
+  let g = ''; for (let i = 0; i < first; i++) g += '<i></i>';
+  for (let dd = 1; dd <= days; dd++) { const k = ym * 100 + dd, st = h[k] || 0; g += `<i class="s${st}${dd === d0.getDate() ? ' today' : ''}${dd > d0.getDate() ? ' fut' : ''}">${dd}<b>${st ? '★'.repeat(st) : ''}</b></i>`; }
+  return `<div class="bp-calh">${(DAILY.trophies || {})[ym] ? '🏆 ' : ''}${t('bp.calTitle', { month: date(d0, { month: 'long' }), n: got })}</div><div class="bp-calg">${g}</div>`;
+}
+function shareDaily() {
+  const st = dailyStars(DAILY.best), txt = t('bp.shareTxt', { date: todayLabel(), stars: '★'.repeat(st) + '☆'.repeat(3 - st), score: num(DAILY.best), n: DAILY.streak }) + '\nhttps://flocautank.github.io/playtoon/';
+  if (navigator.share) navigator.share({ text: txt }).catch(() => {});
+  else if (navigator.clipboard) navigator.clipboard.writeText(txt).then(() => window.ptToast && window.ptToast(t('bp.shared')), () => {});
+}
 // premier coup du jour dans le défi : c'est lui qui fait avancer la série
 function dailyPlayed() {
   const today = dayKey(); if (DAILY.last === today) return;
@@ -335,9 +360,10 @@ function dailyPlayed() {
   DAILY.streak = DAILY.last === dayKey(y) ? DAILY.streak + 1 : 1; DAILY.last = today; saveDaily();
 }
 const saveDaily = () => { try { localStorage.setItem('blocparty.daily', JSON.stringify(DAILY)); } catch (e) {} };
-function startDaily() {
+function startDaily(seedDay) {
   clearTimeout(overTimer); clearTimeout(resTimer); S.contN = 0;
-  const today = dayKey();
+  const today = typeof seedDay === 'number' ? seedDay : dayKey();   // seedDay : outils de mesure seulement
+  S.placed = 0;
   if (DAILY.day !== today) { DAILY.day = today; DAILY.best = 0; saveDaily(); }
   const r = mulberry32(today);
   const board = Array.from({ length: N }, () => Array(N).fill(null));
@@ -346,6 +372,7 @@ function startDaily() {
   rnd = mulberry32(today * 31 + 7);
   fillTray();
   ['bp-over', 'bp-map', 'bp-res'].forEach(id => $(id).classList.add('hidden'));
+  S.pops.push({ text: t('bp.daily'), sub: t('bp.dailyGoals', { a: num(DAILY_GOALS[0]), b: num(DAILY_GOALS[1]), c: num(DAILY_GOALS[2]) }), t: -1.3 });
   S.pops.push({ text: t('bp.daily'), sub: t('bp.dailySub', { date: todayLabel(), n: DAILY.last === today || DAILY.last === dayKey(new Date(Date.now() - 864e5)) ? DAILY.streak + (DAILY.last === today ? 0 : 1) : 1 }), t: 0 });
   updateHUD();
 }
@@ -400,7 +427,7 @@ function chronoEnd() {
 
 function openMap() {
   tool = null; paintBoost();
-  $('bp-daily').innerHTML = `${t('bp.dailyBtn')}<small>${todayLabel()}${DAILY.day === dayKey() && DAILY.best ? t('bp.dailyBest', { n: num(DAILY.best) }) : ''}${DAILY.streak > 1 && DAILY.day === dayKey() ? t('bp.dailyStreak', { n: DAILY.streak }) : ''}</small>`;
+  $('bp-daily').innerHTML = `${t('bp.dailyBtn')}<small>${todayLabel()}${DAILY.day === dayKey() && DAILY.best ? t('bp.dailyBest', { n: num(DAILY.best) }) : ''}${DAILY.streak > 1 && DAILY.day === dayKey() ? t('bp.dailyStreak', { n: DAILY.streak }) : ''}${DAILY.day === dayKey() && DAILY.best ? ' · ' + '★'.repeat(dailyStars(DAILY.best)) + '☆'.repeat(3 - dailyStars(DAILY.best)) : ''}</small>`;
   const box = $('bp-levels'); box.innerHTML = '';
   const open = unlockedLvl();
   for (let n = 1; n <= LEVELS; n++) {
@@ -527,7 +554,7 @@ function place(idx, gx, gy) {
     }
     updateHUD(); return;
   }
-  if (S.mode === 'daily') { if (S.score > DAILY.best) { DAILY.best = S.score; saveDaily(); } }
+  if (S.mode === 'daily') { if (S.score > DAILY.best) { const st0 = dailyStars(DAILY.best); DAILY.best = S.score; dailyRecord(); const st = dailyStars(DAILY.best); if (st > st0) { S.pops.push({ text: '★'.repeat(st) + '☆'.repeat(3 - st), sub: t('bp.starGot', { n: st }), t: n ? -1.0 : 0, big: true }); setTimeout(SFX.best, n ? 900 : 0); } } }
   else if (S.score > S.best) {
     S.best = S.score;
     // record battu en pleine partie : bandeau, fanfare et confettis, une seule fois
@@ -551,6 +578,9 @@ function gameOver() {
     $('bp-newbest').textContent = S.myRank === 0 ? t('bp.bestChrono') : S.myRank > 0 ? t('bp.rank', { n: S.myRank + 1 }) : S.score ? t('bp.outTop') : t('bp.noPoints');
     top.innerHTML = TOP.map((e, i) => `<li class="${i === S.myRank ? 'me' : ''}">${num(e.s)} <span class="muted">· ${e.d}</span></li>`).join('');
   } else if (S.mode === 'daily') $('bp-newbest').textContent = t('bp.dailyEnd', { date: todayLabel(), best: num(DAILY.best), n: DAILY.streak });
+  const dl = S.mode === 'daily', ds = dailyStars(DAILY.best);
+  $('bp-dstars').classList.toggle('hidden', !dl); $('bp-cal').classList.toggle('hidden', !dl); $('bp-share').classList.toggle('hidden', !dl || !(navigator.share || navigator.clipboard));
+  if (dl) { $('bp-dstars').innerHTML = [1, 2, 3].map(k => k <= ds ? '★' : '<i>★</i>').join(''); $('bp-cal').innerHTML = calendarHTML(); }
   else $('bp-newbest').textContent = S.score >= S.best && S.score > 0 ? t('bp.newRecord') : S.best - S.score <= S.best * 0.15 ? t('bp.nearBest', { n: num(S.best - S.score) }) : t('bp.record', { n: num(S.best) });
   $('bp-cont').classList.toggle('hidden', COINS < contCost() || S.mode === 'chrono' || (S.mode === 'daily' && dailyContUsed()));
   $('bp-cont').textContent = t('bp.contBooster', { n: contCost() });
@@ -937,6 +967,13 @@ function drawBand() {
   if (S.over && !S.endAnim) return;
   const y = L.by - L.fr - L.band * 0.5, now = performance.now();
   ctx.save(); ctx.textBaseline = 'middle';
+  if (S.mode === 'daily') {   // défi : barre vers la prochaine étoile
+    const st = dailyStars(S.shown), goal = DAILY_GOALS[Math.min(2, st)], prev = st ? DAILY_GOALS[st - 1] : 0, w = L.bs * 0.42, h = L.band * 0.26, x = L.bx;
+    const k = st >= 3 ? 1 : Math.min(1, (S.shown - prev) / (goal - prev));
+    ctx.fillStyle = 'rgba(0,0,0,.35)'; rr(x, y - h / 2, w, h, h / 2); ctx.fill(); ctx.fillStyle = '#ffd24d'; rr(x, y - h / 2, Math.max(h, w * k), h, h / 2); ctx.fill();
+    ctx.font = `800 ${Math.round(L.band * 0.36)}px 'BQ Label',system-ui,sans-serif`; ctx.textAlign = 'left'; ctx.fillStyle = '#ffd24d';
+    ctx.fillText('★'.repeat(st) + '☆'.repeat(3 - st) + (st < 3 ? '  ' + num(goal) : ''), x + w + L.band * 0.18, y);
+  }
   if (S.mode === 'classic' && S.bestStart > 0) {
     const w = L.bs * 0.42, h = L.band * 0.26, x = L.bx, k = Math.min(1, S.shown / S.bestStart), near = !S.beat && k >= 0.9;
     ctx.fillStyle = 'rgba(0,0,0,.35)'; rr(x, y - h / 2, w, h, h / 2); ctx.fill();
@@ -1096,6 +1133,7 @@ $('bp-vidcoins').onclick = () => MON.reward('coins').then(ok => {
   VIDS.n++; try { localStorage.setItem('blocparty.vids', JSON.stringify(VIDS)); } catch (e) {}
   COINS += VID_COINS; saveCoins(); window.ptToast && window.ptToast(t('app.coinsGot', { n: VID_COINS })); openThemes();
 });
+$('bp-share').onclick = shareDaily;
 $('bp-overmap').onclick = () => { $('bp-over').classList.add('hidden'); openMap(); };
 document.querySelectorAll('#bp-boost button').forEach(b => b.onclick = () => {
   const t = b.dataset.tool;
@@ -1110,7 +1148,7 @@ applyI18n();
 const sel = document.getElementById('pt-langsel'); if (sel) import('./i18n.js').then(m => m.langSelect(sel));
 window.addEventListener('pt-lang', () => { updateHUD(); if (!$('bp-themes').classList.contains('hidden')) openThemes(); if (!$('bp-map').classList.contains('hidden')) openMap(); });
 $('bp-mapclose').onclick = () => { $('bp-map').classList.add('hidden'); if (S.over && S.mode !== 'adv') $('bp-over').classList.remove('hidden'); };   // fermer la carte après une fin de partie ramène à l'écran de fin
-$('bp-daily').onclick = startDaily;
+$('bp-daily').onclick = () => startDaily();
 $('bp-classic').onclick = () => { $('bp-map').classList.add('hidden'); if (S.mode === 'classic' && S.over) { newGame(); return; } if (S.mode !== 'classic') { S.mode = 'classic'; rnd = Math.random; S.gems.clear(); freshRun(); if (!load() || !S.tray.some(t => t && canPlaceAnywhere(t))) newGame(); S.over = false; updateHUD(); } };
 $('bp-resnext').onclick = () => MON.pause().then(() => startLevel(Math.min(LEVELS, S.lvl + 1)));
 $('bp-resretry').onclick = () => startLevel(S.lvl);
@@ -1142,4 +1180,4 @@ window.GAMES.blocks = {
   hide() { running = false; S.drag = null; },
 };
 // Accès de test (tools/smoke.mjs, console).
-window.__bp = { S, L, place, fits, startLevel, startDaily, startChrono, linesToClear, canPlaceAnywhere, N, gameOver, endNow: () => { S.over = true; armOver(600); } };
+window.__bp = { S, L, newGame, refill: fillTray, place, fits, startLevel, startDaily, startChrono, linesToClear, canPlaceAnywhere, N, gameOver, endNow: () => { S.over = true; armOver(600); } };
