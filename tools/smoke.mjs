@@ -271,6 +271,20 @@ log('laser + mines :', await page.evaluate(() => {
 await page.waitForTimeout(500); await shot(page, 'bonk-beam');
 await page.keyboard.press('Escape'); await page.evaluate(() => { const S = window.__nb.S; if (S.state === 'play') document.getElementById('nb-timer').click(); });
 await page.waitForTimeout(400); await shot(page, 'bonk-evo');
+// chaque sanctuaire à activer affiche son invite (régression 1.12.0 : seuls les sanctuaires de charge réagissaient)
+{
+  const r = await page.evaluate(() => {
+    const nb = window.__nb, S = nb.S, out = [], keep = [S.p.x, S.p.y, S.p.z];
+    for (const s of S.shrines) {
+      if (s.kind === 'charge' || s.used) continue;
+      S.state = 'play'; S.pending = 0; S.iframe = 1; S.p.x = s.x + 1; S.p.z = s.z; S.p.y = s.y; S.p.vx = S.p.vz = 0; nb.update(1 / 30);
+      out.push(s.kind + '=' + !!document.getElementById('nb-prompt').textContent);
+    }
+    [S.p.x, S.p.y, S.p.z] = keep; return out.join(' ');
+  });
+  log('invites des sanctuaires :', r);
+  if (r.includes('=false')) throw new Error('sanctuaire sans invite : ' + r);
+}
 // parcours complet : boss 1 → portail → étape 2 → boss 2 → portail final
 const killBossAndEnter = () => page.evaluate(() => {
   const nb = window.__nb, S = nb.S;

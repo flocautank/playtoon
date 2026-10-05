@@ -273,6 +273,18 @@ devraient peser bien moins — **non mesuré sur appareil** : à vérifier lors 
 Corrigé au passage : un sanctuaire voisin volait l'invite du portail (le boss mort près d'un marchand ouvrait la boutique
 au lieu du portail) ; les captures PC de la boutique Steam montraient l'écran de pause (fenêtre headless sans focus).
 
+## Synth Horde — retour de partie du propriétaire (2026-10-05) → 1.13.0
+
+| Retour | Correction |
+|---|---|
+| Méta trop rapide (presque tout acheté en une run) | Améliorations ×2 et doublées à chaque niveau, crédits des runs −40 %, crédits des quêtes ÷2 : une run gagnante ≈ 2 300 crédits pour 16 100 au total (~14 %) |
+| Perché sur un pilier, intouchable | Les ennemis escaladent le perchoir du joueur (≈ 3 s pour le plus haut, collés à la paroi), les volants montent à sa hauteur dans toutes les étapes |
+| Seuls les sanctuaires verts marchaient | Régression de 1.12.0 (garde du portail vraie quand il n'y a pas de portail) ; test ajouté au smoke pour chaque sanctuaire |
+| Rectangles noirs qui clignotent | Un pixel NaN étalé par le flou du halo : normales et reflets protégés dans tous les shaders, et passe de nettoyage avant le halo |
+| Étapes 1–2 trop faciles, 3e trop dure | Dégâts ×1,35 / ×1,3 et foule ×1,25 / ×1,2 aux étapes 1–2, montée des dégâts plus rapide, étape 3 ×0,9 et volants plus proches (12 m) ; la régénération attend 2,5 s sans coup. Bot fort : en danger dès la 2e minute ; bot naïf : médiane 5:59 (6:14 avant) |
+| Emplacements et synergies peu clairs | Rangées « ARMES n/4 » et « TOMES n/4 » avec cases vides numérotées, paires arme-tome surlignées ; sur les cartes : « ★ FAIT ÉVOLUER … », « RENFORCE n DE TES ARMES », « ÉVOLUE DANS n NIVEAUX », « EMPLACEMENT 3/4 », « DERNIER EMPLACEMENT ! » |
+| Interface plus forte, pas générique | Direction « flyer » (référence Persona 5) choisie parmi trois pistes : dalles noires inclinées, ombres dures rose/cyan, cartes-affiches, titre en lettres découpées, plaque du héros avec portrait 3D ; Dela Gothic One + Barlow Condensed (+ Anton, Rubik Mono One), embarquées (OFL, `fonts/LICENSES.md`) |
+
 ## Fait
 
 - **Itération E21** (2026-09-28, évaluation n° 7 : verdict « non ») — notifications retenues aussi pendant les choix de

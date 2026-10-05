@@ -174,13 +174,20 @@
     <div class="nb-root" id="nb-root">
       <canvas id="nb-canvas"></canvas>
       <div class="nb-hud hidden" id="nb-hud">
-        <div class="nb-xp"><div id="nb-xpbar"></div><span id="nb-level">LV 1</span></div>
         <div class="nb-tl">
-          <div class="nb-hp"><div id="nb-hpbar"></div><span id="nb-hptext">100/100</span></div>
-          <div class="nb-gold">◆ <span id="nb-gold">0</span> <span class="muted">· ☠ <span id="nb-kills">0</span> · 🔑 <span id="nb-keys">0/3</span></span></div>
-          <div class="nb-weapons" id="nb-weapons"></div>
+          <div class="nb-srow"><label><span data-i18n="nb.slotW">WEAPONS</span> <em id="nb-wn">0/4</em></label><div class="nb-weapons" id="nb-weapons"></div></div>
+          <div class="nb-srow"><label><span data-i18n="nb.slotT">TOMES</span> <em id="nb-tn">0/4</em></label><div class="nb-weapons nb-tomes" id="nb-tomes"></div></div>
+          <div class="nb-items" id="nb-items"></div>
+          <div class="nb-gold">◆ <b id="nb-gold">0</b> <span>☠ <b id="nb-kills">0</b></span> <span>🔑 <b id="nb-keys">0/3</b></span></div>
+        </div>
+        <div class="nb-plate" id="nb-plate">
+          <div class="nb-slab"></div><img class="nb-pface hidden" id="nb-pface" alt="">
+          <div class="nb-hp"><b id="nb-hptext">100</b><small>/<span id="nb-hpmax">100</span> HP</small><div class="nb-hptrack"><div id="nb-hpbar"></div></div></div>
+          <div class="nb-xp"><div id="nb-xpbar"></div></div>
+          <div class="nb-lv" id="nb-level">LV<b>1</b></div>
         </div>
         <div class="nb-timer" id="nb-timer">10:00</div>
+        <div class="nb-stage" id="nb-stage"></div>
         <div class="nb-msg" id="nb-msg"></div>
         <div class="nb-prompt" id="nb-prompt"></div>
         <div class="nb-cross"></div>
@@ -218,6 +225,7 @@
       <div class="overlay hidden" id="nb-levelup">
         <div class="card wide">
           <h2 class="neon" data-i18n="nb.levelUp">LEVEL UP</h2>
+          <p class="nb-lvsub" id="nb-lvsub"></p>
           <div class="nb-choices" id="nb-choices"></div>
           <div class="nb-lvbtns"><button class="btn ghost small" id="nb-reroll"><span data-i18n="nb.reroll">Reroll</span> (<span id="nb-rerolls">2</span>)</button><button class="btn ghost small" id="nb-banish" data-i18n-title="nb.banishTip" title="Remove an option for this run"><span data-i18n="nb.banish">Banish</span> (<span id="nb-banishes">2</span>)</button><button class="btn ghost small" id="nb-skip"><span data-i18n="nb.skip">Skip</span> (+◆<span id="nb-skipg">10</span>)</button></div>
           <button class="btn ghost small hidden" id="nb-leave" data-i18n="nb.leave">Leave</button>

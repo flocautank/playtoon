@@ -39,9 +39,9 @@ varying vec3 vW; varying vec3 vC; varying vec3 vL; varying float vD; varying flo
 float h3(vec3 p){ return fract(sin(dot(p, vec3(12.9898, 78.233, 37.719))) * 43758.5453); }
 void main(){
   if (uGhost > 0.5) { gl_FragColor = vec4(uAcc, 0.3); return; }
-  vec3 n = normalize(cross(dFdx(vW), dFdy(vW)));
+  vec3 n = normalize(cross(dFdx(vW), dFdy(vW)) + vec3(0.0, 1e-6, 0.0));
   vec3 v = normalize(cameraPosition - vW);
-  float ndv = abs(dot(n, v)), rim = pow(1.0 - ndv, 1.6);
+  float ndv = abs(dot(n, v)), rim = pow(max(1.0 - ndv, 0.0), 1.6);
   vec3 col = vC; float core = vCore;
   if (vK > 0.5 && vK < 1.5) col = uAcc;
   else if (vK > 4.5) col = uAcc2;

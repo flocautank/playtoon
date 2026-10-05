@@ -10,6 +10,7 @@ import { ShaderPass } from '../vendor/addons/postprocessing/ShaderPass.js';
 import { CopyShader } from '../vendor/addons/shaders/CopyShader.js';
 import { Synthwave } from './synthwave.js';
 import { CU, castInit, creatureMesh, setInst, makeHero, propGeo } from './bonk-cast.js';
+import { loadFonts } from './bonk-fonts.js';
 import { t as tr, num, applyI18n, addStrings, lang } from './i18n.js';
 import NB_TEXT from './lang/bonk.js';
 addStrings(NB_TEXT);
@@ -189,7 +190,7 @@ const itemOK = it => !QUEST_OF[it.id] || questDone(QUEST_OF[it.id]);
 function questReward(q) {
   if (q.item) { const it = ITEMS.find(i => i.id === q.item); return tr('nb.qItem', { it: `${it.ic} ${it.name}` }); }
   if (q.weapon) return tr('nb.qWeapon', { w: `${WEAPONS[q.weapon].ic} ${WEAPONS[q.weapon].name}` });
-  if (q.credits) return tr('nb.qCredits', { n: num(q.credits) });
+  if (q.credits) return tr('nb.qCredits', { n: num(qCredits(q)) });
   return tr(q.banish ? 'nb.qBanish' : 'nb.qReroll');
 }
 // note un compteur permanent tout de suite (or, gardien, évolution…) et vérifie les quêtes
@@ -200,7 +201,7 @@ function checkQuests() {
   const fresh = [];
   for (const q of QUESTS) if (!META.quests[q.id] && q.val(META) >= q.goal) {
     META.quests[q.id] = 1; fresh.push(q);
-    if (q.credits) META.credits = (META.credits || 0) + q.credits;
+    if (q.credits) META.credits = (META.credits || 0) + qCredits(q);
   }
   if (fresh.length) {
     saveMeta();
@@ -257,16 +258,16 @@ const SHRINES = {
 const STAGES = [
   { fog: 0x1a0630, lineA: [1, 0.18, 0.85], lineB: [0.15, 0.85, 1], wall: [1, 0.2, 0.85],
     sky: { top: [0.03, 0.01, 0.12], mid: [0.35, 0.05, 0.45], hor: [1, 0.25, 0.55], low: [0.1, 0.02, 0.19], sunA: [1, 0.15, 0.55], sunB: [1, 0.9, 0.3] },
-    boxes: [0x8a2ad0, 0x5a3ae0, 0x3a6ae0], block: 0x7a2ab0, pillar: 0x27e0ff, edge: 0x9ff7ff, amp: 1, time: 600, m0: 0, mRate: 1,
+    boxes: [0x8a2ad0, 0x5a3ae0, 0x3a6ae0], block: 0x7a2ab0, pillar: 0x27e0ff, edge: 0x9ff7ff, amp: 1, time: 600, m0: 0, mRate: 1, dmgK: 1.35, wantK: 1.25,
     boss: { core: 0xff2d55, ring: 0xffc94d, ring2: 0xff3df0, hp: 1, speed: 1 } },
   { fog: 0x2a0a04, lineA: [1, 0.3, 0.05], lineB: [1, 0.85, 0.25], wall: [1, 0.45, 0.1],
     sky: { top: [0.07, 0.01, 0.02], mid: [0.45, 0.07, 0.04], hor: [1, 0.45, 0.12], low: [0.18, 0.03, 0.02], sunA: [1, 0.2, 0.05], sunB: [1, 0.95, 0.55] },
-    boxes: [0xc0381a, 0xd06a1a, 0xa02a4a], block: 0xb03a2a, pillar: 0xffb020, edge: 0xffe0a0, amp: 1.45, time: 480, m0: 8, mRate: 1.2,
+    boxes: [0xc0381a, 0xd06a1a, 0xa02a4a], block: 0xb03a2a, pillar: 0xffb020, edge: 0xffe0a0, amp: 1.45, time: 480, m0: 8, mRate: 1.2, dmgK: 1.3, wantK: 1.2,
     boss: { core: 0xffa020, ring: 0xff3050, ring2: 0xfff0a0, hp: 2.6, speed: 1.35 } },
   // le Vide : gravité réduite, relief doux, plateformes flottantes (float) où grimper de saut en saut
   { fog: 0x05061a, lineA: [0.55, 0.4, 1], lineB: [0.85, 0.95, 1], wall: [0.6, 0.5, 1],
     sky: { top: [0, 0, 0.03], mid: [0.06, 0.04, 0.2], hor: [0.45, 0.35, 0.95], low: [0.02, 0.01, 0.08], sunA: [0.6, 0.4, 1], sunB: [0.9, 0.95, 1] },
-    boxes: [0x4a3ad0, 0x2a5ad0, 0x6a3ab0], block: 0x3a2a90, pillar: 0xb98bff, edge: 0xe0e8ff, amp: 0.7, time: 420, m0: 16, mRate: 1.3, grav: 0.5, float: true,
+    boxes: [0x4a3ad0, 0x2a5ad0, 0x6a3ab0], block: 0x3a2a90, pillar: 0xb98bff, edge: 0xe0e8ff, amp: 0.7, time: 420, m0: 16, mRate: 1.3, grav: 0.5, float: true, dmgK: 0.9, wantK: 1,
     boss: { core: 0xb98bff, ring: 0xc8b8ff, ring2: 0x27e0ff, hp: 4, speed: 1.2, glow: 0.45 } },
 ];
 const ST = () => STAGES[S.stage || 0];
@@ -290,8 +291,11 @@ const SHOP = [
   { id: 'revive', ic: '✚', max: 1, base: 200, desc: () => tr('nb.shd.revive'), fx: () => {} },
 ];
 const shopLvl = id => (META.shop && META.shop[id]) || 0;
-const shopCost = it => Math.round(it.base * Math.pow(1.8, shopLvl(it.id)));
-function runCredits(S) { return Math.floor(((S.gold || 0) / 40 + 4 * Math.sqrt(S.kills) + S.t / 10 + (S.earlyTotal || 0) / 6 + Math.min(S.level, 60) * 2 + (S.stage || 0) * 120 + (S.bossDead ? 100 : 0) + (S.won ? 80 : 0)) * (1 + 0.25 * (S.heat || 0))); }
+// progression permanente étalée (retour de partie, 2026-10-05 : « j'ai presque tout acheté en une run ») : prix ×2, doublés à
+// chaque niveau, crédits des runs −40 %, récompenses en crédits des quêtes ÷2 → tout acheter demande ~15–20 runs
+const shopCost = it => Math.round(it.base * 2 * Math.pow(2, shopLvl(it.id)));
+const qCredits = q => Math.round(q.credits * 0.5);
+function runCredits(S) { return Math.floor(0.6 * ((S.gold || 0) / 40 + 4 * Math.sqrt(S.kills) + S.t / 10 + (S.earlyTotal || 0) / 6 + Math.min(S.level, 60) * 2 + (S.stage || 0) * 120 + (S.bossDead ? 100 : 0) + (S.won ? 80 : 0)) * (1 + 0.25 * (S.heat || 0))); }
 // Chaleur (Heat) 1–5 : débloquée par une première victoire ; chaque cran ajoute PV, dégâts et cadence d'apparition, et rapporte plus de crédits.
 const HEAT_MAX = 5;
 const heatWon = id => { const h = META.heatWon && META.heatWon[id]; return typeof h === 'number' ? h : -1; };
@@ -333,10 +337,10 @@ const NEON_FS = `
 uniform vec3 fogColor; uniform float fogNear; uniform float fogFar; uniform float uCore; uniform float uAlpha;
 varying vec3 vW; varying vec3 vC; varying float vD;
 void main(){
-  vec3 n = normalize(cross(dFdx(vW), dFdy(vW)));
+  vec3 n = normalize(cross(dFdx(vW), dFdy(vW)) + vec3(0.0, 1e-6, 0.0));
   vec3 v = normalize(cameraPosition - vW);
   float ndv = abs(dot(n, v));
-  float rim = pow(1.0 - ndv, 1.6);
+  float rim = pow(max(1.0 - ndv, 0.0), 1.6);
   vec3 c = vC * (uCore + 0.35 * ndv * ndv) + vC * rim * 1.5 + vec3(rim * rim * 0.35);
   c += vC * 0.25 * clamp(n.y, 0.0, 1.0);
   gl_FragColor = vec4(mix(c, fogColor, smoothstep(fogNear, fogFar, vD)), uAlpha);
@@ -347,8 +351,8 @@ void main(){ vU = uv; vec4 wp = modelMatrix * vec4(position, 1.0); vW = wp.xyz; 
 const PILLAR_FS = `uniform vec3 fogColor; uniform float fogNear; uniform float fogFar; uniform vec3 uColor; uniform float uBeat;
 varying vec3 vW; varying vec2 vU; varying float vD;
 void main(){
-  vec3 n = normalize(cross(dFdx(vW), dFdy(vW))), v = normalize(cameraPosition - vW);
-  float ndv = abs(dot(n, v)), rim = pow(1.0 - ndv, 1.6);
+  vec3 n = normalize(cross(dFdx(vW), dFdy(vW)) + vec3(0.0, 1e-6, 0.0)), v = normalize(cameraPosition - vW);
+  float ndv = abs(dot(n, v)), rim = pow(max(1.0 - ndv, 0.0), 1.6);
   vec3 c = uColor * (0.12 + 0.3 * ndv * ndv) + uColor * rim * 1.4;
   if (abs(n.y) < 0.5) {
     vec2 q = vec2(fract(vU.x * 6.0) - 0.5, fract(vW.y / 1.7) - 0.5) * vec2(1.25, 1.7);
@@ -362,8 +366,8 @@ void main(){
 const BOX_FS = `uniform vec3 fogColor; uniform float fogNear; uniform float fogFar; uniform vec3 uColor; uniform float uCore; uniform float uTop; uniform float uBeat; uniform float uAlpha;
 varying vec3 vW; varying vec3 vC; varying float vD;
 void main(){
-  vec3 n = normalize(cross(dFdx(vW), dFdy(vW))), v = normalize(cameraPosition - vW);
-  float ndv = abs(dot(n, v)), rim = pow(1.0 - ndv, 1.6);
+  vec3 n = normalize(cross(dFdx(vW), dFdy(vW)) + vec3(0.0, 1e-6, 0.0)), v = normalize(cameraPosition - vW);
+  float ndv = abs(dot(n, v)), rim = pow(max(1.0 - ndv, 0.0), 1.6);
   vec3 c = vC * (uCore + 0.35 * ndv * ndv) + vC * rim * 1.5 + vec3(rim * rim * 0.35);
   c += vC * 0.25 * clamp(n.y, 0.0, 1.0);
   if (abs(n.y) < 0.5) {
@@ -390,7 +394,7 @@ uniform vec3 fogColor; uniform float fogNear; uniform float fogFar; uniform floa
 varying vec3 vW; varying float vD;
 float grid(vec2 p, float s){ vec2 q = p / s; vec2 g = abs(fract(q - 0.5) - 0.5) / fwidth(q); return 1.0 - min(min(g.x, g.y), 1.0); }
 void main(){
-  vec3 n = normalize(cross(dFdx(vW), dFdy(vW)));
+  vec3 n = normalize(cross(dFdx(vW), dFdy(vW)) + vec3(0.0, 1e-6, 0.0));
   float h = clamp((vW.y + 3.0) / 11.0, 0.0, 1.0);
   vec3 lc = mix(uLA, uLB, h);
   float slope = clamp(abs(n.y), 0.0, 1.0);
@@ -460,6 +464,7 @@ function terrainH(x, z) {
 
 // ============================================================ init moteur
 function init() {
+  loadFonts();
   const canvas = $('nb-canvas');
   // téléphone : pas d'anticrénelage, et une résolution dynamique (0,75–1) pilotée par la durée des images (voir dynRes)
   renderer = new THREE.WebGLRenderer({ canvas, antialias: !TOUCH, powerPreference: 'high-performance' });
@@ -842,6 +847,8 @@ function newRun() {
   S.p.y = terrainH(0, 0);
   addWeapon(ch.weapon);
   player.userData.hero.setChar(CHARS.indexOf(ch), ch.col, ACC2[ch.id] || '#ff3df0'); player.userData.hero.play('Idle', 0);
+  { const f = (portraits() || {})[ch.id], im = $('nb-pface'); if (f) im.src = f; im.classList.toggle('hidden', !f); $('nb-plate').style.setProperty('--c', ch.col); $('nb-plate').style.setProperty('--c2', ACC2[ch.id] || '#ff3df0'); }
+  renderWeaponsHud();
   player.visible = true; player.userData.cue.visible = true;
   partSys.n = TOUCH ? 800 : partSys.max;
   S.bestBefore = META.bestTime || 0;
@@ -1091,7 +1098,7 @@ function spawnEnemy(type, x, z, elite = false) {
   const e = {
     type, T, x, z, y: terrainH(x, z) + (T.fly ? 1.6 : 0), hp: T.hp * hpMul, max: T.hp * hpMul,
     r: T.size * 0.6 * (elite ? 2 : 1), size: T.size * (elite ? 2 : 1), speed: T.speed * (elite ? 0.85 : 1) * (1 + m * 0.02),
-    dmg: T.dmg * (1 + m * 0.08) * (elite ? 1.8 : 1) * heatDmg() * (1 + lv * 0.012) * Math.pow(1.2, ot), xp: Math.max(1, Math.round(T.xp * (1 + Math.min(m, 9) * 0.12) * (elite ? 25 : 1) * (elite || Math.random() < (S.dirFrac ?? 1) ? 1 : 0.35))), elite, flash: 0, kx: 0, kz: 0, rot: rand(0, TAU), shootT: rand(1, 3), spin: rand(1, 3),
+    dmg: T.dmg * (1 + m * (S.stage < 2 ? 0.11 : 0.08)) * (elite ? 1.8 : 1) * (ST().dmgK || 1) * heatDmg() * (1 + lv * 0.012) * Math.pow(1.2, ot), xp: Math.max(1, Math.round(T.xp * (1 + Math.min(m, 9) * 0.12) * (elite ? 25 : 1) * (elite || Math.random() < (S.dirFrac ?? 1) ? 1 : 0.35))), elite, flash: 0, kx: 0, kz: 0, rot: rand(0, TAU), shootT: rand(1, 3), spin: rand(1, 3),
   };
   e.born = S.t; S.enemies.push(e); return e;
 }
@@ -1126,7 +1133,7 @@ function spawning(dt) {
   rate = Math.min(rate, 22) * heatRate();
   // directeur de foule : vise un nombre d'ennemis en vie selon le temps (≈25 à 0:30, ≈90 à 3:00, ≈200 à 7:00) ;
   // si un bon build vide l'écran, le débit monte (jusqu'à 60/s) pour garder une vraie horde
-  const want = Math.min(cap, 12 + m * 27) * (S.boss || S.bossDead ? 0.5 : 1);
+  const want = Math.min(cap, (12 + m * 27) * (ST().wantK || 1)) * (S.boss || S.bossDead ? 0.5 : 1);
   const base = rate;
   if (S.enemies.length < want) rate = Math.min(60, rate + (want - S.enemies.length) * 0.25);
   S.dirFrac = base / rate;   // part des apparitions « normales » : les renforts du directeur rapportent moins d'XP
@@ -1171,6 +1178,8 @@ function spawning(dt) {
 
 function updateEnemies(dt) {
   const p = S.p;
+  // perché : le joueur debout en haut d'un pilier ou d'un bloc — les ennemis qui le touchent l'escaladent, les volants montent
+  S.perch = p.onGround && p.y - terrainH(p.x, p.z) > 2 ? S.obst.find(o => o.bot === undefined && Math.abs(o.top - p.y) < 0.35 && insideObs(o, p.x, p.z, 0.3)) || null : null;
   for (const e of S.enemies) {
     if (e.hp <= 0) continue;
     let dx = p.x - e.x, dz = p.z - e.z; const d = Math.hypot(dx, dz) || 1; dx /= d; dz /= d;
@@ -1221,13 +1230,16 @@ function updateEnemies(dt) {
     });
     e.x = clamp(e.x, -HALF + 1, HALF - 1); e.z = clamp(e.z, -HALF + 1, HALF - 1);
     let gy = terrainH(e.x, e.z);
-    if (e.T.fly) { gy += 1.6 + Math.sin(S.t * 3 + e.rot) * 0.3; if (ST().float && d < 18) gy = Math.max(gy, p.y + 1); }   // dans le Vide, les drones montent te chercher
+    let climb = false;
+    if (e.T.fly) { gy += 1.6 + Math.sin(S.t * 3 + e.rot) * 0.3; if ((ST().float || S.perch) && d < (ST().float ? 12 : 18)) gy = Math.max(gy, p.y + 1); }   // les drones montent te chercher (le Vide, ou un joueur perché)
     else for (const o of S.obst) {
       if (o.bot !== undefined || !insideObs(o, e.x, e.z, e.r * 0.5)) continue;   // on passe sous les plateformes flottantes
+      if (o === S.perch) { gy = Math.max(gy, o.top); climb = o.top - e.y > 1.2; if (o.top - e.y > 0.4) pushOut(o, e, e.r * 0.3); continue; }   // il escalade le perchoir du joueur, collé à la paroi
       if (o.top > e.y + 2.2 && o.kind === 'cyl' || o.top > e.y + 3.5) pushOut(o, e, e.r * 0.5);
       else if (o.top > gy) gy = o.top;
     }
-    e.y += (gy - e.y) * Math.min(1, dt * (gy > e.y ? 9 : 14));
+    if (climb) e.y = Math.min(gy, e.y + dt * (4 + e.speed * 0.4));   // grimpe à vue (≈ 2–3 s pour un grand pilier) : on a le temps de réagir
+    else e.y += (gy - e.y) * Math.min(1, dt * (gy > e.y ? 9 : 14));
     e.rot += dt * e.spin; e.flash = Math.max(0, e.flash - dt * 6);
     // tir
     if (e.T.ranged && !e.T.noShoot && d < 26) {
@@ -1352,7 +1364,7 @@ function hurt(d, src = '?') {
   if (s.dodge && Math.random() < s.dodge) { S.iframe = 0.3; addNum(S.p.x, S.p.y + 2.2, S.p.z, tr('nb.dodge'), false); return false; }
   d *= 1 - Math.min(0.75, s.armor);
   if (s.hurtFreeze) { near(S.p.x, S.p.z, 7, e => { e.slowT = 1.5 + s.hurtFreeze; }); addRing(S.p.x, S.p.y + 0.3, S.p.z, 7, [0.5, 0.8, 1], 0.4); }
-  S.p.hp -= d; S.iframe = 0.7; S.hurtFlash = 1; sfx('hurt'); S.flinch = 1; S.hitT = 0.28; shake(0.3 + Math.min(0.3, d / S.stats.hp)); hitstop(0.04);
+  S.p.hp -= d; S.iframe = 0.7; S.hurtFlash = 1; sfx('hurt'); S.flinch = 1; S.hitT = 0.28; S.hurtAt = S.t; shake(0.3 + Math.min(0.3, d / S.stats.hp)); hitstop(0.04);
   (S.hurtBy = S.hurtBy || {})[src] = (S.hurtBy[src] || 0) + d;   // statistiques d'équilibrage
   S.lastHurt = src;   // « tué par … » sur l'écran de fin
   (S.recentHurt = S.recentHurt || []).push({ t: S.t, src, d });
@@ -1859,10 +1871,45 @@ function buildChoices(mode) {
   while (out.length < 3) out.push({ kind: 'gold', rar: 0 });
   return out;
 }
+// emplacements (4 armes, 4 tomes) et synergies : ce que la carte apporte à TON build, écrit sur la carte
+const W_SLOTS = 4, T_SLOTS = 4;
+function tomeBoosts(tid) {   // armes possédées qu'un tome renforce directement
+  const st = TOMES[tid].stat;
+  if (st === 'dmg' || st === 'cd' || st === 'crit') return S.weapons.length;
+  if (st === 'area') return S.weapons.filter(w => WEAPONS[w.id].ups.includes('area')).length;
+  if (st === 'proj') return S.weapons.filter(w => WEAPONS[w.id].ups.includes('count')).length;
+  return 0;
+}
+function synergyTag(c) {
+  if (c.kind === 'tnew' || c.kind === 'tup' || c.kind === 'stat') {
+    const tid = c.key || c.id, evoW = S.weapons.find(w => !w.evo && EVOS[w.id].tome === tid);
+    if (evoW && c.kind !== 'stat') return { t: tr('nb.synEvo', { w: WEAPONS[evoW.id].name }), k: 'evo' };
+    const n = tomeBoosts(tid);
+    if (n) return { t: n >= S.weapons.length && n > 1 ? tr('nb.synAll') : tr('nb.synBoost', { n }), k: 'boost' };
+  }
+  if (c.kind === 'wnew') {
+    const tome = EVOS[c.id].tome;
+    if (S.tomes.some(t => t.id === tome)) return { t: tr('nb.synHasTome'), k: 'evo' };
+    return { t: tr('nb.synNeed', { t: TOMES[tome].name }), k: 'need' };
+  }
+  if (c.kind === 'wup') {
+    const w = S.weapons.find(x => x.id === c.id); if (w.evo) return null;
+    const has = S.tomes.some(t => t.id === EVOS[w.id].tome), left = EVO_LVL - (w.lvl + 1);
+    if (has && left <= 0) return { t: tr('nb.synReady'), k: 'evo' };
+    if (has) return { t: tr('nb.synLeft', { n: left }), k: 'boost' };
+    return { t: tr('nb.synNeed', { t: TOMES[EVOS[w.id].tome].name }), k: 'need' };
+  }
+  return null;
+}
+function slotNote(c) {
+  if (c.kind === 'wnew') { const n = S.weapons.length + 1; return n >= W_SLOTS ? tr('nb.slotLast') : tr('nb.slotTake', { n, m: W_SLOTS }); }
+  if (c.kind === 'tnew') { const n = S.tomes.length + 1; return n >= T_SLOTS ? tr('nb.slotLast') : tr('nb.slotTake', { n, m: T_SLOTS }); }
+  return '';
+}
 function choiceHTML(c) {
   const R = RAR[c.rar];
   let ic, title, lines;
-  if (c.kind === 'wnew') { const b = WEAPONS[c.id]; ic = b.ic; title = b.name; lines = [tr('nb.newWeapon'), b.desc, `<span class="muted small">${tr('nb.evolvesWith', { tome: TOMES[EVOS[c.id].tome].name })}</span>`]; }
+  if (c.kind === 'wnew') { const b = WEAPONS[c.id]; ic = b.ic; title = b.name; lines = [tr('nb.newWeapon'), b.desc]; }
   else if (c.kind === 'wup') { const w = S.weapons.find(x => x.id === c.id); ic = wIc(w); title = tr('nb.wLvl', { w: wName(w), n: w.lvl + 1 }); lines = c.ups.map(u => UPV[u.k].txt(u.v, c.id)); }
   else if (c.kind === 'tnew' || c.kind === 'tup' || c.kind === 'stat') {
     const t = TOMES[c.key || c.id]; ic = t.ic; const tt = S.tomes.find(x => x.id === c.id);
@@ -1870,7 +1917,7 @@ function choiceHTML(c) {
     lines = [t.txt(c.kind === 'stat' ? statVal(c) : t.v[c.rar])];
     if (c.kind === 'tnew') lines.unshift(tr('nb.newTome'));
     const evoW = Object.keys(EVOS).find(k => EVOS[k].tome === (c.key || c.id));
-    if (c.kind === 'tnew' && evoW && S.weapons.some(w => w.id === evoW && !w.evo)) lines.push(`<span class="muted small">${tr('nb.evolvesW', { w: WEAPONS[evoW].name })}</span>`);
+
   } else if (c.kind === 'gold') { ic = '◆'; title = tr('nb.purse'); lines = [tr('nb.purseTxt')]; }
   else if (c.kind === 'buy' || c.kind === 'dup') {
     const it = ITEMS.find(i => i.id === c.id); ic = it.ic; title = it.name; lines = [it.desc];
@@ -1878,7 +1925,9 @@ function choiceHTML(c) {
     lines.push(`<b style="color:${S.gold >= price ? '#ffd84d' : '#ff6a80'}">◆ ${num(price)}</b>${c.kind === 'dup' ? ` <span class="muted small">· ${tr('nb.dupOwn', { n: S.items[c.id] })}</span>` : ''}`);
   }
   else { ic = '💗'; title = tr('nb.heal'); lines = [tr('nb.healTxt')]; }
-  return `<div class="ic">${ic}</div><span class="tag">${R.name}</span><b>${title}</b>${lines.map(l => `<p>${l}</p>`).join('')}`;
+  const syn = synergyTag(c), slot = slotNote(c);
+  return `<div class="ic">${ic}</div><span class="tag">${R.name}</span><b>${title}</b>${lines.map(l => `<p>${l}</p>`).join('')}`
+    + (syn ? `<span class="nb-syn ${syn.k}">${syn.t}</span>` : '') + (slot ? `<span class="nb-slotn${slot === tr('nb.slotLast') ? ' last' : ''}">${slot}</span>` : '');
 }
 function bestChoice() {
   let bi = 0, bs = -1;
@@ -1910,6 +1959,7 @@ function openLevelUp(mode = 'level') {
   sfx('level');
 }
 function levelUpTitle() {
+  const sub = $('nb-lvsub'); if (sub) sub.textContent = choiceMode === 'level' ? tr('nb.lvSub', { w: W_SLOTS - S.weapons.length, t: T_SLOTS - S.tomes.length }) : '';
   $('nb-levelup').querySelector('h2').textContent = choiceMode === 'shrine' ? tr('nb.shrineTitle') : choiceMode === 'shop' ? tr('nb.shopT') : choiceMode === 'dup' ? tr('nb.dupT') : tr('nb.lvlTitle', { n: S.level - S.pending + 1 });
 }
 function renderChoices() {
@@ -2006,7 +2056,7 @@ function updateInteract(dt) {
   if (S.portal && Math.hypot(S.portal.x - p.x, S.portal.z - p.z) < 3.5) { promptTarget = S.portal; txt = tr(S.stage < STAGES.length - 1 ? 'nb.pPortal' : 'nb.pPortalWin'); }
   for (const s of S.shrines) {
     if (s.used || !(Math.hypot(s.x - p.x, s.z - p.z) < 3.3 && Math.abs(s.y - p.y) < 3)) continue;
-    if (promptTarget === S.portal) break;   // le portail passe avant un sanctuaire voisin (le boss meurt parfois à côté d'un marchand)
+    if (S.portal && promptTarget === S.portal) break;   // le portail passe avant un sanctuaire voisin (le boss meurt parfois à côté d'un marchand)
     if (s.kind === 'charge') { if (!promptTarget) txt = tr('nb.pCharge', { n: Math.min(99, Math.floor(s.charge * 100)) }); continue; }   // pas d'action : on reste dedans
     promptTarget = s;
     txt = tr({ chal: 'nb.pChal', greed: 'nb.pGreed', shop: 'nb.pShop', dup: 'nb.pDup', curse: 'nb.pCurse', magnet: 'nb.pMagnet', tithe: 'nb.pTithe', altar: S.boss || S.bossDead ? 'nb.pAltarOff' : 'nb.pAltar' }[s.kind], { n: s.kind === 'tithe' ? tithePrice() : dupPrice() });
@@ -2276,6 +2326,11 @@ function initFX() {
   if (!TOUCH) {
     const c = new EffectComposer(renderer);
     c.addPass(new RenderPass(scene, camera));
+    // garde-fou : un seul pixel NaN/infini (normale dégénérée, particule aberrante) devenait, par le flou séparable du halo,
+    // un grand rectangle noir qui clignote — on le neutralise avant le halo
+    c.addPass(new ShaderPass({ uniforms: { tDiffuse: { value: null } },
+      vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+      fragmentShader: 'uniform sampler2D tDiffuse; varying vec2 vUv; void main(){ vec4 c = texture2D(tDiffuse, vUv); if (any(isnan(c)) || any(isinf(c))) c = vec4(0.0, 0.0, 0.0, 1.0); gl_FragColor = clamp(c, 0.0, 64.0); }' }));
     c.addPass(FX.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.55, 0.35, 0.82));
     c.addPass(new ShaderPass(CopyShader));
     FX.composer = c;
@@ -2454,7 +2509,7 @@ function update(dt) {
     else p.onGround = false;
   }
   if (wl > 0.1 || hs > 1) p.face = Math.atan2(p.vx, p.vz);
-  p.hp = Math.min(st.hp, p.hp + st.regen * dt);
+  if (S.t - (S.hurtAt ?? -9) > 2.5) p.hp = Math.min(st.hp, p.hp + st.regen * dt);   // la régénération attend 2,5 s sans coup : les dégâts comptent
   S.iframe = Math.max(0, S.iframe - dt); S.shieldT = Math.max(0, S.shieldT - dt);
   S.hurtFlash = Math.max(0, S.hurtFlash - dt * 2.5);
   if (S.lvlDelay > 0) S.lvlDelay -= dt;
@@ -2800,9 +2855,11 @@ function updateHUD(dt) {
   hudT -= dt; if (hudT > 0) return; hudT = 0.1;
   measureHud();
   $('nb-xpbar').style.width = (S.xp / S.need * 100) + '%';
-  $('nb-level').textContent = tr('nb.hudLvl', { n: S.level, s: S.stage + 1 }) + (S.heat ? ' · 🔥' + S.heat : '');
-  $('nb-hpbar').style.width = (S.p.hp / S.stats.hp * 100) + '%';
-  $('nb-hptext').textContent = `${Math.min(Math.ceil(S.p.hp), Math.round(S.stats.hp))}/${Math.round(S.stats.hp)}`;
+  $('nb-level').innerHTML = `LV<b>${S.level}</b>`;
+  $('nb-stage').textContent = tr('nb.stageTag', { s: S.stage + 1 }) + (S.heat ? ' · 🔥' + S.heat : '');
+  const hpf = Math.max(0, S.p.hp / S.stats.hp);
+  $('nb-hpbar').style.width = (hpf * 100) + '%'; $('nb-plate').classList.toggle('low', hpf < 0.3);
+  $('nb-hptext').textContent = Math.max(0, Math.min(Math.ceil(S.p.hp), Math.round(S.stats.hp))); $('nb-hpmax').textContent = Math.round(S.stats.hp);
   $('nb-gold').textContent = num(S.gold); $('nb-kills').textContent = num(S.kills); $('nb-keys').textContent = `${S.keysGot || 0}/3`;
   const tm = $('nb-timer');
   const tt = Math.abs(S.time), mm = Math.floor(tt / 60), ss = Math.floor(tt % 60);
@@ -2814,10 +2871,13 @@ function updateHUD(dt) {
   music.setLevel(S.boss || S.time < 0 ? 3 : Math.min(3, Math.floor(diffMin() / 2.5) + (close > 18 ? 1 : 0) + (S.t > 15 ? 1 : 0)));
 }
 function renderWeaponsHud() {
-  const box = $('nb-weapons'); box.innerHTML = '';
-  S.weapons.forEach(w => { const d = document.createElement('div'); d.innerHTML = `${wIc(w)}<small>${w.lvl}</small>`; d.title = tr('nb.tipLvl', { name: wName(w), n: w.lvl }); d.style.borderColor = w.evo ? '#ffc94d' : '#ff3df0'; if (w.evo) d.style.boxShadow = '0 0 8px #ffc94d'; box.appendChild(d); });
-  S.tomes.forEach(t => { const d = document.createElement('div'); d.innerHTML = `${TOMES[t.id].ic}<small>${t.lvl}</small>`; d.title = tr('nb.tipLvl', { name: TOMES[t.id].name, n: t.lvl }); d.style.borderColor = '#27e0ff'; box.appendChild(d); });
-  Object.entries(S.items).forEach(([id, n]) => { const it = ITEMS.find(i => i.id === id); const d = document.createElement('div'); d.innerHTML = `${it.ic}<small>${n > 1 ? n : ''}</small>`; d.title = `${it.name} — ${it.desc}`; d.style.borderColor = RAR[it.r].col; box.appendChild(d); });
+  // deux rangées d'emplacements (pleins / vides numérotés) : on voit d'un coup d'œil ce qu'il reste à remplir ; les objets à part
+  const fill = (box, list, n, f) => { box.innerHTML = ''; for (let i = 0; i < n; i++) { const d = document.createElement('div'); if (list[i]) f(d, list[i]); else { d.className = 'e'; d.innerHTML = `<span>${i + 1}</span>`; } box.appendChild(d); } };
+  fill($('nb-weapons'), S.weapons, W_SLOTS, (d, w) => { d.innerHTML = `<span>${wIc(w)}</span><small>${w.lvl}</small>`; d.title = tr('nb.tipLvl', { name: wName(w), n: w.lvl }); if (w.evo) d.className = 'evo'; else if (S.tomes.some(t => t.id === EVOS[w.id].tome)) d.className = 'pair'; });
+  fill($('nb-tomes'), S.tomes, T_SLOTS, (d, t) => { d.innerHTML = `<span>${TOMES[t.id].ic}</span><small>${t.lvl}</small>`; d.title = tr('nb.tipLvl', { name: TOMES[t.id].name, n: t.lvl }); if (S.weapons.some(w => !w.evo && EVOS[w.id].tome === t.id)) d.className = 'pair'; });
+  $('nb-wn').textContent = `${S.weapons.length}/${W_SLOTS}`; $('nb-tn').textContent = `${S.tomes.length}/${T_SLOTS}`;
+  const ib = $('nb-items'); ib.innerHTML = '';
+  Object.entries(S.items).forEach(([id, n]) => { const it = ITEMS.find(i => i.id === id); const d = document.createElement('div'); d.innerHTML = `${it.ic}<small>${n > 1 ? n : ''}</small>`; d.title = `${it.name} — ${it.desc}`; d.style.setProperty('--r', RAR[it.r].col); ib.appendChild(d); });
 }
 
 // résolution dynamique (écrans tactiles seulement) : moyenne des images sur ~1 s, un cran de 0,125 à la fois entre 0,75 et 1
@@ -3044,7 +3104,7 @@ let PORTRAITS = null;
 function portraits() {
   if (PORTRAITS || !renderer || !player) return PORTRAITS;
   try {
-    const H = player.userData.hero, N = 96, rt = new THREE.WebGLRenderTarget(N, N), sc = new THREE.Scene(), cam = new THREE.PerspectiveCamera(30, 1, 0.1, 30);
+    const H = player.userData.hero, N = 160, rt = new THREE.WebGLRenderTarget(N, N), sc = new THREE.Scene(), cam = new THREE.PerspectiveCamera(30, 1, 0.1, 30);
     cam.position.set(0.55, 1.85, -2.4); cam.lookAt(0, 1.55, 0);
     const par = H.root.parent; sc.add(H.root); H.root.position.set(0, 0, 0);
     H.play('Idle', 0); H.mixer.setTime(0.4); H.update(0, 0, 0.4);
@@ -3062,7 +3122,20 @@ function portraits() {
   } catch (e) { PORTRAITS = {}; }
   return PORTRAITS;
 }
+// titre « lettres découpées » (affiche de Persona) : chaque lettre a sa police, son aplat et son inclinaison — tirage fixe
+function ransomTitle() {
+  const h = document.querySelector('#nb-menu h1.neon'); if (!h || h.dataset.rn) return;
+  const txt = h.textContent.trim(); h.dataset.rn = 1; h.classList.add('nb-rn'); h.setAttribute('aria-label', txt); h.textContent = '';
+  const ST = [['#fffdf6', '#0b0612', "'SH Display'"], ['#0b0612', '#fffdf6', "'SH Poster'"], ['#ff2fa8', '#fffdf6', "'SH Mono'"], ['#27e0ff', '#0b0612', "'SH Display'"], ['#fffdf6', '#ff2fa8', "'SH Poster'"], ['#ffe04d', '#0b0612', "'SH Mono'"]];
+  [...txt].forEach((ch, i) => {
+    const e = document.createElement('i'); e.setAttribute('aria-hidden', 'true');
+    if (ch === ' ') { e.className = 'sp'; h.appendChild(e); return; }
+    const [bg, fg, ff] = ST[(i * 5 + 2) % ST.length], rot = ((i * 37) % 13) - 6, sz = 1 + (((i * 23) % 5) - 2) * 0.07;
+    e.textContent = ch; e.style.cssText = `background:${bg};color:${fg};font-family:${ff},sans-serif;transform:rotate(${rot}deg);font-size:${sz}em`; h.appendChild(e);
+  });
+}
 function renderMenu() {
+  ransomTitle();
   checkQuests(); renderQuests();   // une sauvegarde ancienne peut déjà remplir des quêtes
   const sl = $('nb-slidebtn'); sl.classList.toggle('nb-long', sl.textContent.trim().length > 6);   // RUTSCHEN, BARRIDA… : police réduite
   document.querySelector('#nb-menu .nb-keys').innerHTML = tr(TOUCH ? 'nb.keysTouch' : 'nb.keys') + (PAD.known ? '<br>' + tr('nb.keysPad') : '');
