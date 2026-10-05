@@ -258,16 +258,16 @@ const SHRINES = {
 const STAGES = [
   { fog: 0x1a0630, lineA: [1, 0.18, 0.85], lineB: [0.15, 0.85, 1], wall: [1, 0.2, 0.85],
     sky: { top: [0.03, 0.01, 0.12], mid: [0.35, 0.05, 0.45], hor: [1, 0.25, 0.55], low: [0.1, 0.02, 0.19], sunA: [1, 0.15, 0.55], sunB: [1, 0.9, 0.3] },
-    boxes: [0x8a2ad0, 0x5a3ae0, 0x3a6ae0], block: 0x7a2ab0, pillar: 0x27e0ff, edge: 0x9ff7ff, amp: 1, time: 600, m0: 0, mRate: 1, dmgK: 1.35, wantK: 1.25,
+    boxes: [0x8a2ad0, 0x5a3ae0, 0x3a6ae0], block: 0x7a2ab0, pillar: 0x27e0ff, edge: 0x9ff7ff, amp: 1, lv: 3, time: 600, m0: 0, mRate: 1, dmgK: 1.35, wantK: 1.25,
     boss: { core: 0xff2d55, ring: 0xffc94d, ring2: 0xff3df0, hp: 1, speed: 1 } },
   { fog: 0x2a0a04, lineA: [1, 0.3, 0.05], lineB: [1, 0.85, 0.25], wall: [1, 0.45, 0.1],
     sky: { top: [0.07, 0.01, 0.02], mid: [0.45, 0.07, 0.04], hor: [1, 0.45, 0.12], low: [0.18, 0.03, 0.02], sunA: [1, 0.2, 0.05], sunB: [1, 0.95, 0.55] },
-    boxes: [0xc0381a, 0xd06a1a, 0xa02a4a], block: 0xb03a2a, pillar: 0xffb020, edge: 0xffe0a0, amp: 1.45, time: 480, m0: 8, mRate: 1.2, dmgK: 1.3, wantK: 1.2,
+    boxes: [0xc0381a, 0xd06a1a, 0xa02a4a], block: 0xb03a2a, pillar: 0xffb020, edge: 0xffe0a0, amp: 1.2, lv: 4, time: 480, m0: 8, mRate: 1.2, dmgK: 1.3, wantK: 1.2,
     boss: { core: 0xffa020, ring: 0xff3050, ring2: 0xfff0a0, hp: 2.6, speed: 1.35 } },
   // le Vide : gravité réduite, relief doux, plateformes flottantes (float) où grimper de saut en saut
   { fog: 0x05061a, lineA: [0.55, 0.4, 1], lineB: [0.85, 0.95, 1], wall: [0.6, 0.5, 1],
     sky: { top: [0, 0, 0.03], mid: [0.06, 0.04, 0.2], hor: [0.45, 0.35, 0.95], low: [0.02, 0.01, 0.08], sunA: [0.6, 0.4, 1], sunB: [0.9, 0.95, 1] },
-    boxes: [0x4a3ad0, 0x2a5ad0, 0x6a3ab0], block: 0x3a2a90, pillar: 0xb98bff, edge: 0xe0e8ff, amp: 0.7, time: 420, m0: 16, mRate: 1.3, grav: 0.5, float: true, dmgK: 0.9, wantK: 1,
+    boxes: [0x4a3ad0, 0x2a5ad0, 0x6a3ab0], block: 0x3a2a90, pillar: 0xb98bff, edge: 0xe0e8ff, amp: 0.7, lv: 2, time: 420, m0: 16, mRate: 1.3, grav: 0.5, float: true, dmgK: 0.9, wantK: 1,
     boss: { core: 0xb98bff, ring: 0xc8b8ff, ring2: 0x27e0ff, hp: 4, speed: 1.2, glow: 0.45 } },
 ];
 const ST = () => STAGES[S.stage || 0];
@@ -319,7 +319,7 @@ STAGES.forEach((st, i) => { tget(st, 'name', 'nb.st.' + i); tget(st.boss, 'name'
 SHOP.forEach(it => tget(it, 'name', 'nb.sh.' + it.id));
 
 // ============================================================ rendu : shaders
-const fogU = { fogColor: { value: new THREE.Color(0x1a0630) }, fogNear: { value: 40 }, fogFar: { value: 115 } };
+const fogU = { fogColor: { value: new THREE.Color(0x1a0630) }, fogNear: { value: 26 }, fogFar: { value: 88 } };
 const NEON_VS = `
 uniform vec3 uColor; varying vec3 vW; varying vec3 vC; varying float vD;
 void main(){
@@ -395,11 +395,13 @@ varying vec3 vW; varying float vD;
 float grid(vec2 p, float s){ vec2 q = p / s; vec2 g = abs(fract(q - 0.5) - 0.5) / fwidth(q); return 1.0 - min(min(g.x, g.y), 1.0); }
 void main(){
   vec3 n = normalize(cross(dFdx(vW), dFdy(vW)) + vec3(0.0, 1e-6, 0.0));
-  float h = clamp((vW.y + 3.0) / 11.0, 0.0, 1.0);
+  float h = clamp((vW.y + 3.0) / 18.0, 0.0, 1.0);
   vec3 lc = mix(uLA, uLB, h);
   float slope = clamp(abs(n.y), 0.0, 1.0);
   vec3 base = vec3(0.035, 0.01, 0.08) * (0.5 + 0.8 * slope) + lc * 0.03;
-  float g1 = grid(vW.xz, 2.0), g2 = grid(vW.xz, 10.0);
+  float steep = 1.0 - smoothstep(0.45, 0.8, slope);
+  float g1 = mix(grid(vW.xz, 2.0), grid(vec2(vW.x + vW.z, vW.y), 1.2) * 0.6, steep), g2 = mix(grid(vW.xz, 10.0), grid(vec2(vW.x + vW.z, vW.y), 3.6), steep);
+  base *= 1.0 - steep * 0.35;
   float pulse = 0.5 + 0.5 * sin(uTime * 1.5 - length(vW.xz) * 0.08);
   vec3 c = base + lc * g1 * (0.45 + uBeat * 0.2) + lc * g2 * (0.7 + 0.4 * pulse + uBeat * 0.6);   // les lignes s'allument sur le temps
   gl_FragColor = vec4(mix(c, fogColor, smoothstep(fogNear, fogFar, vD)), 1.0);
@@ -432,7 +434,7 @@ void main(){ vC = color; vec4 mv = modelViewMatrix * vec4(position,1.0);
   // taille bornée : sans ça, une particule collée à la caméra devient un sprite géant (coûteux, voire bloquant)
   gl_PointSize = -mv.z > 0.5 ? min(size * 300.0 / -mv.z, 48.0) : 0.0; gl_Position = projectionMatrix * mv; }`;
 // cœur chaud + halo doux : une étincelle lumineuse plutôt qu'un disque plat
-const PART_FS = `varying vec3 vC; void main(){ vec2 p = gl_PointCoord - 0.5; float d = length(p); if (d > 0.5) discard; float core = exp(-d * d * 60.0), halo = smoothstep(0.5, 0.0, d); gl_FragColor = vec4(vC * (halo * 0.9 + core * 1.6) + vec3(core * 0.35), halo); }`;
+const PART_FS = `uniform float uGain; varying vec3 vC; void main(){ vec2 p = gl_PointCoord - 0.5; float d = length(p); if (d > 0.5) discard; float core = exp(-d * d * 60.0), halo = smoothstep(0.5, 0.0, d); gl_FragColor = vec4((vC * (halo * 0.9 + core * 1.6) + vec3(core * 0.35)) * uGain, halo); }`;
 
 // ============================================================ état global
 let renderer, scene, camera, clock, fx2, g2;
@@ -450,13 +452,25 @@ let TOUCH = matchMedia('(pointer:coarse)').matches;
 const DR = { pr: 1, acc: 0, n: 0 };   // résolution dynamique (téléphones)
 
 // terrain paramétré par run
-let TP = { a: 0, b: 0, c: 0, amp: 1 };
+// Relief en terrasses (retour de partie 2026-10-05 : « plus de verticalité, des étages, ne pas voir toute la carte ») :
+// un bruit lisse basse fréquence est découpé en étages de TP.step mètres ; entre deux étages, une falaise (franchissable
+// au double saut) ou, là où le masque des rampes est fort, une pente douce. Les collines d'origine restent par-dessus.
+let TP = { a: 0, b: 0, c: 0, amp: 1, lv: 0, step: 3.6 };
+const sstep = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 function terrainH(x, z) {
-  let h = 2.8 * Math.sin(x * 0.042 + TP.a) * Math.cos(z * 0.037 - TP.b)
-    + 1.7 * Math.sin(x * 0.093 + z * 0.071 + TP.c)
-    + 1.0 * Math.cos(z * 0.13 + x * 0.02) * Math.sin(x * 0.11 + TP.a);
-  const d = Math.hypot(x, z), f = Math.min(1, d / 20), sm = f * f * (3 - 2 * f);
-  h *= sm * TP.amp;
+  let h = 1.6 * Math.sin(x * 0.042 + TP.a) * Math.cos(z * 0.037 - TP.b)
+    + 1.0 * Math.sin(x * 0.093 + z * 0.071 + TP.c)
+    + 0.6 * Math.cos(z * 0.13 + x * 0.02) * Math.sin(x * 0.11 + TP.a);
+  h *= TP.amp;
+  if (TP.lv) {
+    const n = 0.5 + 0.5 * (0.62 * Math.sin(x * 0.029 + TP.a * 1.7) * Math.cos(z * 0.027 - TP.c) + 0.38 * Math.sin(x * 0.051 - z * 0.046 + TP.b * 2.3));
+    const lv = Math.max(0, n * (TP.lv + 0.999) - 0.25), i = Math.floor(lv), f = lv - i;
+    const ramp = sstep(0.35, 0.75, 0.5 + 0.5 * Math.sin(x * 0.083 + TP.b) * Math.sin(z * 0.079 + TP.a + 1.3));
+    const w = 0.035 + 0.86 * ramp;   // largeur de la transition : falaise ou rampe
+    h += (i + sstep(1 - w, 1, f)) * TP.step;
+  }
+  const d = Math.hypot(x, z), f = Math.min(1, d / 22), sm = f * f * (3 - 2 * f);
+  h *= sm;
   const e = Math.max(Math.abs(x), Math.abs(z));
   if (e > 82) h += (e - 82) * 0.35;
   return h;
@@ -479,7 +493,7 @@ function init() {
   sky.renderOrder = -1; sky.frustumCulled = false; scene.add(sky); scene.userData.sky = sky;
 
   groundMat = new THREE.ShaderMaterial({ uniforms: { ...fogU, uBeat: CU.uBeat, uTime: { value: 0 }, uLA: { value: new V3() }, uLB: { value: new V3() } }, vertexShader: GROUND_VS, fragmentShader: GROUND_FS });
-  const tg = new THREE.PlaneGeometry(HALF * 2 + 40, HALF * 2 + 40, 170, 170); tg.rotateX(-Math.PI / 2);
+  const tg = new THREE.PlaneGeometry(HALF * 2 + 40, HALF * 2 + 40, TOUCH ? 180 : 230, TOUCH ? 180 : 230); tg.rotateX(-Math.PI / 2);
   terrainMesh = new THREE.Mesh(tg, groundMat); terrainMesh.frustumCulled = false; scene.add(terrainMesh);
 
   // barrière d'énergie
@@ -553,7 +567,7 @@ function init() {
   pg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(PN * 3), 3).setUsage(THREE.DynamicDrawUsage));
   pg.setAttribute('color', new THREE.BufferAttribute(new Float32Array(PN * 3), 3).setUsage(THREE.DynamicDrawUsage));
   pg.setAttribute('size', new THREE.BufferAttribute(new Float32Array(PN), 1).setUsage(THREE.DynamicDrawUsage));
-  const pts = new THREE.Points(pg, new THREE.ShaderMaterial({ vertexShader: PART_VS, fragmentShader: PART_FS, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+  const pts = new THREE.Points(pg, new THREE.ShaderMaterial({ uniforms: { uGain: { value: 1 } }, vertexShader: PART_VS, fragmentShader: PART_FS, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
   pts.frustumCulled = false; scene.add(pts);
   partSys = { pts, n: TOUCH ? 800 : PN, max: PN, list: [] };
 
@@ -634,7 +648,7 @@ function onResize() {
 // ============================================================ génération de niveau
 function buildLevel() {
   const P = ST();
-  TP = { a: rand(0, TAU), b: rand(0, TAU), c: rand(0, TAU), amp: P.amp };
+  TP = { a: rand(0, TAU), b: rand(0, TAU), c: rand(0, TAU), amp: P.amp, lv: P.lv || 0, step: 3.6 };
   const pos = terrainMesh.geometry.attributes.position;
   for (let i = 0; i < pos.count; i++) pos.setY(i, terrainH(pos.getX(i), pos.getZ(i)));
   pos.needsUpdate = true; terrainMesh.geometry.computeBoundingSphere(); placeTowers();
@@ -669,21 +683,21 @@ function buildLevel() {
     }
   }
   // pyramides à étages (plateformes où grimper)
-  for (let i = 0; i < (P.float ? 4 : 9); i++) {
+  for (let i = 0; i < (P.float ? 4 : 6); i++) {
     let x, z, t = 0; do { x = rand(-HALF + 15, HALF - 15); z = rand(-HALF + 15, HALF - 15); } while (!free(x, z, 9) && ++t < 40);
     const base = terrainH(x, z), steps = 2 + (Math.random() * 2 | 0), s0 = rand(5, 7);
     for (let k = 0; k < steps; k++) addBox(x, z, s0 - k * 1.7, s0 - k * 1.7, base + 1.6 + k * 1.6, P.boxes[k % 3]);
     if (Math.random() < 0.8) S.chests.push(mkChestData(x, z, base + 1.6 + (steps - 1) * 1.6));
   }
   // blocs isolés
-  for (let i = 0; i < 16; i++) {
+  for (let i = 0; i < 12; i++) {
     let x, z, t = 0; do { x = rand(-HALF + 8, HALF - 8); z = rand(-HALF + 8, HALF - 8); } while (!free(x, z, 5) && ++t < 40);
     const hw = rand(1.5, 4), hd = rand(1.5, 4);
     addBox(x, z, hw, hd, terrainH(x, z) + rand(1.4, 3.5), P.block);
   }
   // piliers
   const pillarMat = new THREE.ShaderMaterial({ uniforms: { ...fogU, uBeat: CU.uBeat, uColor: { value: new THREE.Color(P.pillar) } }, vertexShader: PILLAR_VS, fragmentShader: PILLAR_FS });
-  for (let i = 0; i < (P.float ? 14 : 26); i++) {
+  for (let i = 0; i < (P.float ? 14 : 18); i++) {
     let x, z, t = 0; do { x = rand(-HALF + 5, HALF - 5); z = rand(-HALF + 5, HALF - 5); } while (!free(x, z, 3) && ++t < 40);
     const r = rand(0.8, 1.8), top = terrainH(x, z) + rand(5, 14);
     const geo = new THREE.CylinderGeometry(r, r * 1.15, top - terrainH(x, z) + 3, 6);
@@ -695,6 +709,7 @@ function buildLevel() {
   for (let tries = 0; S.chests.length < 16 && tries < 2000; tries++) {   // borné : jamais de boucle infinie à la génération
     const x = rand(-HALF + 6, HALF - 6), z = rand(-HALF + 6, HALF - 6);
     if (Math.hypot(x, z) < 12 || S.obst.some(o => insideObs(o, x, z, 1.2))) continue;
+    const hq = TP.lv ? terrainH(x, z) / (TP.lv * TP.step) : 0.5; if (Math.random() > 0.25 + hq * 0.9) continue;   // les étages hauts en cachent davantage
     S.chests.push(mkChestData(x, z, terrainH(x, z)));
   }
   S.chests.forEach(addChestMesh);
@@ -751,9 +766,10 @@ function buildLevel() {
   }
   // tremplins : propulsent haut et loin, en gardant (et gonflant) l'élan
   S.pads = [];
-  for (let t = 0; S.pads.length < 8 && t < 400; t++) {
+  for (let t = 0; S.pads.length < 12 && t < 600; t++) {
     const x = rand(-HALF + 10, HALF - 10), z = rand(-HALF + 10, HALF - 10);
-    if (!free(x, z, 3) || S.pads.some(o => Math.hypot(o.x - x, o.z - z) < 25)) continue;
+    if (!free(x, z, 3) || S.pads.some(o => Math.hypot(o.x - x, o.z - z) < 22)) continue;
+    if (TP.lv && t < 450) { const h0 = terrainH(x, z); let up = 0; for (let a = 0; a < 8; a++) up = Math.max(up, terrainH(x + Math.cos(a * 0.785) * 5, z + Math.sin(a * 0.785) * 5) - h0); if (up < 2.5) continue; }   // au pied d'une falaise
     const y = terrainH(x, z), g = new THREE.Group();
     const base = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.6, 0.3, 24), neonMat(0x7cff8a, 0.6)); base.position.y = 0.15; g.add(base);
     const arrow = new THREE.Mesh(new THREE.ConeGeometry(0.6, 0.9, 4), neonMat(0xeaffea, 1.2)); arrow.position.y = 1.1; g.add(arrow);
@@ -767,6 +783,7 @@ function buildLevel() {
     if (Math.hypot(x, z) < 8 || S.obst.some(o => insideObs(o, x, z, 0.8))) continue;
     S.jars.push({ x, z, y: terrainH(x, z), rot: rand(0, TAU), broken: false });
   }
+  buildNav();
 }
 const CHEST_GEO = {};
 function addChestMesh(c) {
@@ -801,6 +818,56 @@ function insideObs(o, x, z, r) {
   if (o.kind === 'cyl') return Math.hypot(x - o.x, z - o.z) < o.r + r;
   return Math.abs(x - o.x) < o.hw + r && Math.abs(z - o.z) < o.hd + r;
 }
+// ============================================================ navigation des ennemis
+// Grille de 2 m sur l'arène : hauteur solide (relief + blocs + piliers, hors plateformes flottantes). Un Dijkstra depuis la
+// case du joueur (4 fois par seconde) donne à chaque case la suivante vers lui : les ennemis prennent les rampes, et
+// escaladent une paroi quand c'est plus court que le détour (perchoir sur un pilier compris).
+const NC = 2, NN = Math.round(HALF * 2 / NC), NAV = { h: new Float32Array(NN * NN), d: new Float32Array(NN * NN), nx: new Int32Array(NN * NN), obs: [], t: 0, src: -1 };
+const STEP_UP = 0.9;
+const navI = (x, z) => clamp(Math.floor((z + HALF) / NC), 0, NN - 1) * NN + clamp(Math.floor((x + HALF) / NC), 0, NN - 1);
+function buildNav() {
+  NAV.obs = Array.from({ length: NN * NN }, () => null);
+  for (const o of S.obst) {
+    if (o.bot !== undefined) continue;
+    const r = o.kind === 'cyl' ? o.r : Math.max(o.hw, o.hd) * 1.42;
+    for (let iz = Math.floor((o.z - r + HALF) / NC); iz <= Math.floor((o.z + r + HALF) / NC); iz++) for (let ix = Math.floor((o.x - r + HALF) / NC); ix <= Math.floor((o.x + r + HALF) / NC); ix++) {
+      if (ix < 0 || iz < 0 || ix >= NN || iz >= NN) continue; const k = iz * NN + ix; (NAV.obs[k] = NAV.obs[k] || []).push(o);
+    }
+  }
+  for (let iz = 0; iz < NN; iz++) for (let ix = 0; ix < NN; ix++) {
+    const x = -HALF + (ix + 0.5) * NC, z = -HALF + (iz + 0.5) * NC, k = iz * NN + ix;
+    let h = terrainH(x, z); for (const o of NAV.obs[k] || []) if (o.top > h && insideObs(o, x, z, o.kind === 'cyl' ? 0.6 : 0)) h = o.top;
+    NAV.h[k] = h;
+  }
+  NAV.src = -1; NAV.t = 0;
+}
+// sol solide sous un point (relief + dessus des blocs et piliers) — rapide : seuls les obstacles de la case sont testés
+function groundE(x, z) { let g = terrainH(x, z); const l = NAV.obs[navI(x, z)]; if (l) for (const o of l) if (o.top > g && insideObs(o, x, z, 0)) g = o.top; return g; }
+const heapK = new Float32Array(NN * NN * 4), heapV = new Int32Array(NN * NN * 4);
+const DX = [1, -1, 0, 0, 1, 1, -1, -1], DZ = [0, 0, 1, -1, 1, -1, 1, -1];
+function flowField() {
+  const p = S.p, src = navI(p.x, p.z);
+  const { h, d, nx } = NAV; d.fill(Infinity); nx.fill(-1); d[src] = 0;
+  let n = 0, pk = 0, pv = 0;   // tas binaire sans allocation (téléphones : pas de pression sur le ramasse-miettes)
+  const push = (k, v) => { let i = n++; while (i > 0) { const q = (i - 1) >> 1; if (heapK[q] <= k) break; heapK[i] = heapK[q]; heapV[i] = heapV[q]; i = q; } heapK[i] = k; heapV[i] = v; };
+  const pop = () => { pk = heapK[0]; pv = heapV[0]; n--; const k = heapK[n], v = heapV[n]; let i = 0; for (;;) { const l = 2 * i + 1, r = l + 1; let m = l; if (l >= n) break; if (r < n && heapK[r] < heapK[l]) m = r; if (heapK[m] >= k) break; heapK[i] = heapK[m]; heapV[i] = heapV[m]; i = m; } heapK[i] = k; heapV[i] = v; };
+  push(0, src);
+  while (n > 0 && n < heapK.length - 8) {
+    pop(); const k = pk, c = pv; if (k > d[c]) continue;
+    if (k > 140) break;   // au-delà de ~140 m de chemin : inutile (les ennemis lointains sont ramenés)
+    const cx = c % NN, cz = (c / NN) | 0;
+    for (let j = 0; j < 8; j++) {
+      const ix = cx + DX[j], iz = cz + DZ[j]; if (ix < 0 || iz < 0 || ix >= NN || iz >= NN) continue;
+      const m = iz * NN + ix, up = h[c] - h[m];   // l'ennemi va de m vers c
+      let cost = (j < 4 ? 1 : 1.414) * NC;
+      if (up > STEP_UP) cost += 6 + up * 1.6;   // escalade : possible mais chère
+      else if (j >= 4 && (Math.abs(h[cz * NN + ix] - h[m]) > STEP_UP || Math.abs(h[iz * NN + cx] - h[m]) > STEP_UP)) continue;   // pas de diagonale qui coupe un coin de falaise
+      const nd = k + cost; if (nd < d[m]) { d[m] = nd; nx[m] = c; push(nd, m); }
+    }
+  }
+  NAV.src = src;
+}
+function solidH(x, z) { let g = terrainH(x, z); for (const o of S.obst) if (o.bot === undefined && o.top > g && insideObs(o, x, z, 0)) g = o.top; return g; }
 function groundAt(x, z, y) {
   let g = terrainH(x, z);
   for (const o of S.obst) if (o.top > g && y >= o.top - 0.7 && insideObs(o, x, z, 0.25)) g = o.top;
@@ -1096,7 +1163,7 @@ function spawnEnemy(type, x, z, elite = false) {
   const ot = S.endless ? (S.t - S.endless.t0) / 60 : 0;   // Prolongation : +25 % PV et +20 % dégâts par minute, sans plafond
   const hpMul = (1 + m * 0.3 + m * m * 0.035) * (elite ? 14 : 1) * heatHp() * (S.press || 1) * (1 + lv * 0.03) * Math.pow(1.25, ot);
   const e = {
-    type, T, x, z, y: terrainH(x, z) + (T.fly ? 1.6 : 0), hp: T.hp * hpMul, max: T.hp * hpMul,
+    type, T, x, z, y: groundE(x, z) + (T.fly ? 1.6 : 0), hp: T.hp * hpMul, max: T.hp * hpMul,
     r: T.size * 0.6 * (elite ? 2 : 1), size: T.size * (elite ? 2 : 1), speed: T.speed * (elite ? 0.85 : 1) * (1 + m * 0.02),
     dmg: T.dmg * (1 + m * (S.stage < 2 ? 0.11 : 0.08)) * (elite ? 1.8 : 1) * (ST().dmgK || 1) * heatDmg() * (1 + lv * 0.012) * Math.pow(1.2, ot), xp: Math.max(1, Math.round(T.xp * (1 + Math.min(m, 9) * 0.12) * (elite ? 25 : 1) * (elite || Math.random() < (S.dirFrac ?? 1) ? 1 : 0.35))), elite, flash: 0, kx: 0, kz: 0, rot: rand(0, TAU), shootT: rand(1, 3), spin: rand(1, 3),
   };
@@ -1180,9 +1247,20 @@ function updateEnemies(dt) {
   const p = S.p;
   // perché : le joueur debout en haut d'un pilier ou d'un bloc — les ennemis qui le touchent l'escaladent, les volants montent
   S.perch = p.onGround && p.y - terrainH(p.x, p.z) > 2 ? S.obst.find(o => o.bot === undefined && Math.abs(o.top - p.y) < 0.35 && insideObs(o, p.x, p.z, 0.3)) || null : null;
+  if ((NAV.t -= dt) <= 0 || NAV.src < 0) { NAV.t = 0.25; flowField(); }
+  const pg = groundE(p.x, p.z);
   for (const e of S.enemies) {
     if (e.hp <= 0) continue;
     let dx = p.x - e.x, dz = p.z - e.z; const d = Math.hypot(dx, dz) || 1; dx /= d; dz /= d;
+    // loin ou pas au même étage : on suit le champ de flux (deux cases d'avance, pour lisser) ; tout près : droit sur le joueur
+    if (!e.T.fly && (d > 7 || Math.abs(e.y - pg) > 1.6)) {
+      const c = navI(e.x, e.z), n1 = NAV.nx[c];
+      if (n1 >= 0) {
+        const n2 = NAV.nx[n1] >= 0 && NAV.h[NAV.nx[n1]] - NAV.h[n1] <= STEP_UP ? NAV.nx[n1] : n1;
+        const tx = -HALF + (n2 % NN + 0.5) * NC - e.x, tz = -HALF + ((n2 / NN | 0) + 0.5) * NC - e.z, tl = Math.hypot(tx, tz);
+        if (tl > 0.05) { dx = tx / tl; dz = tz / tl; }
+      }
+    }
     let sp = e.speed;
     if (e.slowT > 0) { e.slowT -= dt; sp *= 0.35; }
     if (e.T.bomb) {   // kamikaze : à 2,5 m, il s'arrête, clignote 0,6 s puis explose (toi et ses voisins)
@@ -1219,7 +1297,8 @@ function updateEnemies(dt) {
       else if (e.cst === 2) { dx = e.cdx; dz = e.cdz; sp = e.speed * 5; if (e.ct <= 0) { e.cst = 0; e.ct = 2.4; } }  // ruée
       e.face = Math.atan2(dx, dz);
     }
-    e.fy = lerpAngle(e.fy ?? Math.atan2(p.x - e.x, p.z - e.z), e.T.charge && e.cst === 2 ? e.face : Math.atan2(p.x - e.x, p.z - e.z), Math.min(1, dt * 7));   // regarde le joueur
+    e.fy = lerpAngle(e.fy ?? Math.atan2(dx, dz), e.T.charge && e.cst === 2 ? e.face : d < 7 ? Math.atan2(p.x - e.x, p.z - e.z) : Math.atan2(dx, dz), Math.min(1, dt * 7));   // regarde où il va, puis le joueur
+    const ox = e.x, oz = e.z;
     e.x += (dx * sp + e.kx) * dt; e.z += (dz * sp + e.kz) * dt;
     e.kx *= Math.pow(0.02, dt); e.kz *= Math.pow(0.02, dt);
     // séparation
@@ -1229,17 +1308,18 @@ function updateEnemies(dt) {
       if (dd < m * m && dd > 1e-6) { const k = (m - Math.sqrt(dd)) * 0.5 / Math.sqrt(dd); e.x += ox * k; e.z += oz * k; }
     });
     e.x = clamp(e.x, -HALF + 1, HALF - 1); e.z = clamp(e.z, -HALF + 1, HALF - 1);
-    let gy = terrainH(e.x, e.z);
-    let climb = false;
-    if (e.T.fly) { gy += 1.6 + Math.sin(S.t * 3 + e.rot) * 0.3; if ((ST().float || S.perch) && d < (ST().float ? 12 : 18)) gy = Math.max(gy, p.y + 1); }   // les drones montent te chercher (le Vide, ou un joueur perché)
-    else for (const o of S.obst) {
-      if (o.bot !== undefined || !insideObs(o, e.x, e.z, e.r * 0.5)) continue;   // on passe sous les plateformes flottantes
-      if (o === S.perch) { gy = Math.max(gy, o.top); climb = o.top - e.y > 1.2; if (o.top - e.y > 0.4) pushOut(o, e, e.r * 0.3); continue; }   // il escalade le perchoir du joueur, collé à la paroi
-      if (o.top > e.y + 2.2 && o.kind === 'cyl' || o.top > e.y + 3.5) pushOut(o, e, e.r * 0.5);
-      else if (o.top > gy) gy = o.top;
+    let gy = groundE(e.x, e.z);
+    if (e.T.fly) {
+      gy += 1.6 + Math.sin(S.t * 3 + e.rot) * 0.3;
+      if (d < (ST().float ? 12 : 18) && p.y > gy - 1) gy = Math.max(gy, p.y + 1);   // les drones montent te chercher où que tu sois
+      e.y += (gy - e.y) * Math.min(1, dt * 4);
+    } else if (gy - e.y > STEP_UP || gy - e.y > 0.05 && (gy - e.y) / (Math.hypot(e.x - ox, e.z - oz) || 1e-3) > 1.5) {
+      // paroi devant : il reste collé au pied et grimpe à vue (≈ 1 s pour un étage de 3,6 m) — on a le temps de réagir
+      e.x = ox; e.z = oz; e.y = Math.min(gy, e.y + dt * (3.2 + e.speed * 0.35)); e.climb = 0.2;
+    } else {
+      e.climb = Math.max(0, (e.climb || 0) - dt);
+      e.y += (gy - e.y) * Math.min(1, dt * (gy > e.y ? 9 : 6));   // descend d'un étage en tombant, sans téléportation
     }
-    if (climb) e.y = Math.min(gy, e.y + dt * (4 + e.speed * 0.4));   // grimpe à vue (≈ 2–3 s pour un grand pilier) : on a le temps de réagir
-    else e.y += (gy - e.y) * Math.min(1, dt * (gy > e.y ? 9 : 14));
     e.rot += dt * e.spin; e.flash = Math.max(0, e.flash - dt * 6);
     // tir
     if (e.T.ranged && !e.T.noShoot && d < 26) {
@@ -1282,7 +1362,7 @@ function damage(e, amount, canCrit = true, kx = 0, kz = 0) {
   if (s.execute && !e.boss && e.hp - amount < e.max * s.execute) amount = Math.max(amount, e.hp);   // guillotine
   // dégâts utiles seulement (pas l'excès sur un ennemi achevé) ; les ondes « nettoyage » de la mort du boss ne comptent pas
   if (dmgSrc !== 'none') { const u = Math.min(amount, e.hp); S.dmgBy[dmgSrc] = (S.dmgBy[dmgSrc] || 0) + u; S.dmgDealt += u; if (e.boss) e.dealt += u; }
-  e.hp -= amount; e.flash = 1;
+  e.hp -= amount; if (e.flash < 0.2) e.flash = e.boss ? 0.5 : 1;   // ne se relance qu'une fois retombé : sous un feu nourri, ça palpite au lieu de rester blanc
   if (e.boss) e.hp = Math.max(e.hp, bossFloor(e));
   if (s.frost && e.hp > 0 && Math.random() < s.frost) e.slowT = 2;
   if (crit && s.critChain && Math.random() < s.critChain) asItem(() => chainFrom(e, amount * 0.5));
@@ -1556,24 +1636,36 @@ function updateWeapons(dt) {
         break;
       case 'beam': {
         // rayon continu : l'angle suit l'ennemi le plus proche, dégâts par impulsion à tout ce qui est sur la ligne
-        const len = 13 * st.area, width = 0.55 * st.area;
-        const tg = nearestEnemies(1, len + 2)[0];
-        const want = tg ? Math.atan2(tg.z - pz, tg.x - px) : facing();
+        const len = 13 * st.area, width = 0.55 * st.area, fa = facing();
+        // cible : l'ennemi le plus proche DEVANT soi (±70°), sinon le plus proche ; le rayon vise aussi en hauteur
+        let tg = null, bs = Infinity;
+        for (const e of nearestEnemies(12, len + 2)) {
+          const a = Math.atan2(e.z - pz, e.x - px), off = Math.abs(Math.atan2(Math.sin(a - fa), Math.cos(a - fa)));
+          const sc = Math.hypot(e.x - px, e.z - pz) * (off < 1.2 ? 1 : 2.5); if (sc < bs) { bs = sc; tg = e; }
+        }
+        const want = tg ? Math.atan2(tg.z - pz, tg.x - px) : fa;
+        const wantP = tg ? clamp(Math.atan2(tg.y + (tg.size || 1) * 0.45 - py, Math.max(1, Math.hypot(tg.x - px, tg.z - pz))), -0.7, 0.7) : 0;
         w.ang = w.ang === undefined ? want : lerpAngle(w.ang, want, Math.min(1, dt * 6));
+        w.pitch = (w.pitch || 0) + (wantP - (w.pitch || 0)) * Math.min(1, dt * 6);
         const tick = w.t <= 0; if (tick) w.t = st.cd;
+        const cp = Math.cos(w.pitch), sp = Math.sin(w.pitch);
         for (let k = 0; k < st.count; k++) {
           const a = w.ang + (k - (st.count - 1) / 2) * 0.5, cx = Math.cos(a), cz = Math.sin(a);
-          const ex = px + cx * len, ez = pz + cz * len;
-          S.beamVis.push({ x: px, y: py, z: pz, a, len, w: width });
-          if (Math.random() < 0.5) spawnPart(px + cx * len * Math.random(), py, pz + cz * len * Math.random(), rand(-1, 1), rand(0, 2), rand(-1, 1), [1, 0.4, 0.3], 0.25, 0.3);
+          // longueur réelle : le rayon s'arrête sur le relief (avant, il filait dans la colline, invisible, et touchait quand même)
+          let vl = len;
+          for (let s2 = 0.8; s2 < len; s2 += 0.8) { const qx = px + cx * cp * s2, qz = pz + cz * cp * s2; if (py + sp * s2 < solidH(qx, qz) + 0.15) { vl = s2; break; } }
+          S.beamVis.push({ x: px, y: py, z: pz, a, p: w.pitch, len: vl, w: width });
+          if (Math.random() < 0.5) { const f = vl * Math.random(); spawnPart(px + cx * cp * f, py + sp * f, pz + cz * cp * f, rand(-1, 1), rand(0, 2), rand(-1, 1), [1, 0.4, 0.3], 0.25, 0.3); }
           if (!tick) continue;
-          near(px + cx * len / 2, pz + cz * len / 2, len / 2 + 2, e => {
-            const rx = e.x - px, rz = e.z - pz, along = rx * cx + rz * cz;
-            if (along < 0 || along > len) return;
-            if (Math.abs(rx * cz - rz * cx) < width + e.r) damage(e, st.dmg, true, cx * 1.5, cz * 1.5);
-          });
+          const hitE = e => {
+            const rx = e.x - px, rz = e.z - pz, along = (rx * cx + rz * cz);
+            if (along < 0 || along > vl * cp + e.r) return false;
+            const by = py + sp * along / Math.max(0.3, cp), ey = e.y + (e.size || 1) * 0.45;
+            return Math.abs(rx * cz - rz * cx) < width + e.r && Math.abs(ey - by) < width + (e.size || 1) * 0.6 + 0.6;
+          };
+          near(px + cx * len / 2, pz + cz * len / 2, len / 2 + 2, e => { if (hitE(e)) damage(e, st.dmg, true, cx * 1.5, cz * 1.5); });
           const B = S.boss;
-          if (B && B.hp > 0) { const rx = B.x - px, rz = B.z - pz, al = rx * cx + rz * cz; if (al > 0 && al < len && Math.abs(rx * cz - rz * cx) < width + B.r) damage(B, st.dmg); }
+          if (B && B.hp > 0 && hitE(B)) damage(B, st.dmg);
         }
         break;
       }
@@ -2229,7 +2321,7 @@ function updateBoss(dt) {
   b.core.scale.setScalar(breathe * (1 + tele * 0.06) + (tele > 0.6 ? Math.sin(S.t * 60) * 0.015 : 0));
   b.core.rotation.y = lerpAngle(b.core.rotation.y, Math.atan2(dx, dz), Math.min(1, dt * 4)); b.core.rotation.x = Math.sin(S.t) * 0.06;
   b.flash = Math.max(0, b.flash - dt * 5);
-  setInst(b.core, 0, 0, Math.min(0.7, b.flash), 0, tele); b.core.userData.aI.needsUpdate = true;   // gonfle et s'illumine avant l'attaque
+  setInst(b.core, 0, 0, Math.min(0.35, b.flash), 0, tele); b.core.userData.aI.needsUpdate = true;   // gonfle et s'illumine avant l'attaque
   const enraged = b.hp < b.max * 0.4;
   b.atkT -= dt * (enraged ? 1.5 : 1) * ST().boss.speed;
   if (b.atkT <= 0 && (S.beatHit || b.atkT < -0.6)) {   // l'attaque part sur un temps de la musique
@@ -2493,8 +2585,16 @@ function update(dt) {
     if (n > lim) { p.vx *= lim / n; p.vz *= lim / n; }
   }
   p.vy -= 30 * (ST().grav || 1) * dt;
+  const px0 = p.x, pz0 = p.z;
   p.x += p.vx * dt; p.z += p.vz * dt; p.y += p.vy * dt;
   p.x = clamp(p.x, -HALF + 1, HALF - 1); p.z = clamp(p.z, -HALF + 1, HALF - 1);
+  // paroi du relief plus haute que le pas (ou que les pieds en l'air) : on longe la falaise au lieu de s'y téléporter
+  const wall = (x, z) => { const rise = terrainH(x, z) - p.y; return p.onGround ? rise > 0.75 || rise > 0.05 && rise / (Math.hypot(x - px0, z - pz0) || 1e-3) > 1.35 : rise > 0.25; };   // > ~53° : falaise
+  if (wall(p.x, p.z)) {
+    if (!wall(p.x, pz0)) { p.z = pz0; p.vz = 0; }
+    else if (!wall(px0, p.z)) { p.x = px0; p.vx = 0; }
+    else { p.x = px0; p.z = pz0; p.vx = 0; p.vz = 0; }
+  }
   for (const o of S.obst) if (p.y < o.top - 0.7 && (o.bot === undefined || p.y + 1.7 > o.bot) && insideObs(o, p.x, p.z, 0.5)) pushOut(o, p, 0.5);
   const g = groundAt(p.x, p.z, p.y);
   if (p.y <= g) {
@@ -2552,8 +2652,9 @@ function update(dt) {
   for (let i = S.enemies.length - 1; i >= 0; i--) if (S.enemies[i].hp <= 0) { S.enemies[i] = S.enemies[S.enemies.length - 1]; S.enemies.pop(); }
   // les ennemis trop loin sont ramenés près du joueur (évite de traîner une horde invisible)
   if (Math.random() < 0.3) for (const e of S.enemies) if (Math.abs(e.x - p.x) > 60 || Math.abs(e.z - p.z) > 60) {
-    const a = rand(0, TAU); e.x = clamp(p.x + Math.cos(a) * 35, -HALF + 2, HALF - 2); e.z = clamp(p.z + Math.sin(a) * 35, -HALF + 2, HALF - 2); e.y = terrainH(e.x, e.z);
+    const a = rand(0, TAU); e.x = clamp(p.x + Math.cos(a) * 35, -HALF + 2, HALF - 2); e.z = clamp(p.z + Math.sin(a) * 35, -HALF + 2, HALF - 2); e.y = groundE(e.x, e.z);
   }
+  if ((S.seenT = (S.seenT || 0) - dt) <= 0) { S.seenT = 0.25; for (const o of [...S.chests, ...S.shrines]) if (!o.seen && Math.hypot(o.x - p.x, o.z - p.z) < 32 && Math.abs(o.y - p.y) < 9) o.seen = true; }   // il faut aller voir : le radar ne montre que le découvert
   updatePickups(dt);
   updateInteract(dt);
   // anneaux
@@ -2638,12 +2739,14 @@ function syncMeshes(dt) {
   put('bulletGlow', S.bullets, b => { dummy.position.set(b.x, b.y, b.z); dummy.rotation.set(0, 0, 0); dummy.scale.setScalar(0.62 + 0.1 * Math.sin(t * 18 + b.x)); });
   put('bulletTrail', S.bullets, b => { dummy.position.set(b.x, b.y, b.z); dummy.lookAt(b.x - b.vx, b.y - b.vy, b.z - b.vz); dummy.scale.set(1, 1, 2.2); });
   put('disc', S.discs, d => { dummy.position.set(d.x, d.y, d.z); dummy.rotation.set(0, d.t * 20, 0); dummy.scale.setScalar(Math.min(2.6, d.r / 0.9 * 1.2)); });   // taille visuelle plafonnée (la zone de coupe ne l'est pas)
+  while (S.beamVis && scene.userData.beams.length < Math.min(12, S.beamVis.length)) { const g = scene.userData.beams[0].clone(); scene.add(g); scene.userData.beams.push(g); }   // autant de rayons dessinés que tirés
   scene.userData.beams.forEach((g, i) => {
     const b = S.beamVis && S.beamVis[i];
     g.visible = !!b && S.state === 'play';
     if (!b) return;
     const th = 0.12 * (1 + 0.15 * Math.sin(t * 40 + i)) * b.w / 0.55;
-    g.position.set(b.x, b.y, b.z); g.rotation.set(0, -b.a, 0); g.scale.set(b.len, th, th);
+    g.position.set(b.x, b.y, b.z); g.rotation.set(0, -b.a, b.p || 0); g.scale.set(b.len, th, th);
+    const k = (S.glowK ?? 1) / Math.sqrt(Math.max(1, S.beamVis.length)); g.children[0].material.opacity = 0.95 * Math.max(0.35, k); g.children[1].material.opacity = 0.35 * Math.max(0.25, k);   // plusieurs rayons superposés : chacun plus discret
   });
   put('mine', S.mines, m => { dummy.position.set(m.x, m.y + 0.1, m.z); dummy.rotation.set(0, m.t, 0); dummy.scale.setScalar(m.arm > 0 ? 0.6 : 1 + 0.15 * Math.sin(m.t * 12)); });
   put('rocket', S.rockets, r => { dummy.position.set(r.x, r.y, r.z); dummy.lookAt(r.x + r.vx, r.y + r.vy, r.z + r.vz); dummy.scale.setScalar(1); });
@@ -2727,7 +2830,7 @@ function updateCamera(dt) {
   const dx = Math.sin(c.yaw) * Math.cos(c.pitch), dy = Math.sin(c.pitch), dz = Math.cos(c.yaw) * Math.cos(c.pitch);
   for (let k = 1; k <= 16; k++) {
     const d = 8.5 * k / 16, sx = tx + dx * d, sy = ty + dy * d, sz = tz + dz * d;
-    if (S.obst.some(o => o.bot === undefined && sy < o.top + 0.3 && insideObs(o, sx, sz, 0.35))) { dist = Math.max(2.2, d - 0.8); break; }
+    if (sy < terrainH(sx, sz) + 0.5 || S.obst.some(o => o.bot === undefined && sy < o.top + 0.3 && insideObs(o, sx, sz, 0.35))) { dist = Math.max(2.2, d - 0.8); break; }
   }
   camDist += (dist - camDist) * Math.min(1, dt * (dist < camDist ? 14 : 3));   // rapprochement vif, recul doux
   dist = camDist;
@@ -2824,8 +2927,8 @@ function drawRadar(ctx, R, cx, cy, own) {
   for (const d of S.pads || []) dot(d.x, d.z, 'rgba(124,255,138,.55)', 2.2);
   for (const k of S.keys || []) if (!k.got) dot(k.x, k.z, '#7ff6ff', 3.2);
   for (const r of S.rifts || []) dot(r.x, r.z, '#b98bff', 4);
-  for (const c of S.chests) if (!c.open) dot(c.x, c.z, '#ffd84d', 3);
-  for (const s of S.shrines) if (!s.used) dot(s.x, s.z, SHRINES[s.kind].css, 3.5);
+  for (const c of S.chests) if (!c.open && (c.seen || c.free)) dot(c.x, c.z, '#ffd84d', 3);
+  for (const s of S.shrines) if (!s.used && s.seen) dot(s.x, s.z, SHRINES[s.kind].css, 3.5);
   if (S.boss) dot(S.boss.x, S.boss.z, '#ff2d55', 6);
   if (S.portal) dot(S.portal.x, S.portal.z, '#27e0ff', 6);
   ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.moveTo(cx, cy - 6); ctx.lineTo(cx - 4, cy + 4); ctx.lineTo(cx + 4, cy + 4); ctx.fill();
@@ -2957,6 +3060,16 @@ function frame() {
     if (camera.fov !== 70) { camera.fov = 70; camera.updateProjectionMatrix(); }
     scene.userData.sky.position.copy(camera.position);
     if (g2) g2.clearRect(0, 0, W, H);
+  }
+  // budget lumineux : quand particules, rayons et traînées s'empilent (fin de run, boss), le halo et les étincelles
+  // baissent d'eux-mêmes — sinon tout finit en blanc (retour de partie : un boss restait blanc en permanence)
+  if (S && partSys) {
+    const load = partSys.list.length / 900 + (S.beamVis ? S.beamVis.length * 0.08 : 0) + (S.enemies ? S.enemies.length / 700 : 0);
+    const k = Math.max(0.4, Math.min(1, 1.15 - load * 0.45));
+    S.glowK = (S.glowK ?? 1) + (k - (S.glowK ?? 1)) * 0.05;
+    partSys.pts.material.uniforms.uGain.value = 0.55 + 0.45 * S.glowK;
+    CU.uGlowK.value = 0.6 + 0.4 * S.glowK;
+    if (FX.bloom) { FX.bloom.strength = 0.55 * S.glowK; FX.bloom.threshold = 0.82 + (1 - S.glowK) * 0.25; }
   }
   if (FX.composer && META.glow !== false && S && S.state !== 'menu') FX.composer.render(); else renderer.render(scene, camera);
 }
@@ -3229,6 +3342,7 @@ window.addEventListener('pt-lang', () => {
   else if (S.state === 'end') renderEnd();
 });
 // Accès de débogage (console) à l'état de la run.
+window.__nbT = { terrainH, flowField, ETYPES, NAV, groundE };
 window.__nb = { get S() { return S; }, get camDist() { return camDist; }, update, pick, keys, interact, jump, damage, hurt, spawnEnemy, spawnBoss, nextStage, music, newRun, addWeapon, openLevelUp, buildChoices, bossDeath, slide, giveItem: id => giveItem(ITEMS.find(i => i.id === id)), goldChest, banish, get vendor() { return S.vendor; }, get META() { return META; }, get hero() { return player && player.userData.hero; }, get scene() { return scene; } };
 
 window.GAMES.bonk = {

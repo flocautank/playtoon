@@ -5,7 +5,7 @@ import * as THREE from '../vendor/three.module.min.js';
 import { CAST } from './bonk-cast-data.js';
 
 // uniformes partagés : temps, pulsation de la musique (0–1), humeur du visage-oscilloscope (0 calme, 1 course, 2 touché, 3 mort)
-export const CU = { uT: { value: 0 }, uBeat: { value: 0 }, uMood: { value: 0 } };
+export const CU = { uT: { value: 0 }, uBeat: { value: 0 }, uMood: { value: 0 }, uGlowK: { value: 1 } };   // uGlowK : budget lumineux (bonk.js)
 let FOG = null;
 
 const dec = s => { const b = atob(s), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; };
@@ -34,7 +34,7 @@ vec3 sc(vec3 p, vec3 o, vec3 s){ return o + (p - o) * s; }
 `;
 const FS = `
 uniform vec3 fogColor; uniform float fogNear; uniform float fogFar; uniform float uAlpha; uniform float uT; uniform float uMood;
-uniform vec3 uAcc; uniform vec3 uAcc2; uniform float uGhost; uniform float uBeat;
+uniform vec3 uAcc; uniform vec3 uAcc2; uniform float uGhost; uniform float uBeat; uniform float uGlowK;
 varying vec3 vW; varying vec3 vC; varying vec3 vL; varying float vD; varying float vCore; varying float vK; varying float vFl; varying float vEl;
 float h3(vec3 p){ return fract(sin(dot(p, vec3(12.9898, 78.233, 37.719))) * 43758.5453); }
 void main(){
@@ -60,8 +60,8 @@ void main(){
     col = vec3(nn * 0.85 + bar * 0.4) * vec3(0.85, 0.9, 1.1); core = 1.0;
   }
   col = mix(col, vec3(1.0, 0.79, 0.3), vEl * 0.3);
-  col = mix(col, vec3(1.0), vFl); core += vFl * 0.6;
-  vec3 c = col * (core + 0.35 * ndv * ndv) + col * rim * 1.5 + vec3(rim * rim * 0.35);
+  col = mix(col, vec3(1.0), vFl * 0.55); core += vFl * 0.3;   // éclat de coup : teinte claire, pas un blanc saturé (le halo l'amplifie)
+  vec3 c = col * (min(core, 3.6) * uGlowK + 0.35 * ndv * ndv) + col * rim * 1.5 + vec3(rim * rim * 0.35);   // cœur lumineux plafonné et modulé par la charge d'effets
   c += col * 0.25 * clamp(n.y, 0.0, 1.0);
   c += vec3(1.0, 0.75, 0.25) * rim * 1.6 * vEl;
   gl_FragColor = vec4(mix(c, fogColor, smoothstep(fogNear, fogFar, vD)), uAlpha);
@@ -110,7 +110,7 @@ void main(){
 }`;
 }
 function uniforms(extra) {
-  return { ...FOG, uT: CU.uT, uBeat: CU.uBeat, uMood: CU.uMood, uAlpha: { value: 1 }, uAcc: { value: new THREE.Color(0xffffff) }, uAcc2: { value: new THREE.Color(0xffffff) }, uGhost: { value: 0 }, ...extra };
+  return { ...FOG, uT: CU.uT, uBeat: CU.uBeat, uMood: CU.uMood, uGlowK: CU.uGlowK, uAlpha: { value: 1 }, uAcc: { value: new THREE.Color(0xffffff) }, uAcc2: { value: new THREE.Color(0xffffff) }, uGhost: { value: 0 }, ...extra };
 }
 
 export function castInit(fogU) { FOG = fogU; }
@@ -152,7 +152,7 @@ void main(){
   // silhouette : profondeur avancée de 0,8 m vers la caméra — le héros ne se masque pas lui-même, seuls les vrais obstacles comptent
   if (uGhost > 0.5) { vec4 c2 = projectionMatrix * (mv + vec4(0.0, 0.0, 0.8, 0.0)); gl_Position.z = c2.z / c2.w * gl_Position.w; }
 }`;
-const HERO_FS = FS.replace('uniform float uGhost;', 'uniform float uGhost; uniform float uFlash;').replace('col = mix(col, vec3(1.0), vFl); core += vFl * 0.6;', 'col = mix(col, vec3(1.0), uFlash); core += uFlash * 0.6;');
+const HERO_FS = FS.replace('uniform float uGhost;', 'uniform float uGhost; uniform float uFlash;').replace('col = mix(col, vec3(1.0), vFl * 0.55); core += vFl * 0.3;', 'col = mix(col, vec3(1.0), uFlash); core += uFlash * 0.6;');
 
 export function makeHero() {
   const { g, d } = baseGeo('hero');

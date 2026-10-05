@@ -335,6 +335,17 @@ paliers jusqu'à 500), 150+ succès qui nourrissent un multiplicateur, codex des
 jus (chiffres qui roulent, ETA), couche quotidienne (Stardrops, mini-jeu), Big Bang qui
 débloque des systèmes, saisons, défis à paliers.
 
+## Synth Horde — retour de partie n° 2 (2026-10-05) → 1.14.0
+
+| Retour | Correction |
+|---|---|
+| Tout devient trop lumineux, un boss reste blanc en permanence | L'éclat de coup ne se relance qu'une fois retombé (il palpite au lieu de rester blanc) et ne blanchit plus qu'à 55 % ; boss plafonné à 0,35. Budget lumineux : selon la charge (particules, rayons, foule), le halo, les étincelles et le cœur lumineux des modèles baissent d'eux-mêmes (jusqu'à 40 %) |
+| Les lasers ne visent pas devant soi (mais touchent) | Le rayon était tracé à plat : sur le relief il filait dans la colline, invisible, et touchait quand même ; au-delà de 4 rayons, les suivants n'étaient pas dessinés. Désormais : cible prioritaire devant soi (±70°), visée en hauteur, rayon coupé par le relief (dégâts aussi), autant de rayons dessinés que tirés, plus discrets quand ils s'empilent |
+| Les ennemis doivent aller partout, jusqu'en haut des piliers | Grille de navigation de 2 m (relief + blocs + piliers) et champ de flux (Dijkstra depuis le joueur, 4 fois/s, ~6 ms) : les ennemis prennent les rampes, escaladent une paroi quand c'est plus court (≈ 1 s par étage). Mesuré : point le plus haut (12 m) atteint en ~6 s depuis 35 m, pilier de 13 m en 3,7 s |
+| Plus de verticalité, des étages, ne pas voir toute la carte, chercher les bonus | Relief en terrasses (3 à 5 étages de 3,6 m, jusqu'à ~17 m) : falaises franchissables au double saut, rampes douces ailleurs ; tremplins au pied des falaises ; coffres plutôt sur les étages hauts ; brouillard rapproché (26–88 m) ; le radar ne montre plus que les coffres et sanctuaires déjà découverts (à moins de 32 m) ; strates sur les parois ; la caméra se rapproche quand le relief la masque |
+
+Bot naïf (6 runs) : médiane 5:22 (5:59 avant) — un peu plus dur, la horde suit désormais partout ; un humain peut prendre une falaise au double saut pour la forcer au détour.
+
 ## Synth Horde — retour de partie du propriétaire (2026-10-05) → 1.13.0
 
 | Retour | Correction |
