@@ -7,6 +7,9 @@ import { readFileSync, writeFileSync, mkdirSync } from 'fs';
 const require = createRequire('/opt/node22/lib/node_modules/');
 const { chromium } = require('playwright');
 const HERE = fileURLToPath(new URL('./', import.meta.url));
+// Synth Horde : les rendus 3D de la distribution (apps/synth-horde/assets/cast/, node tools/cast/poster.mjs) remplacent les dessins plats
+import { CAST_PRELOAD } from '../../synth-horde/cast-preload.mjs';
+const preload = async id => id === 'synth-horde' ? CAST_PRELOAD : '';
 const draw = id => { const s = readFileSync(`${HERE}../../${id}/make-assets.mjs`, 'utf8'); return s.slice(s.indexOf('const DRAW = `') + 14, s.indexOf('`;', s.indexOf('const DRAW = `'))); };
 
 // pour chaque jeu : fond, motif (l'icône) et couleurs du titre
@@ -42,10 +45,11 @@ const FORMATS = G => [
 const b = await chromium.launch();
 for (const [id, G] of Object.entries(GAMES)) {
   const out = `${HERE}${id}/art/`; mkdirSync(out, { recursive: true });
+  const pre = await preload(id);
   for (const [name, w, h, code, transparent] of FORMATS(G)) {
     const p = await b.newPage();
     const type = name.endsWith('.jpg') ? 'image/jpeg' : 'image/png';
-    const url = await p.evaluate(`(()=>{${draw(id)}${TITLE}const c=document.createElement('canvas');c.width=${w};c.height=${h};const g=c.getContext('2d');const w=${w},h=${h};
+    const url = await p.evaluate(`(async()=>{${pre}${draw(id)}${TITLE}const c=document.createElement('canvas');c.width=${w};c.height=${h};const g=c.getContext('2d');const w=${w},h=${h};
       ${transparent ? '' : "g.fillStyle='#000';g.fillRect(0,0,w,h);"}${code}return c.toDataURL('${type}',0.92);})()`);
     writeFileSync(out + name, Buffer.from(url.split(',')[1], 'base64')); await p.close();
   }

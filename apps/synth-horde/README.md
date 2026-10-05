@@ -9,6 +9,7 @@ The game code is shared with the website (`../../js/bonk.js`, `../../js/synthwav
 | `src/app.js` | Wires the game to the shared shell (settings, back button → pause) and monetisation (reward videos, capped interstitials between runs, `remove_ads`) |
 | `android/` | Capacitor Android project (package `io.github.flocautank.synthhorde`, `sensorLandscape`, targetSdk 36) |
 | `make-assets.mjs` | Draws icon, splash, Play icon and feature graphic → `assets/`; then `npx @capacitor/assets generate --android` |
+| `../../tools/cast/poster.mjs` | Renders the real 3D cast (transparent PNGs) → `assets/cast/`, used by `make-assets.mjs` and the Steam art |
 | `tools/store-shots.mjs` | Play Store screenshots (1920×1080, EN + FR) → `store/screenshots/` |
 | `store/` | Store listing texts and Data safety answers (publishing guide: `../PUBLISHING.md`) |
 

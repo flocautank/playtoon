@@ -6,7 +6,7 @@ const PROG = [[0, 3, 7], [-4, 0, 3], [3, 7, 10], [-2, 2, 5]];   // i – VI – 
 const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
 
 export class Synthwave {
-  constructor() { this.ctx = null; this.on = false; this.level = 0; this.root = 57; this.bpm = 108; this.step = 0; this.timer = 0; }
+  constructor() { this.ctx = null; this.on = false; this.level = 0; this.root = 57; this.bpm = 108; this.step = 0; this.timer = 0; this.beats = []; }
 
   _init() {
     if (this.ctx) return;
@@ -34,8 +34,16 @@ export class Synthwave {
   stop(fade = 0.6) {
     if (!this.ctx || !this.on) return;
     this._fade(0, fade);
-    this.on = false;
+    this.on = false; this.beats.length = 0;
     const t = this.timer; setTimeout(() => { if (!this.on) clearInterval(t); }, fade * 1000 + 50);
+  }
+  // pulsation du dernier temps joué (1 sur le temps, décroît en ~0,3 s) ; null si la musique ne joue pas
+  beat() {
+    if (!this.ctx || !this.on) return null;
+    const now = this.ctx.currentTime, b = this.beats;
+    while (b.length > 1 && b[1][0] <= now) b.shift();
+    if (!b.length || b[0][0] > now) return 0;
+    return b[0][1] * Math.exp(-(now - b[0][0]) * 7) * (1 + b[0][2] * 0.3);
   }
   setLevel(l) { this.level = Math.max(0, Math.min(3, l)); }
   _fade(v, t) { const g = this.master.gain, n = this.ctx.currentTime; g.cancelScheduledValues(n); g.setValueAtTime(g.value, n); g.linearRampToValueAtTime(window.PT_MUTE ? 0 : v, n + t); }
@@ -58,6 +66,7 @@ export class Synthwave {
     // arpège : doubles-croches dès l'intensité 2
     if (L >= 2) { const n = chord[(st + (st >> 2)) % 3] + 12 + (st % 8 >= 4 ? 12 : 0); this._voice('square', mtof(n), t, dur * 0.9, 0.035, 2200 + L * 800, 0.002, 0.1, 0, true); }
     // batterie
+    if (st % 4 === 0) this.beats.push([t, L >= 1 ? 1 : 0.5, st === 0 ? 1 : 0]);   // temps (pour le monde qui pulse) : intensité, premier temps de la mesure
     if (L >= 1 && st % 4 === 0) this._kick(t);
     if (L >= 2 && (st === 4 || st === 12)) this._snare(t);
     if (L >= 1 && st % 2 === 1) this._hat(t, L >= 3 ? 0.05 : 0.03);

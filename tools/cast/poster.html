@@ -1,0 +1,37 @@
+<!doctype html><meta charset="utf-8"><title>Synth Horde poster</title>
+<!-- Rendu des visuels de boutique depuis les vrais modèles du jeu (fond transparent), piloté par tools/cast/poster.mjs.
+     ?shot=horde|hero|head  &w=…&h=…  &char=0..8 -->
+<style>html,body{margin:0;background:transparent;overflow:hidden}</style>
+<canvas id="c"></canvas>
+<script type="module">
+import * as THREE from '../../vendor/three.module.min.js';
+import { CU, castInit, creatureMesh, setInst, makeHero } from '../../js/bonk-cast.js';
+const q = new URLSearchParams(location.search), W = +q.get('w') || 1024, Hh = +q.get('h') || 1024, shot = q.get('shot') || 'horde', ci = +(q.get('char') || 0);
+const COL = ['#27e0ff', '#ff3df0', '#ffe04d', '#7cff8a', '#ff8a4d', '#b98bff', '#ff3050', '#ffd84d', '#5cffb0'];
+const ACC2 = ['#ff3df0', '#27e0ff', '#b98bff', '#ffe04d', '#27e0ff', '#ffe04d', '#ffffff', '#ff3df0', '#b98bff'];
+const r = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true, alpha: true, preserveDrawingBuffer: true });
+r.setPixelRatio(1); r.setSize(W, Hh, false); r.setClearColor(0x000000, 0);
+castInit({ fogColor: { value: new THREE.Color(0x1a0630) }, fogNear: { value: 60 }, fogFar: { value: 140 } });
+const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(shot === 'head' ? 22 : 30, W / Hh, 0.1, 300);
+const hero = makeHero(); hero.setChar(ci, COL[ci], ACC2[ci]); hero.root.rotation.y = Math.PI; scene.add(hero.root);   // face à la caméra
+CU.uT.value = 1.3; CU.uMood.value = shot === 'head' ? 0 : 1; CU.uBeat.value = 0.6;
+const pose = (name, t) => { hero.play(name, 0); hero.mixer.setTime(t); hero.update(0, name === 'Run' ? 1 : 0, 1.3); };
+if (shot === 'head') { pose('Idle', 0.5); cam.position.set(0.55, 1.95, 2.2); cam.lookAt(0, 1.72, 0); }
+else if (shot === 'hero') { pose('Victory', 0.62); cam.position.set(1.2, 1.5, 5.2); cam.lookAt(0, 1.2, 0); }
+else {
+  pose('Run', 0.12); hero.root.position.set(0, 0, 2.2); hero.root.rotation.y = Math.PI + 0.35;
+  const SZ = { drone: 0.9, spike: 0.85, brute: 1.7, gunner: 1.1, charger: 1.2, splitter: 1.4, bomber: 1.0, blinker: 1.0, healer: 1.3, warden: 2.4 };
+  const L = [['brute', -2.6, -0.6], ['spike', 2.2, 0.4], ['drone', -1.4, -2.2, 2.1], ['gunner', 3.4, -1.8], ['charger', -4.2, -1.5], ['splitter', 1.0, -3.2], ['bomber', -0.6, -0.4],
+    ['blinker', 4.6, -3.6], ['healer', -3.2, -4.2], ['warden', 0.6, -6.5], ['drone', 3.0, -4.5, 2.8], ['spike', -5.4, -3.6], ['brute', 5.8, -6.0], ['spike', 1.9, -1.0]];
+  const m4 = new THREE.Matrix4(), o = new THREE.Object3D();
+  L.forEach(([t, x, z, y], i) => {
+    const m = creatureMesh(t, 1); m.count = 1; const s = SZ[t];
+    o.position.set(x, y ?? s * 0.45, z); o.rotation.set(0, Math.atan2(-x, 6 - z) * 0.6, 0); o.scale.setScalar(s); o.updateMatrix(); m.setMatrixAt(0, o.matrix);
+    setInst(m, 0, i * 1.7, 0, t === 'warden' ? 1 : 0, 0); scene.add(m);
+  });
+  cam.position.set(0, 2.9, 13.5); cam.lookAt(0, 1.3, -1.5);
+}
+scene.updateMatrixWorld(true);
+r.render(scene, cam);
+window.done = true;
+</script>
