@@ -273,6 +273,63 @@ devraient peser bien moins — **non mesuré sur appareil** : à vérifier lors 
 Corrigé au passage : un sanctuaire voisin volait l'invite du portail (le boss mort près d'un marchand ouvrait la boutique
 au lieu du portail) ; les captures PC de la boutique Steam montraient l'écran de pause (fenêtre headless sans focus).
 
+## Block Quarry vs Block Blast! (analyse du 2026-10-05) → 1.4.0
+
+Rival direct : **Block Blast!** (Hungry Studio) — même format (8×8, trois pièces, pas de rotation), n° 1 mondial des
+téléchargements mobiles début 2026. Woodoku sert de référence pour le calendrier quotidien. Rapport complet de l'agent :
+grille de scores, combo à 3 poses de grâce, génération pondérée par le remplissage, jus visuel, modes, monétisation
+(quasi tout en pub), critiques (pub, « pièces truquées »). **Avance de Block Quarry à mettre en avant** : tirages
+toujours jouables, reprise garantie, pubs plafonnées et facultatives, niveaux calibrés par solveur, vrai mode Chrono.
+
+| # | Écart / bug | Impact | État |
+|---|---|---|---|
+| B1 | ↻ pendant le défi du jour lançait une partie classique et **effaçait la sauvegarde classique** | haut | ✅ 1.4.0 — ↻ relance le défi |
+| B2/B3 | Badge de série invisible sur ordinateur (dessiné hors du canevas) ; « Combo » et « Série » pour le même compteur | moyen | ✅ jauge « COMBO ×n » dans un bandeau réservé, un seul terme |
+| B4 | Boosters (dont le mélange) permis dans le défi « identique pour tous » | moyen | ✅ interdits dans le défi |
+| B5 | La série du défi avançait à l'ouverture, pas au jeu | moyen | ✅ elle avance au premier coup du jour |
+| B6 | MEILLEUR dépassait le SCORE qui défile | bas | ✅ |
+| B7 | « Nouvelles pièces ! » superposé à l'éloge du même coup | bas | ✅ affiché après |
+| B9 | « TABLE RASE ! +300 » à côté d'un total qui inclut déjà les 300 | bas | ✅ |
+| B10 | Au doigt, marteau et bombe frappaient au premier toucher, sans visée | bas | ✅ premier toucher = visée, second = frappe |
+| G1 | Combo remis à zéro dès une pose sans ligne (le genre laisse 3 poses) | haut | ✅ grâce de 3 poses, 3 crans qui se vident, astuce unique au premier combo |
+| G2 | Effacements sans « moment » | haut | ✅ faisceau par ligne, arrêt sur image dès 2 lignes, lueur du cadre (2), onde (3), éclair (4+, combo 5+), « +N » qui rejoint le score (qui rebondit), éclats de roche |
+| G3 | Aspect générique | haut | ✅ direction « Carrière » : minéraux taillés (biseau, veines), dalle d'ardoise à alvéoles gravées dans un cadre de grès boulonné, strates et poussière en fond, Bungee + Big Shoulders Display (OFL, embarquées), icônes dessinées (masse, dynamite, mélange, pièce) ; l'ancien thème reste « Classique » |
+| G4 | Pas de chasse au record en cours de partie | haut | ✅ barre vers le record, « NOUVEAU RECORD ! » + fanfare + confettis une fois, couronne ensuite |
+| G5 | Fin de partie sèche | haut | ✅ pièces qui tremblent et se barrent, grille qui s'éteint rangée par rangée, puis score qui défile, statistiques (lignes, meilleur combo, pièces) et « plus que N pour le record » |
+| G6 | Bips d'un oscillateur | moyen-haut | ✅ banque procédurale : « toc » de pierre, éboulement filtré, accord pentatonique qui monte avec le combo, cloche des gemmes, fanfare |
+| G10 | Prise en main sèche | moyen | ✅ agrandissement de 90 ms, ombre portée, aperçu pointillé, contour rouge si ça ne rentre pas, petit son à chaque case |
+| G11 | Place perdue sur mobile, grille collée au bord | moyen | ✅ mise en page recalculée (bandeau + cadre + grille + plateau), marges de 12 px, pièces du plateau à 0,8 case |
+| G7 | Aventure courte (40 niveaux), deux objectifs | moyen-haut | à faire — génération ouverte, couleurs à collecter, glace, caisses, chapitres de 10 |
+| G8 | Défi du jour sans objectif ni calendrier ni partage | moyen | à faire — 1–3★, calendrier du mois, partage façon Wordle |
+| G9 | Scores petits (≈ 700) | moyen | à faire — ×10 avec migration des records |
+| G13–G16 | Événement hebdomadaire, thèmes en plus, Chrono plus lisible, monétisation | bas | à faire |
+
+## Nova Foundry vs Cookie Clicker (analyse du 2026-10-05) → 1.4.0
+
+Rival direct : **Cookie Clicker** (v2.052), dont Nova Foundry reprend la boucle (objet central, générateurs ×1,15,
+paliers 1/5/25/50/100, comètes = cookies dorés, Novae = puces célestes). Références secondaires : Antimatter Dimensions
+(couches de prestige), Egg, Inc. (recherche permanente comme puits).
+
+**Bug signalé par le propriétaire — l'Automate** : ses clics ne passaient pas par le code du clic (`S.lifeClicks`,
+objectif du jour, succès de clics, effets) et son revenu n'apparaissait ni dans le « /s » ni dans les gains hors ligne.
+✅ 1.4.0 : un vrai `autoClick()` (compté partout, critiques possibles avec le Bras bionique), revenu inclus dans le « /s »
+et hors ligne.
+
+**Progression (retour du propriétaire : « tout acheté dès la 2e partie, tout à la 3e »)** — mesuré par bot
+(3 clics/s, 70 % des comètes, achats au meilleur rendement, Supernova toutes les 30 min) :
+
+| | Avant (1.3.0) | Après (1.4.0) |
+|---|---|---|
+| Courbe des Novae | √(total ÷ 2e5) | racine cubique du total cumulé jusqu'à 1e11, racine 5e au-delà |
+| Bonus par Nova | +5 % (+8 %), plafond doux 500 | +5 % (+6/+7 %), plafond doux 100 |
+| Constellation | 14 nœuds, 1 109 Novae, finie à la 2e Supernova | 34 nœuds (coûts 1 → 500 000), 2 forges débloquées par la méta, Maîtrise stellaire répétable |
+| Améliorations achetées après 2 min, partie 2 / 3 / 4 | 66 / 76+ / tout | voir les mesures dans BACKLOG |
+
+Écarts restants (classés) : arbre de 80–120 nœuds avec choix exclusifs, contenu de partie (forges 13–15, synergies,
+paliers jusqu'à 500), 150+ succès qui nourrissent un multiplicateur, événements (Dark comet, Forge Surge, codex),
+jus (cinématique de Supernova, chiffres qui roulent, ETA), couche quotidienne (Stardrops, mini-jeu), Big Bang qui
+débloque des systèmes, saisons, défis à paliers.
+
 ## Synth Horde — retour de partie du propriétaire (2026-10-05) → 1.13.0
 
 | Retour | Correction |

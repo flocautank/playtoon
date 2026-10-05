@@ -106,9 +106,10 @@ await page.evaluate(() => { const { S, N } = window.__bp; for (let y = 2; y < 7;
 const filledBefore = await page.evaluate(() => window.__bp.S.board.flat().filter(Boolean).length);
 const coinsBefore = +(await page.$eval('#bp-coins', e => e.textContent));
 await page.click('[data-tool=bomb]');
-const bb = await page.$eval('#bp-canvas', c => { const r = c.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; });
-await page.mouse.move(bb.x + bb.w / 2, bb.y + 113 - bb.y + 4.5 * 56.6); await page.waitForTimeout(200); await shot(page, 'blocks-bomb-aim');
-await page.mouse.click(bb.x + bb.w / 2, bb.y + 113 - bb.y + 4.5 * 56.6); await page.waitForTimeout(500);
+// centre de la case (4, 4), d'après la mise en page du jeu
+const bb = await page.$eval('#bp-canvas', c => { const r = c.getBoundingClientRect(), L = window.__bp.L; return { x: r.left + L.bx + 4.5 * L.cs, y: r.top + L.by + 4.5 * L.cs }; });
+await page.mouse.move(bb.x, bb.y); await page.waitForTimeout(200); await shot(page, 'blocks-bomb-aim');
+await page.mouse.click(bb.x, bb.y); await page.waitForTimeout(500);
 const filledAfter = await page.evaluate(() => window.__bp.S.board.flat().filter(Boolean).length);
 log(`bombe : cases ${filledBefore} → ${filledAfter}, pièces ${coinsBefore} → ${await page.$eval('#bp-coins', e => e.textContent)}`);
 await page.click('[data-tool=shuffle]'); await page.waitForTimeout(200); await shot(page, 'blocks-boost');
@@ -360,7 +361,7 @@ await page.close();
 {
   const g = await guard(await browser.newPage({ viewport: { width: 1280, height: 760 } })); watch(g, 'big-bang');
   g.on('dialog', d => d.accept());
-  await g.addInitScript(() => { if (!sessionStorage.getItem('inj')) { sessionStorage.setItem('inj', 1); localStorage.setItem('starforge.save.v1', JSON.stringify({ dust: 1e6, runTotal: 1e6, lifeTotal: 1e10, gens: [30, 20, 10, 5, 0, 0, 0, 0, 0, 0], upg: {}, novaTotal: 250, novaBank: 40, meta: { m_click: 1, m_auto: 1 }, ach: {}, prestiges: 12, chalDone: { c_hands: 1 }, last: Date.now() })); } });
+  await g.addInitScript(() => { if (!sessionStorage.getItem('inj')) { sessionStorage.setItem('inj', 1); localStorage.setItem('starforge.save.v1', JSON.stringify({ dust: 1e6, runTotal: 1e6, lifeTotal: 1e10, gens: [30, 20, 10, 5, 0, 0, 0, 0, 0, 0], upg: {}, novaTotal: 150000, novaBank: 40, meta: { m_click: 1, m_auto: 1 }, ach: {}, prestiges: 12, chalDone: { c_hands: 1 }, last: Date.now() })); } });
   await g.goto(base + '#forge'); await g.waitForTimeout(500);
   log('événements :', await g.evaluate(async () => {
     const F = window.__sf, S = F.S, base = F.dps(), out = [];

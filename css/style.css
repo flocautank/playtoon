@@ -159,7 +159,7 @@ main{position:fixed;inset:var(--nav-h) 0 0 0}
 .sf-upg.no{opacity:.5}
 .sf-tip{position:fixed;z-index:200;box-shadow:0 8px 24px rgba(0,0,0,.5);background:#0a0c16;border:1px solid var(--line);border-radius:10px;padding:8px 10px;max-width:260px;font-size:12px;pointer-events:none}
 .sf-tip b{font-size:13px}
-.sf-meta-tree{position:relative;min-height:520px}
+.sf-meta-tree{position:relative;min-height:960px}
 .sf-bb{display:flex;flex-direction:column;gap:6px;margin-top:10px;padding-top:6px;border-top:1px solid var(--line)}
 .sf-node{position:absolute;width:62px;height:62px;border-radius:50%;background:var(--panel);border:2px solid var(--line);display:flex;align-items:center;justify-content:center;flex-direction:column;font-size:20px;transform:translate(-50%,-50%);z-index:2}
 .sf-node small{font-size:10px;color:var(--muted)}
@@ -530,3 +530,94 @@ body[data-tab=blocks] .pt-toasts{bottom:auto;top:calc(env(safe-area-inset-top, 0
   #nb-root .nb-boss{top:84px;font-size:15px}
   #nb-root.bossing .nb-msg{top:140px}
 }
+
+/* ======================================================================================================
+   Nova Foundry — habillage « atlas céleste » (2026-10-05) : planche d'atlas ancien, filets et cartouches dorés
+   gravés sur bleu nuit, petites capitales gravées (IM Fell English SC), texte Alegreya Sans, chiffres Young Serif.
+   Polices embarquées : js/forge-fonts.js. Pas d'arrondis « appli » : des cadres à double filet.
+   ====================================================================================================== */
+#tab-forge{--ink:#0b1028;--deep:#0e1534;--gilt:#b89755;--gold2:#f3d48a;--paper:#efe2bf;--sepia:#b0a27d;--novae:#c9a8ff;
+  --title:'NF Title',Georgia,serif;--txt:'NF Text','Segoe UI',system-ui,sans-serif;--numf:'NF Num',Georgia,serif;
+  background:radial-gradient(circle at 28% 42%,#1c2a5c 0,#0b1028 58%,#070a1a 100%);color:var(--paper);font-family:var(--txt)}
+#tab-forge .muted{color:var(--sepia)}
+#tab-forge .sf-dust{font:400 46px/1.05 var(--numf);color:var(--gold2);text-shadow:0 0 22px rgba(243,212,138,.3);font-variant-numeric:lining-nums}
+#tab-forge .sf-dust small{font:400 19px var(--title);color:var(--sepia);margin-left:4px}
+#tab-forge .sf-rate{font:500 16px var(--txt);letter-spacing:.06em;color:#c9b98f}
+#tab-forge .sf-buffs span{border-radius:0;background:var(--deep);border:1px solid var(--gilt);font:500 13px var(--txt);color:var(--gold2)}
+#tab-forge .sf-prestige{background:rgba(12,18,48,.9);border:1px solid var(--gilt);border-radius:0;outline:1px solid rgba(184,151,85,.35);outline-offset:4px}
+#tab-forge .sf-prestige b{font:400 21px var(--title);color:var(--gold2)}
+#tab-forge .nova{color:var(--novae)}
+#tab-forge .btn{border-radius:2px;font-family:var(--title);font-weight:400;letter-spacing:.04em;text-transform:none;color:var(--ink);background:linear-gradient(#f6dc9a,#c99a45);box-shadow:0 0 0 1px var(--ink),0 0 0 2px #c99a45}
+#tab-forge .btn.ghost{background:transparent;color:var(--gold2);box-shadow:0 0 0 1px var(--gilt)}
+#tab-forge .btn:disabled{filter:grayscale(.7) brightness(.7)}
+#tab-forge .nova-btn{background:linear-gradient(#e5d2ff,#9a6ae0);color:#170a33;box-shadow:0 0 0 1px var(--ink),0 0 0 2px #9a6ae0}
+#tab-forge .sf-right{background:linear-gradient(#0e1534,#0b1029);border-left:1px solid rgba(184,151,85,.4)}
+#tab-forge .sf-tabs{border-bottom:1px solid rgba(184,151,85,.35)}
+#tab-forge .sf-tabs button{font:400 17px var(--title);color:#9e8f6b;letter-spacing:.02em}
+#tab-forge .sf-tabs button.on{color:var(--gold2);border-bottom-color:var(--gold2)}
+#tab-forge .sf-tabs button.badge::after{color:var(--gold2);content:'✦'}
+#tab-forge .sf-buy-mult button{border-radius:0;background:transparent;border:1px solid rgba(184,151,85,.5);color:var(--sepia);font:500 13px var(--txt)}
+#tab-forge .sf-buy-mult button.on{background:var(--gold2);color:var(--ink);border-color:var(--gold2)}
+#tab-forge .sf-item{border-radius:0;background:linear-gradient(90deg,rgba(184,151,85,.07),transparent 70%);border:1px solid rgba(184,151,85,.55);outline:1px solid rgba(184,151,85,.18);outline-offset:3px;margin:3px 3px 4px}
+#tab-forge .sf-item.can{border-color:var(--gold2);background:linear-gradient(90deg,rgba(243,212,138,.14),transparent 75%)}
+#tab-forge .sf-item.can:hover{border-color:#fff1c8}
+#tab-forge .sf-item .ic{border-radius:50%;background:transparent!important;border:1px solid var(--gilt);font-size:20px}
+#tab-forge .sf-item .mid b{font:400 18px var(--title);color:#f3e3b8;letter-spacing:.01em}
+#tab-forge .sf-item .mid span{font:400 13.5px var(--txt);color:var(--sepia)}
+#tab-forge .sf-item .rt b{font:400 24px var(--numf);color:var(--gold2)}
+#tab-forge .sf-item .rt span{font:500 13px var(--txt);color:#d6b874}
+#tab-forge .sf-h{font:400 15px var(--title);letter-spacing:.06em;color:var(--sepia);text-transform:none;border-bottom:1px solid rgba(184,151,85,.3);padding-bottom:3px}
+#tab-forge .sf-upg{border-radius:0;background:var(--deep);border:1px solid rgba(184,151,85,.45)}
+#tab-forge .sf-upg small{font:500 11px var(--txt);color:var(--gold2)}
+#tab-forge .sf-upg.can{border-color:var(--gold2);box-shadow:inset 0 0 0 1px rgba(243,212,138,.4)}
+#tab-forge .sf-utag{color:var(--gold2);font-family:var(--title)}
+#tab-forge .sf-meta-tree{background:radial-gradient(circle at 50% 45%,rgba(28,42,92,.6),transparent 70%)}
+#tab-forge .sf-node{background:var(--ink);border:1px solid var(--gilt);box-shadow:0 0 0 3px var(--ink),0 0 0 4px rgba(184,151,85,.35)}
+#tab-forge .sf-node small{font:500 11px var(--txt);color:var(--sepia)}
+#tab-forge .sf-node.can{border-color:var(--gold2);box-shadow:0 0 0 3px var(--ink),0 0 0 4px var(--gold2),0 0 18px rgba(243,212,138,.4)}
+#tab-forge .sf-node.owned{background:radial-gradient(circle,#3a2f14,#16122a);border-color:var(--gold2)}
+#tab-forge .sf-node.owned::after{background:var(--gold2);color:var(--ink)}
+#tab-forge .sf-ch{border-radius:0;background:var(--deep);border:1px solid rgba(184,151,85,.5)}
+#tab-forge .sf-ch .mid b{font:400 18px var(--title)}
+#tab-forge .sf-ach div{border-radius:50%;background:var(--deep);border:1px solid rgba(184,151,85,.25)}
+#tab-forge .sf-ach div.got{background:radial-gradient(circle,#3a2f14,#16122a);border-color:var(--gold2)}
+#tab-forge .sf-chal{border-radius:0;background:#1b1238;border-color:var(--novae)}
+#tab-forge .toast{border-radius:0;background:rgba(11,16,40,.95);border:1px solid var(--gilt);color:var(--gold2);font-family:var(--txt)}
+#tab-forge .overlay .card{border-radius:0;background:var(--ink);border:1px solid var(--gilt);outline:1px solid rgba(184,151,85,.35);outline-offset:5px;color:var(--paper)}
+#tab-forge .overlay h2{font:400 28px var(--title);color:var(--gold2)}
+.sf-tip{border-radius:0;background:#0b1028;border-color:#b89755;color:#efe2bf;font-family:'NF Text',system-ui,sans-serif}
+.sf-tip b{font-family:'NF Title',Georgia,serif;font-weight:400;font-size:15px;color:#f3d48a}
+@media (max-width:760px){#tab-forge .sf-dust{font-size:32px}#tab-forge .sf-item .mid b{font-size:16px}#tab-forge .sf-item .rt b{font-size:20px}#tab-forge .sf-tabs button{font-size:14px}}
+
+/* ---------- Block Quarry 1.4 : polices de la carrière (tous thèmes) et habillage « Carrière » (thème par défaut) */
+#tab-blocks .bp-stat b{font-family:'BQ Display',system-ui,sans-serif;font-weight:400;letter-spacing:.02em}
+#tab-blocks .bp-stat small,#tab-blocks .bp-boost small,#tab-blocks .bp-lv small{font-family:'BQ Label',system-ui,sans-serif;font-weight:800;letter-spacing:.18em}
+#tab-blocks .card h2,#tab-blocks #bp-final{font-family:'BQ Display',system-ui,sans-serif;font-weight:400;letter-spacing:.02em}
+#tab-blocks .bp-lv{font-family:'BQ Display',system-ui,sans-serif;font-weight:400}
+#bp-score.bump{animation:bpBump .28s cubic-bezier(.3,1.8,.5,1)}
+@keyframes bpBump{0%{transform:scale(1)}40%{transform:scale(1.22);color:#ffe9a8}100%{transform:scale(1)}}
+.bp-stat b{display:inline-block}
+.bp-statsline{color:#e8d3b0;font-family:'BQ Label',system-ui,sans-serif;font-weight:600;letter-spacing:.06em;font-size:15px;margin:2px 0 8px}
+#tab-blocks[data-style=stone] .bp-stat{background:linear-gradient(180deg,#5b4533,#3a2b20);border:1px solid rgba(255,225,180,.22);box-shadow:inset 0 1px 0 rgba(255,235,200,.18),inset 0 -2px 0 rgba(0,0,0,.35),0 3px 8px rgba(0,0,0,.35);border-radius:10px}
+#tab-blocks[data-style=stone] .bp-stat small{color:#d9b98a}
+#tab-blocks[data-style=stone] .bp-stat b{color:#fff1d6;text-shadow:0 2px 0 #26140c}
+#tab-blocks[data-style=stone] .bp-top .btn.ghost{background:linear-gradient(180deg,#4a3828,#2e2219);border:1px solid rgba(255,225,180,.2);color:#f3dcb4}
+#tab-blocks[data-style=stone] .bp-coins{background:linear-gradient(180deg,#2a1f18,#1a130e);border:1px solid rgba(255,210,77,.3);color:#ffd24d;font-family:'BQ Display',system-ui,sans-serif;font-weight:400}
+#tab-blocks[data-style=stone] .bp-boost button{background:linear-gradient(180deg,#6b5038,#43301f);border:1px solid rgba(255,225,180,.25);box-shadow:inset 0 1px 0 rgba(255,235,200,.22),0 3px 0 #23170e}
+#tab-blocks[data-style=stone] .bp-boost button.on{background:linear-gradient(180deg,#d9822b,#9a4f14);box-shadow:inset 0 1px 0 rgba(255,235,200,.3),0 3px 0 #4a2207,0 0 14px rgba(255,150,60,.6)}
+#tab-blocks[data-style=stone] .bp-boost button svg{width:24px;height:24px;display:block}
+#tab-blocks[data-style=stone] .card{background:linear-gradient(180deg,#3b2d24,#231a14);border:2px solid #7a5f45;box-shadow:inset 0 1px 0 rgba(255,225,180,.2),inset 0 0 0 4px rgba(0,0,0,.25),0 18px 50px rgba(0,0,0,.6);color:#f3e3c6}
+#tab-blocks[data-style=stone] .card h2{color:#ffe0a3;text-shadow:0 2px 0 #26140c}
+#tab-blocks[data-style=stone] .card .muted{color:#cdb48f}
+#tab-blocks[data-style=stone] .card .btn:not(.ghost):not(.bp-vid):not(.bp-daily){background:linear-gradient(180deg,#e08a32,#a8561a);box-shadow:inset 0 1px 0 rgba(255,235,200,.35),0 3px 0 #4a2207;color:#fff8ea}
+#tab-blocks[data-style=stone] .card .btn.ghost{background:linear-gradient(180deg,#4a3828,#2e2219);border:1px solid rgba(255,225,180,.2);color:#f3dcb4}
+#tab-blocks[data-style=stone] .bp-lv{background:linear-gradient(180deg,#6b5038,#43301f);box-shadow:inset 0 1px 0 rgba(255,235,200,.2),0 3px 0 #23170e;color:#fff1d6}
+#tab-blocks[data-style=stone] .bp-lv.cur{background:linear-gradient(180deg,#e08a32,#a8561a);box-shadow:inset 0 1px 0 rgba(255,235,200,.35),0 3px 0 #4a2207,0 0 16px rgba(255,150,60,.5)}
+#tab-blocks[data-style=stone] .bp-lv.lock{background:linear-gradient(180deg,#3a2e26,#28201a);opacity:.7}
+#tab-blocks[data-style=stone] .bp-lv small{color:#ffd24d}
+#tab-blocks[data-style=stone] .bp-stars{color:#ffd24d}
+#tab-blocks[data-style=stone] .bp-stars i{color:#4a3a2e}
+#tab-blocks[data-style=stone] .bp-th{background:#2a201a;border-color:#5b4533}
+.bp-boost button svg{width:22px;height:22px;display:block}
+.bp-coins svg.bp-coin{width:18px;height:18px;vertical-align:-3px;display:inline-block}
+@media (max-width:600px){#tab-forge .sf-node{width:46px;height:46px;font-size:16px;box-shadow:0 0 0 2px var(--ink),0 0 0 3px rgba(184,151,85,.35)}#tab-forge .sf-node small{font-size:9px}#tab-forge .sf-meta-tree{min-height:880px}#tab-forge .sf-node.owned::after{width:14px;height:14px;font-size:9px}}

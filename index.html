@@ -74,16 +74,17 @@
       </div>
       <canvas id="bp-canvas"></canvas>
       <div class="bp-boost" id="bp-boost">
-        <span class="bp-coins">🪙 <b id="bp-coins">0</b></span>
-        <button data-tool="hammer" data-i18n-title="bp.hammerTip">🔨<small>15</small></button>
-        <button data-tool="bomb" data-i18n-title="bp.bombTip">💣<small>30</small></button>
-        <button data-tool="shuffle" data-i18n-title="bp.shuffleTip">🔀<small>20</small></button>
+        <span class="bp-coins"><svg viewBox="0 0 24 24" class="bp-coin" aria-hidden="true"><circle cx="12" cy="12" r="9.5" fill="#e0a93a" stroke="#5a3a0c" stroke-width="1.4"/><circle cx="12" cy="12" r="6.6" fill="#ffd24d" stroke="#b07a1c" stroke-width="1.2"/><path d="M9 9.5h6l-1.6 5h-2.8z" fill="#b07a1c"/></svg> <b id="bp-coins">0</b></span>
+        <button data-tool="hammer" data-i18n-title="bp.hammerTip"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5 9.5 4 19a1.6 1.6 0 0 0 2.3 2.3l9.5-9.5" fill="#c9a26b" stroke="#3a2412" stroke-width="1.3"/><path d="M10.5 4.5 15 2l7 7-2.5 4.5z" fill="#9aa3b5" stroke="#2a2f3a" stroke-width="1.3" stroke-linejoin="round"/><path d="M12 5.2 15.2 3l5.6 5.6-1.2 2.2z" fill="#d7dde8"/></svg><small>15</small></button>
+        <button data-tool="bomb" data-i18n-title="bp.bombTip"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="9" width="4.2" height="12" rx="1.2" fill="#e0483a" stroke="#4a120c" stroke-width="1.2"/><rect x="9.9" y="9" width="4.2" height="12" rx="1.2" fill="#e85a3f" stroke="#4a120c" stroke-width="1.2"/><rect x="14.8" y="9" width="4.2" height="12" rx="1.2" fill="#e0483a" stroke="#4a120c" stroke-width="1.2"/><rect x="4.4" y="13" width="15.2" height="2.6" fill="#3a2412"/><path d="M12 9c0-3 2-4 4-5" fill="none" stroke="#3a2412" stroke-width="1.4"/><circle cx="16.6" cy="3.6" r="2" fill="#ffd24d"/><circle cx="16.6" cy="3.6" r="1" fill="#fff6c8"/></svg><small>30</small></button>
+        <button data-tool="shuffle" data-i18n-title="bp.shuffleTip"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h4c4 0 6 10 10 10h3" fill="none" stroke="#f3dcb4" stroke-width="2.4" stroke-linecap="round"/><path d="M3 17h4c1.6 0 2.8-1.6 3.8-3.6M13.2 9.6C14.2 8 15.4 7 17 7h3" fill="none" stroke="#f3dcb4" stroke-width="2.4" stroke-linecap="round"/><path d="m18 4 3 3-3 3M18 14l3 3-3 3" fill="none" stroke="#f3dcb4" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><small>20</small></button>
       </div>
       <div class="overlay hidden" id="bp-over">
         <div class="card">
           <h2 id="bp-overtitle" data-i18n="bp.overTitle">No more room!</h2>
           <p><span data-i18n="bp.finalScore">Score:</span> <b id="bp-final">0</b></p>
           <p class="muted" id="bp-newbest"></p>
+          <p class="small bp-statsline" id="bp-stats"></p>
           <ol class="bp-top10 hidden" id="bp-top10"></ol>
           <button class="btn ghost" id="bp-cont" data-i18n="bp.contBooster">🔨 Continue with a booster</button>
           <button class="btn bp-vid hidden" id="bp-vidcont" data-i18n="app.watchCont">▶</button>
@@ -102,7 +103,7 @@
       </div>
       <div class="overlay hidden" id="bp-themes">
         <div class="card wide">
-          <h2><span data-i18n="bp.themes">Themes</span> <span class="bp-coins">🪙 <b id="bp-thcoins">0</b></span></h2>
+          <h2><span data-i18n="bp.themes">Themes</span> <span class="bp-coins"><svg viewBox="0 0 24 24" class="bp-coin" aria-hidden="true"><circle cx="12" cy="12" r="9.5" fill="#e0a93a" stroke="#5a3a0c" stroke-width="1.4"/><circle cx="12" cy="12" r="6.6" fill="#ffd24d" stroke="#b07a1c" stroke-width="1.2"/><path d="M9 9.5h6l-1.6 5h-2.8z" fill="#b07a1c"/></svg> <b id="bp-thcoins">0</b></span></h2>
           <p class="muted small" data-i18n="bp.themesHelp"></p>
           <div class="bp-thgrid" id="bp-thgrid"></div>
           <button class="btn bp-vid hidden" id="bp-vidcoins">▶</button>
