@@ -325,9 +325,14 @@ et hors ligne.
 | Constellation | 14 nœuds, 1 109 Novae, finie à la 2e Supernova | 34 nœuds (coûts 1 → 500 000), 2 forges débloquées par la méta, Maîtrise stellaire répétable |
 | Améliorations achetées après 2 min, partie 2 / 3 / 4 | 66 / 76+ / tout | voir les mesures dans BACKLOG |
 
+**1.5.0** : élan de forge (+10 % par forge possédée d'un type tiré au sort, 30 s — le « bâtiment spécial » de Cookie
+Clicker) ; comète sombre après la 1re Supernova (12 %, ignorée par le filet automatique) : écho ×15, perte de 5 % de la
+poussière ou trou noir (clics ×100) ; multiplicateur cumulé affiché quand plusieurs effets se superposent ; cinématique
+de Supernova (effondrement, éclair, onde de choc, renaissance).
+
 Écarts restants (classés) : arbre de 80–120 nœuds avec choix exclusifs, contenu de partie (forges 13–15, synergies,
-paliers jusqu'à 500), 150+ succès qui nourrissent un multiplicateur, événements (Dark comet, Forge Surge, codex),
-jus (cinématique de Supernova, chiffres qui roulent, ETA), couche quotidienne (Stardrops, mini-jeu), Big Bang qui
+paliers jusqu'à 500), 150+ succès qui nourrissent un multiplicateur, codex des événements,
+jus (chiffres qui roulent, ETA), couche quotidienne (Stardrops, mini-jeu), Big Bang qui
 débloque des systèmes, saisons, défis à paliers.
 
 ## Synth Horde — retour de partie du propriétaire (2026-10-05) → 1.13.0

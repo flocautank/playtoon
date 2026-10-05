@@ -203,7 +203,7 @@ function globalMult() {
   if (S.eng && !S.chal) m *= Math.pow(1.25, S.eng);
   if (inChal('c_dim')) m *= 0.1;
   if (boostOn()) m *= 2;   // vidéo « ×2 pendant 4 h » ou achat « Moteur éternel » (application)
-  for (const b of S.buffs) { if (b.type === 'frenzy') m *= 7; else if (b.type === 'meteor') m *= 77; else if (b.type === 'eclipse') m *= has('m_eclipse') ? 6 : 2; }
+  for (const b of S.buffs) m *= buffMult(b);
   return m;
 }
 function baseDps() { let d = 0; GENS.forEach((g, i) => d += S.gens[i] * g.prod * genMult(i)); return d; }
@@ -219,7 +219,7 @@ function clickValue() {
   let pct = 0; for (const u of UPGRADES) if (S.upg[u.id] && u.fx.clickPct) pct += u.fx.clickPct;
   if (has('m_click2')) pct += 0.02;
   c = c * (1 + effNova() * 0.03) + dps() * pct;
-  for (const b of S.buffs) if (b.type === 'click') c *= 777;
+  for (const b of S.buffs) if (b.type === 'click') c *= 777; else if (b.type === 'void') c *= 100;
   return c;
 }
 const growth = () => inChal('c_infl') ? 1.25 : (has('m_econ') ? 1.14 : 1.15) - (chalDone('c_infl') ? 0.005 : 0);
@@ -240,6 +240,8 @@ const novaMult = () => (has('m_crunch') ? 2 : 1) * (has('m_crunch2') ? 1.5 : 1) 
 const novaCurve = tot => (tot <= NOVA.x ? Math.cbrt(Math.max(0, tot) / NOVA.d) : Math.cbrt(NOVA.x / NOVA.d) * Math.pow(tot / NOVA.x, 1 / NOVA.r)) * novaMult();
 function novaGainAt(total) { const b = S.snBase || 0; return Math.max(0, Math.floor(novaCurve(b + total)) - Math.floor(novaCurve(b))); }
 function novaGain() { if (S.chal) return 0; return novaGainAt(S.runTotal); }
+// multiplicateur de production d'un effet en cours (les clics ×777 / ×100 sont comptés dans clickValue)
+function buffMult(b) { return b.type === 'frenzy' ? 7 : b.type === 'meteor' ? 77 : b.type === 'eclipse' ? (has('m_eclipse') ? 6 : 2) : b.type === 'echo' ? 15 : b.type === 'surge' ? b.m : 1; }
 function luck() { let l = 1; for (const u of UPGRADES) if (S.upg[u.id] && u.fx.luck) l += u.fx.luck; if (has('m_comet')) l *= 2; if (has('m_shower')) l *= 1.5; if (has('m_lucky')) l *= 1.5; if (chalDone('c_rush')) l *= 1.25; return l; }
 
 // ---------- monétisation (application Android uniquement ; sur le web, PT_MON n'existe pas) ----------
@@ -381,9 +383,9 @@ async function prestige() {
   const g = novaGain();
   if (g < 1) return;
   const warn = g <= 3 ? t('sf.snWarn', { n: novaGainAt(S.runTotal * 4) }) : '';
-  if (!await ptConfirm(t('sf.snConfirm', { g: fmt(g), n: g, pct: Math.round((soft(S.novaTotal + g, 500) - effNova()) * novaPct() * 100), warn }), t('sf.snOk'))) return;
+  if (!await ptConfirm(t('sf.snConfirm', { g: fmt(g), n: g, pct: Math.round((soft(S.novaTotal + g, NOVA.cap) - effNova()) * novaPct() * 100), warn }), t('sf.snOk'))) return;
   resetRun({ novaTotal: S.novaTotal + g, novaBank: S.novaBank + g, prestiges: S.prestiges + 1 });
-  flash = 1;
+  snAnim = 1.8; snBoom = false;
   sfx(110, 1.2, 'sawtooth', 0.08);
   toast(t('sf.snToast', { n: g }));
   checkAch(); save(); refresh(true);
@@ -395,7 +397,8 @@ const buffDur = () => (has('m_long') ? 2 : 1) * (chalDone('c_rush') ? 1.25 : 1);
 function spawnComet() {
   const fromLeft = Math.random() < 0.5;
   const meteor = Math.random() < 0.08 * luck() * (has('m_meteor') ? 2 : 1);   // rare, plus fréquent avec la Chance
-  comet = { meteor, x: fromLeft ? -0.1 : 1.1, y: 0.15 + Math.random() * 0.5, vx: (fromLeft ? 1 : -1) * (0.05 + Math.random() * 0.03) / (0.8 + luck() * 0.2), vy: 0.01 * (Math.random() - 0.5), t: 0 };
+  const dark = !meteor && (S.prestiges || 0) >= 1 && Math.random() < 0.12;   // comète sombre : bonus fort ou perte, au choix du joueur
+  comet = { meteor, dark, x: fromLeft ? -0.1 : 1.1, y: 0.15 + Math.random() * 0.5, vx: (fromLeft ? 1 : -1) * (0.05 + Math.random() * 0.03) / (0.8 + luck() * 0.2), vy: 0.01 * (Math.random() - 0.5), t: 0 };
 }
 function catchComet() {
   window.ptEvent && window.ptEvent('sf_comets', 1);
@@ -403,16 +406,24 @@ function catchComet() {
   const r = Math.random();
   if (comet.meteor) {
     const md = 7 * buffDur() * (has('m_meteor') ? 2 : 1); S.buffs.push({ type: 'meteor', t: md, max: md }); toast(t('sf.meteorT', { s: md })); flash = 0.5;
-  } else if (r < 0.45) {
+  } else if (comet.dark) {
+    if (r < 0.5) { const d = 20 * buffDur(); S.buffs.push({ type: 'echo', t: d, max: d }); toast(t('sf.echoT', { s: d })); flash = 0.6; }
+    else if (r < 0.8) { const v = Math.min(S.dust * 0.05, dps() * 1800); S.dust -= v; toast(t('sf.drainT', { v: fmt(v) })); }
+    else { const d = 10 * buffDur(); S.buffs.push({ type: 'void', t: d, max: d }); toast(t('sf.voidT', { s: d })); }
+  } else if (r < 0.42) {
     const v = (Math.min(S.dust * 0.15, dps() * 900) + 13) * (has('m_shower') ? 3 : 1);
     earn(v); toast(t('sf.goldRain', { v: fmt(v) }));
+  } else if (r < 0.9 && r >= 0.78 && S.gens.some((n, i) => n > 0 && !GENS[i].meta)) {
+    // élan de forge (le « bâtiment spécial » de Cookie Clicker) : +10 % par forge possédée d'un type tiré au sort
+    const own = S.gens.map((n, i) => [n, i]).filter(([n, i]) => n > 0), [n, i] = own[(Math.random() * own.length) | 0], d = 30 * buffDur(), m = 1 + n * 0.1;
+    S.buffs.push({ type: 'surge', t: d, max: d, m, g: i }); toast(t('sf.surgeT', { gen: GENS[i].name, m: fmt(m), s: d }));
   } else if (r < 0.85) {
     S.buffs.push({ type: 'frenzy', t: 60 * buffDur(), max: 60 * buffDur() }); toast(t('sf.frenzyT', { s: 60 * buffDur() }));
   } else {
     S.buffs.push({ type: 'click', t: 13 * buffDur(), max: 13 * buffDur() }); toast(t('sf.strikeT', { s: 13 * buffDur() }));
   }
   sfx(1200, 0.3, 'sine', 0.1); sfx(1600, 0.3, 'sine', 0.08);
-  for (let k = 0; k < 40; k++) parts.push({ x: comet.x * cw, y: comet.y * ch, vx: (Math.random() - .5) * 8, vy: (Math.random() - .5) * 8, life: 1, col: comet.meteor ? '#d9a8ff' : '#ffd84d', s: 3 });
+  for (let k = 0; k < 40; k++) parts.push({ x: comet.x * cw, y: comet.y * ch, vx: (Math.random() - .5) * 8, vy: (Math.random() - .5) * 8, life: 1, col: comet.dark ? '#7a3cff' : comet.meteor ? '#d9a8ff' : '#ffd84d', s: 3 });
   comet = null; nextComet = (60 + Math.random() * 120) / luck();
   refresh(true);
 }
@@ -432,6 +443,7 @@ function sfx(f, d = 0.05, type = 'sine', v = 0.05) {
 
 // ---------- rendu de l'étoile ----------
 const cv = $('sf-canvas'), cx2 = cv.getContext('2d');
+let snAnim = 0, snBoom = false;
 let cw = 0, ch = 0, dpr = 1, pulse = 0, flash = 0, parts = [], floats = [], bgStars = [];
 function resizeStar() {
   const r = cv.getBoundingClientRect(); if (!r.width) return;
@@ -445,7 +457,14 @@ function drawStar(dt, time) {
   const c = cx2; c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, cw, ch);
   bgStars.forEach(s => { c.globalAlpha = 0.3 + 0.3 * Math.sin(time * 1.5 + s.p); c.fillStyle = '#fff'; c.fillRect(s.x, s.y, s.s, s.s); });
   c.globalAlpha = 1;
-  const X = cw / 2, Y = ch / 2, R = starR() * (1 + pulse * 0.08);
+  // Supernova : effondrement (0,6 s), éclair, puis l'étoile renaît pendant que l'onde de choc s'étend
+  let snK = -1, snScale = 1;
+  if (snAnim > 0) {
+    snAnim = Math.max(0, snAnim - dt); snK = 1 - snAnim / 1.8;
+    snScale = snK < 0.33 ? 1 - Math.pow(snK / 0.33, 2) * 0.82 : 0.18 + (1 - Math.pow(1 - (snK - 0.33) / 0.67, 3)) * 0.82;
+    if (!snBoom && snK >= 0.33) { snBoom = true; flash = 1; sfx(55, 1.4, 'sawtooth', 0.09); for (let k = 0; k < 90; k++) { const a = Math.random() * 6.3, v = 3 + Math.random() * 9; parts.push({ x: cw / 2, y: ch / 2, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 1.4, col: ['#fff4d0', '#f3d48a', '#9fc7ff', '#ffffff'][k % 4], s: 2 + Math.random() * 3 }); } }
+  }
+  const X = cw / 2, Y = ch / 2, R = starR() * (1 + pulse * 0.08) * snScale;
   pulse = Math.max(0, pulse - dt * 5);
   // couleur spectrale : jaune au début, blanc puis bleu-blanc à mesure que les Novae s'accumulent
   const sp = Math.min(1, Math.log10(1 + S.novaTotal) / 4), hue = sp < 0.5 ? 44 : 215, sat = sp < 0.5 ? 100 * (1 - 2 * sp) + 8 : (sp - 0.5) * 120 + 8;   // jaune → blanc → bleu-blanc, sans passer par le vert
@@ -513,10 +532,10 @@ function drawStar(dt, time) {
   if (comet) {
     const px = comet.x * cw, py = comet.y * ch;
     const tg = c.createLinearGradient(px, py, px - comet.vx * cw * 3, py);
-    const cc = comet.meteor ? '198,139,255' : '255,216,77';
+    const cc = comet.dark ? '110,50,200' : comet.meteor ? '198,139,255' : '255,216,77';
     tg.addColorStop(0, `rgba(${cc},.85)`); tg.addColorStop(1, `rgba(${cc},0)`);
     c.strokeStyle = tg; c.lineWidth = comet.meteor ? 14 : 10; c.lineCap = 'round'; c.beginPath(); c.moveTo(px, py); c.lineTo(px - comet.vx * cw * 3, py - comet.vy * ch * 3); c.stroke();
-    c.fillStyle = comet.meteor ? '#f0dcff' : '#fff4b0'; c.shadowColor = comet.meteor ? '#c68bff' : '#ffd84d'; c.shadowBlur = 20; c.beginPath(); c.arc(px, py, 11 + Math.sin(time * 10) * 2, 0, 7); c.fill(); c.shadowBlur = 0;
+    c.fillStyle = comet.dark ? '#1a0b2e' : comet.meteor ? '#f0dcff' : '#fff4b0'; c.shadowColor = comet.dark ? '#9a5cff' : comet.meteor ? '#c68bff' : '#ffd84d'; c.shadowBlur = 20; c.beginPath(); c.arc(px, py, 11 + Math.sin(time * 10) * 2, 0, 7); c.fill(); c.shadowBlur = 0;
   }
   // particules + nombres
   parts.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += 0.1; p.life -= dt * 1.5; c.globalAlpha = Math.max(0, p.life); c.fillStyle = p.col; c.fillRect(p.x, p.y, p.s, p.s); });
@@ -525,6 +544,13 @@ function drawStar(dt, time) {
   floats.forEach(f => { f.y -= dt * 60; f.life -= dt; c.globalAlpha = Math.max(0, f.life); c.font = f.small ? "13px 'NF Num',Georgia,serif" : f.big ? "30px 'NF Num',Georgia,serif" : "19px 'NF Num',Georgia,serif"; c.fillStyle = f.col; c.fillText(f.t, f.x, f.y); });
   floats = floats.filter(f => f.life > 0);
   c.globalAlpha = 1;
+  if (snK >= 0.33) {   // onde de choc dorée, puis bleue
+    const k = (snK - 0.33) / 0.67, rr = starR() * (0.4 + k * 4.2);
+    c.save(); c.globalCompositeOperation = 'lighter'; c.lineWidth = starR() * 0.25 * (1 - k) + 1; c.strokeStyle = `rgba(243,212,138,${(1 - k) * 0.9})`; c.beginPath(); c.arc(cw / 2, ch / 2, rr, 0, 7); c.stroke();
+    c.lineWidth = 2; c.strokeStyle = `rgba(159,199,255,${(1 - k) * 0.7})`; c.beginPath(); c.arc(cw / 2, ch / 2, rr * 0.8, 0, 7); c.stroke(); c.restore();
+  } else if (snK >= 0) {   // effondrement : la lumière est aspirée
+    c.fillStyle = `rgba(0,0,10,${snK / 0.33 * 0.5})`; c.fillRect(0, 0, cw, ch);
+  }
   if (flash > 0) { c.fillStyle = `rgba(255,240,255,${flash})`; c.fillRect(0, 0, cw, ch); flash = Math.max(0, flash - dt * 0.8); }
 }
 
@@ -677,8 +703,9 @@ function refresh(structural) {
   if (tip) { if (!tip.el.isConnected) hideTip(); else tip.innerHTML = tip.fn(); }
   $('sf-dust').textContent = fmt(S.dust);
   $('sf-rate').textContent = fmt(totalDps());
-  const BN = { frenzy: [t('sf.bFrenzy'), ''], click: [t('sf.bClick'), ''], meteor: [t('sf.bMeteor'), 'met'], eclipse: [t('sf.bEclipse'), 'ecl'] };
-  $('sf-buffs').innerHTML = (eternal() ? `<span class="met">${t('sf.eternalBuff')}</span>` : boostLeft() > 0 ? `<span class="met">${t('sf.boostBuff', { t: hm(boostLeft()) })}</span>` : '') + S.buffs.map(b => `<span class="${BN[b.type][1]}">${BN[b.type][0]} · ${Math.ceil(b.t)} s</span>`).join('');
+  const BN = { frenzy: [t('sf.bFrenzy'), ''], click: [t('sf.bClick'), ''], meteor: [t('sf.bMeteor'), 'met'], eclipse: [t('sf.bEclipse'), 'ecl'], echo: [t('sf.bEcho'), 'ecl'], void: [t('sf.bVoid'), 'ecl'], surge: [null, ''] };
+  const bname = b => b.type === 'surge' ? t('sf.bSurge', { gen: GENS[b.g].name, m: fmt(b.m) }) : BN[b.type][0], stack = S.buffs.reduce((m, b) => m * buffMult(b), 1);
+  $('sf-buffs').innerHTML = (eternal() ? `<span class="met">${t('sf.eternalBuff')}</span>` : boostLeft() > 0 ? `<span class="met">${t('sf.boostBuff', { t: hm(boostLeft()) })}</span>` : '') + S.buffs.map(b => `<span class="${BN[b.type][1]}">${bname(b)} · ${Math.ceil(b.t)} s</span>`).join('') + (S.buffs.filter(b => buffMult(b) > 1).length >= 2 ? `<span class="met">${t('sf.stack', { m: fmt(stack) })}</span>` : '');
   const canAd = !!(MON() && MON().canReward());
   $('sf-adboost').classList.toggle('hidden', !canAd || eternal() || boostLeft() > (BOOST_MAX_H - BOOST_H) * 3600e3);
   $('sf-adboost').textContent = boostLeft() > 0 ? t('sf.adBoostMore') : t('sf.adBoost');
@@ -812,7 +839,7 @@ function tick(dt) {
     if (gal('g_upg') && !inChal('c_noupg')) for (const u of UPGRADES) if (!S.upg[u.id] && u.req(S) && upgCost(u) <= S.dust) { S.dust -= upgCost(u); S.upg[u.id] = 1; }
   }
   if (comet && gal('g_comet') && comet.t === undefined) comet.t = 0;
-  if (comet && gal('g_comet') && (comet.t += dt) > 1.2) catchComet();
+  if (comet && gal('g_comet') && !comet.dark && (comet.t += dt) > 1.2) catchComet();
   if (!comet) { nextComet -= dt; if (nextComet <= 0 && visible && !inChal('c_dim')) spawnComet(); }
   else { comet.x += comet.vx * dt; comet.y += comet.vy * dt; if (comet.x < -0.2 || comet.x > 1.2) { comet = null; nextComet = (60 + Math.random() * 120) / luck(); } }
 }
