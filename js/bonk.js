@@ -463,7 +463,9 @@ const keys = {};
 const dummy = new THREE.Object3D();
 const tmpC = new THREE.Color();
 let TOUCH = matchMedia('(pointer:coarse)').matches;
-const DR = { pr: 1, acc: 0, n: 0 };   // résolution dynamique (téléphones)
+const DR = { pr: 1, acc: 0, n: 0 };
+const qual = () => META.quality || (TOUCH ? 'med' : 'high');
+const qCap = () => Math.min(devicePixelRatio || 1, { low: 1, med: 1.5, high: 2 }[qual()] || 1.5);   // résolution dynamique (téléphones)
 
 // terrain paramétré par run
 // Relief en terrasses (retour de partie 2026-10-05 : « plus de verticalité, des étages, ne pas voir toute la carte ») :
@@ -503,9 +505,9 @@ function init() {
   loadFonts();
   const canvas = $('nb-canvas');
   // téléphone : pas d'anticrénelage, et une résolution dynamique (0,75–1) pilotée par la durée des images (voir dynRes)
-  renderer = new THREE.WebGLRenderer({ canvas, antialias: !TOUCH, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(TOUCH ? Math.min(devicePixelRatio || 1, 1) : Math.min(devicePixelRatio || 1, 1.5));
-  DR.pr = Math.min(devicePixelRatio || 1, 1);
+  // qualité graphique (pause) : basse = résolution dynamique 0,75–1 ; moyenne = jusqu'à 1,5× ; haute = jusqu'à 2× + anticrénelage (au lancement)
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: !TOUCH || META.quality === 'high', powerPreference: 'high-performance' });
+  DR.pr = qCap(); renderer.setPixelRatio(DR.pr);
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(70, 1, 0.1, 600);
   clock = new THREE.Clock();
@@ -3060,9 +3062,9 @@ function dynRes(raw) {
   if (raw > 0.25) return;   // onglet en arrière-plan, pause de l'appli : ne compte pas
   DR.acc += raw; DR.n++;
   if (DR.acc < 1) return;
-  const avg = DR.acc / DR.n, top = Math.min(1, devicePixelRatio || 1); DR.acc = 0; DR.n = 0;
+  const avg = DR.acc / DR.n, top = qCap(); DR.acc = 0; DR.n = 0;
   let pr = DR.pr;
-  if (avg > 1 / 45) pr = Math.max(0.75, pr - 0.125); else if (avg < 1 / 57) pr = Math.min(top, pr + 0.125);
+  if (avg > 1 / 45) pr = Math.max(qual() === 'low' ? 0.75 : Math.min(1, top), pr - 0.125); else if (avg < 1 / 57) pr = Math.min(top, pr + 0.125);
   if (pr !== DR.pr) { DR.pr = pr; renderer.setPixelRatio(pr); renderer.setSize(W, H, false); }
 }
 // ============================================================ manette (Gamepad API : Xbox, PlayStation, Steam Deck…)
@@ -3165,6 +3167,7 @@ function pause() {
   $('nb-autolvl').value = META.autoLvl ? '1' : '';
   $('nb-shake').checked = META.shake !== false;
   $('nb-glow').checked = META.glow !== false;
+  $('nb-quality').value = qual();
   segSelects();
   music.stop(0.3);
   if (document.pointerLockElement) document.exitPointerLock();
@@ -3391,6 +3394,7 @@ $('nb-endless').onclick = () => {
 $('nb-replay').onclick = () => MON.pause().then(() => { toMenu(); $('nb-menu').classList.add('hidden'); S = null; newRun(); clock.getDelta(); });
 $('nb-nums').onchange = e => { META.nums = e.target.value; saveMeta(); };
 $('nb-autolvl').onchange = e => { META.autoLvl = !!e.target.value; saveMeta(); };
+$('nb-quality').onchange = e => { META.quality = e.target.value; saveMeta(); DR.pr = qCap(); renderer.setPixelRatio(DR.pr); onResize(); };   // l'anticrénelage « haute » s'applique au prochain lancement
 $('nb-shake').onchange = e => { META.shake = e.target.checked; saveMeta(); };
 $('nb-glow').onchange = e => { META.glow = e.target.checked; saveMeta(); };
 if (TOUCH) $('nb-glow').parentElement.classList.add('hidden');   // pas de halo sur téléphone : réglage inutile

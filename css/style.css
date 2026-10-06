@@ -756,3 +756,12 @@ body[data-tab=blocks] #pt-cancel{background:url("data:image/svg+xml,%3Csvg xmlns
 #nb-root .nb-gold svg.nbi{width:20px;height:20px}
 #nb-root .nb-gain{color:#ff8a1a;font-weight:800}
 #nb-root .nb-build svg.nbi{width:22px;height:22px;vertical-align:-6px}#nb-root .nb-stats svg.nbi{width:18px;height:18px}
+/* ---------- Synth Horde 1.15.1 : téléphone en portrait — la plaque de vie descend au-dessus du joystick (elle cachait armes et tomes),
+   cartes de niveau compactes et défilables */
+@media (max-width:600px){
+  #nb-root .nb-plate{top:auto;bottom:calc(190px + env(safe-area-inset-bottom));left:6px;transform:scale(.58);transform-origin:bottom left}
+  #nb-root .nb-choice svg.nbi{width:1.15em;height:1.15em}
+  #nb-root #nb-choices{max-height:calc(100dvh - 210px);overflow-y:auto;overscroll-behavior:contain;padding-right:10px}
+  #nb-root .nb-choice{padding:8px 12px 10px}
+  #nb-root .nb-choice .muted.small{font-size:13px}
+}
