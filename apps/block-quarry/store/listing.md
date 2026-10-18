@@ -14,7 +14,7 @@ Graphics in this folder: `../assets/play-icon-512.png` (512×512 icon), `../asse
 **App name** (≤ 30): `Block Quarry: Gem Block Puzzle`
 
 **Short description** (≤ 80):
-`Drop blocks, clear lines, free the gems. 40 levels, daily challenge, no timer.`
+`Drop blocks, clear lines, free the gems. 60 levels, daily challenge, no timer.`
 
 **Full description** (≤ 4000):
 
@@ -52,7 +52,7 @@ Take a break, clear some lines, and dig out every gem of the quarry!
 **Nom** (≤ 30) : `Block Quarry : puzzle de blocs`
 
 **Description courte** (≤ 80) :
-`Pose les blocs, efface les lignes, libère les gemmes. 40 niveaux, défi du jour.`
+`Pose les blocs, efface les lignes, libère les gemmes. 60 niveaux, défi du jour.`
 
 **Description complète** :
 
@@ -61,7 +61,7 @@ Block Quarry est un puzzle de blocs détendant, avec une particularité : certai
 
 ★ QUATRE FAÇONS DE JOUER
 • Classique — le mode sans fin, tout en calme. Pas de chrono, pas de pression : bats ton record ligne après ligne.
-• Aventure — 40 niveaux. Libère toutes les gemmes ou efface les lignes demandées avant la fin des coups, et décroche jusqu'à 3 étoiles.
+• Aventure — 60 niveaux. Libère toutes les gemmes ou efface les lignes demandées avant la fin des coups, et décroche jusqu'à 3 étoiles.
 • Défi du jour — la même grille et les mêmes pièces pour tout le monde, chaque jour. Entretiens ta série !
 • Chrono — 2 minutes au compteur, chaque ligne rend du temps et les points grimpent au fil des secondes.
 

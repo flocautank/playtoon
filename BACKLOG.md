@@ -30,6 +30,7 @@ bugs → contenu → durée de vie → identité graphique → enrichissement. P
 - 2026-10-18 · tous · — · — · routine mise en place ; textes de Block Quarry sortis du socle commun (`fa52203`), applis vérifiées indépendantes.
 - 2026-10-18 · Block Quarry · bugs · 1.7.1 · 38 parties automatisées (classique, aventure niv. 1–40, chrono, défi), geste tactile réel, persistance, six langues : un seul défaut, « Nur noch 0 bis zum Rekord » affiché sans record ; corrigé.
 - 2026-10-18 · Nova Foundry · bugs · 1.7.1 · économie jusqu'à 1e300 sans NaN, gain hors-ligne et retour d'arrière-plan corrects ; libellé de l'onglet actif tronqué sur mobile étroit (fr/es/it) corrigé.
+- 2026-10-18 · Block Quarry · contenu · 1.8.0 · Aventure 40 → 60 niveaux : chapitres 5–6 « Galerie gelée » et « Veine glaciaire » avec un nouvel objectif, le **givre** (plaques de glace sous les pièces, brisées par une ligne effacée qui les traverse ou par marteau/bombe), carte en 6 chapitres avec étoiles par chapitre ; solveur `bp-levels` : 19–20/20 sur les niveaux 41–60 ; au passage, les ★ de la carte et des résultats n'étaient plus affichées (filtre des emoji) — corrigé.
 - 2026-10-18 · Synth Horde · bugs · 1.15.2 · 9 runs aléatoires + une run complète jusqu'à la victoire sans erreur ni NaN, six langues sans débordement ; l'annonce (« Survive… », boss) restait lisible par-dessus l'écran de niveau/pause (minuteur gelé) : masquée. Le test du joystick du smoke a échoué une fois sur trois (11,5 / 0), non reproduit ensuite : à surveiller.
 
 ## Synth Horde vs Megabonk
@@ -309,7 +310,7 @@ toujours jouables, reprise garantie, pubs plafonnées et facultatives, niveaux c
 | G6 | Bips d'un oscillateur | moyen-haut | ✅ banque procédurale : « toc » de pierre, éboulement filtré, accord pentatonique qui monte avec le combo, cloche des gemmes, fanfare |
 | G10 | Prise en main sèche | moyen | ✅ agrandissement de 90 ms, ombre portée, aperçu pointillé, contour rouge si ça ne rentre pas, petit son à chaque case |
 | G11 | Place perdue sur mobile, grille collée au bord | moyen | ✅ mise en page recalculée (bandeau + cadre + grille + plateau), marges de 12 px, pièces du plateau à 0,8 case |
-| G7 | Aventure courte (40 niveaux), deux objectifs | moyen-haut | à faire — génération ouverte, couleurs à collecter, glace, caisses, chapitres de 10 |
+| G7 | Aventure courte (40 niveaux), deux objectifs | moyen-haut | ✅ en partie, 1.8.0 — 60 niveaux en 6 chapitres de 10 (en-têtes et étoiles par chapitre sur la carte), troisième objectif « givre » (plaques de glace au sol, brisées par une ligne effacée ou un booster) aux niveaux 41–60 ; reste : couleurs à collecter, caisses, génération ouverte |
 | G8 | Défi du jour sans objectif ni calendrier ni partage ; et il ne finissait jamais (bienveillance des tirages permanente : un glouton atteignait 400 coups) | moyen | ✅ 1.5.0 — bienveillance qui s'estompe après 150 pièces comme en classique ; objectifs ★ 500 / ★★ 1 500 / ★★★ 3 000 (glouton sur 30 graines : médiane 1 360, p90 3 029), barre vers l'étoile suivante, calendrier du mois, trophée à 20 jours étoilés, partage (feuille du système ou presse-papiers) |
 | G9 | Scores petits (≈ 700) | moyen | à faire — ×10 avec migration des records |
 | G13–G16 | Événement hebdomadaire, thèmes en plus, Chrono plus lisible, monétisation | bas | à faire |

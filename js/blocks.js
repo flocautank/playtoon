@@ -43,7 +43,9 @@ if (!THEME.owned.includes('quarry')) { THEME.owned.unshift('quarry'); if (THEME.
 const saveTheme = () => { try { localStorage.setItem('blocparty.themes', JSON.stringify(THEME)); } catch (e) {} };
 const curTheme = () => THEMES.find(t => t.id === THEME.cur) || THEMES[0];
 const tc = c => { const i = COLORS.indexOf(c); return i >= 0 ? curTheme().pal[i] : c; };
-const LEVELS = 40;
+const LEVELS = 60;   // 6 chapitres de 10 ; le givre arrive au chapitre 5 (niveau 41)
+const ICE_LVL = 41;
+const CHAPTER = 10;
 // Générateur déterministe : un niveau d'aventure a toujours la même grille et les mêmes pièces.
 function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 let rnd = Math.random;
@@ -67,12 +69,13 @@ const BQI = {   // glyphes d'une seule couleur, « frappés » dans la pierre (r
   '🔨': '<path d="M13.5 9.5L4.2 18.8a1.6 1.6 0 0 0 2.3 2.3l9.3-9.3" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M10.5 4.5L15 2l7 7-2.5 4.5z"/>',
   '🏆': '<path d="M7 3h10v5a5 5 0 0 1-10 0z"/><path d="M7 5H4c0 3 1.5 4.5 3.5 4.5M17 5h3c0 3-1.5 4.5-3.5 4.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M10.5 13h3l.8 4h-4.6zM7 18h10v3H7z"/>',
   '📤': '<path d="M12 3v11M8 7l4-4 4 4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 12v7h14v-7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>',
+  '❄': '<path d="M12 2v20M3.3 7l17.4 10M3.3 17L20.7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M9.6 3.6L12 6l2.4-2.4M9.6 20.4L12 18l2.4 2.4M4 10.3l3.3-.9-.9-3.3M20 13.7l-3.3.9.9 3.3M4 13.7l3.3.9-.9 3.3M20 10.3l-3.3-.9.9-3.3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',
   '🔥': '<path d="M12 3c1 4 6 6 6 11a6 6 0 0 1-12 0c0-3 2-4.5 2-7 1.5 1 2 2.5 2 4 1-2 2-5 2-8z"/>',
   '↻': '<path d="M19 12a7 7 0 1 1-2.1-5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><path d="M18.5 3.5V8H14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>',
   '▶': '<path d="M7 4l13 8-13 8z"/>',
   '👆': '<path d="M9 11V5.2a1.4 1.4 0 0 1 2.8 0V10M11.8 9.5V4a1.4 1.4 0 0 1 2.8 0v6M14.6 10V5.5a1.4 1.4 0 0 1 2.8 0V13c0 4.5-2.4 7.5-6 7.5-2.8 0-4.4-1.6-5.7-4l-2-3.6a1.3 1.3 0 0 1 2.2-1.4L9 14" fill="none" stroke="currentColor" stroke-width="2"/>',
 };
-const EMO = /(\p{Extended_Pictographic}|↻|▶)\uFE0F?/gu;
+const EMO = /(?![★☆])(\p{Extended_Pictographic}|↻|▶)\uFE0F?/gu;   // les étoiles ★ ☆ restent du texte (elles disparaissaient de la carte et des résultats)
 const bqIcon = e => BQI[e.replace('️', '')] ? `<svg class="bqi" viewBox="0 0 24 24" aria-hidden="true">${BQI[e.replace('️', '')]}</svg>` : '';
 function deEmoji(root) {
   if (!root) return;
@@ -103,7 +106,7 @@ let L = {}; // layout
 const S = {
   board: [], tray: [], score: 0, shown: 0, best: 0, combo: 0, over: false,
   drag: null, fx: [], pops: [], clearing: [], shake: 0, placedAnim: [],
-  mode: 'classic', lvl: 1, goal: null, moves: 0, gems: new Set(), got: 0,
+  mode: 'classic', lvl: 1, goal: null, moves: 0, gems: new Set(), got: 0, ice: new Set(), broke: 0,
   miss: 0, beams: [], rings: [], flyers: [], flash: 0, glow: 0, hit: 0, endAnim: null, bestStart: 0,
 };
 let ADV = { stars: {} };
@@ -163,6 +166,7 @@ const SFX = {
     [0, 2, 4].slice(0, Math.min(3, n + 1)).forEach((k, i) => tone(PENTA[b + k], PENTA[b + k], 0.32, 'triangle', 0.045, i * 0.045));
     if (n >= 3) tone(PENTA[b + 5] || 1318, PENTA[b + 5] || 1318, 0.5, 'sine', 0.03, 0.14);
   },
+  ice(i) { tone(2637 + i * 30, 3136 + i * 30, 0.09, 'triangle', 0.03); noise(0.08, 6000, 3, 0.03, 'highpass'); tone(3951, 3951, 0.25, 'sine', 0.012, 0.05); },   // givre qui casse : craquement aigu
   gem(i) { tone(1568 + i * 40, 1568 + i * 40, 0.5, 'sine', 0.04); tone(2349 + i * 60, 2349 + i * 60, 0.35, 'sine', 0.018); },
   lost() { tone(330, 220, 0.18, 'triangle', 0.03); },
   fail() { tone(300, 80, 0.7, 'sawtooth', 0.03); noise(0.5, 300, 0.7, 0.05, 'lowpass', 0.05); },
@@ -276,7 +280,7 @@ function clearSpace() {
 }
 
 // état visuel et statistiques d'une partie neuve (toutes les modes)
-function freshRun() { S.miss = 0; S.lines = 0; S.maxCombo = 0; S.pieces = 0; S.endAnim = null; S.beams = []; S.rings = []; S.flyers = []; S.flash = 0; S.glow = 0; S.hit = 0; }
+function freshRun() { S.ice = new Set(); S.broke = 0; S.miss = 0; S.lines = 0; S.maxCombo = 0; S.pieces = 0; S.endAnim = null; S.beams = []; S.rings = []; S.flyers = []; S.flash = 0; S.glow = 0; S.hit = 0; }
 function newGame() {
   clearTimeout(overTimer); clearTimeout(resTimer); S.contN = 0; S.placed = 0;
   S.mode = 'classic'; rnd = Math.random; S.gems.clear();
@@ -288,7 +292,41 @@ function newGame() {
   save(); updateHUD();
 }
 
+// Objectif d'un niveau : 1–40 comme avant ; 41–60 : givre surtout, gemmes et lignes en rappel
+function levelType(n) {
+  if (n < ICE_LVL) return n % 4 === 0 ? 'lines' : 'gems';
+  const k = n - 40;
+  return k % 5 === 0 ? 'lines' : k % 3 === 0 ? 'gems' : 'ice';
+}
+// Givre (niveau 41+) : plaques de glace collées au sol de la dalle. On pose dessus normalement ; une ligne ou une
+// colonne effacée qui passe sur une plaque la brise. Objectif : briser tout le givre avant la fin des coups.
+function genIce(n) {
+  const k = n - 40, r = mulberry32(n * 6151 + 29);
+  const board = Array.from({ length: N }, () => Array(N).fill(null));
+  const bands = 1 + Math.floor(k / 7);
+  let hard = 0;
+  for (let b = 0; b < bands; b++) {   // quelques bandes de pierres (dures comprises) pour garder le relief des chapitres précédents
+    const horiz = r() < 0.5, idx = (r() * N) | 0, fill = 3 + ((r() * 3) | 0);
+    for (const j of [...Array(N).keys()].sort(() => r() - 0.5).slice(0, fill)) {
+      const x = horiz ? j : idx, y = horiz ? idx : j;
+      if (board[y][x]) continue;
+      board[y][x] = r() < 0.35 ? STONE2 : STONE;
+      if (board[y].every(c => c) || board.every(row => row[x])) { board[y][x] = null; continue; }
+      if (board[y][x] === STONE2) hard++;
+    }
+  }
+  // le givre vient en plaques (rectangles 2×2 à 3×3), éparpillées : il faut viser plusieurs lignes et colonnes
+  const want = Math.min(18, 7 + Math.round(k * 0.55)), ice = new Set();
+  for (let t = 0; t < 80 && ice.size < want; t++) {
+    const w = 2 + ((r() * 2) | 0), h = 2 + ((r() * 2) | 0), x0 = (r() * (N - w + 1)) | 0, y0 = (r() * (N - h + 1)) | 0;
+    for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) if (!board[y][x] && ice.size < want) ice.add(y * N + x);
+  }
+  const rows = new Set([...ice].map(i => (i / N) | 0)).size, cols = new Set([...ice].map(i => i % N)).size;
+  const moves = Math.round(8 + Math.min(rows, cols) * 2.4 + ice.size * 0.45 + hard * 0.6 + (n === ICE_LVL ? 3 : 0));
+  return { board, gems: new Set(), ice, goal: { type: 'ice', ice: ice.size, gems: 0, target: 0, moves } };
+}
 function genLevel(n) {
+  if (levelType(n) === 'ice') return genIce(n);
   // Les pierres forment des lignes / colonnes à trous : on les complète pour libérer les gemmes.
   const r = mulberry32(n * 7919 + 13);
   const board = Array.from({ length: N }, () => Array(N).fill(null));
@@ -309,28 +347,40 @@ function genLevel(n) {
       cells.push([x, y]);
     }
   }
-  const type = n % 4 === 0 ? 'lines' : 'gems';
+  const type = levelType(n);
   const gemsN = Math.min(2 + Math.floor(n / 3), 10, cells.length);
   const gems = new Set();
   while (gems.size < gemsN) { const [x, y] = cells[(r() * cells.length) | 0]; gems.add(y * N + x); }
-  const target = 3 + Math.floor(n / 5);
+  const target = n > 40 ? 10 + Math.floor((n - 40) / 10) : 3 + Math.floor(n / 5);   // chapitres 5–6 : objectif plafonné (15 lignes, c'était injouable)
   // au-delà du niveau 16, les coups se resserrent (−1,2 % par niveau, jusqu'à −28 %)
   const tight = 1 - Math.min(0.28, Math.max(0, n - 16) * 0.012);
   // niveaux « lignes » resserrés en seconde moitié (ils étaient triviaux), niveaux 9–11 un peu plus larges (présentation)
-  const moves = Math.round((type === 'gems' ? 6 + Math.round(gemsN * 1.5) + bands * 2 + hard * 0.6 + (n >= 9 && n <= 11 ? 4 : 0) : (6 + target * 3) * (n >= 16 ? 0.8 : 1)) * tight);
-  return { board, gems: type === 'gems' ? gems : new Set(), goal: { type, gems: type === 'gems' ? gemsN : 0, target, moves } };
+  const moves = Math.round((type === 'gems' ? 6 + Math.round(gemsN * 1.5) + bands * 2 + hard * 0.6 + (n >= 9 && n <= 11 ? 4 : 0) : (6 + target * 3) * (n >= 16 ? 0.8 : 1)) * tight) + (n > 40 ? 3 : 0);
+  return { board, gems: type === 'gems' ? gems : new Set(), ice: new Set(), goal: { type, gems: type === 'gems' ? gemsN : 0, target, moves } };
 }
 function startLevel(n) {
   clearTimeout(overTimer); clearTimeout(resTimer); S.contN = 0; S.vidCont = false;
   const L0 = genLevel(n);
   S.mode = 'adv'; S.lvl = n; S.goal = L0.goal; S.moves = L0.goal.moves; S.gems = L0.gems; S.got = 0; S.lines = 0; S.rescue = n >= 9 ? 2 : 1; S.moreBought = false; S.toolsUsed = 0; S.gain = 0;
   S.used = 0; S.board = L0.board; S.score = 0; S.shown = 0; S.combo = 0; S.over = false; S.fx = []; S.pops = []; S.clearing = []; freshRun();
+  S.ice = L0.ice; S.broke = 0;
   rnd = mulberry32(n * 104729 + 7);
   fillTray();
   ['bp-over', 'bp-map', 'bp-res'].forEach(id => $(id).classList.add('hidden'));
-  S.pops.push({ text: t('bp.level', { n }), sub: S.goal.type === 'gems' ? t('bp.getGems', { n: S.goal.gems }) : t('bp.clearLines', { n: S.goal.target }), t: 0 });
+  S.pops.push({ text: t('bp.level', { n }), sub: goalText(), t: 0 });
+  if (S.goal.type === 'ice' && (n === ICE_LVL || !ADV.stars[ICE_LVL])) S.pops.push({ text: t('bp.iceTitle'), sub: t('bp.iceSub'), t: -1.3 });   // présentation du givre
   if (n === 9 || (n > 9 && !ADV.stars[9])) S.pops.push({ text: t('bp.hardTitle'), sub: t('bp.hardSub'), t: -1.3 });   // présentation des pierres dures
   updateHUD();
+}
+const goalText = () => S.goal.type === 'gems' ? t('bp.getGems', { n: S.goal.gems }) : S.goal.type === 'ice' ? t('bp.breakIce', { n: S.goal.ice }) : t('bp.clearLines', { n: S.goal.target });
+const goalWon = () => S.goal.type === 'gems' ? S.gems.size === 0 : S.goal.type === 'ice' ? S.ice.size === 0 : S.lines >= S.goal.target;
+// une plaque de givre brisée (effacement ou booster)
+function breakIce(x, y) {
+  if (!S.ice.delete(y * N + x)) return false;
+  S.broke++; const i = S.broke;
+  for (let k = 0; k < 7; k++) burst(x, y, '#d8f6ff');
+  setTimeout(() => SFX.ice(i), 40);
+  return true;
 }
 function advResult(win) {
   S.over = true;
@@ -344,7 +394,7 @@ function advResult(win) {
     if (S.gain) { COINS += S.gain; saveCoins(); }
   }
   clearTimeout(resTimer); resTimer = setTimeout(() => {
-    const close = S.goal.type === 'gems' ? S.got >= S.goal.gems - 1 : S.lines >= S.goal.target - 1;
+    const close = S.goal.type === 'gems' ? S.got >= S.goal.gems - 1 : S.goal.type === 'ice' ? S.ice.size <= 2 : S.lines >= S.goal.target - 1;
     $('bp-restitle').textContent = win ? t('bp.levelWon', { n: S.lvl }) : close ? t('bp.failClose') : t('bp.fail');
     $('bp-resstars').innerHTML = [1, 2, 3].map(k => k <= stars ? '★' : '<i>★</i>').join('');
     $('bp-restext').textContent = win ? t('bp.resWin', { used: S.used, total: S.goal.moves, coins: COINS }) + (S.gain ? `  ·  +${S.gain} 🪙` : '') : (S.moves <= 0 ? t('bp.noMoves') : t('bp.noRoom'));
@@ -466,23 +516,33 @@ function openMap() {
   $('bp-daily').innerHTML = `${t('bp.dailyBtn')}<small>${todayLabel()}${DAILY.day === dayKey() && DAILY.best ? t('bp.dailyBest', { n: num(DAILY.best) }) : ''}${DAILY.streak > 1 && DAILY.day === dayKey() ? t('bp.dailyStreak', { n: DAILY.streak }) : ''}${DAILY.day === dayKey() && DAILY.best ? ' · ' + '★'.repeat(dailyStars(DAILY.best)) + '☆'.repeat(3 - dailyStars(DAILY.best)) : ''}</small>`;
   const box = $('bp-levels'); box.innerHTML = '';
   const open = unlockedLvl();
+  const names = t('bp.chapters');
   for (let n = 1; n <= LEVELS; n++) {
+    if (n % CHAPTER === 1) {   // en-tête de chapitre : nom, étoiles gagnées sur 30
+      const c = (n - 1) / CHAPTER, got = Array.from({ length: CHAPTER }, (_, i) => ADV.stars[n + i] || 0).reduce((a, b) => a + b, 0);
+      const h = document.createElement('div'); h.className = 'bp-chap' + (n > open ? ' lock' : '') + (n === ICE_LVL ? ' ice' : '');
+      h.innerHTML = `<b>${t('bp.chapter', { n: c + 1 })} · ${(Array.isArray(names) && names[c]) || ''}</b><small>★ ${got}/${CHAPTER * 3}</small>`;
+      box.appendChild(h);
+    }
     const st = ADV.stars[n] || 0, lock = n > open;
     const b = document.createElement('button');
     b.className = 'bp-lv' + (lock ? ' lock' : '') + (n === open && !st ? ' cur' : '');
-    b.innerHTML = `${lock ? '🔒' : n}<small>${st ? '★'.repeat(st) : n % 4 === 0 ? t('bp.mapLines') : '💎'}</small>`;
+    const ty = levelType(n);
+    b.dataset.n = n; if (ty === 'ice') b.classList.add('ice');
+    b.innerHTML = `${lock ? '🔒' : n}<small>${st ? '★'.repeat(st) : ty === 'lines' ? t('bp.mapLines') : ty === 'ice' ? '❄' : '💎'}</small>`;
     if (!lock) b.onclick = () => startLevel(n);
     box.appendChild(b);
   }
   $('bp-map').classList.remove('hidden');
-  const cur = box.children[open - 1]; if (cur) cur.scrollIntoView({ block: 'nearest' });
+  const cur = box.querySelector(`[data-n="${open}"]`); if (cur) cur.scrollIntoView({ block: 'nearest' });
 }
 
 // Efface des cases hors placement (boosters) : gemmes récoltées, sans consommer de coup.
 function smash(cells) {
   let hit = 0;
   for (const [x, y] of cells) {
-    if (x < 0 || y < 0 || x >= N || y >= N || !S.board[y][x]) continue;
+    if (x < 0 || y < 0 || x >= N || y >= N) continue;
+    if (!S.board[y][x]) { if (breakIce(x, y)) hit++; continue; }
     const color = S.board[y][x]; hit++;
     if (color === STONE2) { S.board[y][x] = STONEC; for (let k = 0; k < 3; k++) burst(x, y, STONE); continue; }   // les boosters fissurent aussi, sans briser
     S.clearing.push({ x, y, color, t: 0, delay: hit * 0.02 });
@@ -491,7 +551,7 @@ function smash(cells) {
     if (S.gems.delete(y * N + x)) { S.got++; for (let k = 0; k < 10; k++) burst(x, y, '#7ff6ff'); }
   }
   S.shake = 8; beep(120, 0.25, 'sawtooth', 0.05);
-  if (S.mode === 'adv' && S.goal.type === 'gems' && S.gems.size === 0) advResult(true);
+  if (S.mode === 'adv' && !S.over && S.goal.type !== 'lines' && goalWon()) advResult(true);
   save(); updateHUD();
   return hit;
 }
@@ -545,6 +605,7 @@ function place(idx, gx, gy) {
       if (color === STONE2) { S.board[y][x] = STONEC; S.placedAnim.push({ x, y, t: 0 }); for (let k = 0; k < 3; k++) burst(x, y, STONE); continue; }
       S.clearing.push({ x, y, color, t: 0, delay: (Math.abs(x - gx) + Math.abs(y - gy)) * 0.025 });
       S.board[y][x] = null;
+      breakIce(x, y);
       for (let k = 0; k < 4 + Math.min(6, S.combo); k++) burst(x, y, color);
       if (S.gems.delete(y * N + x)) { S.got++; for (let k = 0; k < 10; k++) burst(x, y, '#7ff6ff'); setTimeout(() => SFX.gem(S.got), 80); }
     }
@@ -572,7 +633,7 @@ function place(idx, gx, gy) {
   if (S.tray.every(t => !t)) fillTray();
   if (S.mode === 'adv') {
     S.moves--; S.used = (S.used || 0) + 1;
-    const win = S.goal.type === 'gems' ? S.gems.size === 0 : S.lines >= S.goal.target;
+    const win = goalWon();
     if (win) advResult(true);
     else if (S.moves <= 0) advResult(false);
     else if (!S.tray.some(t => t && canPlaceAnywhere(t))) {
@@ -653,7 +714,7 @@ function updateHUD() {
   }
   if (adv) {
     $('bp-score').textContent = S.moves;
-    $('bp-best').textContent = S.goal.type === 'gems' ? `💎 ${S.got}/${S.goal.gems}` : `▤ ${Math.min(S.lines, S.goal.target)}/${S.goal.target}`;
+    $('bp-best').textContent = S.goal.type === 'gems' ? `💎 ${S.got}/${S.goal.gems}` : S.goal.type === 'ice' ? `❄ ${S.broke}/${S.goal.ice}` : `▤ ${Math.min(S.lines, S.goal.target)}/${S.goal.target}`;
   } else $('bp-best').textContent = num(Math.max(S.bestStart || 0, Math.round(S.shown)));
 }
 
@@ -771,6 +832,30 @@ function gem(cx, cy, r) {
   ctx.restore();
 }
 
+// plaque de givre : glace bleutée, reflet en biais et fêlures propres à la case ; sur une case occupée, seul un
+// liseré givré reste visible (la plaque est toujours là, sous le bloc)
+function frost(x, y, s, seed, under) {
+  const r = mulberry32(seed * 97 + 5), p = s * 0.07;
+  ctx.save();
+  if (!under) {
+    const g = ctx.createLinearGradient(x, y, x + s, y + s);
+    g.addColorStop(0, 'rgba(220,248,255,.62)'); g.addColorStop(0.55, 'rgba(150,215,240,.42)'); g.addColorStop(1, 'rgba(110,180,220,.5)');
+    ctx.fillStyle = g; rr(x + p, y + p, s - 2 * p, s - 2 * p, s * 0.12); ctx.fill();
+    ctx.save(); rr(x + p, y + p, s - 2 * p, s - 2 * p, s * 0.12); ctx.clip();
+    ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.beginPath(); ctx.moveTo(x + s * 0.18, y + s); ctx.lineTo(x + s * 0.42, y + s); ctx.lineTo(x + s * 0.95, y); ctx.lineTo(x + s * 0.72, y); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = Math.max(1, s * 0.025);
+    const cx = x + s * (0.3 + r() * 0.4), cy = y + s * (0.3 + r() * 0.4);
+    for (let k = 0; k < 3; k++) { const a = r() * 6.28, l = s * (0.25 + r() * 0.3); ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a) * l * 0.5 + (r() - 0.5) * s * 0.1, cy + Math.sin(a) * l * 0.5); ctx.lineTo(cx + Math.cos(a) * l, cy + Math.sin(a) * l); ctx.stroke(); }
+    ctx.restore();
+    ctx.strokeStyle = 'rgba(235,252,255,.85)'; ctx.lineWidth = Math.max(1.5, s * 0.04); rr(x + p, y + p, s - 2 * p, s - 2 * p, s * 0.12); ctx.stroke();
+  } else {
+    ctx.strokeStyle = 'rgba(215,248,255,.9)'; ctx.lineWidth = Math.max(1.5, s * 0.05); ctx.setLineDash([s * 0.16, s * 0.08]);
+    rr(x + p * 0.6, y + p * 0.6, s - 1.2 * p, s - 1.2 * p, s * 0.14); ctx.stroke();
+    ctx.setLineDash([]); ctx.fillStyle = 'rgba(225,250,255,.9)';
+    const q = s * 0.16; ctx.beginPath(); ctx.moveTo(x + p, y + p + q); ctx.lineTo(x + p, y + p); ctx.lineTo(x + p + q, y + p); ctx.fill();
+  }
+  ctx.restore();
+}
 function ghostTarget() {
   const d = S.drag; if (!d) return null;
   const p = S.tray[d.idx];
@@ -843,6 +928,7 @@ function draw(dt) {
     S.drag.snap = null;
   }
 
+  if (S.ice.size) for (const i of S.ice) { const x = i % N, y = (i / N) | 0; if (!S.board[y][x]) frost(L.bx + x * L.cs, L.by + y * L.cs, L.cs, i, false); }
   for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
     const c = S.board[y][x]; if (!c) continue;
     let s = L.cs, ox = 0;
@@ -854,6 +940,7 @@ function draw(dt) {
     if (c === STONE2) armor(L.bx + x * L.cs + ox, L.by + y * L.cs + ox, s);
     else if (c === STONEC) cracks(L.bx + x * L.cs + ox, L.by + y * L.cs + ox, s);
     if (S.gems.has(y * N + x)) gem(L.bx + (x + 0.5) * L.cs, L.by + (y + 0.48) * L.cs, L.cs * 0.3);
+    if (S.ice.has(y * N + x)) frost(L.bx + x * L.cs + ox, L.by + y * L.cs + ox, s, y * N + x, true);
     if (lit) { ctx.fillStyle = 'rgba(255,255,255,' + (0.18 + 0.12 * Math.sin(performance.now() / 90)) + ')'; rr(L.bx + x * L.cs + 3, L.by + y * L.cs + 3, L.cs - 6, L.cs - 6, L.cs * .15); ctx.fill(); }
   }
   drawBand();

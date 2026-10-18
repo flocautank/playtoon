@@ -93,8 +93,8 @@ log('chrono :', await page.evaluate(async () => {
   document.getElementById('bp-themebtn').click(); await new Promise(r => setTimeout(r, 1500));
   const t2 = S.clock; document.getElementById('bp-themeclose').click();
   window.__pauseOk = Math.abs(t2 - t1) < 0.05;
-  S.clock = 0.05; await new Promise(r => setTimeout(r, 900));
-  return `temps ${t0.toFixed(1)} → ${t1.toFixed(1)} s · en pause sous les thèmes=${window.__pauseOk} · fini=${S.over} · score=${S.score} · top10=${JSON.parse(localStorage.getItem('blocparty.chrono')).length}`;
+  S.clock = 0.05; for (let i = 0; i < 40 && !S.over; i++) await new Promise(r => setTimeout(r, 100));   // machine chargée : on attend la fin (≤ 4 s) au lieu d'un délai fixe
+  return `temps ${t0.toFixed(1)} → ${t1.toFixed(1)} s · en pause sous les thèmes=${window.__pauseOk} · fini=${S.over} · score=${S.score} · top10=${(JSON.parse(localStorage.getItem('blocparty.chrono')) || []).length}`;
 }));
 await page.waitForTimeout(600); await shot(page, 'blocks-chrono-end');
 await page.click('#bp-again'); await page.waitForTimeout(300);

@@ -12,7 +12,7 @@ Graphics: `art/` (every Steamworks size) · Screenshots: `screenshots/en/*.png` 
 ## Short description (≤ 300 characters)
 EN: `Drag colorful pieces onto an 8×8 grid, clear rows and columns, chain combos. 40 hand-built Adventure levels with gems and hard stones, a daily challenge, a two-minute Time Attack and unlockable themes. A calm, fair block puzzle — no ads, no timers, no pay-to-win.`
 
-FR: `Glisse des pièces colorées sur une grille 8×8, complète lignes et colonnes, enchaîne les combos. 40 niveaux d'Aventure avec gemmes et pierres dures, un défi du jour, un Chrono de deux minutes et des thèmes à débloquer. Un puzzle de blocs serein et équitable — sans pub ni achat.`
+FR: `Glisse des pièces colorées sur une grille 8×8, complète lignes et colonnes, enchaîne les combos. 60 niveaux d'Aventure avec gemmes, pierres dures et givre, un défi du jour, un Chrono de deux minutes et des thèmes à débloquer. Un puzzle de blocs serein et équitable — sans pub ni achat.`
 
 ## About this game
 ### EN
@@ -23,7 +23,7 @@ Drag pieces onto the 8×8 grid. Fill a row or a column and it clears. Clear seve
 
 FOUR WAYS TO PLAY
 • Classic — the endless mode: how far can you push your best score?
-• Adventure — 40 levels: free the gems trapped in stone, clear a number of lines, beat the move limit. Hard stones arrive at level 9 and need two clears.
+• Adventure — 60 levels in six chapters: free the gems trapped in stone, clear a number of lines, beat the move limit. Hard stones arrive at level 9 and need two clears; frost covers the floor from level 41.
 • Daily challenge — the same grid and the same pieces for everyone, every day. Keep your streak alive.
 • Time Attack — two minutes on the clock, every line buys you time and points grow faster as you go.
 
@@ -42,7 +42,7 @@ Glisse les pièces sur la grille 8×8. Complète une ligne ou une colonne et ell
 
 QUATRE FAÇONS DE JOUER
 • Classique — le mode sans fin : jusqu'où iras-tu ?
-• Aventure — 40 niveaux : libère les gemmes prisonnières de la pierre, efface un nombre de lignes, tiens dans la limite de coups. Les pierres dures arrivent au niveau 9 et s'effacent en deux fois.
+• Aventure — 60 niveaux en six chapitres : libère les gemmes prisonnières de la pierre, efface un nombre de lignes, tiens dans la limite de coups. Les pierres dures arrivent au niveau 9 et s'effacent en deux fois ; le givre couvre le sol dès le niveau 41.
 • Défi du jour — la même grille et les mêmes pièces pour tout le monde, chaque jour. Garde ta série.
 • Chrono — deux minutes, chaque ligne rend du temps et les points grimpent au fil de la partie.
 

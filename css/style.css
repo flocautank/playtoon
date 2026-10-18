@@ -769,3 +769,12 @@ body[data-tab=blocks] #pt-cancel{background:url("data:image/svg+xml,%3Csvg xmlns
 @media (max-width:420px){#tab-forge .sf-tabs button.on{font-size:12px;letter-spacing:0;padding-left:0;padding-right:0}#tab-forge .sf-tabs button.on.badge::after{margin-left:1px}#tab-forge .sf-tabs button.on span{margin-left:2px}#tab-forge .sf-tabs button i svg.eng{margin-right:1px}}
 /* Synth Horde : le bandeau d'annonce (« Survive. Collect XP… », boss) ne se lit pas par-dessus un écran ouvert — son minuteur est gelé pendant la pause */
 #nb-root:has(#nb-levelup:not(.hidden),#nb-pause:not(.hidden),#nb-end:not(.hidden),#nb-second:not(.hidden)) #nb-msg{visibility:hidden}
+/* Block Quarry 1.8.0 : chapitres de la carte d'Aventure, niveaux de givre */
+.bp-chap{grid-column:1/-1;display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:8px 4px 2px;border-bottom:1px solid rgba(255,220,170,.22);min-width:0}
+.bp-chap b{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#ffd9a0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.bp-chap small{font-size:11px;color:#ffd24d;white-space:nowrap;flex:none}
+.bp-chap.lock b,.bp-chap.lock small{opacity:.55}
+.bp-chap.ice b{color:#bfeeff}
+#tab-blocks .bp-chap b,#tab-blocks .bp-chap small{font-family:'BQ Label',system-ui,sans-serif;font-weight:800}
+#tab-blocks .bp-lv.ice:not(.lock):not(.cur){box-shadow:inset 0 0 0 2px rgba(190,240,255,.55),inset 0 -3px 0 rgba(0,0,0,.4)}
+#tab-blocks .bp-lv.ice small,#tab-blocks .bp-lv.ice small svg.bqi{color:#bfeeff}
