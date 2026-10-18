@@ -675,4 +675,11 @@ Object.assign(pt, {
   'nb.qt.daily': v => v.n === '1' || v.n === 1 ? 'Valide um desafio do dia' : `Valide ${v.n} desafios do dia`, 'nb.qt.dstreak': 'Alcance uma sequência de {n} dias', 'nb.qt.dscore': 'Faça {n} pontos em um desafio do dia',
 });
 
+Object.assign(en, {"nb.calm": "Calm effects", "nb.calmNote": "(no freeze-frames, zoom kicks or pulsing red edge)", "nb.vib": "Vibration", "nb.invY": "Invert vertical look"});
+Object.assign(fr, {"nb.calm": "Effets calmes", "nb.calmNote": "(ni arrêt sur image, ni coup de zoom, ni bord rouge qui pulse)", "nb.vib": "Vibration", "nb.invY": "Inverser le regard vertical"});
+Object.assign(es, {"nb.calm": "Efectos suaves", "nb.calmNote": "(sin congelados de imagen, sacudidas de zoom ni borde rojo que palpita)", "nb.vib": "Vibración", "nb.invY": "Invertir la mirada vertical"});
+Object.assign(de, {"nb.calm": "Ruhige Effekte", "nb.calmNote": "(keine Standbilder, Zoomstöße oder pulsierender roter Rand)", "nb.vib": "Vibration", "nb.invY": "Vertikale Blickrichtung umkehren"});
+Object.assign(it, {"nb.calm": "Effetti calmi", "nb.calmNote": "(niente fermo immagine, scatti di zoom o bordo rosso pulsante)", "nb.vib": "Vibrazione", "nb.invY": "Inverti lo sguardo verticale"});
+Object.assign(pt, {"nb.calm": "Efeitos calmos", "nb.calmNote": "(sem congelamentos de imagem, trancos de zoom nem borda vermelha pulsante)", "nb.vib": "Vibração", "nb.invY": "Inverter o olhar vertical"});
+
 export default { en, fr, es, de, it, pt };

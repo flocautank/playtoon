@@ -1126,7 +1126,7 @@ function bindInput() {
     if (!active || !S || S.state !== 'play') return;
     if (locked() || dragCam) {
       const k = 0.0024 * META.sens;
-      S.cam.yaw -= e.movementX * k; S.cam.pitch = clamp(S.cam.pitch + e.movementY * k, -0.35, 1.25);
+      S.cam.yaw -= e.movementX * k; S.cam.pitch = clamp(S.cam.pitch + e.movementY * k * invY(), -0.35, 1.25);
     }
   });
   let dragCam = false;
@@ -1167,7 +1167,7 @@ function bindInput() {
       setZoom(zoom0 * pinch0 / (Math.hypot(a.x - b.x, a.y - b.y) || 1)); lastCam = cams.get(camId) || lastCam;
     } else if (e.pointerId === camId && S.state === 'play') {
       const k = 0.006 * META.sens;
-      S.cam.yaw -= (e.clientX - lastCam.x) * k; S.cam.pitch = clamp(S.cam.pitch + (e.clientY - lastCam.y) * k, -0.35, 1.25);
+      S.cam.yaw -= (e.clientX - lastCam.x) * k; S.cam.pitch = clamp(S.cam.pitch + (e.clientY - lastCam.y) * k * invY(), -0.35, 1.25);
       lastCam = { x: e.clientX, y: e.clientY };
     }
   });
@@ -1596,7 +1596,7 @@ function hurt(d, src = '?') {
   S.lastHurt = src;   // « tué par … » sur l'écran de fin
   (S.recentHurt = S.recentHurt || []).push({ t: S.t, src, d });
   if (S.recentHurt.length > 80) S.recentHurt = S.recentHurt.filter(h => S.t - h.t <= 8);
-  if (navigator.vibrate) navigator.vibrate(40);
+  if (navigator.vibrate && META.vib !== false && !calm()) navigator.vibrate(40);
   if (S.p.hp <= 0) {
     if (S.revives > 0) { S.revives--; revive(); }
     else if (!S.adRevived && MON.canReward()) offerSecondChance();   // application : une seconde chance vidéo par run
@@ -2777,8 +2777,11 @@ function addNum(x, y, z, v, crit, col) {
 }
 // « jus » : tremblement de caméra (trauma), gel d'image bref sur les gros coups, coup de focale
 function shake(a) { if (META.shake === false || !S) return; S.trauma = Math.min(1, S.trauma + a); }
-function hitstop(d) { if (S) S.hitstop = Math.min(0.2, Math.max(S.hitstop, d)); }
-function fovKick(a) { if (S) S.fovKick = Math.max(S.fovKick, a); }
+// effets calmes : réglage du joueur, sinon celui du système (« réduire les animations ») ; ni gel d'image, ni coup de focale, ni éclat de dégâts
+const calm = () => META.calm !== undefined ? !!META.calm : !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+const invY = () => META.invY ? -1 : 1;
+function hitstop(d) { if (S && !calm()) S.hitstop = Math.min(0.2, Math.max(S.hitstop, d)); }
+function fovKick(a) { if (S && !calm()) S.fovKick = Math.max(S.fovKick, a); }
 let msgTimer = 0;
 function msg(t, dur = 2, col) { const m = $('nb-msg'); t = String(t).replace(/<svg[\s\S]*?<\/svg>/g, '').replace(/\p{Extended_Pictographic}\uFE0F?/gu, '').replace(/\s{2,}/g, ' ').trim(); m.textContent = t; m.style.color = col || ''; m.classList.add('show'); msgTimer = dur; }
 
@@ -3176,7 +3179,7 @@ function drawRadar(ctx, R, cx, cy, own) {
 function drawVignette(ctx) {
   // vignette de dégâts
   if (S.hurtFlash > 0 || S.p.hp < S.stats.hp * 0.3) {
-    const a = Math.max(S.hurtFlash * 0.55, S.p.hp < S.stats.hp * 0.3 ? 0.18 + 0.1 * Math.sin(S.t * 6) : 0);
+    const c = calm(), a = Math.max(S.hurtFlash * (c ? 0.25 : 0.55), S.p.hp < S.stats.hp * 0.3 ? 0.18 + (c ? 0 : 0.1 * Math.sin(S.t * 6)) : 0);   // calme : pas de pulsation, éclat de dégâts adouci
     const gr = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.7);
     gr.addColorStop(0, 'rgba(255,0,60,0)'); gr.addColorStop(1, `rgba(255,0,60,${a})`);
     ctx.fillStyle = gr; ctx.fillRect(0, 0, W, H);
@@ -3250,7 +3253,7 @@ function pollPad(dt) {
     const lx = ax(0), ly = ax(1);
     if (lx || ly) { S_touch.joy = { x: lx, y: ly }; PAD.moving = true; } else if (PAD.moving) { S_touch.joy = { x: 0, y: 0 }; PAD.moving = false; }
     const rx = ax(2), ry = ax(3), k = 2.8 * dt * (META.sens || 1);
-    if (rx || ry) { S.cam.yaw -= rx * k; S.cam.pitch = clamp(S.cam.pitch + ry * k * 0.6, -0.35, 1.25); }
+    if (rx || ry) { S.cam.yaw -= rx * k; S.cam.pitch = clamp(S.cam.pitch + ry * k * 0.6 * invY(), -0.35, 1.25); }
     if (hit(0)) jump();
     if (hit(1)) slide();
     if (hit(2)) interact();
@@ -3334,6 +3337,7 @@ function pause() {
   $('nb-autolvl').value = META.autoLvl ? '1' : '';
   $('nb-shake').checked = META.shake !== false;
   $('nb-glow').checked = META.glow !== false;
+  $('nb-calm').checked = calm(); $('nb-vib').checked = META.vib !== false; $('nb-invy').checked = !!META.invY;
   $('nb-quality').value = qual();
   segSelects();
   music.stop(0.3);
@@ -3599,6 +3603,10 @@ $('nb-autolvl').onchange = e => { META.autoLvl = !!e.target.value; saveMeta(); }
 $('nb-quality').onchange = e => { META.quality = e.target.value; saveMeta(); DR.pr = qCap(); renderer.setPixelRatio(DR.pr); onResize(); };   // l'anticrénelage « haute » s'applique au prochain lancement
 $('nb-shake').onchange = e => { META.shake = e.target.checked; saveMeta(); };
 $('nb-glow').onchange = e => { META.glow = e.target.checked; saveMeta(); };
+$('nb-calm').onchange = e => { META.calm = e.target.checked; saveMeta(); };
+$('nb-vib').onchange = e => { META.vib = e.target.checked; saveMeta(); };
+$('nb-invy').onchange = e => { META.invY = e.target.checked; saveMeta(); };
+if (!TOUCH || !navigator.vibrate) $('nb-vib').parentElement.classList.add('hidden');   // vibration : téléphone seulement
 if (TOUCH) $('nb-glow').parentElement.classList.add('hidden');   // pas de halo sur téléphone : réglage inutile
 $('nb-resume').onclick = resume;
 $('nb-quit').onclick = () => endRun(false);
