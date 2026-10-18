@@ -55,6 +55,10 @@ const WEAPONS = {
   tornado: { ic: '🌪️', cd: 3, dmg: 5, count: 1, area: 2, speed: 5, ups: ['dmg', 'cd', 'count', 'area', 'speed'] }, // tornade errante qui aspire
   toxic:   { ic: '☣️', cd: 2, dmg: 5, count: 1, area: 2.4, ups: ['dmg', 'cd', 'count', 'area'] },        // flaques toxiques sous les ennemis
   drones:  { ic: '🛸', cd: 0.8, dmg: 9, count: 2, area: 1, speed: 30, ups: ['dmg', 'cd', 'count', 'speed'] },  // drones qui tirent tout seuls
+  // lot « contenu » 1.16.0 : trois mécaniques absentes jusque-là (frappe différée sur la foule, gerbe à courte portée, sillon laissé en courant)
+  drop:    { ic: '', cd: 3, dmg: 44, count: 1, area: 3.4, ups: ['dmg', 'cd', 'count', 'area'] },               // drop de basse : visée sur le plus gros paquet, impact annoncé
+  scatter: { ic: '', cd: 1, dmg: 11, count: 4, area: 1, speed: 30, pierce: 0, ups: ['dmg', 'cd', 'count', 'pierce'] }, // caisse claire : gerbe de plombs devant soi
+  groove:  { ic: '', cd: 0.3, dmg: 6, count: 1, area: 1.6, ups: ['dmg', 'cd', 'area'] },                    // sillon : des notes laissées au sol quand on court
 };
 // Évolutions : arme au niveau 8+ et tome associé possédé → le prochain coffre fait évoluer l'arme.
 const EVO_LVL = 8;
@@ -74,6 +78,9 @@ const EVOS = {
   tornado: { tome: 'agile', ic: '🌀', fx: w => { w.dmgM *= 2; w.count += 2; w.areaM += 0.4; } },
   toxic:   { tome: 'area', ic: '🦠', fx: w => { w.dmgM *= 2; w.count += 2; w.areaM += 0.3; } },
   drones:  { tome: 'multi', ic: '🛰️', fx: w => { w.dmgM *= 1.8; w.count += 3; } },
+  drop:    { tome: 'power', ic: '', fx: w => { w.dmgM *= 2; w.areaM += 0.3; } },          // + réplique : une 2e onde plus large, qui ralentit
+  scatter: { tome: 'crit', ic: '', fx: w => { w.dmgM *= 1.6; w.count += 3; w.pierce += 1; } },   // + deuxième salve juste après
+  groove:  { tome: 'vital', ic: '', fx: w => { w.dmgM *= 2; w.areaM += 0.4; } },          // + notes qui durent plus longtemps et ralentissent
 };
 const wName = w => w.evo ? EVOS[w.id].name : WEAPONS[w.id].name;
 const wIc = w => w.evo ? EVOS[w.id].ic : WEAPONS[w.id].ic;
@@ -180,6 +187,10 @@ const heatMax = m => Math.max(0, ...Object.values(m.heatWon || {}));
  ['wins', '🏁', m => m.wins, [[3, { credits: 1000 }], [10, { credits: 3000 }]]],
  ['heat', '🔥', heatMax, [[1, { credits: 400 }], [5, { credits: 5000 }]]],
  ['keys', '🔑', m => m.keysAll || 0, [[1, { weapon: 'aura' }], [5, { credits: 700 }], [15, { credits: 1800 }]]],
+ // 1.16.0 : trois armes de plus, à gagner tôt (une à trois runs)
+ ['lvl', '▲', m => m.maxLevel, [[20, { weapon: 'scatter' }]]],
+ ['wardens', '🛡', m => m.wardens || 0, [[2, { weapon: 'groove' }]]],
+ ['gold', '✨', m => m.goldChests || 0, [[5, { weapon: 'drop' }]]],
 ].forEach(([tk, ic, val, tiers]) => tiers.forEach(([goal, rw]) => QUESTS.push({ id: `${tk}${goal}`, tk, ic, goal, val, ...rw })));
 ['glitch', 'ronin', 'volt', 'bastion', 'nova', 'orbit', 'blitz', 'miser', 'hex'].forEach(c => QUESTS.push({ id: 'win_' + c, ch: c, ic: '🏆', goal: 1, val: m => (m.winsBy || {})[c] || 0, credits: 500 }));
 const WQUEST_OF = Object.fromEntries(QUESTS.filter(q => q.weapon).map(q => [q.weapon, q.id]));
@@ -766,7 +777,9 @@ function buildLevel() {
   const kinds = Object.entries(SHRINES).flatMap(([k, v]) => Array(Math.ceil(v.n * 1.6)).fill(k));
   for (const kind of kinds) {
     const col = SHRINES[kind].col;
-    let x, z, t = 0; do { x = rand(-HALF + 12, HALF - 12); z = rand(-HALF + 12, HALF - 12); } while ((!free(x, z, 4) || Math.hypot(x, z) < 22 || S.shrines.some(o => Math.hypot(o.x - x, o.z - z) < 20)) && ++t < 60);
+    // sur sol plat : un sanctuaire à cheval sur une falaise avait la moitié de son cercle sur l'étage du dessus (invite absente de ce côté-là)
+    const flat = (x, z) => { const h = terrainH(x, z); for (let a = 0; a < 8; a++) if (Math.abs(terrainH(x + Math.cos(a * 0.785) * 3.4, z + Math.sin(a * 0.785) * 3.4) - h) > 1.6) return false; return true; };
+    let x, z, t = 0; do { x = rand(-HALF + 12, HALF - 12); z = rand(-HALF + 12, HALF - 12); } while ((!free(x, z, 4) || Math.hypot(x, z) < 22 || S.shrines.some(o => Math.hypot(o.x - x, o.z - z) < (t < 150 ? 20 : 9)) || (t < 300 && !flat(x, z))) && ++t < 400);
     const y = terrainH(x, z);
     const g = new THREE.Group();
     for (let k = 0; k < 4; k++) {
@@ -818,7 +831,7 @@ function buildLevel() {
   S.pads = [];
   for (let t = 0; S.pads.length < 24 && t < 1200; t++) {
     const x = rand(-HALF + 10, HALF - 10), z = rand(-HALF + 10, HALF - 10);
-    if (!free(x, z, 3) || S.pads.some(o => Math.hypot(o.x - x, o.z - z) < 22)) continue;
+    if (!free(x, z, 3) || S.pads.some(o => Math.hypot(o.x - x, o.z - z) < 22) || S.shrines.some(o => Math.hypot(o.x - x, o.z - z) < 6)) continue;   // jamais dans un sanctuaire (on y était éjecté avant de pouvoir l'activer)
     if (TP.lv && t < 900) { const h0 = terrainH(x, z); let up = 0; for (let a = 0; a < 8; a++) up = Math.max(up, terrainH(x + Math.cos(a * 0.785) * 5, z + Math.sin(a * 0.785) * 5) - h0); if (up < 2.5) continue; }   // au pied d'une falaise
     const y = terrainH(x, z), g = new THREE.Group();
     const base = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.6, 0.3, 24), neonMat(0x7cff8a, 0.6)); base.position.y = 0.15; g.add(base);
@@ -946,7 +959,7 @@ function newRun() {
   const ch = CHARS.find(c => c.id === META.sel && unlocked(c)) || CHARS[0];
   S = {
     state: 'play', stage: 0, stageT: 0, ch, heat: Math.min(META.heatSel || 0, heatAvail()), t: 0, time: RUN_TIME, kills: 0, gold: 0, level: 1, xp: 0, need: xpNeed(1), pending: 0, rerolls: 2,
-    stats: null, weapons: [], tomes: [], items: {}, enemies: [], pickups: [], bolts: [], bullets: [], discs: [], rockets: [], mines: [], rings: [], dmgNums: [], pops: [], dmgBy: {}, keys: [], vents: [], rifts: [], twisters: [], puddles: [], banned: new Set(), banishes: 2, banishOn: false, landT: -9, landHs: 0, jumpBuf: -9, hops: 0, pads: [], trauma: 0, hitstop: 0, fovKick: 0, fires: [], novaK: 0, rushT: 0, fireT: 0,
+    stats: null, weapons: [], tomes: [], items: {}, enemies: [], pickups: [], bolts: [], bullets: [], discs: [], rockets: [], mines: [], rings: [], dmgNums: [], pops: [], dmgBy: {}, keys: [], vents: [], rifts: [], twisters: [], puddles: [], drops: [], grooves: [], banned: new Set(), banishes: 2, banishOn: false, landT: -9, landHs: 0, jumpBuf: -9, hops: 0, pads: [], trauma: 0, hitstop: 0, fovKick: 0, fires: [], novaK: 0, rushT: 0, fireT: 0,
     spawnAcc: 0, nextSwarm: 90, eliteAt: [420, 240], wardenAt: [300], boss: null, portal: null, won: false, dmgDealt: 0, chestsOpened: 0,
     iframe: 0, shieldT: 0, hurtFlash: 0, msgT: 0, chestCost: 12, orbPos: [], orbCount: 0, magnetAll: 0, bossDead: false,
     p: { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, onGround: true, jumps: 1, slide: 0, slideCd: 0, face: Math.PI, hp: 100 },
@@ -1148,14 +1161,14 @@ let actx = null, sfxOut = null, noiseBuf = null, xpChain = 0, xpLast = 0;
 const sfxLast = {};
 // couche de bruit filtré (impact, souffle) ajoutée sous l'oscillateur : [filtre, fréquence, durée, volume]
 const SFX_NOISE = {
-  hit: ['bandpass', 2400, 0.04, 0.02], kill: ['bandpass', 1500, 0.09, 0.035], hurt: ['lowpass', 900, 0.22, 0.09], boom: ['lowpass', 500, 0.45, 0.12],
+  hit: ['bandpass', 2400, 0.04, 0.02], snare: ['highpass', 2600, 0.12, 0.05], kill: ['bandpass', 1500, 0.09, 0.035], hurt: ['lowpass', 900, 0.22, 0.09], boom: ['lowpass', 500, 0.45, 0.12],
   k_drone: ['highpass', 6000, 0.12, 0.04], k_charger: ['bandpass', 1200, 0.15, 0.045], k_warden: ['lowpass', 400, 0.6, 0.1],
   slide: ['highpass', 1800, 0.22, 0.03], chest: ['highpass', 4000, 0.5, 0.025], elite: ['lowpass', 700, 0.5, 0.12], level: ['highpass', 5000, 0.35, 0.02],
 };
 function sfx(kind) {
   if (window.PT_MUTE) return;
   const now = performance.now();
-  const gap = { hit: 40, kill: 45, xp: 35 }[kind] || (kind[1] === '_' ? 70 : 0);
+  const gap = { hit: 40, kill: 45, xp: 35, snare: 60 }[kind] || (kind[1] === '_' ? 70 : 0);
   if (sfxLast[kind] && now - sfxLast[kind] < gap) return;
   sfxLast[kind] = now;
   try {
@@ -1183,7 +1196,7 @@ function sfx(kind) {
       jump: ['square', 300, 600, 0.08, 0.03], slide: ['sawtooth', 200, 80, 0.2, 0.03], hit: ['square', 180, 90, 0.05, 0.015],
       kill: ['triangle', 520, 260, 0.06, 0.025], xp: ['sine', 700, 1100, 0.05, 0.02], hurt: ['sawtooth', 160, 60, 0.25, 0.08],
       level: ['triangle', 440, 1320, 0.4, 0.06], chest: ['triangle', 660, 1760, 0.5, 0.06], boom: ['sawtooth', 120, 30, 0.35, 0.05],
-      zap: ['square', 1200, 200, 0.1, 0.02], shoot: ['square', 900, 500, 0.04, 0.01], boss: ['sawtooth', 70, 40, 1.2, 0.1],
+      zap: ['square', 1200, 200, 0.1, 0.02], shoot: ['square', 900, 500, 0.04, 0.01], snare: ['triangle', 260, 140, 0.07, 0.03], boss: ['sawtooth', 70, 40, 1.2, 0.1],
       // morts par famille : coup de basse du Subwoofer, grésillement du Static, zap montant du Clipper, coup de klaxon du Gramophone,
       // scratch du Needle, bande rembobinée de la Cassette, tic du Métronome, accord de l'Égaliseur, ampli qui s'éteint
       k_brute: ['sine', 110, 38, 0.22, 0.09], k_drone: ['square', 1600, 400, 0.05, 0.012], k_spike: ['sawtooth', 900, 1800, 0.05, 0.014],
@@ -1799,6 +1812,46 @@ function updateWeapons(dt) {
         }
         break;
       }
+      case 'drop':   // drop de basse : vise le plus gros paquet d'ennemis, cercle d'annonce, puis impact (et réplique si évolué)
+        if (w.t <= 0) {
+          const cand = [];
+          for (let k = 0; k < 10; k++) { const e = randomEnemyNear(22); if (e) cand.push(e); }
+          if (!cand.length) { w.t = 0.25; break; }
+          w.t = st.cd;
+          const R = st.area, used = [];
+          for (let k = 0; k < st.count && S.drops.length < 10; k++) {
+            let best = null, bn = -1;
+            for (const e of cand) { if (used.some(u => Math.hypot(u.x - e.x, u.z - e.z) < R)) continue; let c = 0; near(e.x, e.z, R, o => { if (Math.hypot(o.x - e.x, o.z - e.z) < R) c++; }); if (e.boss) c += 6; if (c > bn) { bn = c; best = e; } }
+            if (!best) best = cand[(Math.random() * cand.length) | 0];
+            used.push(best);
+            const x = best.x, z = best.z, y = groundAt(x, z, best.y + 0.5);
+            S.drops.push({ x, z, y, t: 0.65, r: R, dmg: st.dmg, w: w.id, evo: w.evo, after: 0 });
+            addRing(x, y + 0.12, z, R, w.evo ? [1, 0.75, 0.25] : [0.75, 0.35, 1], 0.65);
+          }
+        }
+        break;
+      case 'scatter':   // caisse claire : une gerbe de plombs vers l'ennemi le plus proche, portée courte, gros recul
+        if (w.t2 > 0 && (w.t2 -= dt) <= 0) snareVolley(w, st, px, py, pz);   // 2e salve de l'évolution
+        if (w.t <= 0) {
+          if (!nearestEnemies(1, 14).length) { w.t = 0.15; break; }
+          w.t = st.cd;
+          snareVolley(w, st, px, py, pz);
+          if (w.evo) w.t2 = 0.14;
+        }
+        break;
+      case 'groove': {   // sillon : en courant, des notes restent au sol et blessent ce qui passe dessus ; à l'arrêt, une note de temps en temps
+        const sp = Math.hypot(p.vx, p.vz);
+        w.dist = (w.dist || 0) + sp * dt;
+        if ((w.t <= 0 && w.dist >= 1.4 + st.area * 0.5) || w.t <= -0.9) {
+          w.t = st.cd; w.dist = 0;
+          if (S.grooves.length >= (TOUCH ? 14 : 22)) S.grooves.shift();
+          const gy = groundAt(px, pz, p.y + 0.5), life = (w.evo ? 3.6 : 2.2) + 0.4 * (st.count - 1);
+          const ph = S.grooveN = ((S.grooveN || 0) + 1) % 4;
+          S.grooves.push({ x: px, z: pz, y: gy, t: life, max: life, tick: 0.1, dmg: st.dmg, r: st.area, w: w.id, evo: w.evo, ph });
+          decal(px, gy, pz, st.area, w.evo ? [1, 0.8, 0.3] : ph & 1 ? [1, 0.25, 0.9] : [0.2, 0.9, 1], life, 1);   // une note sur deux en magenta : le sillon bat la mesure
+        }
+        break;
+      }
       case 'mine':
         if (w.t <= 0) {
           w.t = st.cd;
@@ -1840,6 +1893,48 @@ function updateWeapons(dt) {
     if (Math.random() < 0.7) { const a = rand(0, TAU), r = rand(0, q.r); spawnPart(q.x + Math.cos(a) * r, q.y + 0.1, q.z + Math.sin(a) * r, 0, rand(0.6, 1.6), 0, q.evo ? [0.75, 0.3, 1] : [0.35, 1, 0.3], rand(0.2, 0.4), 0.5); }
     if (q.tick <= 0) { q.tick = 0.4; dmgSrc = q.w; near(q.x, q.z, q.r + 1, e => { if (Math.hypot(e.x - q.x, e.z - q.z) < q.r + e.r) { damage(e, q.dmg, true); if (q.evo) e.slowT = Math.max(e.slowT || 0, 0.5); } }); if (S.boss && Math.hypot(S.boss.x - q.x, S.boss.z - q.z) < q.r + S.boss.r) damage(S.boss, q.dmg); }
   }
+  // drops de basse : la note tombe du ciel pendant l'annonce, puis frappe (l'évolution ajoute une réplique plus large qui ralentit)
+  for (let i = S.drops.length - 1; i >= 0; i--) {
+    const q = S.drops[i]; q.t -= dt;
+    const col = q.evo ? [1, 0.75, 0.25] : [0.75, 0.35, 1];
+    if (!q.after) {
+      const h = Math.max(0, q.t) * 26;
+      spawnPart(q.x + rand(-0.25, 0.25), q.y + 0.6 + h, q.z + rand(-0.25, 0.25), 0, -30, 0, col, 0.7, 0.08);
+      if (q.t > 0) continue;
+      dmgSrc = q.w; explode(q.x, q.y, q.z, q.r, q.dmg, col);
+      near(q.x, q.z, q.r + 1, e => { if (Math.hypot(e.x - q.x, e.z - q.z) < q.r + e.r && !e.elite) e.slowT = Math.max(e.slowT || 0, 0.4); });
+      if (q.evo) { q.after = 1; q.t = 0.28; } else S.drops.splice(i, 1);
+    } else if (q.t <= 0) {
+      const R = q.r * 1.7; dmgSrc = q.w;
+      near(q.x, q.z, R + 1, e => { const dx = e.x - q.x, dz = e.z - q.z, d = Math.hypot(dx, dz); if (d < R + e.r) { damage(e, q.dmg * 0.5, true, dx / (d || 1) * 8, dz / (d || 1) * 8); e.slowT = Math.max(e.slowT || 0, 1); } });
+      if (S.boss && Math.hypot(S.boss.x - q.x, S.boss.z - q.z) < R + S.boss.r) damage(S.boss, q.dmg * 0.5);
+      shock(q.x, q.y + 0.1, q.z, R, col, 0.45, 0.18);
+      S.drops.splice(i, 1);
+    }
+  }
+  // sillon : chaque note pulse au temps et blesse ce qui la traverse
+  for (let i = S.grooves.length - 1; i >= 0; i--) {
+    const q = S.grooves[i]; q.t -= dt; q.tick -= dt;
+    if (q.t <= 0) { S.grooves.splice(i, 1); continue; }
+    if (Math.random() < 0.25) { const a = rand(0, TAU), r = rand(0, q.r * 0.8); spawnPart(q.x + Math.cos(a) * r, q.y + 0.15, q.z + Math.sin(a) * r, 0, rand(1.2, 2.4), 0, q.evo ? [1, 0.8, 0.3] : (q.ph & 1 ? [1, 0.3, 0.95] : [0.2, 0.9, 1]), rand(0.25, 0.45), 0.45); }
+    if (q.tick > 0) continue;
+    q.tick = 0.45; dmgSrc = q.w;
+    near(q.x, q.z, q.r + 1, e => { if (Math.hypot(e.x - q.x, e.z - q.z) < q.r + e.r && Math.abs(e.y - q.y) < 2.5) { damage(e, q.dmg, true); if (q.evo) e.slowT = Math.max(e.slowT || 0, 0.6); } });
+    if (S.boss && Math.hypot(S.boss.x - q.x, S.boss.z - q.z) < q.r + S.boss.r) damage(S.boss, q.dmg);
+  }
+}
+// caisse claire : une salve de plombs en éventail (courte portée), avec un éclat au canon
+function snareVolley(w, st, px, py, pz) {
+  const tg = nearestEnemies(1, 14)[0];
+  const ey = tg ? tg.y + (tg.boss ? 0 : tg.size * 0.4) : py;
+  const base = tg ? Math.atan2(tg.z - pz, tg.x - px) : facing(), n = st.count, spread = Math.min(0.9, 0.3 + n * 0.05);
+  const dh = tg ? Math.hypot(tg.x - px, tg.z - pz) || 1 : 1, vy = tg ? clamp((ey - py) / dh, -0.6, 0.6) : 0;
+  for (let i = 0; i < n; i++) {
+    const a = base + (n > 1 ? (i / (n - 1) - 0.5) * spread : 0) + rand(-0.04, 0.04), v = st.speed * rand(0.9, 1.1);
+    S.bolts.push({ x: px, y: py, z: pz, vx: Math.cos(a) * v, vy: vy * v, vz: Math.sin(a) * v, life: 0.42, dmg: st.dmg, pierce: st.pierce, hit: new Set(), w: w.id });
+  }
+  for (let k = 0; k < 8; k++) { const a = base + rand(-spread / 2, spread / 2), v = rand(6, 12); spawnPart(px + Math.cos(base) * 0.7, py, pz + Math.sin(base) * 0.7, Math.cos(a) * v, rand(0, 1.5), Math.sin(a) * v, w.evo ? [1, 0.85, 0.4] : [1, 0.95, 0.7], 0.35, 0.18); }
+  sfx('snare');
 }
 function updateStageBits(dt, p, st) {
   for (const k of S.keys) {
@@ -2319,7 +2414,7 @@ function nextStage() {
   const portalGold = Math.round((gems - take) / S.stats.xp / 10);
   S.gold += portalGold;
   S.rings.forEach(r => { if (r.mesh) { scene.remove(r.mesh); if (!r.hostile) r.mesh.material.dispose(); } });
-  S.enemies = []; S.pickups = []; S.bolts = []; S.bullets = []; S.discs = []; S.rockets = []; S.mines = []; S.rings = []; S.dmgNums = []; S.twisters = []; S.puddles = []; S.fires = [];
+  S.enemies = []; S.pickups = []; S.bolts = []; S.bullets = []; S.discs = []; S.rockets = []; S.mines = []; S.rings = []; S.dmgNums = []; S.twisters = []; S.puddles = []; S.drops = []; S.grooves = []; S.fires = [];
   clearFX(); playerTrail();
   partSys.list.length = 0; scene.userData.lines.segs.length = 0;
   S.stage++; S.stageT = S.t; S.time = ST().time; S.boss = null; S.bossDead = false; S.portal = null;

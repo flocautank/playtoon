@@ -236,7 +236,7 @@ log('familles d’ennemis / gardien / quêtes :', await page.evaluate(() => {
 log('nouvelles armes / clés :', await page.evaluate(() => {
   const nb = window.__nb, S = nb.S, r = [];
   S.state = 'play'; S.pending = 0; const keep = S.weapons.slice();
-  for (const id of ['flame', 'aura', 'rail', 'tornado', 'toxic', 'drones']) {
+  for (const id of ['flame', 'aura', 'rail', 'tornado', 'toxic', 'drones', 'drop', 'scatter', 'groove']) {
     S.weapons.length = 0; nb.addWeapon(id); S.enemies.length = 0; const d0 = S.dmgBy[id] || 0;
     for (let i = 0; i < 90; i++) { if (i % 15 === 0) for (let k = 0; k < 3; k++) { const e = nb.spawnEnemy('brute', S.p.x + 3 + k, S.p.z + 2); if (e) e.speed = 0.5; } S.state = 'play'; S.pending = 0; S.p.hp = S.stats.hp; nb.update(1 / 30); }
     r.push(`${id}=${Math.round((S.dmgBy[id] || 0) - d0)}`);
