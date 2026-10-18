@@ -346,6 +346,20 @@ await page.evaluate(() => { const S = window.__nb.S; if (S.state !== 'end') { do
 await page.waitForTimeout(400); await shot(page, 'bonk-end');
 await page.click('#nb-again').catch(() => {}); await page.waitForTimeout(400); await shot(page, 'bonk-menu2');
 log('crédits après run :', await page.$eval('#nb-credits', e => e.textContent));
+// défi du jour : héros et modificateurs imposés, carte identique d'un essai à l'autre, score et record à la fin
+await page.click('#nb-dplay'); await page.waitForTimeout(800);
+log('défi du jour :', await page.evaluate(() => {
+  const nb = window.__nb, S = nb.S, sig = () => nb.S.obst.map(o => o.x.toFixed(2) + o.z.toFixed(2)).join() + nb.S.keys.map(k => k.x.toFixed(1)).join() + nb.S.shrines.map(q => q.kind + q.x.toFixed(1)).join();
+  if (!S.daily) throw new Error('défi du jour : run sans S.daily');
+  const a = sig(), d = S.daily; nb.newRun(true); const b = sig();
+  if (a !== b) throw new Error('défi du jour : carte différente d’un essai à l’autre');
+  for (let i = 0; i < 30 * 20; i++) { if (nb.S.state === 'levelup') nb.pick(0); nb.S.state = 'play'; nb.update(1 / 30); }
+  return `${d.key} · ${d.ch} · ${d.mods.join('+')} · carte identique`;
+}));
+await page.evaluate(() => { window.__nb.S.state = 'play'; document.getElementById('nb-quit').click(); }); await page.waitForTimeout(400);
+log('défi du jour, fin :', await page.$eval('#nb-endstats', e => e.innerText.split('\n').slice(0, 20).filter(l => /\d/.test(l)).slice(-6).join(' | ')));
+await shot(page, 'bonk-daily-end');
+await page.click('#nb-again').catch(() => {}); await page.waitForTimeout(400);
 await page.close();
 
 // ---------- Bloc Party : thèmes (500 pièces injectées)

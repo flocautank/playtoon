@@ -12,7 +12,7 @@ import { Synthwave } from './synthwave.js';
 import { CU, castInit, creatureMesh, setInst, makeHero, propGeo } from './bonk-cast.js';
 import { icon, EMOJI_TO_KEY } from './bonk-icons.js';
 import { loadFonts } from './bonk-fonts.js';
-import { t as tr, num, applyI18n, addStrings, lang } from './i18n.js';
+import { t as tr, num, date, applyI18n, addStrings, lang } from './i18n.js';
 import NB_TEXT from './lang/bonk.js';
 addStrings(NB_TEXT);
 const dec = x => x.toLocaleString(lang);   // décimales dans la langue choisie (0.4 → « 0,4 » en français)
@@ -191,6 +191,10 @@ const heatMax = m => Math.max(0, ...Object.values(m.heatWon || {}));
  ['lvl', '▲', m => m.maxLevel, [[20, { weapon: 'scatter' }]]],
  ['wardens', '🛡', m => m.wardens || 0, [[2, { weapon: 'groove' }]]],
  ['gold', '✨', m => m.goldChests || 0, [[5, { weapon: 'drop' }]]],
+ // 1.17.0 : défi du jour
+ ['daily', '📅', m => m.dDays || 0, [[1, { credits: 300 }], [7, { credits: 1200 }], [30, { credits: 4000 }]]],
+ ['dstreak', '🔗', m => m.dBestStreak || 0, [[3, { credits: 800 }], [7, { banish: 1 }]]],
+ ['dscore', '🏅', m => m.dBestScore || 0, [[5000, { credits: 600 }], [25000, { credits: 2000 }]]],
 ].forEach(([tk, ic, val, tiers]) => tiers.forEach(([goal, rw]) => QUESTS.push({ id: `${tk}${goal}`, tk, ic, goal, val, ...rw })));
 ['glitch', 'ronin', 'volt', 'bastion', 'nova', 'orbit', 'blitz', 'miser', 'hex'].forEach(c => QUESTS.push({ id: 'win_' + c, ch: c, ic: '🏆', goal: 1, val: m => (m.winsBy || {})[c] || 0, credits: 500 }));
 const WQUEST_OF = Object.fromEntries(QUESTS.filter(q => q.weapon).map(q => [q.weapon, q.id]));
@@ -328,6 +332,58 @@ const heatAvail = () => META.wins >= 1 ? Math.min(HEAT_MAX, 1 + Math.max(0, ...C
 const heatHp = () => 1 + 0.25 * (S.heat || 0), heatDmg = () => 1 + 0.15 * (S.heat || 0), heatRate = () => 1 + 0.12 * (S.heat || 0);
 const saveMeta = () => { if (window.PT_NOSAVE) return; try { localStorage.setItem(META_KEY, JSON.stringify(META)); } catch (e) {} };
 const unlocked = c => !c.unlock || c.unlock.test(META);
+
+// ============================================================ défi du jour (1.17.0)
+// Chaque jour : la même carte (graine tirée de la date), un héros imposé (prêté même s'il est verrouillé) et deux
+// modificateurs. Un score, un record du jour, une série de jours consécutifs, des crédits au premier essai validé.
+const DMODS = {
+  glass: { fx: s => { s.hp *= 0.6; s.dmg += 0.4; } },                 // canon de verre
+  horde: { fx: s => { s.xp += 0.2; } },                               // marée : +35 % d'ennemis (spawning)
+  rich: { fx: s => { s.gold += 1; } },                                // ruée vers l'or : coffres +50 % (chestPrice)
+  swift: { fx: s => { s.speed += 0.15; } },                           // tempo rapide : ennemis +15 % (spawnEnemy)
+  crit: { fx: s => { s.crit += 0.15; s.critMul += 0.5; s.regen = 0; } },
+  echo: { fx: s => { s.luck += 1; } },                                // larsen : pédale Écho écrasée d'office
+  giants: { fx: () => {} },                                           // colosses : ennemis +30 % PV et XP (spawnEnemy)
+  float: { fx: s => { s.jumps += 1; } },                              // apesanteur : gravité −35 % (update)
+};
+const dmod = k => !!(S && S.daily && S.daily.mods.includes(k));
+const DAILY_MIN = 90;   // tenir 1:30 pour valider la journée (sinon abandonner tout de suite rapporterait la prime)
+const dayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const dayBefore = k => { const [y, m, d] = k.split('-').map(Number); return dayKey(new Date(y, m - 1, d - 1)); };
+function hashStr(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+function seeded(a) { return () => { a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function dailyOf(key = dayKey()) {
+  const r = seeded(hashStr('synth-daily-' + key)), ids = Object.keys(DMODS);
+  const ch = CHARS[(r() * CHARS.length) | 0].id, a = ids.splice((r() * ids.length) | 0, 1)[0], b = ids[(r() * ids.length) | 0];
+  return { key, seed: hashStr('synth-map-' + key), ch, mods: [a, b] };
+}
+// score : ce que la run a vraiment accompli (boss surtout, puis survie, niveau, éliminations)
+const dailyScore = () => Math.round(S.kills + S.level * 25 + Math.floor(S.t) * 2 + (S.stage + (S.bossDead || S.won ? 1 : 0)) * 1500);
+const dailyPrize = streak => 120 + 30 * Math.min(Math.max(0, streak - 1), 6);   // 120 → 300 crédits avec la série
+function dailyState() {   // état du jour (remis à zéro au changement de date)
+  const k = dayKey();
+  if (!META.daily || META.daily.key !== k) META.daily = { key: k, best: 0, tries: 0, done: false };
+  const streakAlive = META.dLast === k || META.dLast === dayBefore(k);
+  return { ...META.daily, streak: streakAlive ? META.dStreak || 0 : 0 };
+}
+// fin d'une run du jour : record, validation (série, prime), historique des 30 derniers jours
+function dailyEnd() {
+  const score = dailyScore();
+  if (S.daily.key !== dayKey()) return { score, stale: true };   // run commencée avant minuit : elle n'entre pas dans le jour suivant
+  dailyState();
+  const d = META.daily, out = { score, rec: score > d.best && d.tries > 0, best: Math.max(d.best, score) };
+  d.tries++; d.best = out.best;
+  if (!d.done && S.t >= DAILY_MIN) {
+    d.done = true;
+    META.dStreak = META.dLast === dayBefore(d.key) ? (META.dStreak || 0) + 1 : META.dLast === d.key ? META.dStreak || 1 : 1;
+    META.dLast = d.key; META.dDays = (META.dDays || 0) + 1; META.dBestStreak = Math.max(META.dBestStreak || 0, META.dStreak);
+    out.prize = dailyPrize(META.dStreak); out.streak = META.dStreak; META.credits = (META.credits || 0) + out.prize;
+  } else if (!d.done) out.short = true;
+  META.dHist = META.dHist || {}; if (d.done) META.dHist[d.key] = d.best;
+  for (const k of Object.keys(META.dHist).sort().slice(0, -30)) delete META.dHist[k];
+  META.dBestScore = Math.max(META.dBestScore || 0, d.best);
+  return out;
+}
 
 // ============================================================ textes (traduits à la lecture : la langue peut changer en cours de run)
 const tget = (o, prop, key) => Object.defineProperty(o, prop, { get: () => tr(key), configurable: true });
@@ -681,18 +737,26 @@ function onResize() {
 }
 
 // ============================================================ génération de niveau
+// défi du jour : la carte (relief, obstacles, coffres, sanctuaires, clés) est tirée d'une graine fixe, la même pour tous
+// (générateur propre au placement : three.js tire aussi Math.random pour les uuid, en nombre variable selon ses caches)
+let lr = Math.random;
+const lrand = (a, b) => a + lr() * (b - a);
 function buildLevel() {
+  lr = S.daily ? seeded(S.daily.seed + S.stage * 7919) : Math.random;
+  try { buildLevel0(); } finally { lr = Math.random; }
+}
+function buildLevel0() {
   const P = ST();
   // chaque run tire son paysage : un style (terrasses, mesas, canyons, hauts plateaux), ses tailles et ses reliefs
-  const style = ['terraces', 'mesas', 'canyons', 'highlands'][(Math.random() * 4) | 0];
-  TP = { a: rand(0, TAU), b: rand(0, TAU), c: rand(0, TAU), amp: P.amp * rand(0.7, 1.3), style,
-    lv: (P.lv || 0) + (style === 'highlands' ? 2 : style === 'terraces' ? 1 : 0) + (Math.random() * 2 | 0), step: rand(4.8, 6),
-    fq: style === 'highlands' ? rand(0.55, 0.75) : rand(0.8, 1.2), rw: rand(0.6, 1.4), feats: [] };
-  const nM = style === 'mesas' ? 9 : 3 + (Math.random() * 3 | 0), nP = style === 'canyons' ? 8 : 1 + (Math.random() * 3 | 0);
+  const style = ['terraces', 'mesas', 'canyons', 'highlands'][(lr() * 4) | 0];
+  TP = { a: lrand(0, TAU), b: lrand(0, TAU), c: lrand(0, TAU), amp: P.amp * lrand(0.7, 1.3), style,
+    lv: (P.lv || 0) + (style === 'highlands' ? 2 : style === 'terraces' ? 1 : 0) + (lr() * 2 | 0), step: lrand(4.8, 6),
+    fq: style === 'highlands' ? lrand(0.55, 0.75) : lrand(0.8, 1.2), rw: lrand(0.6, 1.4), feats: [] };
+  const nM = style === 'mesas' ? 9 : 3 + (lr() * 3 | 0), nP = style === 'canyons' ? 8 : 1 + (lr() * 3 | 0);
   for (let i = 0; i < nM + nP; i++) {
-    const pit = i >= nM, r = pit ? rand(11, 20) : rand(9, 20), hh = (pit ? -1 : 1) * TP.step * (pit ? rand(1, 2) : 1 + (Math.random() * 3 | 0));
-    let x, z, t = 0; do { x = rand(-HALF + 30, HALF - 30); z = rand(-HALF + 30, HALF - 30); } while ((Math.hypot(x, z) < 40 || TP.feats.some(F => Math.hypot(F.x - x, F.z - z) < F.r + r + 20)) && ++t < 60);
-    TP.feats.push({ x, z, r, h: hh, a: rand(0, TAU), w: rand(0.28, 0.45), L: Math.abs(hh) * rand(3, 4) });
+    const pit = i >= nM, r = pit ? lrand(11, 20) : lrand(9, 20), hh = (pit ? -1 : 1) * TP.step * (pit ? lrand(1, 2) : 1 + (lr() * 3 | 0));
+    let x, z, t = 0; do { x = lrand(-HALF + 30, HALF - 30); z = lrand(-HALF + 30, HALF - 30); } while ((Math.hypot(x, z) < 40 || TP.feats.some(F => Math.hypot(F.x - x, F.z - z) < F.r + r + 20)) && ++t < 60);
+    TP.feats.push({ x, z, r, h: hh, a: lrand(0, TAU), w: lrand(0.28, 0.45), L: Math.abs(hh) * lrand(3, 4) });
   }
   TP.h0 = 0; { let m = 0; for (let k = 0; k < 16; k++) m += terrainH(Math.cos(k / 16 * TAU) * 30, Math.sin(k / 16 * TAU) * 30); TP.h0 = m / 16; }   // hauteur moyenne autour du départ
   const pos = terrainMesh.geometry.attributes.position;
@@ -718,34 +782,34 @@ function buildLevel() {
   };
   // le Vide : grappes de plateformes flottantes qui montent en escalier, un coffre au sommet
   if (P.float) for (let i = 0; i < 20; i++) {
-    let x, z, t = 0; do { x = rand(-HALF + 18, HALF - 18); z = rand(-HALF + 18, HALF - 18); } while (!free(x, z, 12) && ++t < 40);
-    const a = rand(0, TAU), n = 3 + (Math.random() * 2 | 0);
+    let x, z, t = 0; do { x = lrand(-HALF + 18, HALF - 18); z = lrand(-HALF + 18, HALF - 18); } while (!free(x, z, 12) && ++t < 40);
+    const a = lrand(0, TAU), n = 3 + (lr() * 2 | 0);
     let top = terrainH(x, z) + 2.6;
     for (let k = 0; k < n; k++) {
-      const px = x + Math.cos(a + k * 0.9) * k * 4.5, pz = z + Math.sin(a + k * 0.9) * k * 4.5, s = rand(2, 3.2);
+      const px = x + Math.cos(a + k * 0.9) * k * 4.5, pz = z + Math.sin(a + k * 0.9) * k * 4.5, s = lrand(2, 3.2);
       top = Math.max(top, terrainH(px, pz) + 2.6 + k * 2.4);
       addBox(px, pz, s, s, top, P.boxes[k % 3], top - 0.8);
-      if (k === n - 1 && Math.random() < 0.8) S.chests.push(mkChestData(px, pz, top));
+      if (k === n - 1 && lr() < 0.8) S.chests.push(mkChestData(px, pz, top));
     }
   }
   // pyramides à étages (plateformes où grimper)
   for (let i = 0; i < (P.float ? 7 : 10); i++) {
-    let x, z, t = 0; do { x = rand(-HALF + 15, HALF - 15); z = rand(-HALF + 15, HALF - 15); } while (!free(x, z, 9) && ++t < 40);
-    const base = terrainH(x, z), steps = 2 + (Math.random() * 2 | 0), s0 = rand(5, 7);
+    let x, z, t = 0; do { x = lrand(-HALF + 15, HALF - 15); z = lrand(-HALF + 15, HALF - 15); } while (!free(x, z, 9) && ++t < 40);
+    const base = terrainH(x, z), steps = 2 + (lr() * 2 | 0), s0 = lrand(5, 7);
     for (let k = 0; k < steps; k++) addBox(x, z, s0 - k * 1.7, s0 - k * 1.7, base + 1.6 + k * 1.6, P.boxes[k % 3]);
-    if (Math.random() < 0.8) S.chests.push(mkChestData(x, z, base + 1.6 + (steps - 1) * 1.6));
+    if (lr() < 0.8) S.chests.push(mkChestData(x, z, base + 1.6 + (steps - 1) * 1.6));
   }
   // blocs isolés
   for (let i = 0; i < 22; i++) {
-    let x, z, t = 0; do { x = rand(-HALF + 8, HALF - 8); z = rand(-HALF + 8, HALF - 8); } while (!free(x, z, 5) && ++t < 40);
-    const hw = rand(1.5, 4), hd = rand(1.5, 4);
-    addBox(x, z, hw, hd, terrainH(x, z) + rand(1.4, 3.5), P.block);
+    let x, z, t = 0; do { x = lrand(-HALF + 8, HALF - 8); z = lrand(-HALF + 8, HALF - 8); } while (!free(x, z, 5) && ++t < 40);
+    const hw = lrand(1.5, 4), hd = lrand(1.5, 4);
+    addBox(x, z, hw, hd, terrainH(x, z) + lrand(1.4, 3.5), P.block);
   }
   // décor : vinyles géants à demi enterrés, plantés droit (repères dans le paysage ; on les contourne)
   if (!P.float) {
     const vinylMat = neonMat(0x1a1024, 0.05), labelMat = neonMat(P.pillar, 0.9);
     for (let i = 0, t = 0; i < 9 && t < 200; t++) {
-      const x = rand(-HALF + 20, HALF - 20), z = rand(-HALF + 20, HALF - 20), r = rand(4, 7.5), alongX = Math.random() < 0.5;
+      const x = lrand(-HALF + 20, HALF - 20), z = lrand(-HALF + 20, HALF - 20), r = lrand(4, 7.5), alongX = lr() < 0.5;
       if (!free(x, z, r + 2)) continue;
       const y = Math.min(terrainH(x - r, z), terrainH(x + r, z), terrainH(x, z - r), terrainH(x, z + r)) + r * 0.45;
       const g = new THREE.Group(), disc = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.5, 40), vinylMat); disc.rotation.x = Math.PI / 2; g.add(disc);
@@ -758,8 +822,8 @@ function buildLevel() {
   // piliers
   const pillarMat = new THREE.ShaderMaterial({ uniforms: { ...fogU, uBeat: CU.uBeat, uColor: { value: new THREE.Color(P.pillar) } }, vertexShader: PILLAR_VS, fragmentShader: PILLAR_FS });
   for (let i = 0; i < (P.float ? 24 : 32); i++) {
-    let x, z, t = 0; do { x = rand(-HALF + 5, HALF - 5); z = rand(-HALF + 5, HALF - 5); } while (!free(x, z, 3) && ++t < 40);
-    const r = rand(0.8, 1.8), top = terrainH(x, z) + rand(5, 14);
+    let x, z, t = 0; do { x = lrand(-HALF + 5, HALF - 5); z = lrand(-HALF + 5, HALF - 5); } while (!free(x, z, 3) && ++t < 40);
+    const r = lrand(0.8, 1.8), top = terrainH(x, z) + lrand(5, 14);
     const geo = new THREE.CylinderGeometry(r, r * 1.15, top - terrainH(x, z) + 3, 6);
     const m = new THREE.Mesh(geo, pillarMat); m.position.set(x, (top + terrainH(x, z) - 3) / 2, z); levelGroup.add(m);
     const e = new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat); e.position.copy(m.position); levelGroup.add(e);
@@ -767,9 +831,9 @@ function buildLevel() {
   }
   // coffres au sol
   for (let tries = 0; S.chests.length < 34 && tries < 4000; tries++) {   // borné : jamais de boucle infinie à la génération
-    const x = rand(-HALF + 6, HALF - 6), z = rand(-HALF + 6, HALF - 6);
+    const x = lrand(-HALF + 6, HALF - 6), z = lrand(-HALF + 6, HALF - 6);
     if (Math.hypot(x, z) < 12 || S.obst.some(o => insideObs(o, x, z, 1.2))) continue;
-    const hq = TP.lv ? terrainH(x, z) / (TP.lv * TP.step) : 0.5; if (Math.random() > 0.25 + hq * 0.9) continue;   // les étages hauts en cachent davantage
+    const hq = TP.lv ? terrainH(x, z) / (TP.lv * TP.step) : 0.5; if (lr() > 0.25 + hq * 0.9) continue;   // les étages hauts en cachent davantage
     S.chests.push(mkChestData(x, z, terrainH(x, z)));
   }
   S.chests.forEach(addChestMesh);
@@ -779,7 +843,7 @@ function buildLevel() {
     const col = SHRINES[kind].col;
     // sur sol plat : un sanctuaire à cheval sur une falaise avait la moitié de son cercle sur l'étage du dessus (invite absente de ce côté-là)
     const flat = (x, z) => { const h = terrainH(x, z); for (let a = 0; a < 8; a++) if (Math.abs(terrainH(x + Math.cos(a * 0.785) * 3.4, z + Math.sin(a * 0.785) * 3.4) - h) > 1.6) return false; return true; };
-    let x, z, t = 0; do { x = rand(-HALF + 12, HALF - 12); z = rand(-HALF + 12, HALF - 12); } while ((!free(x, z, 4) || Math.hypot(x, z) < 22 || S.shrines.some(o => Math.hypot(o.x - x, o.z - z) < (t < 150 ? 20 : 9)) || (t < 300 && !flat(x, z))) && ++t < 400);
+    let x, z, t = 0; do { x = lrand(-HALF + 12, HALF - 12); z = lrand(-HALF + 12, HALF - 12); } while ((!free(x, z, 4) || Math.hypot(x, z) < 22 || S.shrines.some(o => Math.hypot(o.x - x, o.z - z) < (t < 150 ? 20 : 9)) || (t < 300 && !flat(x, z))) && ++t < 400);
     const y = terrainH(x, z);
     const g = new THREE.Group();
     for (let k = 0; k < 4; k++) {
@@ -800,8 +864,8 @@ function buildLevel() {
   const tops = S.obst.filter(o => o.kind !== 'cyl' && o.top > terrainH(o.x, o.z) + 2.5 && (o.bot !== undefined || o.top < terrainH(o.x, o.z) + 6) && Math.hypot(o.x, o.z) > 25);   // perchées mais atteignables
   for (let t = 0; S.keys.length < 3 && t < 300; t++) {
     let x, z, y;
-    if (tops.length && Math.random() < 0.7) { const o = tops[(Math.random() * tops.length) | 0]; x = o.x; z = o.z; y = o.top; }
-    else { x = rand(-HALF + 10, HALF - 10); z = rand(-HALF + 10, HALF - 10); if (!free(x, z, 2)) continue; y = terrainH(x, z); }
+    if (tops.length && lr() < 0.7) { const o = tops[(lr() * tops.length) | 0]; x = o.x; z = o.z; y = o.top; }
+    else { x = lrand(-HALF + 10, HALF - 10); z = lrand(-HALF + 10, HALF - 10); if (!free(x, z, 2)) continue; y = terrainH(x, z); }
     if (Math.hypot(x, z) < 35 || S.keys.some(k => Math.hypot(k.x - x, k.z - z) < 70)) continue;
     const g = new THREE.Group();
     const ring = new THREE.Mesh(new THREE.TorusGeometry(0.45, 0.12, 8, 20), neonMat(0x7ff6ff, 1.2)); ring.position.y = 1.5; g.add(ring);
@@ -813,24 +877,24 @@ function buildLevel() {
   // dangers propres à l'étape : bouches de lave (Fournaise, éruption annoncée), failles du Vide (aspirent et broient)
   S.vents = []; S.rifts = [];
   if (S.stage === 1) for (let t = 0; S.vents.length < 18 && t < 600; t++) {
-    const x = rand(-HALF + 8, HALF - 8), z = rand(-HALF + 8, HALF - 8);
+    const x = lrand(-HALF + 8, HALF - 8), z = lrand(-HALF + 8, HALF - 8);
     if (!free(x, z, 3.5) || Math.hypot(x, z) < 18 || S.vents.some(v => Math.hypot(v.x - x, v.z - z) < 22)) continue;
     const y = terrainH(x, z), m = new THREE.Mesh(new THREE.CircleGeometry(3, 32).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xff5a10, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false }));
     m.position.set(x, y + 0.08, z); levelGroup.add(m);
-    S.vents.push({ x, y, z, m, t: rand(2, 9) });
+    S.vents.push({ x, y, z, m, t: lrand(2, 9) });
   }
   if (S.stage === 2) for (let i = 0; i < 3; i++) {
-    const a = i / 3 * TAU + rand(-0.4, 0.4), r = rand(35, 70), x = Math.cos(a) * r, z = Math.sin(a) * r;
+    const a = i / 3 * TAU + lrand(-0.4, 0.4), r = lrand(35, 70), x = Math.cos(a) * r, z = Math.sin(a) * r;
     const g = new THREE.Group(), y = terrainH(x, z);
     for (let k = 0; k < 3; k++) { const tor = new THREE.Mesh(new THREE.TorusGeometry(1.2 + k * 0.9, 0.06, 6, 40), neonMat(0xb98bff, 1.1)); tor.rotation.x = Math.PI / 2; tor.position.y = 0.6 + k * 0.3; g.add(tor); }
     const core = new THREE.Mesh(new THREE.SphereGeometry(0.8, 16, 12), neonMat(0x1a0830, 0.05)); core.position.y = 1.2; g.add(core);
     g.position.set(x, y, z); levelGroup.add(g);
-    S.rifts.push({ x, y, z, g, a: rand(0, TAU) });
+    S.rifts.push({ x, y, z, g, a: lrand(0, TAU) });
   }
   // tremplins : propulsent haut et loin, en gardant (et gonflant) l'élan
   S.pads = [];
   for (let t = 0; S.pads.length < 24 && t < 1200; t++) {
-    const x = rand(-HALF + 10, HALF - 10), z = rand(-HALF + 10, HALF - 10);
+    const x = lrand(-HALF + 10, HALF - 10), z = lrand(-HALF + 10, HALF - 10);
     if (!free(x, z, 3) || S.pads.some(o => Math.hypot(o.x - x, o.z - z) < 22) || S.shrines.some(o => Math.hypot(o.x - x, o.z - z) < 6)) continue;   // jamais dans un sanctuaire (on y était éjecté avant de pouvoir l'activer)
     if (TP.lv && t < 900) { const h0 = terrainH(x, z); let up = 0; for (let a = 0; a < 8; a++) up = Math.max(up, terrainH(x + Math.cos(a * 0.785) * 5, z + Math.sin(a * 0.785) * 5) - h0); if (up < 2.5) continue; }   // au pied d'une falaise
     const y = terrainH(x, z), g = new THREE.Group();
@@ -842,9 +906,9 @@ function buildLevel() {
   // jarres : se brisent au contact et lâchent or / XP / soin
   S.jars = [];
   for (let i = 0; i < 80; i++) {
-    const x = rand(-HALF + 5, HALF - 5), z = rand(-HALF + 5, HALF - 5);
+    const x = lrand(-HALF + 5, HALF - 5), z = lrand(-HALF + 5, HALF - 5);
     if (Math.hypot(x, z) < 8 || S.obst.some(o => insideObs(o, x, z, 0.8))) continue;
-    S.jars.push({ x, z, y: terrainH(x, z), rot: rand(0, TAU), broken: false });
+    S.jars.push({ x, z, y: terrainH(x, z), rot: lrand(0, TAU), broken: false });
   }
   buildNav();
 }
@@ -955,10 +1019,11 @@ function baseStats(ch) {
     landShock: 0, jumpBurst: 0, speedDmg: 0, airDmg: 0, lowHpDmg: 0, killNova: 0, slideFire: 0, critChain: 0, execute: 0, frost: 0, hurtFreeze: 0, boomPow: 0, gemHeal: 0, midas: 0, chestDisc: 1, rush: 0 };
   ch.bonus(s); s.hp = Math.max(40, s.hp); return s;
 }
-function newRun() {
-  const ch = CHARS.find(c => c.id === META.sel && unlocked(c)) || CHARS[0];
+function newRun(daily) {
+  const D = daily ? dailyOf() : null;
+  const ch = D ? CHARS.find(c => c.id === D.ch) : CHARS.find(c => c.id === META.sel && unlocked(c)) || CHARS[0];
   S = {
-    state: 'play', stage: 0, stageT: 0, ch, heat: Math.min(META.heatSel || 0, heatAvail()), t: 0, time: RUN_TIME, kills: 0, gold: 0, level: 1, xp: 0, need: xpNeed(1), pending: 0, rerolls: 2,
+    daily: D, state: 'play', stage: 0, stageT: 0, ch, heat: D ? 0 : Math.min(META.heatSel || 0, heatAvail()), t: 0, time: RUN_TIME, kills: 0, gold: 0, level: 1, xp: 0, need: xpNeed(1), pending: 0, rerolls: 2,
     stats: null, weapons: [], tomes: [], items: {}, enemies: [], pickups: [], bolts: [], bullets: [], discs: [], rockets: [], mines: [], rings: [], dmgNums: [], pops: [], dmgBy: {}, keys: [], vents: [], rifts: [], twisters: [], puddles: [], drops: [], grooves: [], banned: new Set(), banishes: 2, banishOn: false, landT: -9, landHs: 0, jumpBuf: -9, hops: 0, pads: [], trauma: 0, hitstop: 0, fovKick: 0, fires: [], novaK: 0, rushT: 0, fireT: 0,
     spawnAcc: 0, nextSwarm: 90, eliteAt: [420, 240], wardenAt: [300], boss: null, portal: null, won: false, dmgDealt: 0, chestsOpened: 0,
     iframe: 0, shieldT: 0, hurtFlash: 0, msgT: 0, chestCost: 12, orbPos: [], orbCount: 0, magnetAll: 0, bossDead: false,
@@ -971,7 +1036,8 @@ function newRun() {
   applyStage(0);
   for (const it of SHOP) if (shopLvl(it.id)) it.fx(S.stats, shopLvl(it.id));
   S.rerolls += shopLvl('reroll') + (questDone('vendor5') ? 1 : 0); S.revives = shopLvl('revive');
-  S.banishes += (questDone('evo10') ? 1 : 0) + (questDone('itemdmg500000') ? 1 : 0); S.rerolls += questDone('lvl60') ? 1 : 0;
+  S.banishes += (questDone('evo10') ? 1 : 0) + (questDone('itemdmg500000') ? 1 : 0) + (questDone('dstreak7') ? 1 : 0); S.rerolls += questDone('lvl60') ? 1 : 0;
+  if (D) { for (const k of D.mods) DMODS[k].fx(S.stats); if (D.mods.includes('echo')) S.pd = { echo: 1 }; S.stats.hp = Math.max(40, S.stats.hp); }
   S.p.hp = S.stats.hp;
   buildLevel();
   S.p.y = terrainH(0, 0);
@@ -990,7 +1056,7 @@ function newRun() {
   $('nb-pausebtn').classList.remove('hidden');
   camY = S.p.y + 5;
   if (window.PT_MUSIC !== false) music.start(0);
-  msg(tr('nb.go'), 3.5);
+  msg(D ? tr('nb.dGo', { mods: D.mods.map(k => tr('nb.dm.' + k)).join(' · ') }) : tr('nb.go'), D ? 4.5 : 3.5, D ? '#7ff6ff' : undefined);
   lockPointer();
   renderWeaponsHud();
 }
@@ -1011,7 +1077,7 @@ function dynDmg() {
   return m;
 }
 const itemDmg = base => base * S.stats.dmg * (1 + S.t / 120);   // dégâts des effets d'objets : suivent la partie comme les explosions
-const chestPrice = () => Math.round(S.chestCost * S.stats.chestDisc);
+const chestPrice = () => Math.round(S.chestCost * S.stats.chestDisc * (dmod('rich') ? 1.5 : 1));
 const wStat = (w) => {
   const b = WEAPONS[w.id], s = S.stats;
   return {
@@ -1237,11 +1303,11 @@ function spawnEnemy(type, x, z, elite = false) {
   const T = ETYPES[type], m = diffMin();
   const lv = Math.max(0, S.level - 25);   // un build très avancé fait face à des ennemis plus solides et plus dangereux
   const ot = S.endless ? (S.t - S.endless.t0) / 60 : 0;   // Prolongation : +25 % PV et +20 % dégâts par minute, sans plafond
-  const hpMul = (1 + m * 0.3 + m * m * 0.035) * (elite ? 14 : 1) * heatHp() * (S.press || 1) * (1 + lv * 0.03) * Math.pow(1.25, ot) * (1 + 0.25 * pd('boost'));
+  const hpMul = (1 + m * 0.3 + m * m * 0.035) * (elite ? 14 : 1) * heatHp() * (S.press || 1) * (1 + lv * 0.03) * Math.pow(1.25, ot) * (1 + 0.25 * pd('boost')) * (dmod('giants') ? 1.3 : 1);
   const e = {
     type, T, x, z, y: groundE(x, z) + (T.fly ? 1.6 : 0), hp: T.hp * hpMul, max: T.hp * hpMul,
-    r: T.size * 0.6 * (elite ? 2 : 1), size: T.size * (elite ? 2 : 1), speed: T.speed * (elite ? 0.85 : 1) * (1 + m * 0.02) * (1 + 0.1 * pd('drive')),
-    dmg: T.dmg * (1 + m * (S.stage < 2 ? 0.11 : 0.08)) * (elite ? 1.8 : 1) * (ST().dmgK || 1) * heatDmg() * (1 + lv * 0.012) * Math.pow(1.2, ot) * (1 + 0.15 * pd('drive')), xp: Math.max(1, Math.round((1 + 0.15 * (pd('fuzz') + pd('drive'))) * T.xp * (1 + Math.min(m, 9) * 0.12) * (elite ? 25 : 1) * (elite || Math.random() < (S.dirFrac ?? 1) ? 1 : 0.35))), elite, flash: 0, kx: 0, kz: 0, rot: rand(0, TAU), shootT: rand(1, 3), spin: rand(1, 3),
+    r: T.size * 0.6 * (elite ? 2 : 1), size: T.size * (elite ? 2 : 1), speed: T.speed * (elite ? 0.85 : 1) * (1 + m * 0.02) * (1 + 0.1 * pd('drive')) * (dmod('swift') ? 1.15 : 1),
+    dmg: T.dmg * (1 + m * (S.stage < 2 ? 0.11 : 0.08)) * (elite ? 1.8 : 1) * (ST().dmgK || 1) * heatDmg() * (1 + lv * 0.012) * Math.pow(1.2, ot) * (1 + 0.15 * pd('drive')), xp: Math.max(1, Math.round((1 + 0.15 * (pd('fuzz') + pd('drive'))) * (dmod('giants') ? 1.3 : 1) * T.xp * (1 + Math.min(m, 9) * 0.12) * (elite ? 25 : 1) * (elite || Math.random() < (S.dirFrac ?? 1) ? 1 : 0.35))), elite, flash: 0, kx: 0, kz: 0, rot: rand(0, TAU), shootT: rand(1, 3), spin: rand(1, 3),
   };
   e.born = S.t; S.enemies.push(e); return e;
 }
@@ -1276,7 +1342,7 @@ function spawning(dt) {
   rate = Math.min(rate, 22) * heatRate();
   // directeur de foule : vise un nombre d'ennemis en vie selon le temps (≈25 à 0:30, ≈90 à 3:00, ≈200 à 7:00) ;
   // si un bon build vide l'écran, le débit monte (jusqu'à 60/s) pour garder une vraie horde
-  const want = Math.min(cap, (12 + m * 27) * (ST().wantK || 1)) * (S.boss || S.bossDead ? 0.5 : 1);
+  const want = Math.min(cap, (12 + m * 27) * (ST().wantK || 1) * (dmod('horde') ? 1.3 : 1)) * (S.boss || S.bossDead ? 0.5 : 1);
   const base = rate;
   if (S.enemies.length < want) rate = Math.min(60, rate + (want - S.enemies.length) * 0.25);
   S.dirFrac = base / rate;   // part des apparitions « normales » : les renforts du directeur rapportent moins d'XP
@@ -1286,7 +1352,7 @@ function spawning(dt) {
   if (S.boss) rate *= 0.5;
   if (S.bossDead && !S.endless) rate *= 0.12;   // portail ouvert : accalmie jusqu'au passage
   if (S.endless) rate = Math.min(70, rate * (1.6 + (S.t - S.endless.t0) / 45));   // la nuée finale ne fait que grossir
-  rate *= (1 + 0.25 * (S.greed || 0)) * (1 + 0.2 * pd('fuzz'));
+  rate *= (1 + 0.25 * (S.greed || 0)) * (1 + 0.2 * pd('fuzz')) * (dmod('horde') ? 1.35 : 1);
   if (pd('echo') && S.t >= (S.echoT ?? (S.echoT = S.t + 30)) && !S.boss) { S.echoT = S.t + Math.max(18, 45 - 8 * pd('echo')); spawnAround(Math.random() < 0.5 ? 'brute' : 'gunner', 22, 28, true); }
   S.spawnAcc += rate * dt;
   while (S.spawnAcc >= 1) {
@@ -2746,7 +2812,7 @@ function update(dt) {
     const n = Math.hypot(p.vx, p.vz), lim = Math.max(maxSp, hs);
     if (n > lim) { p.vx *= lim / n; p.vz *= lim / n; }
   }
-  p.vy -= 30 * (ST().grav || 1) * dt;
+  p.vy -= 30 * (ST().grav || 1) * (dmod('float') ? 0.65 : 1) * dt;
   const px0 = p.x, pz0 = p.z;
   p.x += p.vx * dt; p.z += p.vz * dt; p.y += p.vy * dt;
   p.x = clamp(p.x, -HALF + 1, HALF - 1); p.z = clamp(p.z, -HALF + 1, HALF - 1);
@@ -3127,7 +3193,7 @@ function updateHUD(dt) {
   measureHud();
   $('nb-xpbar').style.width = (S.xp / S.need * 100) + '%';
   $('nb-level').innerHTML = `LV<b>${S.level}</b>`;
-  $('nb-stage').textContent = tr('nb.stageTag', { s: S.stage + 1 }) + (S.heat ? ' · 🔥' + S.heat : '');
+  $('nb-stage').textContent = tr('nb.stageTag', { s: S.stage + 1 }) + (S.heat ? ' · 🔥' + S.heat : '') + (S.daily ? ' · ' + tr('nb.dTag') : '');
   const hpf = Math.max(0, S.p.hp / S.stats.hp);
   $('nb-hpbar').style.width = (hpf * 100) + '%'; $('nb-plate').classList.toggle('low', hpf < 0.3);
   $('nb-hptext').textContent = Math.max(0, Math.min(Math.ceil(S.p.hp), Math.round(S.stats.hp))); $('nb-hpmax').textContent = Math.round(S.stats.hp);
@@ -3290,8 +3356,9 @@ function endRun(win) {
   META.totalKills += S.kills - (E ? E.k0 : 0); META.maxLevel = Math.max(META.maxLevel, S.level); META.bestTime = Math.max(META.bestTime, surv); META.bestKills = Math.max(META.bestKills, S.kills);
   if (win && !E) { META.wins++; META.winsBy = META.winsBy || {}; META.winsBy[S.ch.id] = (META.winsBy[S.ch.id] || 0) + 1; }
   let heatRec = false;
-  if (win && !E) { META.heatWon = META.heatWon || {}; if ((S.heat || 0) > heatWon(S.ch.id)) { META.heatWon[S.ch.id] = S.heat || 0; heatRec = (S.heat || 0) > 0; } }
+  if (win && !E && !S.daily) { META.heatWon = META.heatWon || {}; if ((S.heat || 0) > heatWon(S.ch.id)) { META.heatWon[S.ch.id] = S.heat || 0; heatRec = (S.heat || 0) > 0; } }
   const cr = Math.max(0, runCredits(S) - (E ? E.cr0 : 0)); META.credits = (META.credits || 0) + cr;
+  S.dailyRes = S.daily ? dailyEnd() : null;
   window.ptEvent && window.ptEvent('nb_time', surv);
   saveMeta();
   let killedBy = !win && S.p.hp <= 0 && S.lastHurt ? S.lastHurt : null;
@@ -3331,7 +3398,7 @@ function statsHTML() {
 }
 function renderEnd() {
   const { surv, cr, newly, killedBy, best, heatRec, firstWin, ot, otRec } = S.endInfo;
-  $('nb-endless').classList.toggle('hidden', !(S.won && !S.endless));
+  $('nb-endless').classList.toggle('hidden', !(S.won && !S.endless && !S.daily));
   $('nb-endtitle').innerHTML = S.endless ? `<span class="neon" style="font-size:26px">${tr('nb.otOver')}</span>` : S.won ? `<span class="neon" style="font-size:30px">${tr('nb.victory')}</span>` : tr('nb.dead');
   const row = (a, b) => `<div><span class="muted">${tr(a)}</span><b>${b}</b></div>`;
   const full = (txt, col) => `<div class="nb-efull" style="color:${col}">${txt}</div>`;
@@ -3342,6 +3409,7 @@ function renderEnd() {
   $('nb-endstats').innerHTML = row('nb.eTime', `${Math.floor(surv / 60)}:${String(surv % 60).padStart(2, '0')}`) + row('nb.eLevel', S.level) + row('nb.eKills', num(S.kills)) + row('nb.eDmg', num(S.dmgDealt))
     + row('nb.eChests', S.chestsOpened) + row('nb.eChar', S.ch.name) + row('nb.eStage', (S.stage + 1) + ' / ' + STAGES.length)
     + (S.heat ? row('nb.heat', '🔥 ' + S.heat) : '')
+    + (S.dailyRes ? dailyEndHTML(S.dailyRes, row, full) : '')
     + (S.endless ? full(tr(otRec ? 'nb.otRec' : 'nb.otDone', { n: `${Math.floor(ot / 60)}:${String(ot % 60).padStart(2, '0')}` }), '#ff8a4d') : '')
     + notes + full(tr('nb.eCredits', { n: num(cr) }), '#7ff6ff')
     + (S.questsNew || []).slice(0, 3).map(q => full(`🏆 ${questText(q)} — ${questReward(q)}`, '#ffc94d')).join('')
@@ -3426,6 +3494,27 @@ function ransomTitle() {
     e.textContent = ch; e.style.cssText = `background:${bg};color:${fg};font-family:${ff},sans-serif;transform:rotate(${rot}deg);font-size:${sz}em`; h.appendChild(e);
   });
 }
+// carte « Défi du jour » du menu : héros imposé, modificateurs, record, série, sept derniers jours
+const DM_IC = { glass: 'dm_glass', horde: 'h_kills', rich: 'h_gold', swift: 'st_speed', crit: 'st_crit', echo: 'm_elite', giants: 'dm_giants', float: 'dm_float' };
+function renderDaily() {
+  const D = dailyOf(), st = dailyState(), c = CHARS.find(x => x.id === D.ch), face = (portraits() || {})[c.id];
+  const now = new Date(), mid = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1), left = Math.max(60, (mid - now) / 1000);
+  const days = []; for (let i = 6, k = D.key; i >= 0; i--) { days[i] = k; k = dayBefore(k); }
+  const week = days.map(k => { const v = META.dHist && META.dHist[k]; return `<i class="${v ? 'on' : ''}${k === D.key ? ' today' : ''}" title="${k}${v ? ' · ' + num(v) : ''}"></i>`; }).join('');
+  $('nb-dinfo').innerHTML = `<div class="nb-dhead">${icon('m_daily')}<b>${tr('nb.dTitle')}</b><span class="nb-ddate">${date(now, { day: 'numeric', month: 'short' })}</span>`
+    + `<span class="nb-dstreak${st.streak ? ' on' : ''}" title="${tr('nb.dStreakTip')}">${icon('m_streak')}${tr('nb.dStreak', { n: st.streak })}</span></div>`
+    + `<div class="nb-dbody"><span class="nb-dhero" style="--c:${c.col}">${face ? `<img class="nb-face" alt="" src="${face}">` : ''}<b>${c.name}</b>${unlocked(c) ? '' : `<small>${tr('nb.dLent')}</small>`}</span>`
+    + D.mods.map(k => `<span class="nb-dmod">${icon(DM_IC[k])}<span><b>${tr('nb.dm.' + k)}</b><small>${tr('nb.dmd.' + k)}</small></span></span>`).join('') + '</div>'
+    + `<div class="nb-dfoot"><span>${st.tries ? tr('nb.dBest', { n: num(st.best) }) + ' · ' + tr('nb.dTries', { n: st.tries }) : tr('nb.dNone', { t: '1:30' })}</span>`
+    + `<span class="nb-dweek" title="${tr('nb.dWeek')}">${week}</span><span class="muted">${tr('nb.dNext', { h: Math.floor(left / 3600), m: String(Math.floor(left % 3600 / 60)).padStart(2, '0') })}</span></div>`;
+  $('nb-dplay').textContent = st.done ? tr('nb.dAgain') : tr('nb.dPlay', { n: num(dailyPrize((st.streak || 0) + 1)) });
+}
+function dailyEndHTML(r, row, full) {
+  if (r.stale) return row('nb.dScore', num(r.score)) + full(tr('nb.dStale'), '#9a90b4');
+  return row('nb.dScore', num(r.score))
+    + (r.rec ? full(tr('nb.dRec', { n: num(r.score) }), '#ffc94d') : full(tr('nb.dBest', { n: num(r.best) }), '#7ff6ff'))
+    + (r.prize ? full(tr('nb.dDone', { n: num(r.prize), s: r.streak }), '#7cff8a') : r.short ? full(tr('nb.dShort', { t: '1:30' }), '#ff8a4d') : '');
+}
 function renderMenu() {
   ransomTitle();
   checkQuests(); renderQuests();   // une sauvegarde ancienne peut déjà remplir des quêtes
@@ -3443,6 +3532,7 @@ function renderMenu() {
     box.appendChild(b);
   });
   $('nb-meta').textContent = META.runs ? tr('nb.metaLine', { runs: num(META.runs), wins: num(META.wins), best: `${Math.floor(META.bestTime / 60)}:${String(META.bestTime % 60).padStart(2, '0')}`, lvl: META.maxLevel, kills: num(META.totalKills) }) : '';
+  renderDaily();
   $('nb-sens').value = META.sens;
   $('nb-credits').textContent = num(META.credits || 0);
   $('nb-credits2').textContent = num(META.credits || 0);
@@ -3471,6 +3561,7 @@ function renderMenu() {
 }
 
 $('nb-start').onclick = () => { S = null; newRun(); clock.getDelta(); };
+$('nb-dplay').onclick = () => { S = null; newRun(true); clock.getDelta(); };
 $('nb-shopjump').onclick = () => { const c = $('nb-menu').querySelector('.card'), h = document.querySelector('#nb-menu .nb-shop-h'); c.scrollTo({ top: c.scrollTop + h.getBoundingClientRect().top - c.getBoundingClientRect().top - 8, behavior: 'smooth' }); };
 // entre deux runs : l'application peut placer une pause publicitaire (plafonnée, voir apps/synth-horde)
 $('nb-again').onclick = () => MON.pause().then(toMenu);
@@ -3486,7 +3577,7 @@ $('nb-endless').onclick = () => {
   if (window.PT_MUSIC !== false) music.start(S.stage);
   msg(tr('nb.otGo'), 3, '#ff8a4d');
 };
-$('nb-replay').onclick = () => MON.pause().then(() => { toMenu(); $('nb-menu').classList.add('hidden'); S = null; newRun(); clock.getDelta(); });
+$('nb-replay').onclick = () => { const d = !!(S && S.daily); MON.pause().then(() => { toMenu(); $('nb-menu').classList.add('hidden'); S = null; newRun(d); clock.getDelta(); }); };
 $('nb-nums').onchange = e => { META.nums = e.target.value; saveMeta(); };
 $('nb-autolvl').onchange = e => { META.autoLvl = !!e.target.value; saveMeta(); };
 $('nb-quality').onchange = e => { META.quality = e.target.value; saveMeta(); DR.pr = qCap(); renderer.setPixelRatio(DR.pr); onResize(); };   // l'anticrénelage « haute » s'applique au prochain lancement

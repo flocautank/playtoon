@@ -834,3 +834,32 @@ body[data-tab=blocks] #pt-cancel{background:url("data:image/svg+xml,%3Csvg xmlns
 @media (prefers-reduced-motion:reduce){#tab-forge .sf-astfig circle.nx{animation:none}}
 /* Block Quarry 1.9.0 : un bouton de plus dans la barre du haut — plus serrée sous 390 px */
 @media (max-width:390px){.bp-top{gap:4px}#tab-blocks .bp-top .bp-stat{padding:4px 3px}#bp-restart,#bp-themebtn,#bp-carbtn{padding:6px 5px}#bp-mapbtn{padding:4px 4px}}
+/* --- Synth Horde 1.17.0 : défi du jour (carte du menu) */
+.nb-daily{display:flex;flex-direction:column;gap:6px;padding:10px 12px;background:#160c22;border:2px solid #27e0ff;box-shadow:5px 5px 0 #0a0612,5px 5px 0 2px #27e0ff;text-align:left;font-family:var(--lab,inherit)}
+.nb-dhead{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.nb-dhead .nbi{width:24px;height:24px}
+.nb-dhead b{font:400 18px var(--disp,inherit);color:#fff;letter-spacing:.01em}
+.nb-ddate{font:800 italic 13px var(--lab,inherit);color:#27e0ff;text-transform:uppercase}
+.nb-dstreak{margin-left:auto;display:inline-flex;align-items:center;gap:4px;font:800 italic 13px var(--lab,inherit);color:#9a90b4;padding:2px 8px;border:1px solid #3a2e4e;transform:skewX(-10deg)}
+.nb-dstreak.on{color:#0a0612;background:#ffe04d;border-color:#ffe04d}
+.nb-dstreak .nbi{width:16px;height:16px}
+.nb-dbody{display:flex;flex-wrap:wrap;gap:6px}
+.nb-dhero,.nb-dmod{display:inline-flex;align-items:center;gap:6px;padding:4px 9px 4px 6px;background:#0d0716;border:1px solid #3a2e4e;min-width:0}
+.nb-dhero{border-color:var(--c)}
+.nb-dhero .nb-face{width:30px;height:30px;background:var(--c);clip-path:polygon(10% 0,100% 0,90% 100%,0 100%)}
+.nb-dhero b{font:400 15px var(--disp,inherit);color:#fff}
+.nb-dhero small{font:700 italic 11px var(--lab,inherit);color:#ffe04d}
+.nb-dmod{flex:1 1 170px}
+.nb-dmod .nbi{width:22px;height:22px;flex:none}
+.nb-dmod > span{display:flex;flex-direction:column;min-width:0;line-height:1.2}
+.nb-dmod b{font:800 italic 14px var(--lab,inherit);color:#fff}
+.nb-dmod small{font:600 12px var(--lab,inherit);color:#c9c0dc}
+.nb-dfoot{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;font:600 13px var(--lab,inherit);color:#d9d2ea}
+.nb-dfoot .muted{font-size:12px;margin-left:auto}
+.nb-dweek{display:inline-flex;gap:3px}
+.nb-dweek i{width:11px;height:11px;background:#2b1745;border:1px solid #3a2e4e;transform:skewX(-10deg)}
+.nb-dweek i.on{background:#27e0ff;border-color:#27e0ff}
+.nb-dweek i.today{outline:1px solid #fff;outline-offset:1px}
+#nb-root .nb-dplay,.nb-dplay{align-self:stretch;background:#27e0ff;color:#0a0612;border:0;border-radius:0;transform:skewX(-6deg);font:400 15px var(--disp,inherit);padding:8px 12px;box-shadow:4px 4px 0 #fff;line-height:1.15}
+@media (max-width:600px){.nb-daily{padding:8px 9px;gap:5px}.nb-dmod{flex-basis:100%}.nb-dmod small{font-size:11.5px}.nb-dfoot .muted{margin-left:0}}
+@media (max-height:500px) and (orientation:landscape){.nb-daily{padding:6px 10px;gap:4px}.nb-dmod{flex-basis:150px;padding:2px 6px}.nb-dmod small{font-size:10.5px}.nb-dplay{padding:5px;font-size:14px}}

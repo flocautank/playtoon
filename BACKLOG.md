@@ -35,6 +35,7 @@ bugs → contenu → durée de vie → identité graphique → enrichissement. P
 - 2026-10-18 · Synth Horde · bugs · 1.15.2 · 9 runs aléatoires + une run complète jusqu'à la victoire sans erreur ni NaN, six langues sans débordement ; l'annonce (« Survive… », boss) restait lisible par-dessus l'écran de niveau/pause (minuteur gelé) : masquée. Le test du joystick du smoke a échoué une fois sur trois (11,5 / 0), non reproduit ensuite : à surveiller.
 - 2026-10-18 · Synth Horde · contenu · 1.16.0 · écart Megabonk « peu d'armes » (15 contre 31) : 3 armes à mécanique nouvelle, chacune avec son évolution et une quête de déblocage — Drop de basse (frappe annoncée sur le plus gros paquet → Séisme sub, réplique qui ralentit ; quête : 5 coffres dorés), Caisse claire (gerbe de plombs à courte portée → Roulement, double salve ; quête : niveau 20), Sillon (notes laissées au sol en courant → Sillon infini ; quête : 2 Gardiens) ; 6 icônes dessinées, textes en 6 langues, armes ajoutées au smoke. Corrigé au passage : sanctuaires posés à cheval sur une falaise (invite absente d'un côté) → sol plat exigé ; tremplins jamais dans un sanctuaire. Bot naïf : médiane 5:39, niveau 16,3 à 3:00 (référence du jour sans le lot : 4:28 et 5:18 ; première version des armes trop faible, 3:47/3:56 → Caisse claire et Drop renforcés).
 - 2026-10-18 · Block Quarry · durée de vie · 1.9.0 · **Carnet du carrier** (bouton 🏅, pastille quand quelque chose est à récupérer) : grade de carrière sur 16 paliers nourri par tous les modes, 3 missions de la semaine (graine = lundi) + coffre, médailles de maîtrise par chapitre, statistiques ; 3 thèmes qui ne s'achètent pas, gagnés au grade ; ligne de grade et XP gagnée sur les écrans de fin ; joueurs existants : grade de départ calculé sur leurs étoiles, médailles déjà méritées versées ; la vidéo ne peut que doubler les pièces d'une mission remplie (rien sur Steam) ; au passage, « Récupère 5 » sans 💎 sur le canevas → « Récupère 5 gemmes » (6 langues).
+- 2026-10-18 · Synth Horde · durée de vie · 1.17.0 · défi du jour : chaque jour la même carte (graine tirée de la date : relief, obstacles, coffres, sanctuaires, clés), un héros imposé (prêté s'il est verrouillé) et 2 modificateurs parmi 8 (Canon de verre, Marée, Ruée vers l'or, Tempo double, Fil du rasoir, Larsen, Colosses, Apesanteur) ; score (boss, survie, niveau, éliminations), record du jour, essais, série de jours consécutifs, 7 derniers jours, compte à rebours ; journée validée après 1:30 → prime de 120 à 300 crédits selon la série ; 7 quêtes (défis validés 1/7/30, série 3/7 → +1 bannir, score 5 000/25 000) ; carte dédiée au menu, score et record sur l'écran de fin, « DÉFI » au HUD ; 6 icônes dessinées, textes en 6 langues ; test au smoke (carte identique d'un essai à l'autre). Le générateur de carte a son propre tirage (three.js consomme Math.random pour ses uuid). Équilibrage des runs normales inchangé.
 
 ## Synth Horde vs Megabonk
 
@@ -267,6 +268,15 @@ Mineurs traités dans 1.9.3 : un build faible ne voit plus la barre du boss fond
 l'écran de fin après une mort en Prolongation titre « Victoire · fin de la Prolongation » ; salves d'élite un peu moins fortes (1re cause de mort du bot débutant). Mineurs laissés (équilibrage ou
 préférence) : étape 3 sans danger pour un build très fort (comme Megabonk, la Prolongation sanctionne), Prolongation un peu
 longue (6–7 min), répartition des dégâts objets/armes, grille d'objets sur téléphone, toast du site sur le récap.
+
+### Durée de vie (2026-10-18, build 1.16.0) — inventaire et écart retenu
+
+Existant : 9 héros (8 à débloquer), 18 armes (9 par quête), 30 objets (14 par quête), ~75 quêtes à paliers, Chaleur 0–5
+mémorisée par héros, 4 pédales, boutique permanente (~15–20 runs pour tout acheter), Prolongation ∞ avec record, records
+globaux (temps, niveau, éliminations). Tout cela s'**épuise** : une fois les quêtes faites et la boutique pleine, rien ne
+renouvelle l'objectif d'une session à l'autre. Écart retenu : un **défi du jour** à graine fixe (même carte, héros imposé,
+deux modificateurs, score, record du jour, série de jours, prime), le moteur « une run par jour » des roguelites.
+Candidats suivants : records et maîtrise par héros (meilleur temps, Chaleur, niveau de maîtrise), défis de run nommés.
 
 ## Synth Horde — visuels (demande du 2026-10-04 : effets, animation procédurale, puis personnages non génériques)
 

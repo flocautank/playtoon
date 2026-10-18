@@ -607,4 +607,72 @@ Object.assign(de, {"nb.w.drop": "Bass-Drop", "nb.wd.drop": "Eine Bassnote fällt
 Object.assign(it, {"nb.w.drop": "Drop di basso", "nb.wd.drop": "Una nota di basso cade sul gruppo più grande: cerchio d’allarme, poi impatto.", "nb.evo.drop": "Sisma sub", "nb.evod.drop": "×2 danni, più ampio, più una replica che rallenta", "nb.w.scatter": "Rullante", "nb.wd.scatter": "Una rosa di pallini a corto raggio che respinge forte.", "nb.evo.scatter": "Rullo di tamburi", "nb.evod.scatter": "×1,6 danni, +3 pallini, perforanti, seconda raffica", "nb.w.groove": "Solco", "nb.wd.groove": "Correndo lasci note luminose che feriscono chi ci passa sopra.", "nb.evo.groove": "Solco infinito", "nb.evod.groove": "×2 danni, note più larghe e durature che rallentano"});
 Object.assign(pt, {"nb.w.drop": "Drop de grave", "nb.wd.drop": "Uma nota grave cai sobre o maior grupo: anel de alerta, depois impacto.", "nb.evo.drop": "Terremoto sub", "nb.evod.drop": "×2 de dano, mais largo e um tremor que deixa lento", "nb.w.scatter": "Caixa clara", "nb.wd.scatter": "Uma rajada de chumbinhos de curto alcance que empurra forte.", "nb.evo.scatter": "Rufar", "nb.evod.scatter": "×1,6 de dano, +3 chumbinhos, perfurantes, segunda rajada", "nb.w.groove": "Sulco", "nb.wd.groove": "Correndo, você deixa notas luminosas que ferem quem pisa nelas.", "nb.evo.groove": "Sulco infinito", "nb.evod.groove": "×2 de dano, notas mais largas e duradouras que deixam lento"});
 
+// 1.17.0 : défi du jour (même carte, héros imposé, deux modificateurs, record, série)
+Object.assign(en, {
+  'nb.dTitle': 'Daily challenge', 'nb.dStreak': v => `${v.n} ${s(v.n, 'day', 'days')}`, 'nb.dStreakTip': 'Streak: days in a row with a validated daily challenge',
+  'nb.dLent': 'lent for today', 'nb.dBest': 'Today’s best: {n}', 'nb.dTries': v => `${v.n} ${s(v.n, 'try', 'tries')}`, 'nb.dNone': 'Same map for everyone today. Last {t} to validate the day.',
+  'nb.dWeek': 'Last 7 days', 'nb.dNext': 'new one in {h} h {m}', 'nb.dPlay': 'Play the daily · ◈ +{n}', 'nb.dAgain': 'Beat today’s best',
+  'nb.dScore': 'Daily score', 'nb.dRec': '🏅 New best today: {n}!', 'nb.dDone': v => `📅 Day validated: ◈ +${v.n} · streak ${v.s} ${s(v.s, 'day', 'days')}`,
+  'nb.dShort': 'Last {t} to validate the day (streak and bonus)', 'nb.dStale': 'Started yesterday: not counted for today', 'nb.dGo': 'DAILY CHALLENGE — {mods}', 'nb.dTag': 'DAILY',
+  'nb.dm.glass': 'Glass Cannon', 'nb.dm.horde': 'Tidal Wave', 'nb.dm.rich': 'Gold Rush', 'nb.dm.swift': 'Double Time', 'nb.dm.crit': 'Razor Edge', 'nb.dm.echo': 'Feedback', 'nb.dm.giants': 'Colossi', 'nb.dm.float': 'Zero-G',
+  'nb.dmd.glass': '−40% max HP, +40% damage', 'nb.dmd.horde': '+35% enemies, +20% XP', 'nb.dmd.rich': 'double gold, chests 50% pricier', 'nb.dmd.swift': 'you and the enemies +15% speed',
+  'nb.dmd.crit': '+15% crit, +50% crit damage, no regen', 'nb.dmd.echo': 'an extra elite every ~40 s, +1 luck', 'nb.dmd.giants': 'enemies +30% HP and +30% XP', 'nb.dmd.float': 'gravity −35%, +1 jump',
+  'nb.qt.daily': v => v.n === '1' || v.n === 1 ? 'Validate a daily challenge' : `Validate ${v.n} daily challenges`, 'nb.qt.dstreak': 'Reach a {n}-day daily streak', 'nb.qt.dscore': 'Score {n} in a daily challenge',
+});
+Object.assign(fr, {
+  'nb.dTitle': 'Défi du jour', 'nb.dStreak': v => `${v.n} ${s(v.n, 'jour', 'jours')}`, 'nb.dStreakTip': 'Série : jours d’affilée avec un défi du jour validé',
+  'nb.dLent': 'prêté pour la journée', 'nb.dBest': 'Record du jour : {n}', 'nb.dTries': v => `${v.n} ${s(v.n, 'essai', 'essais')}`, 'nb.dNone': 'La même carte pour tous aujourd’hui. Tiens {t} pour valider la journée.',
+  'nb.dWeek': '7 derniers jours', 'nb.dNext': 'le prochain dans {h} h {m}', 'nb.dPlay': 'Jouer le défi · ◈ +{n}', 'nb.dAgain': 'Battre le record du jour',
+  'nb.dScore': 'Score du défi', 'nb.dRec': '🏅 Nouveau record du jour : {n} !', 'nb.dDone': v => `📅 Journée validée : ◈ +${v.n} · série de ${v.s} ${s(v.s, 'jour', 'jours')}`,
+  'nb.dShort': 'Tiens {t} pour valider la journée (série et prime)', 'nb.dStale': 'Commencé hier : ne compte pas pour aujourd’hui', 'nb.dGo': 'DÉFI DU JOUR — {mods}', 'nb.dTag': 'DÉFI',
+  'nb.dm.glass': 'Canon de verre', 'nb.dm.horde': 'Marée', 'nb.dm.rich': 'Ruée vers l’or', 'nb.dm.swift': 'Tempo double', 'nb.dm.crit': 'Fil du rasoir', 'nb.dm.echo': 'Larsen', 'nb.dm.giants': 'Colosses', 'nb.dm.float': 'Apesanteur',
+  'nb.dmd.glass': 'PV max −40 %, dégâts +40 %', 'nb.dmd.horde': '+35 % d’ennemis, +20 % d’XP', 'nb.dmd.rich': 'or doublé, coffres 50 % plus chers', 'nb.dmd.swift': 'toi et les ennemis +15 % de vitesse',
+  'nb.dmd.crit': '+15 % de crit, +50 % de dégâts critiques, pas de régénération', 'nb.dmd.echo': 'une élite de plus toutes les ~40 s, +1 chance', 'nb.dmd.giants': 'ennemis +30 % de PV et +30 % d’XP', 'nb.dmd.float': 'gravité −35 %, +1 saut',
+  'nb.qt.daily': v => v.n === '1' || v.n === 1 ? 'Valide un défi du jour' : `Valide ${v.n} défis du jour`, 'nb.qt.dstreak': 'Atteins une série de {n} jours', 'nb.qt.dscore': 'Marque {n} points dans un défi du jour',
+});
+Object.assign(es, {
+  'nb.dTitle': 'Desafío diario', 'nb.dStreak': v => `${v.n} ${s(v.n, 'día', 'días')}`, 'nb.dStreakTip': 'Racha: días seguidos con un desafío diario validado',
+  'nb.dLent': 'prestado por hoy', 'nb.dBest': 'Récord de hoy: {n}', 'nb.dTries': v => `${v.n} ${s(v.n, 'intento', 'intentos')}`, 'nb.dNone': 'El mismo mapa para todos hoy. Aguanta {t} para validar el día.',
+  'nb.dWeek': 'Últimos 7 días', 'nb.dNext': 'el próximo en {h} h {m}', 'nb.dPlay': 'Jugar el desafío · ◈ +{n}', 'nb.dAgain': 'Superar el récord de hoy',
+  'nb.dScore': 'Puntuación del desafío', 'nb.dRec': '🏅 ¡Nuevo récord de hoy: {n}!', 'nb.dDone': v => `📅 Día validado: ◈ +${v.n} · racha de ${v.s} ${s(v.s, 'día', 'días')}`,
+  'nb.dShort': 'Aguanta {t} para validar el día (racha y premio)', 'nb.dStale': 'Empezado ayer: no cuenta para hoy', 'nb.dGo': 'DESAFÍO DIARIO — {mods}', 'nb.dTag': 'DESAFÍO',
+  'nb.dm.glass': 'Cañón de cristal', 'nb.dm.horde': 'Marea', 'nb.dm.rich': 'Fiebre del oro', 'nb.dm.swift': 'Doble tempo', 'nb.dm.crit': 'Filo de navaja', 'nb.dm.echo': 'Acople', 'nb.dm.giants': 'Colosos', 'nb.dm.float': 'Ingravidez',
+  'nb.dmd.glass': '−40 % de PV máx., +40 % de daño', 'nb.dmd.horde': '+35 % de enemigos, +20 % de XP', 'nb.dmd.rich': 'oro doble, cofres un 50 % más caros', 'nb.dmd.swift': 'tú y los enemigos +15 % de velocidad',
+  'nb.dmd.crit': '+15 % de crítico, +50 % de daño crítico, sin regeneración', 'nb.dmd.echo': 'una élite más cada ~40 s, +1 suerte', 'nb.dmd.giants': 'enemigos +30 % de PV y +30 % de XP', 'nb.dmd.float': 'gravedad −35 %, +1 salto',
+  'nb.qt.daily': v => v.n === '1' || v.n === 1 ? 'Valida un desafío diario' : `Valida ${v.n} desafíos diarios`, 'nb.qt.dstreak': 'Consigue una racha de {n} días', 'nb.qt.dscore': 'Logra {n} puntos en un desafío diario',
+});
+Object.assign(de, {
+  'nb.dTitle': 'Tagesherausforderung', 'nb.dStreak': v => `${v.n} ${s(v.n, 'Tag', 'Tage')}`, 'nb.dStreakTip': 'Serie: Tage in Folge mit bestandener Tagesherausforderung',
+  'nb.dLent': 'heute geliehen', 'nb.dBest': 'Tagesrekord: {n}', 'nb.dTries': v => `${v.n} ${s(v.n, 'Versuch', 'Versuche')}`, 'nb.dNone': 'Heute für alle dieselbe Karte. Halte {t} durch, um den Tag zu werten.',
+  'nb.dWeek': 'Letzte 7 Tage', 'nb.dNext': 'neue in {h} Std. {m}', 'nb.dPlay': 'Herausforderung spielen · ◈ +{n}', 'nb.dAgain': 'Tagesrekord schlagen',
+  'nb.dScore': 'Tagespunkte', 'nb.dRec': '🏅 Neuer Tagesrekord: {n}!', 'nb.dDone': v => `📅 Tag gewertet: ◈ +${v.n} · Serie ${v.s} ${s(v.s, 'Tag', 'Tage')}`,
+  'nb.dShort': 'Halte {t} durch, um den Tag zu werten (Serie und Bonus)', 'nb.dStale': 'Gestern begonnen: zählt nicht für heute', 'nb.dGo': 'TAGESHERAUSFORDERUNG — {mods}', 'nb.dTag': 'TAG',
+  'nb.dm.glass': 'Glaskanone', 'nb.dm.horde': 'Flutwelle', 'nb.dm.rich': 'Goldrausch', 'nb.dm.swift': 'Doppeltempo', 'nb.dm.crit': 'Rasierklinge', 'nb.dm.echo': 'Rückkopplung', 'nb.dm.giants': 'Kolosse', 'nb.dm.float': 'Schwerelos',
+  'nb.dmd.glass': '−40 % max. LP, +40 % Schaden', 'nb.dmd.horde': '+35 % Gegner, +20 % EP', 'nb.dmd.rich': 'doppeltes Gold, Kisten 50 % teurer', 'nb.dmd.swift': 'du und die Gegner +15 % Tempo',
+  'nb.dmd.crit': '+15 % Krit, +50 % Kritschaden, keine Regeneration', 'nb.dmd.echo': 'alle ~40 s eine Elite mehr, +1 Glück', 'nb.dmd.giants': 'Gegner +30 % LP und +30 % EP', 'nb.dmd.float': 'Schwerkraft −35 %, +1 Sprung',
+  'nb.qt.daily': v => v.n === '1' || v.n === 1 ? 'Bestehe eine Tagesherausforderung' : `Bestehe ${v.n} Tagesherausforderungen`, 'nb.qt.dstreak': 'Erreiche eine Serie von {n} Tagen', 'nb.qt.dscore': 'Erziele {n} Punkte in einer Tagesherausforderung',
+});
+Object.assign(it, {
+  'nb.dTitle': 'Sfida del giorno', 'nb.dStreak': v => `${v.n} ${s(v.n, 'giorno', 'giorni')}`, 'nb.dStreakTip': 'Serie: giorni di fila con una sfida del giorno convalidata',
+  'nb.dLent': 'in prestito per oggi', 'nb.dBest': 'Record di oggi: {n}', 'nb.dTries': v => `${v.n} ${s(v.n, 'tentativo', 'tentativi')}`, 'nb.dNone': 'Oggi la stessa mappa per tutti. Resisti {t} per convalidare la giornata.',
+  'nb.dWeek': 'Ultimi 7 giorni', 'nb.dNext': 'la prossima tra {h} h {m}', 'nb.dPlay': 'Gioca la sfida · ◈ +{n}', 'nb.dAgain': 'Batti il record di oggi',
+  'nb.dScore': 'Punteggio della sfida', 'nb.dRec': '🏅 Nuovo record di oggi: {n}!', 'nb.dDone': v => `📅 Giornata convalidata: ◈ +${v.n} · serie di ${v.s} ${s(v.s, 'giorno', 'giorni')}`,
+  'nb.dShort': 'Resisti {t} per convalidare la giornata (serie e premio)', 'nb.dStale': 'Iniziata ieri: non conta per oggi', 'nb.dGo': 'SFIDA DEL GIORNO — {mods}', 'nb.dTag': 'SFIDA',
+  'nb.dm.glass': 'Cannone di vetro', 'nb.dm.horde': 'Marea', 'nb.dm.rich': 'Febbre dell’oro', 'nb.dm.swift': 'Tempo doppio', 'nb.dm.crit': 'Filo del rasoio', 'nb.dm.echo': 'Larsen', 'nb.dm.giants': 'Colossi', 'nb.dm.float': 'Gravità zero',
+  'nb.dmd.glass': '−40% PV max, +40% danni', 'nb.dmd.horde': '+35% nemici, +20% XP', 'nb.dmd.rich': 'oro doppio, forzieri più cari del 50%', 'nb.dmd.swift': 'tu e i nemici +15% di velocità',
+  'nb.dmd.crit': '+15% critico, +50% danni critici, niente rigenerazione', 'nb.dmd.echo': 'un’élite in più ogni ~40 s, +1 fortuna', 'nb.dmd.giants': 'nemici +30% PV e +30% XP', 'nb.dmd.float': 'gravità −35%, +1 salto',
+  'nb.qt.daily': v => v.n === '1' || v.n === 1 ? 'Convalida una sfida del giorno' : `Convalida ${v.n} sfide del giorno`, 'nb.qt.dstreak': 'Raggiungi una serie di {n} giorni', 'nb.qt.dscore': 'Fai {n} punti in una sfida del giorno',
+});
+Object.assign(pt, {
+  'nb.dTitle': 'Desafio do dia', 'nb.dStreak': v => `${v.n} ${s(v.n, 'dia', 'dias')}`, 'nb.dStreakTip': 'Sequência: dias seguidos com um desafio do dia validado',
+  'nb.dLent': 'emprestado por hoje', 'nb.dBest': 'Recorde de hoje: {n}', 'nb.dTries': v => `${v.n} ${s(v.n, 'tentativa', 'tentativas')}`, 'nb.dNone': 'O mesmo mapa para todos hoje. Aguente {t} para validar o dia.',
+  'nb.dWeek': 'Últimos 7 dias', 'nb.dNext': 'o próximo em {h} h {m}', 'nb.dPlay': 'Jogar o desafio · ◈ +{n}', 'nb.dAgain': 'Bater o recorde de hoje',
+  'nb.dScore': 'Pontuação do desafio', 'nb.dRec': '🏅 Novo recorde de hoje: {n}!', 'nb.dDone': v => `📅 Dia validado: ◈ +${v.n} · sequência de ${v.s} ${s(v.s, 'dia', 'dias')}`,
+  'nb.dShort': 'Aguente {t} para validar o dia (sequência e bônus)', 'nb.dStale': 'Começou ontem: não conta para hoje', 'nb.dGo': 'DESAFIO DO DIA — {mods}', 'nb.dTag': 'DESAFIO',
+  'nb.dm.glass': 'Canhão de vidro', 'nb.dm.horde': 'Maré', 'nb.dm.rich': 'Corrida do ouro', 'nb.dm.swift': 'Tempo dobrado', 'nb.dm.crit': 'Fio da navalha', 'nb.dm.echo': 'Microfonia', 'nb.dm.giants': 'Colossos', 'nb.dm.float': 'Gravidade zero',
+  'nb.dmd.glass': '−40% de PV máx., +40% de dano', 'nb.dmd.horde': '+35% de inimigos, +20% de XP', 'nb.dmd.rich': 'ouro em dobro, baús 50% mais caros', 'nb.dmd.swift': 'você e os inimigos +15% de velocidade',
+  'nb.dmd.crit': '+15% de crítico, +50% de dano crítico, sem regeneração', 'nb.dmd.echo': 'uma elite a mais a cada ~40 s, +1 sorte', 'nb.dmd.giants': 'inimigos +30% de PV e +30% de XP', 'nb.dmd.float': 'gravidade −35%, +1 pulo',
+  'nb.qt.daily': v => v.n === '1' || v.n === 1 ? 'Valide um desafio do dia' : `Valide ${v.n} desafios do dia`, 'nb.qt.dstreak': 'Alcance uma sequência de {n} dias', 'nb.qt.dscore': 'Faça {n} pontos em um desafio do dia',
+});
+
 export default { en, fr, es, de, it, pt };

@@ -344,6 +344,19 @@ const A = {
   m_sound: SPEAKER + ln('M15.6 9A4 4 0 0 1 15.6 15M18.2 6.2A8 8 0 0 1 18.2 17.8', M, 1.6),
   m_dice: g('rotate(-10 12 12)', rect(3.4, 3.4, 17.2, 17.2, W, 3.6) + dot(8, 8, 1.6, M) + dot(12, 12, 1.6, M) + dot(16, 16, 1.6, M) + dot(16, 8, 1.6, M) + dot(8, 16, 1.6, M)),
   m_revive: path('M9 2.4H15V9H21.6V15H15V21.6H9V15H2.4V9H9Z', G) + hi('M10.6 4.4V9.6'),
+
+  // ===== défi du jour (1.17.0)
+  m_daily: rect(3, 4.6, 18, 17, W, 2.4) + path('M3 7A2.4 2.4 0 0 1 5.4 4.6H18.6A2.4 2.4 0 0 1 21 7V9.8H3Z', M)
+    + rect(6.6, 2, 2.4, 5, Y, 1) + rect(15, 2, 2.4, 5, Y, 1)
+    + ell(10.4, 17.4, 2.6, 1.9, C) + rect(12, 11.2, 1.5, 6.4, C, 0.4) + path('M12 11.2L16.8 12.6V15.2L13.5 14.2Z', C),
+  m_streak: g('rotate(-35 12 12)', ln('M5.4 9.2H10.2A2.8 2.8 0 0 1 10.2 14.8H5.4A2.8 2.8 0 0 1 5.4 9.2Z', Y, 2.4)
+    + ln('M13.8 9.2H18.6A2.8 2.8 0 0 1 18.6 14.8H13.8A2.8 2.8 0 0 1 13.8 9.2Z', O, 2.4) + ln('M9.6 12H14.4', W, 2.4)),
+  m_medal: poly([[6.4, 1.8], [10.6, 1.8], [13.4, 10], [9.2, 10]], M) + poly([[17.6, 1.8], [13.4, 1.8], [10.6, 10], [14.8, 10]], C)
+    + circ(12, 15.4, 6.6, Y) + star(12, 15.6, 4.2, 1.8, 5, '#ffb52e') + hi('M8.4 13.4A4.4 4.4 0 0 1 10.4 11.2'),
+  dm_glass: heart('#bff6ff') + tl('M12 6.5L10.4 10.4L13.4 12.6L11 17', D, 1.3) + tl('M13.4 12.6L16.4 11.4', D, 1) + hi('M6.4 7.4A2.6 2.6 0 0 1 8.6 6'),
+  dm_giants: poly([[9.6, 1.8], [17.4, 10.6], [9.6, 21.4], [1.8, 10.6]], R) + poly([[9.6, 1.8], [17.4, 10.6], [9.6, 12.6], [1.8, 10.6]], '#ff7a8e')
+    + poly([[18.4, 12.6], [22.4, 17.4], [18.4, 22.2], [14.4, 17.4]], O),
+  dm_float: ln('M5.6 13.4L12 7.4L18.4 13.4', P, 2.6) + ln('M7.4 20.4L12 16L16.6 20.4', C, 2.2) + circ(12, 3.6, 2, W),
 };
 
 // mêmes dessins sous plusieurs noms (tomes = stats, boutique, quêtes)
@@ -356,6 +369,7 @@ const ALIAS = {
   q_lvl: 'h_level', q_wins_flag: 'q_wins', q_heat: 'h_heat', q_keys: 'h_keys', q_time: 'h_time', q_stage2: 'evo_flame', q_win_char: 'q_trophy',
   m_check: 'q_done', m_trophy: 'q_trophy', m_heat: 'h_heat', m_key: 'h_keys', m_skull: 'h_kills', m_gold: 'h_gold', m_credits: 'h_credits',
   m_magnet: 'st_magnet', m_level: 'h_level', m_ot: 'q_ot', m_sparkle: 'q_gold', m_coin: 'i_coin', m_pause: 'h_pause',
+  q_daily: 'm_daily', q_dstreak: 'm_streak', q_dscore: 'm_medal',
 };
 A.s_shop_cart = CART;
 delete ALIAS.q_wins_flag;
@@ -397,7 +411,7 @@ const E = {
   '◆': 'h_gold', '◈': 'h_credits', '☠': 'h_kills', '☠️': 'h_kills', '🔑': 'h_keys', '⏱': 'h_time', '⏱️': 'h_time', '▲': 'h_level', '❚❚': 'h_pause',
   '⭐': 'm_star', '📦': 'q_chests', '✨': 'q_gold', '🛒': 'q_vendor', '🎒': 'q_itemdmg', '∞': 'q_ot', '🐇': 'q_hops', '🏁': 'q_wins',
   '🏆': 'q_trophy', '✓': 'q_done', '🎲': 'm_dice', '✚': 'm_revive', '★': 'm_elite', '🔒': 'm_lock', '🔓': 'm_unlock', '⚠': 'm_warn', '⚠️': 'm_warn',
-  '⛔': 'm_ban', '📺': 'm_ad', '🎮': 'm_pad', '🔊': 'm_sound',
+  '⛔': 'm_ban', '📺': 'm_ad', '🎮': 'm_pad', '🔊': 'm_sound', '📅': 'm_daily', '🔗': 'm_streak', '🏅': 'm_medal',
 };
 // variantes avec / sans sélecteur de présentation (U+FE0F)
 for (const [k, v] of Object.entries(E)) { const bare = k.replace(/️/g, ''), full = bare.length && !k.includes('️') ? k + '️' : k; if (!(bare in E)) E[bare] = v; if (!(full in E)) E[full] = v; }
