@@ -765,3 +765,5 @@ body[data-tab=blocks] #pt-cancel{background:url("data:image/svg+xml,%3Csvg xmlns
   #nb-root .nb-choice{padding:8px 12px 10px}
   #nb-root .nb-choice .muted.small{font-size:13px}
 }
+/* Nova Foundry, téléphone étroit : le libellé de l'onglet actif (avec sa pastille ✦) ne doit plus être tronqué en fr/es/it/de */
+@media (max-width:420px){#tab-forge .sf-tabs button.on{font-size:12px;letter-spacing:0;padding-left:0;padding-right:0}#tab-forge .sf-tabs button.on.badge::after{margin-left:1px}#tab-forge .sf-tabs button.on span{margin-left:2px}#tab-forge .sf-tabs button i svg.eng{margin-right:1px}}
