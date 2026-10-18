@@ -1226,15 +1226,17 @@ function slide() {
 let actx = null, sfxOut = null, noiseBuf = null, xpChain = 0, xpLast = 0;
 const sfxLast = {};
 // couche de bruit filtré (impact, souffle) ajoutée sous l'oscillateur : [filtre, fréquence, durée, volume]
+const GROOVE_SCALE = [1, 1.125, 1.26, 1.5, 1.68, 2, 1.68, 1.5, 1.26, 1.125];   // pentatonique majeure, aller-retour
 const SFX_NOISE = {
   hit: ['bandpass', 2400, 0.04, 0.02], snare: ['highpass', 2600, 0.12, 0.05], kill: ['bandpass', 1500, 0.09, 0.035], hurt: ['lowpass', 900, 0.22, 0.09], boom: ['lowpass', 500, 0.45, 0.12],
   k_drone: ['highpass', 6000, 0.12, 0.04], k_charger: ['bandpass', 1200, 0.15, 0.045], k_warden: ['lowpass', 400, 0.6, 0.1],
+  drop: ['lowpass', 260, 0.5, 0.11], dropfall: ['bandpass', 3200, 0.55, 0.012], groove: ['highpass', 7000, 0.05, 0.008],
   slide: ['highpass', 1800, 0.22, 0.03], chest: ['highpass', 4000, 0.5, 0.025], elite: ['lowpass', 700, 0.5, 0.12], level: ['highpass', 5000, 0.35, 0.02],
 };
-function sfx(kind) {
+function sfx(kind, pm = 1) {   // pm : facteur de hauteur (notes du Sillon)
   if (window.PT_MUTE) return;
   const now = performance.now();
-  const gap = { hit: 40, kill: 45, xp: 35, snare: 60 }[kind] || (kind[1] === '_' ? 70 : 0);
+  const gap = { hit: 40, kill: 45, xp: 35, snare: 60, drop: 90, dropfall: 400, groove: 150 }[kind] || (kind[1] === '_' ? 70 : 0);
   if (sfxLast[kind] && now - sfxLast[kind] < gap) return;
   sfxLast[kind] = now;
   try {
@@ -1255,13 +1257,15 @@ function sfx(kind) {
     }
     if (kind === 'elite') kind = 'boom';
     // gemmes ramassées à la suite : la note monte (arpège), puis repart du bas après une pause
-    let jit = 0.93 + Math.random() * 0.14;
+    let jit = pm !== 1 ? pm : 0.93 + Math.random() * 0.14;
     if (kind === 'xp') { xpChain = now - xpLast < 450 ? Math.min(xpChain + 1, 14) : 0; xpLast = now; jit = Math.pow(2, [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24, 26, 28, 31, 33][xpChain] / 12); }
     const o = actx.createOscillator(), g = actx.createGain(); o.connect(g); g.connect(sfxOut);
     const P = {
       jump: ['square', 300, 600, 0.08, 0.03], slide: ['sawtooth', 200, 80, 0.2, 0.03], hit: ['square', 180, 90, 0.05, 0.015],
       kill: ['triangle', 520, 260, 0.06, 0.025], xp: ['sine', 700, 1100, 0.05, 0.02], hurt: ['sawtooth', 160, 60, 0.25, 0.08],
       level: ['triangle', 440, 1320, 0.4, 0.06], chest: ['triangle', 660, 1760, 0.5, 0.06], boom: ['sawtooth', 120, 30, 0.35, 0.05],
+      // armes de 1.16.0 : le Drop de basse siffle en tombant puis cogne comme une 808 ; le Sillon pose une note de la gamme
+      dropfall: ['triangle', 1800, 260, 0.6, 0.018], drop: ['sine', 150, 34, 0.5, 0.16], groove: ['triangle', 523, 520, 0.18, 0.022],
       zap: ['square', 1200, 200, 0.1, 0.02], shoot: ['square', 900, 500, 0.04, 0.01], snare: ['triangle', 260, 140, 0.07, 0.03], boss: ['sawtooth', 70, 40, 1.2, 0.1],
       // morts par famille : coup de basse du Subwoofer, grésillement du Static, zap montant du Clipper, coup de klaxon du Gramophone,
       // scratch du Needle, bande rembobinée de la Cassette, tic du Métronome, accord de l'Égaliseur, ampli qui s'éteint
@@ -1894,6 +1898,7 @@ function updateWeapons(dt) {
             S.drops.push({ x, z, y, t: 0.65, r: R, dmg: st.dmg, w: w.id, evo: w.evo, after: 0 });
             addRing(x, y + 0.12, z, R, w.evo ? [1, 0.75, 0.25] : [0.75, 0.35, 1], 0.65);
           }
+          sfx('dropfall');
         }
         break;
       case 'scatter':   // caisse claire : une gerbe de plombs vers l'ennemi le plus proche, portée courte, gros recul
@@ -1915,6 +1920,7 @@ function updateWeapons(dt) {
           const ph = S.grooveN = ((S.grooveN || 0) + 1) % 4;
           S.grooves.push({ x: px, z: pz, y: gy, t: life, max: life, tick: 0.1, dmg: st.dmg, r: st.area, w: w.id, evo: w.evo, ph });
           decal(px, gy, pz, st.area, w.evo ? [1, 0.8, 0.3] : ph & 1 ? [1, 0.25, 0.9] : [0.2, 0.9, 1], life, 1);   // une note sur deux en magenta : le sillon bat la mesure
+          if (!(ph & 1)) sfx('groove', GROOVE_SCALE[(S.grooveK = ((S.grooveK || 0) + 1) % GROOVE_SCALE.length)]);   // une note sur deux sonne : la gamme pentatonique monte et redescend
         }
         break;
       }
@@ -1967,7 +1973,7 @@ function updateWeapons(dt) {
       const h = Math.max(0, q.t) * 26;
       spawnPart(q.x + rand(-0.25, 0.25), q.y + 0.6 + h, q.z + rand(-0.25, 0.25), 0, -30, 0, col, 0.7, 0.08);
       if (q.t > 0) continue;
-      dmgSrc = q.w; explode(q.x, q.y, q.z, q.r, q.dmg, col);
+      dmgSrc = q.w; explode(q.x, q.y, q.z, q.r, q.dmg, col); sfx('drop');
       near(q.x, q.z, q.r + 1, e => { if (Math.hypot(e.x - q.x, e.z - q.z) < q.r + e.r && !e.elite) e.slowT = Math.max(e.slowT || 0, 0.4); });
       if (q.evo) { q.after = 1; q.t = 0.28; } else S.drops.splice(i, 1);
     } else if (q.t <= 0) {
@@ -3334,11 +3340,15 @@ function pause() {
   if (document.pointerLockElement) document.exitPointerLock();
 }
 function renderBuild() {
-  const b = $('nb-build'); b.innerHTML = '';
-  S.weapons.forEach(w => b.insertAdjacentHTML('beforeend', `<span>${wIc(w)} ${wName(w)} ${tr('nb.lvShort', { n: w.lvl })}${!w.evo ? `<small class="nb-evo">${tr('nb.evoHint', { n: EVO_LVL, tome: `${TOMES[EVOS[w.id].tome].ic} ${TOMES[EVOS[w.id].tome].name}` })}</small>` : ' ★'}</span>`));
-  S.tomes.forEach(t => b.insertAdjacentHTML('beforeend', `<span>${TOMES[t.id].ic} ${TOMES[t.id].name} ${tr('nb.lvShort', { n: t.lvl })}</span>`));
-  Object.entries(S.items).forEach(([id, n]) => { const it = ITEMS.find(i => i.id === id); b.insertAdjacentHTML('beforeend', `<span title="${it.desc}">${it.ic} ${it.name}${n > 1 ? ' ×' + n : ''}</span>`); });
-  b.insertAdjacentHTML('beforeend', statsHTML());
+  // la pause en « fiche de tournée » : armes en dalles (niveau en gros chiffres, piste vers l'évolution), tomes en tuiles, objets en jetons
+  const b = $('nb-build');
+  const lv = n => `<em>${tr('nb.lvShort', { n })}</em>`;
+  const evoBar = w => `<i class="nb-bprog"><u style="width:${Math.min(100, w.lvl / EVO_LVL * 100).toFixed(0)}%"></u></i>`;
+  const ws = S.weapons.map(w => `<span class="nb-bt${w.evo ? ' evo' : ''}"><span class="ic">${wIc(w)}</span><b>${wName(w)}</b>${lv(w.lvl)}${w.evo ? '<small class="nb-evo">★</small>' : evoBar(w) + `<small class="nb-evo">${tr('nb.evoHint', { n: EVO_LVL, tome: `${TOMES[EVOS[w.id].tome].ic} ${TOMES[EVOS[w.id].tome].name}` }).replace(/^—\s*/, '')}</small>`}</span>`).join('');
+  const ts = S.tomes.map(t => `<span class="nb-bt t"><span class="ic">${TOMES[t.id].ic}</span><b>${TOMES[t.id].name}</b>${lv(t.lvl)}</span>`).join('');
+  const its = Object.entries(S.items).map(([id, n]) => { const it = ITEMS.find(i => i.id === id); return `<span class="nb-bi" title="${it.desc}">${it.ic} ${it.name}${n > 1 ? ' <em>×' + n + '</em>' : ''}</span>`; }).join('');
+  const sec = (k, body, cls = '') => body ? `<div class="nb-bsec${cls}"><h4>${tr(k)}</h4><div class="nb-bgrid">${body}</div></div>` : '';
+  b.innerHTML = sec('nb.slotW', ws) + sec('nb.slotT', ts, ' t') + sec('nb.srcItems', its, ' it') + statsHTML();
 }
 function resume() { if (!S || S.state !== 'pause') return; $('nb-pause').classList.add('hidden'); S.state = 'play'; clock.getDelta(); lockPointer(); if (window.PT_MUSIC !== false) music.start(S.stage); }
 function endRun(win) {
@@ -3399,14 +3409,17 @@ function statsHTML() {
 function renderEnd() {
   const { surv, cr, newly, killedBy, best, heatRec, firstWin, ot, otRec } = S.endInfo;
   $('nb-endless').classList.toggle('hidden', !(S.won && !S.endless && !S.daily));
-  $('nb-endtitle').innerHTML = S.endless ? `<span class="neon" style="font-size:26px">${tr('nb.otOver')}</span>` : S.won ? `<span class="neon" style="font-size:30px">${tr('nb.victory')}</span>` : tr('nb.dead');
+  // bandeau-affiche : portrait du héros et verdict sur une dalle inclinée (jaune pour une victoire, encre et rose sinon)
+  const face = (portraits() || {})[S.ch.id];
+  $('nb-endtitle').innerHTML = `<span class="nb-eslab${S.won ? ' win' : ''}" style="--c:${S.ch.col}">${face ? `<img class="nb-face" alt="" src="${face}">` : ''}<span>${S.endless ? tr('nb.otOver') : S.won ? tr('nb.victory') : tr('nb.dead')}</span></span>`;
   const row = (a, b) => `<div><span class="muted">${tr(a)}</span><b>${b}</b></div>`;
   const full = (txt, col) => `<div class="nb-efull" style="color:${col}">${txt}</div>`;
   const notes = (killedBy ? full(tr('nb.kb.' + (killedBy in KB ? killedBy : 'other')), '#ff7a95') : '')
     + (best ? full(tr('nb.newBest'), '#ffc94d') : '') + (heatRec ? full(tr('nb.heatRec', { n: S.heat }), '#ff8a4d') : '')
     + (firstWin ? full(tr('nb.heatUnlocked'), '#ff8a4d') : '')
     + ((S.gold || 0) >= 40 ? full(tr('nb.goldCr', { g: num(S.gold), c: num(Math.floor(S.gold / 40 * (1 + 0.25 * (S.heat || 0)))) }), '#ffc94d') : '');
-  $('nb-endstats').innerHTML = row('nb.eTime', `${Math.floor(surv / 60)}:${String(surv % 60).padStart(2, '0')}`) + row('nb.eLevel', S.level) + row('nb.eKills', num(S.kills)) + row('nb.eDmg', num(S.dmgDealt))
+  const big = (a, b) => `<div class="nb-ebig"><b>${b}</b><span>${tr(a)}</span></div>`;   // les quatre chiffres de la run, en gros, comme un flyer
+  $('nb-endstats').innerHTML = `<div class="nb-ebigs">${big('nb.eTime', `${Math.floor(surv / 60)}:${String(surv % 60).padStart(2, '0')}`) + big('nb.eLevel', S.level) + big('nb.eKills', num(S.kills)) + big('nb.eDmg', num(S.dmgDealt))}</div>`
     + row('nb.eChests', S.chestsOpened) + row('nb.eChar', S.ch.name) + row('nb.eStage', (S.stage + 1) + ' / ' + STAGES.length)
     + (S.heat ? row('nb.heat', '🔥 ' + S.heat) : '')
     + (S.dailyRes ? dailyEndHTML(S.dailyRes, row, full) : '')
@@ -3487,11 +3500,14 @@ function ransomTitle() {
   const h = document.querySelector('#nb-menu h1.neon'); if (!h || h.dataset.rn) return;
   const txt = h.textContent.trim(); h.dataset.rn = 1; h.classList.add('nb-rn'); h.setAttribute('aria-label', txt); h.textContent = '';
   const ST = [['#fffdf6', '#0b0612', "'SH Display'"], ['#0b0612', '#fffdf6', "'SH Poster'"], ['#ff2fa8', '#fffdf6', "'SH Mono'"], ['#27e0ff', '#0b0612', "'SH Display'"], ['#fffdf6', '#ff2fa8', "'SH Poster'"], ['#ffe04d', '#0b0612', "'SH Mono'"]];
+  // un mot ne se coupe jamais (sur téléphone, « SYNTH » puis « HORDE » en dessous, pas « HOR / DE »)
+  let word = null;
   [...txt].forEach((ch, i) => {
+    if (ch === ' ') { word = null; const sp = document.createElement('i'); sp.className = 'sp'; sp.setAttribute('aria-hidden', 'true'); h.appendChild(sp); return; }
+    if (!word) { word = document.createElement('span'); word.className = 'w'; h.appendChild(word); }
     const e = document.createElement('i'); e.setAttribute('aria-hidden', 'true');
-    if (ch === ' ') { e.className = 'sp'; h.appendChild(e); return; }
     const [bg, fg, ff] = ST[(i * 5 + 2) % ST.length], rot = ((i * 37) % 13) - 6, sz = 1 + (((i * 23) % 5) - 2) * 0.07;
-    e.textContent = ch; e.style.cssText = `background:${bg};color:${fg};font-family:${ff},sans-serif;transform:rotate(${rot}deg);font-size:${sz}em`; h.appendChild(e);
+    e.textContent = ch; e.style.cssText = `background:${bg};color:${fg};font-family:${ff},sans-serif;transform:rotate(${rot}deg);font-size:${sz}em`; word.appendChild(e);
   });
 }
 // carte « Défi du jour » du menu : héros imposé, modificateurs, record, série, sept derniers jours

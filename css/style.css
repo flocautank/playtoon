@@ -883,3 +883,74 @@ body[data-tab=blocks] #bq-settings .bq-shop{border-color:rgba(255,225,180,.18)}
 body[data-tab=blocks] #bq-settings svg.bqi{fill:currentColor;color:#d9b98a}
 body[data-tab=blocks] #bq-settings .btn.ghost{background:linear-gradient(180deg,#4a3828,#2e2219);color:#f3dcb4;box-shadow:inset 0 2px 0 rgba(255,235,200,.18),inset 0 -3px 0 rgba(0,0,0,.35)}
 body[data-tab=blocks] #bq-settings .card h2{font-family:'BQ Display',system-ui,sans-serif;font-weight:400;letter-spacing:.02em;color:#ffe0a3;text-shadow:0 2px 0 #26140c}
+/* ======================================================================================================
+   Synth Horde 1.18.0 — identité : titre qui ne coupe plus ses mots, HUD de téléphone sans chevauchement
+   (minuteur en étiquette en haut à gauche), pause en « fiche de tournée », fin de run en affiche, héros verrouillés lisibles
+   ====================================================================================================== */
+#nb-root .nb-rn .w{display:inline-flex;gap:3px;white-space:nowrap}
+#nb-root .nb-char.lock .nb-face{background:none;filter:brightness(0) invert(.55);outline:2px dashed #fff;outline-offset:-2px}
+@media (max-width:600px){
+  #nb-root .nb-timer{left:10px;top:8px;transform:rotate(-3deg);font-size:22px;padding:1px 14px 0}
+  #nb-root .nb-stage{left:116px;top:13px;transform:rotate(-3deg);max-width:calc(100% - 252px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #nb-root .nb-tl{top:48px}
+  #nb-root .nb-msg{top:214px;bottom:auto}
+  #nb-root .nb-boss{top:206px}
+  #nb-root.bossing .nb-msg{top:272px}
+}
+/* --- pause : armes en dalles (niveau en gros, piste vers l'évolution), tomes en tuiles, objets en jetons */
+#nb-root .nb-build{display:flex;flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:10px;width:100%}
+#nb-root .nb-build .nb-stats{flex:none}
+#nb-root .nb-bsec h4{margin:0 0 5px;text-transform:uppercase;font:800 italic 14px var(--lab);letter-spacing:.14em;color:#fff;text-shadow:2px 2px 0 var(--pink);text-align:left}
+#nb-root .nb-bsec.t h4{text-shadow:2px 2px 0 #1fb6d0}
+#nb-root .nb-bsec.it h4{text-shadow:2px 2px 0 #b8902a}
+#nb-root .nb-bgrid{display:grid;grid-template-columns:minmax(0,1fr);gap:7px 10px}
+#nb-root .nb-bsec.t .nb-bgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+#nb-root .nb-bsec.it .nb-bgrid{display:flex;flex-wrap:wrap;gap:5px}
+#nb-root .nb-build .nb-bt{display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"ic name lv" "ic bar bar" "ic hint hint";align-items:center;gap:1px 8px;padding:6px 9px 6px 6px;background:#160c22;border:2px solid #fff;border-radius:0;transform:skewX(-6deg);box-shadow:4px 4px 0 var(--pink);text-align:left;line-height:1.1;font:700 italic 14px var(--lab)}
+#nb-root .nb-build .nb-bt > *{transform:skewX(6deg)}
+#nb-root .nb-build .nb-bt .ic{grid-area:ic;display:flex;align-items:center;justify-content:center;width:34px;height:34px;background:var(--ink);border:0;padding:0}
+#nb-root .nb-build .nb-bt .ic svg.nbi{width:30px;height:30px;vertical-align:0}
+#nb-root .nb-build .nb-bt b{grid-area:name;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:800 italic 15px var(--lab);color:#fff}
+#nb-root .nb-build .nb-bt em{grid-area:lv;font:400 14px var(--disp);font-style:normal;color:var(--yel);white-space:nowrap}
+#nb-root .nb-build .nb-bprog{grid-area:bar;display:block;height:5px;background:#2e2042;margin:2px 0}
+#nb-root .nb-build .nb-bprog u{display:block;height:100%;background:linear-gradient(90deg,var(--pink),var(--yel))}
+#nb-root .nb-build .nb-bt .nb-evo{grid-area:hint;white-space:normal;font-size:11px;line-height:1.15}
+#nb-root .nb-build .nb-bt .nb-evo svg.nbi{width:14px;height:14px;vertical-align:-3px}
+#nb-root .nb-build .nb-bt.evo{background:var(--yel);box-shadow:4px 4px 0 var(--ink),4px 4px 0 2px #fff}
+#nb-root .nb-build .nb-bt.evo b{color:var(--ink)}#nb-root .nb-build .nb-bt.evo em,#nb-root .nb-build .nb-bt.evo .nb-evo{color:var(--pink)}
+#nb-root .nb-build .nb-bt.t{grid-template-columns:auto minmax(0,1fr);grid-template-areas:"ic name" "ic lv";padding:4px 6px 4px 4px;box-shadow:3px 3px 0 var(--cy)}
+#nb-root .nb-build .nb-bt.t .ic{width:28px;height:28px}#nb-root .nb-build .nb-bt.t .ic svg.nbi{width:24px;height:24px}
+#nb-root .nb-build .nb-bt.t b{font-size:12.5px}#nb-root .nb-build .nb-bt.t em{font-size:12px}
+#nb-root .nb-build .nb-bi{display:inline-flex;align-items:center;gap:4px;padding:3px 9px 3px 5px;background:var(--ink);border:1px solid #ffd84d;border-radius:0;transform:skewX(-10deg);font:700 italic 13px var(--lab);color:#fff}
+#nb-root .nb-build .nb-bi em{font-style:normal;color:var(--yel)}
+#nb-root .nb-build .nb-stats span{background:#160c22;border:1px solid rgba(255,255,255,.55);transform:skewX(-8deg)}
+@media (max-height:500px) and (orientation:landscape){
+  #nb-root .nb-bgrid{gap:5px 8px}
+  #nb-root .nb-build .nb-bt{padding:3px 6px 3px 4px}#nb-root .nb-build .nb-bt .ic{width:26px;height:26px}#nb-root .nb-build .nb-bt .ic svg.nbi{width:22px;height:22px}
+  #nb-root .nb-build .nb-bt b{font-size:13px}#nb-root .nb-build .nb-bt .nb-evo{font-size:10px}
+}
+/* --- fin de run : verdict sur une dalle inclinée avec le portrait du héros, quatre gros chiffres */
+#nb-root #nb-end h2{text-shadow:none;margin:0 0 4px;display:flex;justify-content:center}
+#nb-root .nb-eslab{display:inline-flex;align-items:center;gap:12px;max-width:100%;background:var(--ink);border:3px solid #fff;padding:4px 18px 4px 6px;transform:rotate(-3deg) skewX(-8deg);box-shadow:7px 7px 0 var(--pink);font:400 26px/1.05 var(--disp);color:#fff}
+#nb-root .nb-eslab > *{transform:skewX(8deg)}
+#nb-root .nb-eslab.win{background:var(--yel);color:var(--ink);box-shadow:7px 7px 0 var(--ink),7px 7px 0 3px #fff}
+#nb-root .nb-eslab .nb-face{width:58px;height:58px;flex:none;background:var(--c);clip-path:polygon(10% 0,100% 0,90% 100%,0 100%);margin:-12px 0 -12px -2px}
+#nb-root #nb-endstats .nb-ebigs{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;border:0;padding:2px 0 8px}
+#nb-root #nb-endstats .nb-ebig{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:#160c22;border:2px solid #fff;border-bottom:2px solid #fff;padding:6px 4px 5px;transform:skewX(-8deg);box-shadow:4px 4px 0 var(--cy)}
+#nb-root #nb-endstats .nb-ebig:nth-child(2n){box-shadow:4px 4px 0 var(--pink)}
+#nb-root #nb-endstats .nb-ebig > *{transform:skewX(8deg)}
+#nb-root #nb-endstats .nb-ebig b{font:400 24px/1 var(--disp);color:var(--yel);max-width:100%;overflow:hidden;text-overflow:ellipsis}
+#nb-root #nb-endstats .nb-ebig span{font:800 italic 12px var(--lab);letter-spacing:.12em;text-transform:uppercase;color:#d9d2ea;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:600px){
+  #nb-root .nb-eslab{font-size:19px;padding:3px 12px 3px 4px;gap:8px}
+  #nb-root .nb-eslab .nb-face{width:44px;height:44px;margin:-8px 0 -8px -2px}
+  #nb-root #nb-endstats .nb-ebigs{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 10px}
+  #nb-root #nb-endstats .nb-ebig b{font-size:21px}
+}
+@media (max-height:500px) and (orientation:landscape){
+  #nb-root .nb-eslab{font-size:17px;padding:2px 12px 2px 4px}
+  #nb-root .nb-eslab .nb-face{width:34px;height:34px;margin:-6px 0 -6px -2px}
+  #nb-root #nb-endstats .nb-ebigs{padding:0 0 4px;gap:6px}
+  #nb-root #nb-endstats .nb-ebig{padding:2px 4px;flex-direction:row;gap:6px}
+  #nb-root #nb-endstats .nb-ebig b{font-size:16px}#nb-root #nb-endstats .nb-ebig span{font-size:10px}
+}
