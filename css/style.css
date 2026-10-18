@@ -1016,3 +1016,22 @@ body[data-tab=blocks] #bq-settings .card h2{font-family:'BQ Display',system-ui,s
 @media (max-width:760px){#tab-forge .sf-ordbar{margin-top:3px;font-size:12px;padding:2px 7px}}
 @media (min-width:761px){#tab-forge .sf-tabs button{font-size:15px;padding:10px 3px;letter-spacing:0}}   /* 1.9 : sept onglets (Commandes) */
 @media (min-width:761px) and (max-width:1100px){.sf-tabs button{flex:1 1 0;min-width:0}.sf-tabs button span{display:none}.sf-tabs button i{display:inline;margin:0;font-size:16px}.sf-tabs button.on{flex:2.6 1 0}.sf-tabs button.on span{display:inline;margin-left:4px}#tab-forge .sf-tabs button.on{font-size:14px}}   /* fenêtre étroite : icônes, nom de l'onglet actif seulement */
+/* Synth Horde 1.19.0 : confort — focus de la manette dans les menus, cibles tactiles ≥ 44 px, texte plus grand, raccourci « Réglages » de la pause */
+#nb-root .nb-pf{outline:3px solid #7ff6ff!important;outline-offset:3px;position:relative;z-index:3}
+#nb-root .nb-setjump{display:none;align-self:center;margin:-4px auto 6px}
+@media (max-width:600px){#nb-root .nb-setjump{display:inline-block}}
+@media (pointer:coarse){
+  #nb-root .nb-pausebtn{width:48px;height:48px}
+  #nb-root .nb-seg button{min-height:44px}
+  #nb-root .nb-pset{gap:4px}
+  #nb-root .nb-pset label{min-height:44px}
+  #nb-root .nb-pset input[type=checkbox]{width:50px;height:28px}
+  #nb-root .nb-pset input[type=checkbox]::after{top:3px;left:3px;width:18px;height:18px}
+  #nb-root .nb-pset input[type=checkbox]:checked::after{left:26px}
+  #nb-root .nb-pset input[type=range]{height:10px}
+  #nb-root .nb-pset input[type=range]::-webkit-slider-thumb{width:24px;height:36px}
+  #nb-root #nb-questbtn,#nb-root #nb-shopjump,#nb-root #nb-dplay,#nb-root #nb-reroll,#nb-root #nb-banish,#nb-root #nb-skip,#nb-root #nb-setjump,#nb-root #nb-leave{min-height:44px}
+}
+#nb-root.nb-big .nb-msg{font-size:27px}
+#nb-root.nb-big .nb-prompt{font-size:21px}
+#nb-root.nb-big .nb-choice p,#nb-root.nb-big .nb-choice .muted.small{font-size:15px}

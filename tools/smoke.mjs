@@ -216,6 +216,15 @@ const sim = await page.evaluate(() => {
   const S = nb.S; return `t=${S.t.toFixed(0)} niv=${S.level} kills=${S.kills} pv=${Math.round(S.p.hp)} ennemis=${S.enemies.length} état=${S.state}`;
 });
 log('bonk 90 s simulées :', sim);
+log('bonk confort :', await page.evaluate(() => {   // 1.19.0 : direction des coups, réglages d'accessibilité
+  const nb = window.__nb, S = nb.S, m = nb.META, keep = [m.calm, m.big, m.subs];
+  S.state = 'play'; S.iframe = 0; nb.hurt(1, 'test', { x: S.p.x + 5, z: S.p.z });
+  const dirs = (S.hitDirs || []).length;
+  m.calm = m.big = m.subs = true; for (let k = 0; k < 3; k++) nb.update(1 / 30);
+  [m.calm, m.big, m.subs] = keep;
+  if (!dirs) throw new Error('indicateur de direction absent');
+  return `direction des coups=${dirs} réglages=${['nb-calm', 'nb-big', 'nb-subs'].every(id => document.getElementById(id))}`;
+}));
 await page.waitForTimeout(800); await shot(page, 'bonk-play');
 log('caméra devant un obstacle :', await page.evaluate(async () => {
   const nb = window.__nb, S = nb.S, o = S.obst.find(q => q.kind === 'box' && q.top - 1 > 1.5);
