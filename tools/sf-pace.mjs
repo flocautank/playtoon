@@ -3,6 +3,8 @@
 // nœuds possédés, niveau de Maîtrise, améliorations achetées après 2 min et en fin de partie.
 //   node tools/sf-pace.mjs [time30|time15|time60|double|rate|meta] [clics/s]      RUNS=40 HRS=20 TUNE='{"cap":100}' ACH=1
 //   FULL=1e6 : part d'une Constellation complète avec autant de Novae (NOAST=1 : sans Astérismes, pour comparer)
+// (1.9) sans ACH=1, le bot ne gagne aucun succès : il sous-estime fortement le rythme réel (tools/sf-long.mjs joue avec
+// succès, défis, commandes et Big Bang : c'est lui qui mesure la longue durée)
 // (1.8) une fois la Constellation complète, le bot trace aussi les Astérismes (le moins cher d'abord, face à la Maîtrise)
 // (1.7) le bot attrape la moitié des étoiles filantes ; ACH=1 lui fait aussi gagner les succès (par défaut : non, comme avant)
 import { createRequire } from 'module'; import { execSync } from 'child_process';

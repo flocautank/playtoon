@@ -62,6 +62,7 @@ const ENG = {
   conj: '<circle cx="12" cy="12" r="3"/><circle cx="4.5" cy="15.8" r="1.6"/><circle cx="19.4" cy="8.2" r="2"/><path d="M2 17l20-10" class="h"/>',
   flare: '<circle cx="10.5" cy="13.5" r="5.5"/><path d="M14 9.2c1.5-4 6-4.5 6.5-1.2.4 2.8-2.6 3.8-4.6 3.4"/><path d="M14.8 10.3c1-2 3.2-2.3 3.6-.8" class="h"/>',
   aurora: '<path d="M3 14c3-6 5 2 9-4s6 1 9-5"/><path d="M3 19c3-5 5 1 9-3s6 0 9-4" class="h"/><path d="M6 12.5v6M10 11v6M14 9v6M18 6.5v6" class="h"/>',
+  scroll: '<path d="M6 4.5h11.5c1.4 0 2 1 2 2.2S18.9 9 17.5 9H17v9.5c0 1.4-1 2.2-2.3 2.2H5.5c1.3 0 2-.9 2-2.2V6.7C7.5 5.4 6.9 4.5 6 4.5zM6 4.5c-1.2 0-2 .9-2 2.1S4.8 9 6 9h1.5"/><path d="M10 11.5h4.5M10 14h4.5M10 16.5h3" class="h"/><circle cx="15.5" cy="18" r="1.6" class="f"/>',
   star: '<path d="M12 2.5l2.2 7.3 7.3 2.2-7.3 2.2L12 21.5l-2.2-7.3L2.5 12l7.3-2.2z"/><circle cx="12" cy="12" r="2.2" class="h"/>',
 };
 const engSvg = (k, cls = '') => `<svg class="eng ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ENG[k]}</svg>`;
@@ -221,7 +222,9 @@ function buyMastery() { if (S.novaBank < mastCost()) return false; S.novaBank -=
 // production) et survit aux Supernovae comme au Big Bang ; inactives en défi. Ouverts quand la Constellation a été
 // complétée une fois (S.st.atlas). pts : coordonnées dans un carré de 40, dans l'ordre où les étoiles s'allument ;
 // e : traits entre deux étoiles (tracés quand les deux sont allumées). Textes : sf.ast, dans cet ordre.
-const AST_MAX = 10, AST_G = 1.8;
+// 1.9 : ×4 par étoile au lieu de ×1,8 (de 200 k à ~200 G Novae) — tools/sf-long.mjs : à ×1,8 les huit figures étaient
+// tracées d'un coup vers 15 h 30 de jeu appliqué (les Novae passent de ~1 M à plusieurs G après les Big Bangs), puis plus rien
+const AST_MAX = 10, AST_G = 4;
 const AST = [
   { id: 'a_crucible', base: 4e5, pts: [[7, 11], [11, 27], [20, 33], [29, 27], [33, 11], [20, 21], [16, 13], [20, 5], [24, 13], [20, 37]], e: [[0, 1], [1, 2], [2, 3], [3, 4], [5, 6], [6, 7], [7, 8], [8, 5], [2, 9]] },
   { id: 'a_lyre', base: 2e5, pts: [[20, 4], [14, 12], [26, 12], [11, 22], [29, 22], [13, 33], [27, 33], [20, 36], [17, 19], [23, 19]], e: [[0, 1], [0, 2], [1, 3], [2, 4], [3, 5], [4, 6], [5, 7], [6, 7], [8, 7], [9, 7]] },
@@ -240,6 +243,7 @@ const astStars = () => AST.reduce((n, a) => n + astLv(a.id), 0);
 function buyAst(a) {
   if (!astOpen() || astLv(a.id) >= AST_MAX || S.novaBank < astCost(a)) return false;
   S.novaBank -= astCost(a); S.ast = Object.assign({}, S.ast, { [a.id]: astLv(a.id) + 1 }); S.st.atlas = 1;
+  if (astLv(a.id) >= AST_MAX) logEv('ast', a.id);
   return true;
 }
 
@@ -298,6 +302,11 @@ const astL = (s, id) => (s.ast && s.ast[id]) || 0;
 [['ast1', 1, s => AST.some(a => astL(s, a.id) >= 1)], ['astFig', 1, s => AST.some(a => astL(s, a.id) >= AST_MAX)], ['ast40', 40, s => AST.reduce((n, a) => n + astL(s, a.id), 0) >= 40], ['astAll', 8, s => AST.every(a => astL(s, a.id) >= AST_MAX)]]
   .forEach(([id, n, test], k) => ACH.push({ id, test, get name() { return t('sf.achA')[k][0]; }, get desc() { return t('sf.achA')[k][1].replace('{n}', num(n)); } }));
 
+// 1.9 : succès des Commandes (textes : sf.achO, dans cet ordre)
+const ordDone = s => (s.ord && s.ord.done) || 0;
+[['ord1', 1, s => ordDone(s) >= 1], ['ord100', 100, s => ordDone(s) >= 100], ['rank4', 4, s => rankAt(ordDone(s)) >= 4], ['rank8', 8, s => rankAt(ordDone(s)) >= 8]]
+  .forEach(([id, n, test], k) => ACH.push({ id, test, get name() { return t('sf.achO')[k][0]; }, get desc() { return t('sf.achO')[k][1].replace('{n}', num(n)); } }));
+
 // Défis : une run sous contrainte (entrer = repartir de zéro, sans Novae), objectif en poussière
 // produite ; la réussite débloque une récompense permanente et lève la contrainte.
 const CHALS = [
@@ -345,11 +354,99 @@ const singGain = () => Math.floor(soft(Math.sqrt(S.novaTotal / 50), 4));   // pl
 const inChal = id => S.chal === id;
 const chalDone = id => !!(S.chalDone && S.chalDone[id]);
 
+// ---------- 1.9 : Commandes de la forge (objectifs de moyen terme) et Carnet de bord ----------
+// Trois commandes à la fois, taillées sur la partie en cours (une forge jusqu'à son prochain palier, de la poussière à
+// produire, des comètes, un évènement du ciel, une Supernova plus grosse que la dernière…), ouvertes après la 1re Supernova.
+// Chacune rapporte des Novae (2 % de la dernière Supernova, au moins 1) et un sceau ; les sceaux font monter le rang de
+// compagnonnage (+3 % de production par rang, pour toujours, Big Bang compris). Une commande se change gratuitement toutes
+// les 10 min (jamais contre une vidéo). Le Carnet de bord garde les grands moments de la partie. Textes : sf.ord*, sf.log*.
+const ORD_N = 3, ORD_SWAP = 600e3, ORD_RANK = 0.03, ORD_PAY = 0.02;
+const RANKS = [3, 10, 25, 45, 70, 100, 140, 190];   // sceaux cumulés pour chaque rang ; au-delà, +30 par rang (un rang toutes les ~3 h en fin de partie, tools/sf-long.mjs)
+const rankNeed = r => r <= RANKS.length ? RANKS[r - 1] : RANKS[RANKS.length - 1] + 30 * (r - RANKS.length);
+const rankAt = n => { let r = 0; while (n >= rankNeed(r + 1)) r++; return r; };
+let ordOff = false;   // tools/sf-long.mjs : mesure « avant » (sans commandes)
+let clock = () => Date.now();   // horloge du délai de changement (simulée par tools/sf-long.mjs)
+const ord = () => S.ord || (S.ord = { list: [], done: 0, swapAt: 0 });
+const rank = () => ordOff ? 0 : rankAt(ord().done);
+const ordOpen = () => !ordOff && ((S.prestiges || 0) >= 1 || ord().done > 0);
+const nice = v => { if (v < 100) return Math.ceil(v); const p = Math.pow(10, Math.floor(Math.log10(v)) - 1); return Math.ceil(v / p) * p; };
+const ORD_ENG = { own: 'anvil', prod: 'sphere', comet: 'comet', click: 'hand', upg: 'compass', sky: 'eclipse', shoot: 'shower', dps: 'gear', sn: 'star' };
+// progression d'une commande : état absolu (own, dps) ou compteur depuis l'émission (b = valeur de départ)
+const ORD_CUR = {
+  own: o => S.gens[o.a], prod: o => S.lifeTotal - o.b, comet: o => S.lifeComets - o.b, click: o => S.lifeClicks - o.b,
+  upg: o => st('nUpg') - o.b, sky: o => st('sky') - o.b, shoot: o => st('shoot') - o.b, dps: () => totalDps(), sn: o => o.p || 0,
+};
+// fabrique d'une commande d'un type donné, ou null si elle n'a pas de sens maintenant
+function ordMake(k) {
+  const pr = totalDps(), c = S.chal;
+  const o = { k, r: Math.max(1, Math.round(st('snLast') * ORD_PAY)) };
+  if (k === 'own') {
+    const own = S.gens.map((n, i) => i).filter(i => S.gens[i] > 0 && !(GENS[i].meta && !has(GENS[i].meta)) && !(inChal('c_short') && i > 2)).slice(-3).reverse();
+    for (const i of own) {
+      const n = MILESTONES.find(m => m > S.gens[i]); if (!n) continue;
+      if (costN(i, n - S.gens[i]) <= S.dust + pr * 1200 && costN(i, n - S.gens[i]) > S.dust + pr * 120) { o.a = i; o.n = n; break; }   // à portée en 20 min de production, pas en 2
+    }
+    if (o.n === undefined) return null;
+  } else if (k === 'prod') { if (pr <= 0) return null; o.n = nice(Math.max(1e5, Math.max(pr, 0.5 * st('dpsLast')) * 2700)); o.b = S.lifeTotal; }   // 45 min de production (au moins la moitié du meilleur rythme de la partie d'avant)
+  else if (k === 'comet') { if (inChal('c_dim')) return null; o.n = Math.round((8 + Math.random() * 5) * Math.max(1, luck())); o.b = S.lifeComets; }
+  else if (k === 'click') { if (inChal('c_hands')) return null; o.n = nice(3000 + (has('m_auto') ? autoRate() * 1800 : 0)); o.b = S.lifeClicks; }
+  else if (k === 'upg') { if (inChal('c_noupg') || UPGRADES.filter(u => !S.upg[u.id]).length < 8) return null; o.n = 15; o.b = st('nUpg'); }
+  else if (k === 'sky') { if (c || !st('sky')) return null; o.n = has('m_sky') ? 4 : 2; o.b = st('sky'); }
+  else if (k === 'shoot') { if (c || !st('sky_shower')) return null; o.n = has('m_shower3') ? 60 : 30; o.b = st('shoot'); }
+  else if (k === 'dps') { if (pr <= 0) return null; o.n = nice(Math.max(pr * 10, st('dpsLast') * 1.5)); }   // battre de moitié le rythme de la partie d'avant
+  else if (k === 'sn') { if (c || !st('snLast')) return null; o.n = Math.max(2, Math.round(st('snLast') * 2)); o.p = 0; }
+  return o;
+}
+function ordNew(skip) {
+  const used = new Set(ord().list.map(o => o.k)); if (skip) used.add(skip);
+  const pool = Object.keys(ORD_CUR).filter(k => !used.has(k));
+  for (let n = 0; n < 12 && pool.length; n++) { const k = pool.splice((Math.random() * pool.length) | 0, 1)[0], o = ordMake(k); if (o) return o; }
+  return null;
+}
+const ordCur = o => Math.max(0, ORD_CUR[o.k](o));
+const ordTxt = o => t('sf.ordT')[o.k].replace('{n}', o.k === 'prod' || o.k === 'dps' ? fmt(o.n) : num(o.n)).replace('{gen}', o.a !== undefined ? GENS[o.a].name : '');
+// évènement ponctuel (Supernova) : retenu par les commandes qui l'attendent
+function ordEvent(k, v) { if (!ordOpen()) return; for (const o of ord().list) if (o.k === k) o.p = Math.max(o.p || 0, v); }
+function checkOrders() {
+  if (!ordOpen()) return;
+  const O = ord();
+  O.list = O.list.filter(o => ORD_CUR[o.k]);   // type disparu (ancienne sauvegarde) : retiré
+  for (let i = 0; i < O.list.length; i++) {
+    const o = O.list[i]; if (ordCur(o) < o.n) continue;
+    const r0 = rank(); O.done++; S.st['ord_' + o.k] = st('ord_' + o.k) + 1; S.novaTotal += o.r; S.novaBank += o.r;
+    toast(t('sf.ordDoneT', { txt: ordTxt(o), r: fmt(o.r) })); sfx(784, 0.2, 'triangle', 0.06); sfx(1175, 0.3, 'triangle', 0.05);
+    if (rank() > r0) { logEv('rank', rank()); toast(t('sf.rankT', { r: rankName(rank()), p: Math.round(rank() * ORD_RANK * 100) })); flash = Math.max(flash, 0.4); }
+    O.list[i] = ordNew(o.k); if (O.list[i]) O.list[i].fresh = 1;
+  }
+  O.list = O.list.filter(Boolean);
+  while (O.list.length < ORD_N) { const o = ordNew(); if (!o) break; O.list.push(o); }
+}
+function swapOrder(i) {
+  const O = ord(); if (clock() < (O.swapAt || 0) || !O.list[i]) return false;
+  const o = ordNew(O.list[i].k); if (!o) return false;
+  O.list[i] = o; O.swapAt = clock() + ORD_SWAP; return true;
+}
+const rankName = r => { const n = t('sf.ranks'); return r < n.length ? n[r] : `${n[n.length - 1]} ${r - n.length + 2}`; };
+// Carnet de bord : [temps de jeu (s), type, détail], les 80 derniers
+function logEv(k, a) {
+  if (ordOff) return;
+  S.log = S.log || []; S.log.push([Math.round(st('play')), k, a]); if (S.log.length > 80) S.log.splice(0, S.log.length - 80);
+}
+function logTxt([, k, a]) {
+  const L = t('sf.logT');
+  if (k === 'stage') return L.stage.replace('{s}', t('sf.stages')[a]);
+  if (k === 'chal') { const c = CHALS.find(x => x.id === a); return L.chal.replace('{name}', c ? c.name : ''); }
+  if (k === 'ast') { const x = AST.find(y => y.id === a); return L.ast.replace('{name}', x ? x.name : ''); }
+  if (k === 'gen') return L.gen.replace('{gen}', GENS[a] ? GENS[a].name : '');
+  if (k === 'rank') return L.rank.replace('{r}', rankName(a));
+  return (L[k] || '').replace('{n}', num(a));
+}
+
 // ---------- état ----------
 function fresh() {
   return {
     dust: 0, runTotal: 0, lifeTotal: 0, clicks: 0, lifeClicks: 0, gens: GENS.map(() => 0), upg: {}, cometsTotal: 0, lifeComets: 0,
-    novaTotal: 0, novaBank: 0, meta: {}, ach: {}, prestiges: 0, chal: null, chalT: 0, chalDone: {}, sing: 0, singBank: 0, gal: {}, ast: {}, bigbangs: 0, buffs: [], last: Date.now(), started: Date.now(), st: {}, stage: 0, runT: 0,
+    novaTotal: 0, novaBank: 0, meta: {}, ach: {}, prestiges: 0, chal: null, chalT: 0, chalDone: {}, sing: 0, singBank: 0, gal: {}, ast: {}, bigbangs: 0, buffs: [], last: Date.now(), started: Date.now(), st: {}, stage: 0, runT: 0, ord: { list: [], done: 0, swapAt: 0 }, log: [],
   };
 }
 let S = fresh();
@@ -395,6 +492,7 @@ function globalMult() {
   if (has('m_buffs')) m *= 1 + 0.25 * S.buffs.length;
   if (has('m_omega')) m *= 10;
   if (has('m_omega2')) m *= 3;
+  m *= 1 + ORD_RANK * rank();   // rang de compagnonnage (Commandes)
   if (S.mast && !S.chal) m *= Math.pow(mastK(), S.mast);
   m *= Math.pow(1.1, astK('a_crucible')) * (1 + na * 0.002 * astK('a_crown'));   // Astérismes : le Creuset, la Couronne
   if (has('m_sing')) m *= 3;
@@ -513,7 +611,7 @@ function affordableUpg() {
 function buyAllUpg() {
   if (inChal('c_noupg')) { toast(t('sf.ascetic')); return; }
   const l = affordableUpg(); if (!l.length) return;
-  for (const u of l) { S.dust -= upgCost(u); S.upg[u.id] = 1; }
+  for (const u of l) { S.dust -= upgCost(u); S.upg[u.id] = 1; } S.st.nUpg = st('nUpg') + l.length;
   sfx(880, 0.12, 'triangle'); sfx(1320, 0.12, 'triangle', 0.08); sfx(1760, 0.14, 'triangle', 0.16);
   toast(t('sf.boughtN', { n: l.length }));
   refresh(true);
@@ -522,7 +620,7 @@ function buyUpg(u) {
   const c = upgCost(u);
   if (inChal('c_noupg')) { toast(t('sf.ascetic')); return; }
   if (S.upg[u.id] || c > S.dust || !u.req(S)) return;
-  S.dust -= c; S.upg[u.id] = 1;
+  S.dust -= c; S.upg[u.id] = 1; S.st.nUpg = st('nUpg') + 1;
   sfx(880, 0.12, 'triangle'); sfx(1320, 0.12, 'triangle', 0.08);
   refresh(true);
 }
@@ -536,7 +634,7 @@ function buyMeta(m) {
 // Repart de zéro en gardant tout ce qui est permanent (utilisé par Supernova et par les défis).
 function resetRun(extra) {
   const snBase = (extra && extra.prestiges > S.prestiges) ? (S.snBase || 0) + S.runTotal : (S.snBase || 0);
-  const keep = { snBase, mast: S.mast || 0, novaTotal: S.novaTotal, novaBank: S.novaBank, meta: S.meta, ach: S.ach, prestiges: S.prestiges, lifeTotal: S.lifeTotal, lifeClicks: S.lifeClicks, lifeComets: S.lifeComets, st: S.st || {}, stage: S.stage || 0, chalDone: S.chalDone || {}, sing: S.sing || 0, singBank: S.singBank || 0, gal: S.gal || {}, ast: S.ast || {}, eng: S.eng || 0, bigbangs: S.bigbangs || 0, dq: S.dq, adBoostUntil: S.adBoostUntil || 0, ...extra };   // le boost vidéo survit aux Supernovae
+  const keep = { snBase, mast: S.mast || 0, novaTotal: S.novaTotal, novaBank: S.novaBank, meta: S.meta, ach: S.ach, prestiges: S.prestiges, lifeTotal: S.lifeTotal, lifeClicks: S.lifeClicks, lifeComets: S.lifeComets, st: S.st || {}, stage: S.stage || 0, chalDone: S.chalDone || {}, sing: S.sing || 0, singBank: S.singBank || 0, gal: S.gal || {}, ast: S.ast || {}, eng: S.eng || 0, bigbangs: S.bigbangs || 0, adBoostUntil: S.adBoostUntil || 0, dq: S.dq, ord: S.ord || { list: [], done: 0, swapAt: 0 }, log: S.log || [], ...extra };   // le boost vidéo survit aux Supernovae
   const kept = {};
   if (has('m_keep')) for (const k of ['click0', 'click1', 'click2']) if (S.upg[k]) kept[k] = 1;
   if (has('m_keep2')) for (const k in S.upg) if (/^g\d+t0$/.test(k)) kept[k] = 1;   // les améliorations « I » de chaque forge
@@ -549,10 +647,14 @@ function resetRun(extra) {
 async function startChal(c) {
   if (S.chal || chalDone(c.id) || S.prestiges < c.need) return;
   if (!await ptConfirm(noEmoji(t('sf.chalConfirm', { ic: c.ic, name: c.name, desc: c.desc, goal: fmt(c.goal), time: c.time ? t('sf.inMin', { n: c.time / 60 }) : '', reward: c.reward })), t('sf.chalStart'))) return;
+  chalNow(c); flash = 0.6; toast(t('sf.chalStarted', { ic: '✦', name: c.name })); sfx(330, 0.4, 'square', 0.05);
+  save(); refresh(true);
+}
+// cœur du lancement d'un défi, sans confirmation (aussi utilisé par tools/sf-long.mjs)
+function chalNow(c) {
   resetRun({ chal: c.id, chalT: 0 });
   S.gens[0] = Math.max(S.gens[0], 10); S.gens[1] = Math.max(S.gens[1], 5);   // départ du Pack de démarrage : jamais de départ mort (Mains libres)
-  comet = null; flash = 0.6; toast(t('sf.chalStarted', { ic: '✦', name: c.name })); sfx(330, 0.4, 'square', 0.05);
-  save(); refresh(true);
+  comet = null;
 }
 async function quitChal(silent) {
   if (!S.chal) return;
@@ -565,7 +667,7 @@ function checkChal(dt) {
   S.chalT += dt;
   if (c.time && S.chalT > c.time) { toast(t('sf.chalTimeUp', { name: c.name })); quitChal(true); return; }
   if (S.runTotal >= c.goal) {
-    S.chalDone[c.id] = 1; S.chal = null;
+    S.chalDone[c.id] = 1; S.chal = null; logEv('chal', c.id);
     toast(t('sf.chalWin', { name: c.name, reward: c.reward })); flash = 0.8;
     sfx(660, 0.3, 'triangle', 0.08); sfx(990, 0.4, 'triangle', 0.06);
     save(); refresh(true);
@@ -577,12 +679,20 @@ async function bigBang() {
   const g = singGain();
   if (S.novaTotal < BIGBANG_MIN || g < 1) return;
   if (!await ptConfirm(noEmoji(t('sf.bbConfirm', { nova: num(S.novaTotal), g, np: Math.round((effSing((S.sing || 0) + g) - effSing()) * 50), pp: Math.round((effSing((S.sing || 0) + g) - effSing()) * (gal('g_big') ? 20 : 10)) })), t('sf.bbOk'))) return;
-  const start = gal('g_nova') ? 10 : 0;
-  resetRun({ snBase: 0, mast: 0, novaTotal: start, novaBank: start, meta: {}, sing: (S.sing || 0) + g * (has('m_genesis') ? 2 : 1), singBank: (S.singBank || 0) + g, bigbangs: (S.bigbangs || 0) + 1 });
-  if (gal('g_nova')) S.meta = { m_click: 1 };
+  bbNow();
   flash = 1.5; sfx(60, 2, 'sawtooth', 0.1); sfx(90, 2, 'triangle', 0.08);
   toast(t('sf.bbToast', { n: g }));
   checkAch(); save(); refresh(true);
+}
+// cœur du Big Bang, sans confirmation (aussi utilisé par tools/sf-long.mjs)
+function bbNow() {
+  const g = singGain(); if (S.chal || S.novaTotal < BIGBANG_MIN || g < 1) return 0;
+  const start = gal('g_nova') ? 10 : 0;
+  resetRun({ snBase: 0, mast: 0, novaTotal: start, novaBank: start, meta: {}, sing: (S.sing || 0) + g * (has('m_genesis') ? 2 : 1), singBank: (S.singBank || 0) + g, bigbangs: (S.bigbangs || 0) + 1 });
+  if (gal('g_nova')) S.meta = { m_click: 1 };
+  S.st.snLast = 0; S.st.dpsLast = 0;   // les commandes repartent de la première Supernova d'après
+  logEv('bb', S.bigbangs);
+  return g;
 }
 function buyGal(x) {
   if (gal(x.id) || (S.singBank || 0) < x.cost) return;
@@ -595,13 +705,22 @@ async function prestige() {
   if (g < 1) return;
   const warn = g <= 3 ? t('sf.snWarn', { n: novaGainAt(S.runTotal * 4) }) : '';
   if (!await ptConfirm(noEmoji(t('sf.snConfirm', { g: fmt(g), n: g, pct: Math.round((soft(S.novaTotal + g, NOVA.cap) - effNova()) * novaPct() * 100), warn })), t('sf.snOk'))) return;
-  if (S.runT < 300) S.st.snFast = 1;
-  S.st.snBest = Math.max(st('snBest'), g);
-  resetRun({ novaTotal: S.novaTotal + g, novaBank: S.novaBank + g, prestiges: S.prestiges + 1 });
+  snNow();
   snAnim = 1.8; snBoom = false;
   sfx(110, 1.2, 'sawtooth', 0.08);
   toast(t('sf.snToast', { n: g })); dqAdd('snova');
   checkAch(); save(); refresh(true);
+}
+
+// cœur de la Supernova, sans confirmation (aussi utilisé par tools/sf-long.mjs) ; rend le gain
+function snNow() {
+  const g = novaGain(); if (S.chal || g < 1) return 0;
+  if (S.runT < 300) S.st.snFast = 1;
+  S.st.snBest = Math.max(st('snBest'), g); S.st.snLast = g; S.st.dpsLast = totalDps();
+  ordEvent('sn', g);
+  resetRun({ novaTotal: S.novaTotal + g, novaBank: S.novaBank + g, prestiges: S.prestiges + 1 });
+  if ([1, 10, 50, 100, 250].includes(S.prestiges)) logEv('sn', S.prestiges);
+  return g;
 }
 
 // ---------- comètes dorées ----------
@@ -884,7 +1003,7 @@ function evoBurst(hue, sat) {
 // nouveau stade atteint : l'étoile se contracte, éclate et renaît plus grosse ; toast et succès suivent
 function checkStage() {
   const k = stageOf(); if (k <= (S.stage || 0)) return;
-  evoFrom = S.stage || 0; S.stage = k;
+  evoFrom = S.stage || 0; S.stage = k; logEv('stage', k);
   if (visible) evoAnim = 2.6;
   toast(t('sf.stageToast', { s: t('sf.stages')[k] }));
 }
@@ -1072,6 +1191,12 @@ function build() {
     panel.appendChild(ms);
     panel.appendChild(astSection());
     panel.appendChild(bb);
+  } else if (tab === 'ord') {
+    const w = document.createElement('div'); w.className = 'sf-ordw';
+    w.innerHTML = `<div class="sf-rank"><div class="sf-rk-ic">${engSvg('seal')}</div><div class="mid"><b id="sf-rank-name"></b><span id="sf-rank-info"></span><i class="sf-bar"><i id="sf-rank-bar"></i></i></div></div>
+      <p class="muted small">${t('sf.ordInfo', { p: ORD_PAY * 100 })}</p><div id="sf-ords"></div><p class="muted small" id="sf-swap-info"></p>
+      <div class="sf-h">${t('sf.logTitle')}</div><ol class="sf-log" id="sf-log"></ol>`;
+    panel.appendChild(w); ordSig = '';
   } else if (tab === 'chal') {
     const info = document.createElement('div'); info.className = 'muted small'; info.textContent = t('sf.chalInfo'); panel.appendChild(info);
     CHALS.forEach(c => {
@@ -1165,6 +1290,44 @@ function refreshAst() {
     b.classList.toggle('no', !open || (!full && S.novaBank < c));
   });
 }
+// Commandes : cartes reconstruites quand la liste change, barres mises à jour à chaque rafraîchissement
+let ordSig = '';
+function refreshOrders() {
+  const O = ord(), box = $('sf-ords'); if (!box) return;
+  const sig = O.list.map(o => o.k + o.n + (o.a || '')).join() + '|' + lang + '|' + (S.log || []).length;
+  if (sig !== ordSig) {
+    ordSig = sig; box.innerHTML = '';
+    O.list.forEach((o, i) => {
+      const d = document.createElement('div'); d.className = 'sf-ord' + (o.fresh ? ' new' : ''); d.dataset.i = i; delete o.fresh;
+      d.innerHTML = `<div class="ic">${engSvg(ORD_ENG[o.k])}</div><div class="mid"><b>${ordTxt(o)}</b><i class="sf-bar"><i></i></i><span class="pr"></span></div><div class="rt"><b class="nova">+${fmt(o.r)}✦</b><button class="btn ghost small">${t('sf.ordSwap')}</button></div>`;
+      d.querySelector('button').onclick = () => { if (swapOrder(i)) { sfx(520, 0.12, 'triangle', 0.05); save(); refresh(true); } };
+      box.appendChild(d);
+    });
+    if (!O.list.length) box.innerHTML = `<p class="muted small">${t('sf.ordNone')}</p>`;
+    const lg = $('sf-log'), L = S.log || [];
+    lg.innerHTML = L.length ? L.slice().reverse().map(e => `<li><span>${hm(Math.max(60, e[0]) * 1000)}</span>${logTxt(e)}</li>`).join('') : `<li class="muted">${t('sf.logNone')}</li>`;
+  }
+  const wait = Math.max(0, (O.swapAt || 0) - clock());
+  box.querySelectorAll('.sf-ord').forEach(d => {
+    const o = O.list[+d.dataset.i]; if (!o) return; const c = Math.min(o.n, ordCur(o)), q = Math.min(1, c / o.n);
+    d.querySelector('.sf-bar i').style.width = (q * 100).toFixed(1) + '%';
+    d.querySelector('.pr').textContent = o.k === 'sn' ? (c ? t('sf.ordBest', { n: fmt(c) }) : t('sf.ordSnHint', { g: fmt(novaGain()) })) : `${o.k === 'prod' || o.k === 'dps' ? fmt(c) : num(Math.floor(c))} / ${o.k === 'prod' || o.k === 'dps' ? fmt(o.n) : num(o.n)}`;
+    d.querySelector('button').disabled = wait > 0;
+  });
+  $('sf-swap-info').textContent = wait > 0 ? t('sf.ordSwapIn', { t: hm(wait) }) : t('sf.ordSwapOk');
+  const r = rank(), lo = r ? rankNeed(r) : 0, hi = rankNeed(r + 1);
+  $('sf-rank-name').textContent = rankName(r);
+  $('sf-rank-info').textContent = t('sf.rankInfo', { p: Math.round(r * ORD_RANK * 100), n: O.done - lo, t: hi - lo, next: rankName(r + 1) });
+  $('sf-rank-bar').style.width = ((O.done - lo) / (hi - lo) * 100).toFixed(1) + '%';
+}
+// bandeau sous les ressources : la commande la plus avancée (toucher = onglet Commandes)
+function refreshOrdBar() {
+  const b = $('sf-ordbar'), O = ord(), on = ordOpen() && O.list.length > 0;
+  b.classList.toggle('hidden', !on); if (!on) return;
+  let best = O.list[0], bq = -1; for (const o of O.list) { const q = o.k === 'sn' ? 0 : ordCur(o) / o.n; if (q > bq) { bq = q; best = o; } }
+  const html = `${engSvg('scroll')}<span>${ordTxt(best)}</span><b>${best.k === 'sn' ? '' : Math.min(99, Math.floor(bq * 100)) + ' %'}</b><b class="nova">+${fmt(best.r)}✦</b>`;
+  if (b.dataset.h !== html) { b.innerHTML = html; b.dataset.h = html; }
+}
 function fillUpgrades() {
   const grid = $('sf-upg-grid'), grid2 = $('sf-upg-owned'); if (!grid) return;
   grid.innerHTML = ''; grid2.innerHTML = '';
@@ -1208,6 +1371,8 @@ function refresh(structural) {
   if (nx) { let need = 2e5; if (g < 1 && !S.chal) { while (novaGainAt(need) < 1 && need < 1e300) need *= 1.04; } nx.textContent = g < 1 && !S.chal ? t('sf.nextNova', { n: fmt(need), p: Math.min(99, Math.floor(S.runTotal / need * 100)) }) : ''; }
   $('sf-prestige-box').style.display = S.runTotal >= 1e5 || S.novaTotal > 0 ? '' : 'none';
   $('sf-tab-chal').classList.toggle('hidden', S.prestiges < 1);
+  $('sf-tab-ord').classList.toggle('hidden', !ordOpen());
+  refreshOrdBar();
   const ch = S.chal && CHALS.find(x => x.id === S.chal);
   $('sf-chal').classList.toggle('hidden', !ch);
   if (ch) $('sf-chal-txt').textContent = `✦ ${ch.name} : ${fmt(Math.min(S.runTotal, ch.goal))} / ${fmt(ch.goal)}${ch.time ? ` · ⏱ ${Math.max(0, Math.ceil((ch.time - S.chalT) / 60))} min` : ''}`;
@@ -1264,6 +1429,8 @@ function refresh(structural) {
       n.classList.toggle('lock', !S.meta[m.id] && !open);
     });
     panel.querySelectorAll('line').forEach(l => l.setAttribute('stroke', S.meta[l.dataset.l] ? '#c68bff' : '#3a3060'));
+  } else if (tab === 'ord') {
+    refreshOrders();
   } else if (tab === 'chal') {
     panel.querySelectorAll('.sf-ch').forEach(d => {
       const c = CHALS.find(x => x.id === d.dataset.id), b = d.querySelector('button');
@@ -1293,7 +1460,10 @@ function checkAch() {
   if (dps() > 0) S.st.idleMax = Math.max(st('idleMax'), idleT);
   const hr = new Date().getHours(); if (hr >= 2 && hr < 5) S.st.night = 1;
   checkStage();
-  if (!S.st.atlas && META.every(m => S.meta[m.id])) { S.st.atlas = 1; toast(t('sf.astOpenT')); }   // Constellation complète : les Astérismes s'ouvrent, pour toujours
+  if (!S.st.atlas && META.every(m => S.meta[m.id])) { S.st.atlas = 1; logEv('atlas', 0); toast(t('sf.astOpenT')); }   // Constellation complète : les Astérismes s'ouvrent, pour toujours
+  const gm = S.gens.reduce((m, n, i) => n > 0 ? i : m, -1); if (gm > st('genMax')) { if (gm >= 4) logEv('gen', gm); S.st.genMax = gm; }
+  const nm = Object.keys(S.meta).length; if (nm > st('metaMax')) { if ([10, 33].includes(nm) || nm === META.length) logEv('meta', nm); S.st.metaMax = nm; }
+  checkOrders();
   for (const a of ACH) if (!S.ach[a.id] && a.test(S)) { S.ach[a.id] = 1; dqAdd('ach'); toast(t('sf.achToast', { name: a.name })); }
 }
 
@@ -1355,6 +1525,7 @@ document.querySelectorAll('#sf-buymult button').forEach(b => b.onclick = () => {
   buyMult = b.dataset.m === 'max' ? 'max' : +b.dataset.m; refresh();
 });
 $('sf-prestige').onclick = prestige;
+$('sf-ordbar').onclick = () => { const b = document.querySelector('.sf-tabs button[data-sf=ord]'); if (b) b.click(); };
 $('sf-intro-ok').onclick = () => { $('sf-intro').classList.add('hidden'); try { localStorage.setItem('starforge.intro', '1'); } catch (e) {} };
 $('sf-chal-quit').onclick = () => quitChal(false);
 $('sf-adboost').onclick = watchBoost;
@@ -1374,7 +1545,7 @@ function tick(dt) {
   // évènements du ciel : de temps en temps, un phénomène tiré au sort (éclipse, pluie d'étoiles filantes, conjonction, éruption, aurore)
   if (visible && !S.chal) { nextSky -= dt; if (nextSky <= 0) { nextSky = skyGap(); startSky(); } }
   tickShoots(dt);
-  S.runT = (S.runT || 0) + dt;
+  S.runT = (S.runT || 0) + dt; S.st.play = st('play') + dt;   // temps de jeu (Carnet de bord)
   if (S.gens.some(n => n > 0)) idleT += dt;
   if (streak && performance.now() - lastClk > 1000) streak = 0;
   galAcc += dt;
@@ -1387,7 +1558,7 @@ function tick(dt) {
       if (bi < 0 || bc > S.dust) break;
       S.dust -= bc; S.gens[bi]++;
     }
-    if (gal('g_upg') && !inChal('c_noupg')) for (const u of UPGRADES) if (!S.upg[u.id] && u.req(S) && upgCost(u) <= S.dust) { S.dust -= upgCost(u); S.upg[u.id] = 1; }
+    if (gal('g_upg') && !inChal('c_noupg')) for (const u of UPGRADES) if (!S.upg[u.id] && u.req(S) && upgCost(u) <= S.dust) { S.dust -= upgCost(u); S.upg[u.id] = 1; S.st.nUpg = st('nUpg') + 1; }
   }
   if (comet && gal('g_comet') && comet.t === undefined) comet.t = 0;
   if (comet && gal('g_comet') && !comet.dark && (comet.t += dt) > 1.2) catchComet();
@@ -1442,7 +1613,7 @@ window.GAMES.forge = {
     const n = Math.max(1, Math.round(S.novaTotal * 0.02)); S.novaTotal += n; S.novaBank += n; save(); if (built) refresh(true);
   },
   show() {
-    document.querySelectorAll('.sf-tabs button').forEach(b => { const k = { gen: 'anvil', upg: 'compass', meta: 'spark', chal: 'glass', ach: 'medal', opt: 'gear' }[b.dataset.sf], i = b.querySelector('i'); if (!k || b.dataset.eng) return; b.dataset.eng = 1; if (i) i.innerHTML = engSvg(k); else b.innerHTML = engSvg(k); });
+    document.querySelectorAll('.sf-tabs button').forEach(b => { const k = { gen: 'anvil', upg: 'compass', ord: 'scroll', meta: 'spark', chal: 'glass', ach: 'medal', opt: 'gear' }[b.dataset.sf], i = b.querySelector('i'); if (!k || b.dataset.eng) return; b.dataset.eng = 1; if (i) i.innerHTML = engSvg(k); else b.innerHTML = engSvg(k); });
     visible = true; loadFonts();
     if (!inited) { inited = true; load(); lastT = performance.now(); requestAnimationFrame(loop); }
     try { if (!localStorage.getItem('starforge.intro') && !S.lifeTotal) $('sf-intro').classList.remove('hidden'); } catch (e) {}
@@ -1451,4 +1622,4 @@ window.GAMES.forge = {
   hide() { visible = false; hideTip(); save(); },
 };
 // Accès de test (tools/sf-balance.mjs, console).
-window.__sf = { AST, buyAst, astCost, astOpen, STAGES, stageOf, startSky, SKY, get shoots() { return shoots; }, catchShoot, checkAch, ACH, set idleT(v) { idleT = v; }, NOVA, buyMastery, mastCost, novaCurve, GALAXY, singGain, buyEngine, fmt, boostOn, get offPending() { return offPending; }, set offPending(v) { offPending = v; offUntil = Date.now() + 60000; }, watchBoost, watchOffline, get S() { return S; }, get comet() { return comet; }, spawnComet, catchComet, set S(v) { S = v; }, tick, buyGen, buyUpg, UPGRADES, GENS, costN, upgCost, dps, clickValue, novaGain, earn, fresh, resetRun, META, buyMeta, setMult: m => { buyMult = m; } };
+window.__sf = { snNow, bbNow, chalNow, CHALS, BIGBANG_MIN, buyGal, totalDps, checkOrders, swapOrder, ord, rank, rankAt, set ordOff(v) { ordOff = v; }, set clock(f) { clock = f; }, get log() { return S.log; }, AST, buyAst, astCost, astOpen, STAGES, stageOf, startSky, SKY, get shoots() { return shoots; }, catchShoot, checkAch, ACH, set idleT(v) { idleT = v; }, NOVA, buyMastery, mastCost, novaCurve, GALAXY, singGain, buyEngine, fmt, boostOn, get offPending() { return offPending; }, set offPending(v) { offPending = v; offUntil = Date.now() + 60000; }, watchBoost, watchOffline, get S() { return S; }, get comet() { return comet; }, spawnComet, catchComet, set S(v) { S = v; }, tick, buyGen, buyUpg, UPGRADES, GENS, costN, upgCost, dps, clickValue, novaGain, earn, fresh, resetRun, META, buyMeta, setMult: m => { buyMult = m; } };

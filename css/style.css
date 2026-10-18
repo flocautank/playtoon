@@ -982,3 +982,35 @@ body[data-tab=blocks] #bq-settings .card h2{font-family:'BQ Display',system-ui,s
 .sf-dq .ok{color:#6fd08a;font-weight:700;padding:0 10px}
 .sf-dqf{display:flex;justify-content:space-between;align-items:center;gap:8px;border-top:1px solid var(--line);padding-top:8px;flex-wrap:wrap}
 .sf-dq .warn{color:#ff9dfc}
+/* Nova Foundry 1.9 : Commandes de la forge, rang de compagnonnage, Carnet de bord */
+#tab-forge .sf-ordbar{display:flex;align-items:center;gap:6px;max-width:min(100%,440px);margin:5px auto 0;padding:3px 9px;background:rgba(14,21,52,.85);border:1px solid rgba(184,151,85,.55);color:var(--paper);font:400 13px var(--txt);cursor:pointer}
+#tab-forge .sf-ordbar.hidden{display:none}
+#tab-forge .sf-ordbar svg.eng{width:16px;height:16px;flex:0 0 auto}
+#tab-forge .sf-ordbar span{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left}
+#tab-forge .sf-ordbar b{flex:0 0 auto;font:400 14px var(--numf);color:var(--gold2)}
+#tab-forge .sf-ordbar b.nova{color:var(--novae)}
+#tab-forge .sf-rank{display:flex;gap:10px;align-items:center;padding:8px 10px;margin-bottom:6px;background:radial-gradient(circle at 12% 50%,rgba(70,58,24,.45),transparent 60%);border:1px solid rgba(184,151,85,.6);outline:1px solid rgba(184,151,85,.2);outline-offset:3px}
+#tab-forge .sf-rk-ic svg.eng{width:38px;height:38px;color:var(--gold2)}
+#tab-forge .sf-rank .mid,#tab-forge .sf-ord .mid{flex:1;min-width:0}
+#tab-forge .sf-rank b{display:block;font:400 20px var(--title);color:var(--gold2)}
+#tab-forge .sf-rank span{display:block;font:400 12.5px var(--txt);color:var(--sepia)}
+#tab-forge .sf-bar{display:block;height:5px;margin-top:5px;background:rgba(184,151,85,.15);border:1px solid rgba(184,151,85,.35)}
+#tab-forge .sf-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#b89755,#f3d48a);transition:width .3s}
+#tab-forge #sf-ords{display:flex;flex-direction:column;gap:6px;margin:6px 0}
+#tab-forge .sf-ord{display:flex;gap:9px;align-items:center;padding:7px 9px;background:var(--deep);border:1px solid rgba(184,151,85,.45)}
+#tab-forge .sf-ord.new{animation:sfOrdIn .9s ease-out}
+@keyframes sfOrdIn{0%{box-shadow:0 0 0 0 rgba(243,212,138,.7);border-color:var(--gold2)}100%{box-shadow:0 0 0 10px rgba(243,212,138,0)}}
+#tab-forge .sf-ord .ic svg.eng{width:28px;height:28px;color:var(--gold2)}
+#tab-forge .sf-ord .mid b{display:block;font:400 15.5px var(--title);color:#f3e3b8;line-height:1.2;overflow-wrap:anywhere}
+#tab-forge .sf-ord .pr{display:block;margin-top:2px;font:400 12.5px var(--numf);color:var(--sepia)}
+#tab-forge .sf-ord .rt{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex:0 0 auto}
+#tab-forge .sf-ord .rt b{font:400 16px var(--numf)}
+#tab-forge .sf-ord .rt .btn{font-size:12px;padding:3px 8px}
+#tab-forge .sf-ord .rt .btn:disabled{opacity:.35}
+#tab-forge .sf-log{list-style:none;margin:6px 0 0;padding:0 0 0 12px;border-left:1px solid rgba(184,151,85,.45)}
+#tab-forge .sf-log li{position:relative;padding:3px 0 3px 6px;font:400 13px var(--txt);color:var(--paper)}
+#tab-forge .sf-log li::before{content:'✦';position:absolute;left:-18px;top:3px;color:var(--gold2);font-size:11px;background:var(--deep)}
+#tab-forge .sf-log li span{display:inline-block;min-width:62px;margin-right:6px;font:400 12.5px var(--numf);color:var(--sepia)}
+@media (max-width:760px){#tab-forge .sf-ordbar{margin-top:3px;font-size:12px;padding:2px 7px}}
+@media (min-width:761px){#tab-forge .sf-tabs button{font-size:15px;padding:10px 3px;letter-spacing:0}}   /* 1.9 : sept onglets (Commandes) */
+@media (min-width:761px) and (max-width:1100px){.sf-tabs button{flex:1 1 0;min-width:0}.sf-tabs button span{display:none}.sf-tabs button i{display:inline;margin:0;font-size:16px}.sf-tabs button.on{flex:2.6 1 0}.sf-tabs button.on span{display:inline;margin-left:4px}#tab-forge .sf-tabs button.on{font-size:14px}}   /* fenêtre étroite : icônes, nom de l'onglet actif seulement */

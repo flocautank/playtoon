@@ -6,6 +6,24 @@ const pl = (n, one, many) => (n === 1 ? one : many);
 
 export default {
   en: {
+    // 1.9 : Commandes et Carnet de bord
+    'sf.tOrd': "Orders",
+    'sf.ordT': {"own": "Own {n} {gen}", "prod": "Produce {n} stardust", "comet": "Catch {n} comets", "click": "Click {n} times", "upg": "Buy {n} upgrades", "sky": "Witness {n} sky events", "shoot": "Catch {n} shooting stars", "dps": "Reach {n} /s", "sn": "Supernova worth {n} Novae or more"},
+    'sf.ordDoneT': "✦ Order filled: {txt} (+{r} Novae, +1 seal)",
+    'sf.rankT': "✦ New rank: {r} (+{p}% production, forever)",
+    'sf.ranks': ["No rank", "Apprentice", "Aspirant", "Journeyman", "Master journeyman", "Workshop master", "Master smith", "Master of stars", "Grand master"],
+    'sf.logT': {"sn": "Supernova no. {n}", "stage": "New stage of the star: {s}", "chal": "Challenge won: {name}", "ast": "Asterism charted: {name}", "gen": "First {gen}", "rank": "Rank reached: {r}", "meta": "Constellation: {n} nodes", "atlas": "Constellation complete, the Asterisms open", "bb": "Big Bang no. {n}"},
+    'sf.ordInfo': "Three orders at a time, cut to your current run. Each one pays Novae ({p}% of your last Supernova) and a seal; seals raise your rank.",
+    'sf.ordSwap': "Swap",
+    'sf.ordNone': "No order can be issued right now.",
+    'sf.logTitle': "Logbook",
+    'sf.logNone': "The great moments of your foundry will be written here.",
+    'sf.ordBest': "best so far: {n}",
+    'sf.ordSnHint': "Supernova now: {g}",
+    'sf.ordSwapIn': "Next free swap in {t}.",
+    'sf.ordSwapOk': "One free swap available (then every 10 min).",
+    'sf.rankInfo': "+{p}% production · {n}/{t} seals to {next}",
+    'sf.achO': [["First order", "Fill a forge order"], ["Order book", "Fill {n} orders"], ["Master journeyman", "Reach rank {n}"], ["Grand master", "Reach rank {n}"]],
     // 1.7 : Constellation agrandie (ordre de META_X), succès (ordre de ACH_X), stades de l'étoile, évènements du ciel, améliorations de côté
     'sf.metaX': [
       ['Cadence', 'Clicks +2% per click of your current streak (less than a second apart), up to ×2.'], ['Sky Watch', 'Sky events come twice as often.'],
@@ -161,6 +179,24 @@ export default {
     'sf.introOk': 'Let’s go',
   },
   fr: {
+    // 1.9 : Commandes et Carnet de bord
+    'sf.tOrd': "Commandes",
+    'sf.ordT': {"own": "Posséder {n} {gen}", "prod": "Produire {n} de poussière", "comet": "Attraper {n} comètes", "click": "Cliquer {n} fois", "upg": "Acheter {n} améliorations", "sky": "Assister à {n} évènements du ciel", "shoot": "Attraper {n} étoiles filantes", "dps": "Atteindre {n} /s", "sn": "Supernova d’au moins {n} Novae"},
+    'sf.ordDoneT': "✦ Commande livrée : {txt} (+{r} Novae, +1 sceau)",
+    'sf.rankT': "✦ Nouveau rang : {r} (+{p} % de production, pour toujours)",
+    'sf.ranks': ["Sans rang", "Apprenti", "Aspirant", "Compagnon", "Compagnon fini", "Maître d’atelier", "Maître forgeron", "Maître des astres", "Grand maître"],
+    'sf.logT': {"sn": "Supernova n° {n}", "stage": "Nouveau stade de l’étoile : {s}", "chal": "Défi réussi : {name}", "ast": "Astérisme tracé : {name}", "gen": "Premier exemplaire : {gen}", "rank": "Rang atteint : {r}", "meta": "Constellation : {n} nœuds", "atlas": "Constellation complète, les Astérismes s’ouvrent", "bb": "Big Bang n° {n}"},
+    'sf.ordInfo': "Trois commandes à la fois, taillées sur ta partie en cours. Chacune rapporte des Novae ({p} % de ta dernière Supernova) et un sceau ; les sceaux font monter ton rang.",
+    'sf.ordSwap': "Changer",
+    'sf.ordNone': "Aucune commande possible pour l’instant.",
+    'sf.logTitle': "Carnet de bord",
+    'sf.logNone': "Les grands moments de ta fonderie s’inscriront ici.",
+    'sf.ordBest': "meilleure : {n}",
+    'sf.ordSnHint': "Supernova maintenant : {g}",
+    'sf.ordSwapIn': "Prochain changement gratuit dans {t}.",
+    'sf.ordSwapOk': "Un changement gratuit disponible (puis toutes les 10 min).",
+    'sf.rankInfo': "+{p} % de production · {n}/{t} sceaux vers {next}",
+    'sf.achO': [["Première commande", "Livrer une commande de la forge"], ["Carnet de commandes", "Livrer {n} commandes"], ["Compagnon fini", "Atteindre le rang {n}"], ["Grand maître", "Atteindre le rang {n}"]],
     'sf.metaX': [
       ['Cadence', 'Clics +2 % par clic de la série en cours (moins d’une seconde d’écart), jusqu’à ×2.'], ['Veille du ciel', 'Les évènements du ciel reviennent deux fois plus souvent.'],
       ['Coup fatal', 'Les clics critiques frappent ×25 au lieu de ×10.'], ['Contemplation', 'Production +1 % par minute sans toucher l’étoile toi-même (jusqu’à +60 %).'],
