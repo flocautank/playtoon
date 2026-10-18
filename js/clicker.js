@@ -500,7 +500,7 @@ function buyGen(i) {
   if (n <= 0) return;
   const c = costN(i, n);
   if (c > S.dust) return;
-  S.dust -= c; S.gens[i] += n; window.ptEvent && window.ptEvent('sf_forges', n);
+  S.dust -= c; S.gens[i] += n; window.ptEvent && window.ptEvent('sf_forges', n); dqAdd('forges', n);
   sfx(520 + i * 30, 0.06, 'triangle');
   refresh(true);
 }
@@ -536,7 +536,7 @@ function buyMeta(m) {
 // Repart de zéro en gardant tout ce qui est permanent (utilisé par Supernova et par les défis).
 function resetRun(extra) {
   const snBase = (extra && extra.prestiges > S.prestiges) ? (S.snBase || 0) + S.runTotal : (S.snBase || 0);
-  const keep = { snBase, mast: S.mast || 0, novaTotal: S.novaTotal, novaBank: S.novaBank, meta: S.meta, ach: S.ach, prestiges: S.prestiges, lifeTotal: S.lifeTotal, lifeClicks: S.lifeClicks, lifeComets: S.lifeComets, st: S.st || {}, stage: S.stage || 0, chalDone: S.chalDone || {}, sing: S.sing || 0, singBank: S.singBank || 0, gal: S.gal || {}, ast: S.ast || {}, eng: S.eng || 0, bigbangs: S.bigbangs || 0, adBoostUntil: S.adBoostUntil || 0, ...extra };   // le boost vidéo survit aux Supernovae
+  const keep = { snBase, mast: S.mast || 0, novaTotal: S.novaTotal, novaBank: S.novaBank, meta: S.meta, ach: S.ach, prestiges: S.prestiges, lifeTotal: S.lifeTotal, lifeClicks: S.lifeClicks, lifeComets: S.lifeComets, st: S.st || {}, stage: S.stage || 0, chalDone: S.chalDone || {}, sing: S.sing || 0, singBank: S.singBank || 0, gal: S.gal || {}, ast: S.ast || {}, eng: S.eng || 0, bigbangs: S.bigbangs || 0, dq: S.dq, adBoostUntil: S.adBoostUntil || 0, ...extra };   // le boost vidéo survit aux Supernovae
   const kept = {};
   if (has('m_keep')) for (const k of ['click0', 'click1', 'click2']) if (S.upg[k]) kept[k] = 1;
   if (has('m_keep2')) for (const k in S.upg) if (/^g\d+t0$/.test(k)) kept[k] = 1;   // les améliorations « I » de chaque forge
@@ -600,7 +600,7 @@ async function prestige() {
   resetRun({ novaTotal: S.novaTotal + g, novaBank: S.novaBank + g, prestiges: S.prestiges + 1 });
   snAnim = 1.8; snBoom = false;
   sfx(110, 1.2, 'sawtooth', 0.08);
-  toast(t('sf.snToast', { n: g }));
+  toast(t('sf.snToast', { n: g })); dqAdd('snova');
   checkAch(); save(); refresh(true);
 }
 
@@ -614,7 +614,7 @@ function spawnComet() {
   comet = { meteor, dark, x: fromLeft ? -0.1 : 1.1, y: 0.15 + Math.random() * 0.5, vx: (fromLeft ? 1 : -1) * (0.05 + Math.random() * 0.03) / (0.8 + luck() * 0.2) / (has('m_comet3') ? 2 : 1), vy: 0.01 * (Math.random() - 0.5), t: 0 };
 }
 function catchComet() {
-  window.ptEvent && window.ptEvent('sf_comets', 1);
+  window.ptEvent && window.ptEvent('sf_comets', 1); dqAdd('comets');
   S.cometsTotal++; S.lifeComets++;
   const r = Math.random();
   if (comet.meteor) {
@@ -899,7 +899,7 @@ function startSky(type) {
   const d = SKY_T[type] * (has('m_sky2') ? 1.5 : 1) * (1 + 0.08 * astK('a_sextant')), b = { type, t: d, max: d };
   if (type === 'conj') { const a = own.splice((Math.random() * own.length) | 0, 1)[0][1], z = own[(Math.random() * own.length) | 0][1]; b.g = [a, z].sort((p, q) => p - q); b.m = conjK(); }
   S.buffs = S.buffs.filter(x => x.type !== type); S.buffs.push(b);
-  S.st['sky_' + type] = st('sky_' + type) + 1; S.st.sky = st('sky') + 1;
+  S.st['sky_' + type] = st('sky_' + type) + 1; S.st.sky = st('sky') + 1; dqAdd('sky');
   const v = { s: Math.round(d), m: fmt(type === 'flare' ? flareK() : type === 'aurora' ? auroraK() : b.m || 0), a: b.g ? GENS[b.g[0]].name : '', b: b.g ? GENS[b.g[1]].name : '' };
   toast(t({ eclipse: 'sf.eclipseT', shower: 'sf.showerT', conj: 'sf.conjT', flare: 'sf.flareT', aurora: 'sf.auroraT' }[type], v));
   sfx(type === 'eclipse' ? 90 : 440, 1, 'sine', 0.06); if (type !== 'eclipse') sfx(660, 1.2, 'sine', 0.04, 0.2);
@@ -969,7 +969,7 @@ const critX = () => has('m_crit2') ? 25 : 10;
 const critP = auto => has('m_crit') && (!auto || has('m_auto3')) ? 0.05 : 0;   // clic critique : ×10
 let autoN = 0;
 function autoClick() {
-  const v = clickValue() * (Math.random() < critP(true) ? critX() : 1); earn(v); S.clicks++; S.lifeClicks++; window.ptEvent && window.ptEvent('sf_clicks', 1);
+  const v = clickValue() * (Math.random() < critP(true) ? critX() : 1); earn(v); S.clicks++; S.lifeClicks++; dqAdd('clicks'); window.ptEvent && window.ptEvent('sf_clicks', 1);
   if (!visible || !cw || v <= 0) return;
   pulse = Math.max(pulse, 0.35);
   if (++autoN % 3 === 0) {   // une main fantôme : un nombre plus discret que le clic du joueur
@@ -984,7 +984,7 @@ function clickStar(x, y) {
   if (Math.hypot(x - X, y - Y) > R * 1.3) return;
   manualClick();
   const crit = Math.random() < critP(false), v = clickValue() * (crit ? critX() : 1);
-  earn(v); S.clicks++; S.lifeClicks++; pulse = 1; window.ptEvent && window.ptEvent('sf_clicks', 1);
+  earn(v); S.clicks++; S.lifeClicks++; dqAdd('clicks'); pulse = 1; window.ptEvent && window.ptEvent('sf_clicks', 1);
   if (crit) S.st.crit = st('crit') + 1;
   if (v > st('clickMax')) S.st.clickMax = v;
   floats.push({ x: x + (Math.random() - .5) * 20, y, t: (crit ? '✦ ' : '+') + fmt(v), life: crit ? 1.4 : 1, col: crit ? '#ffffff' : S.buffs.some(b => b.type === 'click') ? '#ff9dfc' : '#ffe38a', big: crit });
@@ -1081,6 +1081,7 @@ function build() {
       panel.appendChild(d);
     });
   } else if (tab === 'ach') {
+    const dq = document.createElement('div'); dq.id = 'sf-dq'; dq.className = 'sf-dq'; panel.appendChild(dq); dqSig = '';
     const info = document.createElement('div'); info.className = 'muted small'; info.id = 'sf-ach-info'; panel.appendChild(info);
     const g = document.createElement('div'); g.className = 'sf-ach';
     ACH.forEach(a => { const d = document.createElement('div'); d.dataset.id = a.id; d.innerHTML = constGlyph(a.id); tipify(d, () => `<b>${a.name}</b>${S.ach[a.id] ? ' ✓' : ''}<br>${a.desc}`); g.appendChild(d); });
@@ -1213,6 +1214,7 @@ function refresh(structural) {
   // pastille "améliorations dispo"
   const anyUpg = UPGRADES.some(u => !S.upg[u.id] && u.req(S) && S.dust >= upgCost(u));
   document.querySelector('[data-sf=upg]').classList.toggle('badge', anyUpg);
+  document.querySelector('[data-sf=ach]').classList.toggle('badge', dqClaimable(dqEnsure()));
   document.querySelector('[data-sf=meta]').classList.toggle('badge', META.some(m => !S.meta[m.id] && S.novaBank >= m.cost && m.req.every(r => S.meta[r])) || (astOpen() && AST.some(a => astLv(a.id) < AST_MAX && S.novaBank >= astCost(a))));
 
   if (tab === 'gen') {
@@ -1271,6 +1273,7 @@ function refresh(structural) {
       b.disabled = done || cur || lock || !!S.chal;
     });
   } else if (tab === 'ach') {
+    dqPaint();
     const got = Object.keys(S.ach).length;
     $('sf-ach-info').textContent = t('sf.achInfo', { got, tot: ACH.length, p: has('m_ach2') ? 5 : has('m_ach') ? 3 : 1 });
     panel.querySelectorAll('.sf-ach div').forEach(d => d.classList.toggle('got', !!S.ach[d.dataset.id]));
@@ -1291,7 +1294,56 @@ function checkAch() {
   const hr = new Date().getHours(); if (hr >= 2 && hr < 5) S.st.night = 1;
   checkStage();
   if (!S.st.atlas && META.every(m => S.meta[m.id])) { S.st.atlas = 1; toast(t('sf.astOpenT')); }   // Constellation complète : les Astérismes s'ouvrent, pour toujours
-  for (const a of ACH) if (!S.ach[a.id] && a.test(S)) { S.ach[a.id] = 1; toast(t('sf.achToast', { name: a.name })); }
+  for (const a of ACH) if (!S.ach[a.id] && a.test(S)) { S.ach[a.id] = 1; dqAdd('ach'); toast(t('sf.achToast', { name: a.name })); }
+}
+
+// ---------- Veille du jour : trois objectifs tirés de la date, récompense en poussière, série de jours.
+// Une raison de revenir chaque jour sans rien débloquer de plus : la poussière offerte vaut des minutes de production.
+const DQ = { clicks: 400, forges: 40, comets: 3, sky: 2, ach: 2, snova: 1, time: 1200 };   // cibles (le temps est compté en secondes de jeu affiché)
+const dayN = (d = new Date()) => d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+function dqEnsure() {
+  const k = dayN(), d = S.dq;
+  if (d && d.day === k && Array.isArray(d.ids)) return d;
+  const y = dayN(new Date(Date.now() - 864e5)), streak = d && d.day === y && d.all ? (d.streak || 0) + 1 : 0;
+  const pool = ['clicks', 'forges', 'comets', 'sky', 'time'];
+  if ((S.prestiges || 0) >= 1) pool.push('snova');
+  if (Object.keys(S.ach).length < ACH.length - 3) pool.push('ach');
+  let seed = k; const r = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
+  const ids = []; while (ids.length < 3) ids.push(pool.splice(Math.floor(r() * pool.length), 1)[0]);
+  S.dq = { day: k, ids, p: {}, got: {}, all: 0, streak };
+  return S.dq;
+}
+const dqDone = (d, id) => (d.p[id] || 0) >= DQ[id];
+function dqAdd(id, n = 1) {
+  const d = dqEnsure(); if (!d.ids.includes(id) || dqDone(d, id)) return;
+  d.p[id] = (d.p[id] || 0) + n;
+  if (dqDone(d, id)) toast(t('sf.dqToast', { g: t('sf.dq.' + id, { n: id === 'time' ? DQ[id] / 60 : DQ[id] }) }));
+}
+const dqK = d => 1 + 0.1 * Math.min(10, d.streak || 0);   // série : +10 % de récompense par jour d'affilée, jusqu'à +100 %
+const dqPrize = d => Math.max(150, totalDps() * 600) * dqK(d);
+const dqChest = d => Math.max(500, totalDps() * 1800) * dqK(d);
+const dqClaimable = d => !S.chal && (d.ids.some(id => dqDone(d, id) && !d.got[id]) || (!d.all && d.ids.every(id => d.got[id])));
+function dqClaim(id) {
+  const d = dqEnsure(); if (S.chal) return;
+  if (id === 'chest') { if (d.all || !d.ids.every(x => d.got[x])) return; d.all = 1; const v = dqChest(d); earn(v); toast(t('sf.dqChestToast', { v: fmt(v) })); }
+  else { if (!d.ids.includes(id) || !dqDone(d, id) || d.got[id]) return; d.got[id] = 1; const v = dqPrize(d); earn(v); toast(t('sf.dqPrizeToast', { v: fmt(v) })); }
+  sfx(660, 0.25, 'triangle', 0.06); save(); dqSig = ''; refresh();
+}
+let dqSig = '';
+function dqPaint() {
+  const box = $('sf-dq'); if (!box) return;
+  const d = dqEnsure(), left = Math.max(1, Math.ceil((new Date(new Date().setHours(24, 0, 0, 0)) - Date.now()) / 6e4));
+  const sig = [d.day, d.ids.map(id => (d.p[id] || 0) | 0).join(), Object.keys(d.got).join(), d.all, !!S.chal, Math.round(dqPrize(d)), left, lang].join('|');
+  if (sig === dqSig) return; dqSig = sig;
+  const rows = d.ids.map(id => {
+    const n = DQ[id], p = Math.min(n, d.p[id] || 0), done = p >= n, got = d.got[id], q = id === 'time' ? 60 : 1;
+    const btn = got ? `<span class="ok">✓</span>` : done ? `<button class="btn small" data-dq="${id}"${S.chal ? ' disabled' : ''}>+${fmt(dqPrize(d))}</button>` : `<small>+${fmt(dqPrize(d))}</small>`;
+    return `<div class="sf-dqr${done ? ' done' : ''}"><div><b>${t('sf.dq.' + id, { n: id === 'time' ? n / 60 : n })}</b><span class="sf-bar"><i style="width:${Math.round(p / n * 100)}%"></i></span><small>${Math.floor(p / q)} / ${n / q}</small></div>${btn}</div>`;
+  }).join('');
+  const all = d.ids.every(x => d.got[x]);
+  const chest = d.all ? `<span class="ok">✓ ${t('sf.dqChestDone')}</span>` : all ? `<button class="btn small" data-dq="chest"${S.chal ? ' disabled' : ''}>${t('sf.dqChest', { v: fmt(dqChest(d)) })}</button>` : `<small>${t('sf.dqChestHint', { v: fmt(dqChest(d)) })}</small>`;
+  box.innerHTML = `<div class="sf-dqh"><b>${t('sf.dqTitle')}</b><small>${t('sf.dqLeft', { h: Math.floor(left / 60), m: left % 60 })}</small></div>${rows}<div class="sf-dqf">${chest}<small>${d.streak || d.all ? t('sf.dqStreak', { n: (d.streak || 0) + (d.all ? 1 : 0), p: Math.round((dqK(d) - 1) * 100) }) : t('sf.dqStreak0')}</small></div>${S.chal ? `<small class="warn">${t('sf.dqChal')}</small>` : ''}`;
+  box.querySelectorAll('[data-dq]').forEach(b => b.onclick = () => dqClaim(b.dataset.dq));
 }
 
 document.querySelectorAll('.sf-tabs button').forEach(b => b.onclick = () => {
@@ -1328,6 +1380,7 @@ function tick(dt) {
   galAcc += dt;
   if (galAcc >= 1) {
     galAcc = 0;
+    if (visible) dqAdd('time', 1);
     if (gal('g_auto')) for (let k = 0; k < 10; k++) {   // la forge la moins chère, tant qu'on peut
       let bi = -1, bc = Infinity;
       GENS.forEach((g, i) => { if (inChal('c_short') && i > 2) return; if (g.meta && !has(g.meta)) return; const c = costN(i, 1); if (c < bc) { bc = c; bi = i; } });

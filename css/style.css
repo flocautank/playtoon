@@ -968,3 +968,17 @@ body[data-tab=blocks] #bq-settings .card h2{font-family:'BQ Display',system-ui,s
 @media (max-width:380px){body[data-tab=blocks] .pt-toasts div{font-size:13px;padding:8px 12px 9px}}
 @media (max-width:600px){#tab-blocks .bp-top .bp-stat small{letter-spacing:.09em}}
 @media (max-width:390px){#tab-blocks .bp-top{gap:3px;padding-left:4px;padding-right:4px}#tab-blocks .bp-top .bp-stat{padding:4px 2px}#tab-blocks .bp-top .bp-stat small{letter-spacing:.02em}#tab-blocks .bp-top .btn{padding-left:3px;padding-right:3px}}
+
+/* Nova Foundry : Veille du jour (onglet Succès) */
+.sf-dq{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:12px;display:flex;flex-direction:column;gap:8px}
+.sf-dqh{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.sf-dqh b{color:var(--gold);letter-spacing:.04em}
+.sf-dq small{color:var(--muted);font-size:12px}
+.sf-dqr{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:6px 0;border-top:1px solid var(--line)}
+.sf-dqr>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.sf-dqr b{font-size:13px;font-weight:600}.sf-dqr.done b{color:var(--nova)}
+.sf-dqr .btn,.sf-dqf .btn{min-height:44px;min-width:44px;white-space:nowrap}
+.sf-dq .sf-bar{display:block;height:5px;border-radius:3px;background:#0a0c16;overflow:hidden}
+.sf-dq .sf-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--gold),var(--nova))}
+.sf-dq .ok{color:#6fd08a;font-weight:700;padding:0 10px}
+.sf-dqf{display:flex;justify-content:space-between;align-items:center;gap:8px;border-top:1px solid var(--line);padding-top:8px;flex-wrap:wrap}
+.sf-dq .warn{color:#ff9dfc}
