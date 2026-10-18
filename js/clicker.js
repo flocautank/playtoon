@@ -216,6 +216,33 @@ const mastCost = () => Math.round(500 * Math.pow(1.5, S.mast || 0));
 const mastK = () => has('m_mast') ? 1.17 : 1.15;
 function buyMastery() { if (S.novaBank < mastCost()) return false; S.novaBank -= mastCost(); S.mast = (S.mast || 0) + 1; return true; }
 
+// 1.8 : Astérismes — le puits de Novae d'après la Constellation (joueurs de plus de 10 h). Huit figures de dix étoiles :
+// chaque étoile tracée coûte des Novae (×AST_G à chaque étoile), renforce un mécanisme précis (et pas seulement la
+// production) et survit aux Supernovae comme au Big Bang ; inactives en défi. Ouverts quand la Constellation a été
+// complétée une fois (S.st.atlas). pts : coordonnées dans un carré de 40, dans l'ordre où les étoiles s'allument ;
+// e : traits entre deux étoiles (tracés quand les deux sont allumées). Textes : sf.ast, dans cet ordre.
+const AST_MAX = 10, AST_G = 1.8;
+const AST = [
+  { id: 'a_crucible', base: 4e5, pts: [[7, 11], [11, 27], [20, 33], [29, 27], [33, 11], [20, 21], [16, 13], [20, 5], [24, 13], [20, 37]], e: [[0, 1], [1, 2], [2, 3], [3, 4], [5, 6], [6, 7], [7, 8], [8, 5], [2, 9]] },
+  { id: 'a_lyre', base: 2e5, pts: [[20, 4], [14, 12], [26, 12], [11, 22], [29, 22], [13, 33], [27, 33], [20, 36], [17, 19], [23, 19]], e: [[0, 1], [0, 2], [1, 3], [2, 4], [3, 5], [4, 6], [5, 7], [6, 7], [8, 7], [9, 7]] },
+  { id: 'a_sextant', base: 2e5, pts: [[20, 5], [8, 31], [32, 31], [12, 25], [16, 30], [24, 30], [28, 25], [20, 19], [20, 12], [34, 9]], e: [[0, 1], [0, 2], [1, 3], [3, 4], [4, 5], [5, 6], [6, 2], [0, 8], [8, 7], [7, 5], [0, 9]] },
+  { id: 'a_scales', base: 8e5, pts: [[20, 5], [20, 34], [6, 12], [34, 12], [3, 23], [11, 23], [29, 23], [37, 23], [13, 36], [27, 36]], e: [[0, 1], [2, 3], [2, 4], [2, 5], [4, 5], [3, 6], [3, 7], [6, 7], [8, 1], [1, 9]] },
+  { id: 'a_hammer', base: 2e5, pts: [[8, 8], [26, 8], [32, 12], [26, 16], [8, 16], [17, 16], [17, 24], [17, 30], [17, 36], [4, 12]], e: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 9], [9, 0], [5, 6], [6, 7], [7, 8]] },
+  { id: 'a_clepsydra', base: 3e5, pts: [[8, 4], [32, 4], [20, 20], [8, 36], [32, 36], [14, 12], [26, 12], [20, 29], [14, 33], [26, 33]], e: [[0, 1], [0, 5], [5, 2], [1, 6], [6, 2], [2, 7], [2, 8], [8, 3], [2, 9], [9, 4], [3, 4]] },
+  { id: 'a_lighthouse', base: 2e5, pts: [[16, 36], [24, 36], [17, 24], [23, 24], [18, 14], [22, 14], [20, 7], [8, 9], [32, 9], [20, 2]], e: [[0, 1], [0, 2], [1, 3], [2, 4], [3, 5], [4, 5], [4, 6], [5, 6], [6, 7], [6, 8], [6, 9]] },
+  { id: 'a_crown', base: 6e5, pts: [[6, 30], [34, 30], [6, 14], [13, 22], [20, 8], [27, 22], [34, 14], [20, 3], [6, 36], [34, 36]], e: [[0, 1], [0, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 1], [4, 7], [0, 8], [8, 9], [9, 1]] },
+];
+const astLv = id => (S.ast && S.ast[id]) || 0;
+const astK = id => S.chal ? 0 : astLv(id);   // niveau effectif (0 en défi)
+const astCost = a => Math.round(a.base * Math.pow(AST_G, astLv(a.id)));
+const astOpen = () => !!(S.st && S.st.atlas) || META.every(m => S.meta[m.id]);
+const astStars = () => AST.reduce((n, a) => n + astLv(a.id), 0);
+function buyAst(a) {
+  if (!astOpen() || astLv(a.id) >= AST_MAX || S.novaBank < astCost(a)) return false;
+  S.novaBank -= astCost(a); S.ast = Object.assign({}, S.ast, { [a.id]: astLv(a.id) + 1 }); S.st.atlas = 1;
+  return true;
+}
+
 // Évolution de l'étoile : stades atteints par la production totale de toute la partie (lifeTotal, jamais remise à zéro).
 // D'un stade à l'autre l'étoile grossit (k), change de couleur (teinte h, saturation s), gagne rayons, couronne et ornements ;
 // chaque stade donne +5 % de production (+15 % avec Nucléosynthèse). Noms : sf.stages.
@@ -266,6 +293,10 @@ const ACH_X = [
 ACH_X.forEach(([id, n, test], k) => ACH.push({ id, test, get name() { return t('sf.achX')[k][0]; }, get desc() { return t('sf.achX')[k][1].replace('{n}', n >= 1e6 ? fmt(n) : num(n)); } }));
 // un succès par stade d'évolution de l'étoile (le stade 0 est le départ)
 STAGES.forEach((g, k) => k && ACH.push({ id: 'stage' + k, get name() { return t('sf.stages')[k]; }, get desc() { return t('sf.aStageDesc', { s: t('sf.stages')[k] }); }, test: s => stageOf(s.lifeTotal) >= k }));
+// 1.8 : succès des Astérismes (textes : sf.achA, dans cet ordre)
+const astL = (s, id) => (s.ast && s.ast[id]) || 0;
+[['ast1', 1, s => AST.some(a => astL(s, a.id) >= 1)], ['astFig', 1, s => AST.some(a => astL(s, a.id) >= AST_MAX)], ['ast40', 40, s => AST.reduce((n, a) => n + astL(s, a.id), 0) >= 40], ['astAll', 8, s => AST.every(a => astL(s, a.id) >= AST_MAX)]]
+  .forEach(([id, n, test], k) => ACH.push({ id, test, get name() { return t('sf.achA')[k][0]; }, get desc() { return t('sf.achA')[k][1].replace('{n}', num(n)); } }));
 
 // Défis : une run sous contrainte (entrer = repartir de zéro, sans Novae), objectif en poussière
 // produite ; la réussite débloque une récompense permanente et lève la contrainte.
@@ -294,6 +325,7 @@ i18nProps(META, 'sf.meta', ['name', 'desc']);
 i18nProps(META_X, 'sf.metaX', ['name', 'desc']); META.push(...META_X);
 i18nProps(CHALS, 'sf.chal', ['name', 'desc', 'reward']);
 i18nProps(GALAXY, 'sf.gal', ['name', 'desc']);
+i18nProps(AST, 'sf.ast', ['name', 'desc']);
 const gal = id => !!(S.gal && S.gal[id]);
 // Plafonds doux de fin de partie : linéaire jusqu'au seuil, puis en racine carrée. Sans eux, Novae et Singularités
 // s'entretenaient l'une l'autre et la partie s'emballait en quelques minutes (tools/sf-long.mjs).
@@ -317,7 +349,7 @@ const chalDone = id => !!(S.chalDone && S.chalDone[id]);
 function fresh() {
   return {
     dust: 0, runTotal: 0, lifeTotal: 0, clicks: 0, lifeClicks: 0, gens: GENS.map(() => 0), upg: {}, cometsTotal: 0, lifeComets: 0,
-    novaTotal: 0, novaBank: 0, meta: {}, ach: {}, prestiges: 0, chal: null, chalT: 0, chalDone: {}, sing: 0, singBank: 0, gal: {}, bigbangs: 0, buffs: [], last: Date.now(), started: Date.now(), st: {}, stage: 0, runT: 0,
+    novaTotal: 0, novaBank: 0, meta: {}, ach: {}, prestiges: 0, chal: null, chalT: 0, chalDone: {}, sing: 0, singBank: 0, gal: {}, ast: {}, bigbangs: 0, buffs: [], last: Date.now(), started: Date.now(), st: {}, stage: 0, runT: 0,
   };
 }
 let S = fresh();
@@ -364,6 +396,7 @@ function globalMult() {
   if (has('m_omega')) m *= 10;
   if (has('m_omega2')) m *= 3;
   if (S.mast && !S.chal) m *= Math.pow(mastK(), S.mast);
+  m *= Math.pow(1.1, astK('a_crucible')) * (1 + na * 0.002 * astK('a_crown'));   // Astérismes : le Creuset, la Couronne
   if (has('m_sing')) m *= 3;
   if (chalDone('c_hands')) m *= 1.5;
   m *= 1 + effSing() * (gal('g_big') ? 0.2 : 0.1);
@@ -389,6 +422,7 @@ function clickValue() {
   let cf = 0; for (const u of UPGRADES) if (S.upg[u.id] && u.fx.cf !== undefined) cf += 0.01 * S.gens[u.fx.cf];   // gants indexés : +1 % par forge, sur le clic de base
   c = c * (1 + effNova() * 0.03) * (1 + cf) + dps() * pct;   // (multiplier aussi la part « % de la production » faisait exploser le rythme : ×40 dès la 2e partie)
   if (has('m_streak')) c *= 1 + 0.02 * Math.min(50, streak);   // Cadence : +2 % par clic de la série (×2 max)
+  c *= Math.pow(1.25, astK('a_hammer'));   // Astérisme du Marteau
   for (const b of S.buffs) if (b.type === 'click') c *= 777; else if (b.type === 'void') c *= 100; else if (b.type === 'flare') c *= flareK();
   return c;
 }
@@ -404,7 +438,7 @@ const upgCost = u => u.cost * (has('m_upg') ? 0.75 : 1) * (has('m_upg2') ? 0.8 :
 // v2 : les Novae suivent la racine CUBIQUE de toute la poussière produite depuis le dernier Big Bang (comme les puces
 // célestes de Cookie Clicker) : pour gagner autant qu'à la run précédente, il faut produire bien plus — la carte se remplit
 // en dizaines d'heures, pas en deux.
-const novaMult = () => (has('m_crunch') ? 2 : 1) * (has('m_crunch2') ? 1.5 : 1) * (has('m_crunch3') ? 1.5 : 1) * (chalDone('c_dim') ? 1.25 : 1) * (1 + 0.5 * effSing());
+const novaMult = () => (1 + 0.03 * astK('a_scales')) * (has('m_crunch') ? 2 : 1) * (has('m_crunch2') ? 1.5 : 1) * (has('m_crunch3') ? 1.5 : 1) * (chalDone('c_dim') ? 1.25 : 1) * (1 + 0.5 * effSing());
 // Courbe des Novae, sur le total cumulé depuis le dernier Big Bang : racine cubique jusqu'à 1e11 (premières parties
 // généreuses), racine 5e au-delà. La production réagit à peu près à la puissance 6 du multiplicateur de départ d'une
 // partie : en racine cubique pure, chaque partie rapportait ~500× la précédente et la Constellation était finie en 2 h.
@@ -417,7 +451,7 @@ function novaGain() { if (S.chal) return 0; return novaGainAt(S.runTotal); }
 function buffMult(b) { return b.type === 'frenzy' ? (has('m_comet3') ? 10 : 7) : b.type === 'meteor' ? 77 : b.type === 'eclipse' ? (has('m_eclipse') ? 6 : 2) * (upgOn('sky0') ? 1.5 : 1) : b.type === 'echo' ? (has('m_echo') ? 30 : 15) : b.type === 'surge' ? b.m : b.type === 'aurora' ? auroraK() : 1; }
 const auroraK = () => (has('m_aurora') ? 3 : 1.5) * (upgOn('sky4') ? 1.5 : 1);
 const conjK = () => (has('m_conj') ? 5 : 3) * (upgOn('sky2') ? 1.5 : 1);
-function luck() { let l = 1; for (const u of UPGRADES) if (S.upg[u.id] && u.fx.luck) l += u.fx.luck; if (has('m_comet')) l *= 2; if (has('m_shower')) l *= 1.5; if (S.buffs.some(b => b.type === 'aurora')) l *= 2; if (has('m_lucky')) l *= 1.5; if (chalDone('c_rush')) l *= 1.25; return l; }
+function luck() { let l = 1; for (const u of UPGRADES) if (S.upg[u.id] && u.fx.luck) l += u.fx.luck; if (has('m_comet')) l *= 2; if (has('m_shower')) l *= 1.5; if (S.buffs.some(b => b.type === 'aurora')) l *= 2; if (has('m_lucky')) l *= 1.5; if (chalDone('c_rush')) l *= 1.25; return l * (1 + 0.06 * astK('a_lyre')); }
 
 // ---------- monétisation (application Android uniquement ; sur le web, PT_MON n'existe pas) ----------
 const BOOST_H = 4, BOOST_MAX_H = 8, ETERNAL = 'eternal_boost';
@@ -502,7 +536,7 @@ function buyMeta(m) {
 // Repart de zéro en gardant tout ce qui est permanent (utilisé par Supernova et par les défis).
 function resetRun(extra) {
   const snBase = (extra && extra.prestiges > S.prestiges) ? (S.snBase || 0) + S.runTotal : (S.snBase || 0);
-  const keep = { snBase, mast: S.mast || 0, novaTotal: S.novaTotal, novaBank: S.novaBank, meta: S.meta, ach: S.ach, prestiges: S.prestiges, lifeTotal: S.lifeTotal, lifeClicks: S.lifeClicks, lifeComets: S.lifeComets, st: S.st || {}, stage: S.stage || 0, chalDone: S.chalDone || {}, sing: S.sing || 0, singBank: S.singBank || 0, gal: S.gal || {}, eng: S.eng || 0, bigbangs: S.bigbangs || 0, adBoostUntil: S.adBoostUntil || 0, ...extra };   // le boost vidéo survit aux Supernovae
+  const keep = { snBase, mast: S.mast || 0, novaTotal: S.novaTotal, novaBank: S.novaBank, meta: S.meta, ach: S.ach, prestiges: S.prestiges, lifeTotal: S.lifeTotal, lifeClicks: S.lifeClicks, lifeComets: S.lifeComets, st: S.st || {}, stage: S.stage || 0, chalDone: S.chalDone || {}, sing: S.sing || 0, singBank: S.singBank || 0, gal: S.gal || {}, ast: S.ast || {}, eng: S.eng || 0, bigbangs: S.bigbangs || 0, adBoostUntil: S.adBoostUntil || 0, ...extra };   // le boost vidéo survit aux Supernovae
   const kept = {};
   if (has('m_keep')) for (const k of ['click0', 'click1', 'click2']) if (S.upg[k]) kept[k] = 1;
   if (has('m_keep2')) for (const k in S.upg) if (/^g\d+t0$/.test(k)) kept[k] = 1;   // les améliorations « I » de chaque forge
@@ -572,7 +606,7 @@ async function prestige() {
 
 // ---------- comètes dorées ----------
 let comet = null, nextComet = 40 + Math.random() * 60;
-const buffDur = () => (has('m_long') ? 2 : 1) * (chalDone('c_rush') ? 1.25 : 1);
+const buffDur = () => (has('m_long') ? 2 : 1) * (chalDone('c_rush') ? 1.25 : 1) * (1 + 0.06 * astK('a_clepsydra'));
 function spawnComet() {
   const fromLeft = Math.random() < 0.5;
   const meteor = Math.random() < 0.08 * luck() * (has('m_meteor') ? 2 : 1);   // rare, plus fréquent avec la Chance
@@ -857,12 +891,12 @@ function checkStage() {
 
 // ---------- évènements du ciel ----------
 const SKY_T = { eclipse: 45, shower: 30, conj: 60, flare: 20, aurora: 60 };
-const skyGap = () => (360 + Math.random() * 360) * (has('m_sky') ? 0.5 : 1);   // un évènement toutes les 6 à 12 min : chacun ne revient que toutes les ~45 min
+const skyGap = () => (360 + Math.random() * 360) * (has('m_sky') ? 0.5 : 1) / (1 + 0.04 * astK('a_sextant'));   // un évènement toutes les 6 à 12 min : chacun ne revient que toutes les ~45 min
 function startSky(type) {
   const own = S.gens.map((n, i) => [n, i]).filter(([n]) => n > 0);
   type = type || SKY[(Math.random() * SKY.length) | 0];
   if (type === 'conj' && own.length < 2) type = 'flare';
-  const d = SKY_T[type] * (has('m_sky2') ? 1.5 : 1), b = { type, t: d, max: d };
+  const d = SKY_T[type] * (has('m_sky2') ? 1.5 : 1) * (1 + 0.08 * astK('a_sextant')), b = { type, t: d, max: d };
   if (type === 'conj') { const a = own.splice((Math.random() * own.length) | 0, 1)[0][1], z = own[(Math.random() * own.length) | 0][1]; b.g = [a, z].sort((p, q) => p - q); b.m = conjK(); }
   S.buffs = S.buffs.filter(x => x.type !== type); S.buffs.push(b);
   S.st['sky_' + type] = st('sky_' + type) + 1; S.st.sky = st('sky') + 1;
@@ -1036,6 +1070,7 @@ function build() {
     });
     panel.appendChild(tree);
     panel.appendChild(ms);
+    panel.appendChild(astSection());
     panel.appendChild(bb);
   } else if (tab === 'chal') {
     const info = document.createElement('div'); info.className = 'muted small'; info.textContent = t('sf.chalInfo'); panel.appendChild(info);
@@ -1067,6 +1102,67 @@ function build() {
     $('sf-wipe').onclick = async () => { if (await ptConfirm(noEmoji(t('sf.wipeQ')), t('sf.wipe'))) { S = fresh(); save(); refresh(true); } };
   }
   refresh();
+}
+// Astérismes : une carte par figure, ses dix étoiles s'allument une à une
+function astSvg(a, lv) {
+  const P = a.pts;
+  let h = `<svg class="sf-astfig" viewBox="0 0 40 40" aria-hidden="true">`;
+  for (const [i, j] of a.e) h += `<line x1="${P[i][0]}" y1="${P[i][1]}" x2="${P[j][0]}" y2="${P[j][1]}" class="${i < lv && j < lv ? 'on' : ''}"/>`;
+  P.forEach(([x, y], i) => { h += i < lv ? `<path d="M${x} ${y - 2.6}L${x + .7} ${y - .7}L${x + 2.6} ${y}L${x + .7} ${y + .7}L${x} ${y + 2.6}L${x - .7} ${y + .7}L${x - 2.6} ${y}L${x - .7} ${y - .7}Z" class="on"/>` : `<circle cx="${x}" cy="${y}" r="${i === lv ? 1.6 : 1}" class="${i === lv ? 'nx' : ''}"/>`; });
+  return h + '</svg>';
+}
+// valeur de l'effet d'un astérisme à k étoiles (texte court)
+function astVal(a, k) {
+  const pc = n => t('sf.pct', { n: num(Math.round(n * 10) / 10) });
+  switch (a.id) {
+    case 'a_crucible': return '×' + fmt(Math.pow(1.1, k));
+    case 'a_lyre': return pc(6 * k);
+    case 'a_sextant': return pc(4 * k) + ' · ' + pc(8 * k);
+    case 'a_scales': return pc(3 * k);
+    case 'a_hammer': return '×' + fmt(Math.pow(1.25, k));
+    case 'a_clepsydra': return pc(6 * k);
+    case 'a_lighthouse': return pc(15 * k) + ' · +' + 2 * k + ' h';
+    default: return '×' + fmt(1 + Object.keys(S.ach).length * 0.002 * k);
+  }
+}
+function astTip(a) {
+  const k = astLv(a.id), full = k >= AST_MAX;
+  return `<b>${a.name}</b> — ${t('sf.astLv', { n: k, t: AST_MAX })}<br>${a.desc}<br>${full ? t('sf.astFull', { v: astVal(a, k) }) : t('sf.astNow', { v: astVal(a, k), n: astVal(a, k + 1) }) + `<br><span class="nova">${t('sf.novaeN', { n: fmt(astCost(a)) })}</span>${S.novaBank < astCost(a) ? ` <span class="muted">${t('sf.notEnough')}</span>` : ''}`}${S.chal ? `<br><span class="muted">${t('sf.astChal')}</span>` : ''}`;
+}
+function astSection() {
+  const w = document.createElement('div'); w.id = 'sf-ast'; w.className = 'sf-astw';
+  w.innerHTML = `<div class="sf-h">${t('sf.astTitle')}</div><p class="muted small" id="sf-ast-info"></p><div class="sf-astg"></div>`;
+  const g = w.querySelector('.sf-astg');
+  AST.forEach(a => {
+    const b = document.createElement('button'); b.className = 'sf-ast'; b.dataset.id = a.id;
+    b.innerHTML = `<span class="sf-astart"></span><b>${a.name}</b><small class="lv"></small><small class="c"></small>`;
+    tipify(b, () => astTip(a), () => {
+      if (!buyAst(a)) return;
+      const k = astLv(a.id);
+      toast(k >= AST_MAX ? t('sf.astDoneT', { name: a.name }) : t('sf.astT', { name: a.name, n: k, t: AST_MAX }));
+      sfx(523 + k * 40, 0.25, 'sine', 0.07); sfx(784 + k * 60, 0.35, 'sine', 0.05);
+      if (k >= AST_MAX) { flash = 0.5; sfx(1046, 0.6, 'triangle', 0.05); }
+      checkAch(); save(); refresh(true);
+    });
+    g.appendChild(b);
+  });
+  return w;
+}
+function refreshAst() {
+  const w = $('sf-ast'); if (!w) return;
+  const open = astOpen(), nm = Object.keys(S.meta).length;
+  w.classList.toggle('hidden', !open && nm < 33);
+  w.classList.toggle('lock', !open);
+  $('sf-ast-info').innerHTML = open ? t('sf.astInfo', { n: astStars(), t: AST.length * AST_MAX }) : t('sf.astLocked', { n: nm, t: META.length });
+  w.querySelectorAll('.sf-ast').forEach(b => {
+    const a = AST.find(x => x.id === b.dataset.id), k = astLv(a.id), full = k >= AST_MAX, c = astCost(a);
+    if (b.dataset.k !== String(k)) { b.querySelector('.sf-astart').innerHTML = astSvg(a, k); b.dataset.k = k; }
+    b.querySelector('.lv').textContent = t('sf.astLv', { n: k, t: AST_MAX });
+    b.querySelector('.c').textContent = full ? '✓' : fmt(c) + '✦';
+    b.classList.toggle('full', full);
+    b.classList.toggle('can', open && !full && S.novaBank >= c);
+    b.classList.toggle('no', !open || (!full && S.novaBank < c));
+  });
 }
 function fillUpgrades() {
   const grid = $('sf-upg-grid'), grid2 = $('sf-upg-owned'); if (!grid) return;
@@ -1117,7 +1213,7 @@ function refresh(structural) {
   // pastille "améliorations dispo"
   const anyUpg = UPGRADES.some(u => !S.upg[u.id] && u.req(S) && S.dust >= upgCost(u));
   document.querySelector('[data-sf=upg]').classList.toggle('badge', anyUpg);
-  document.querySelector('[data-sf=meta]').classList.toggle('badge', META.some(m => !S.meta[m.id] && S.novaBank >= m.cost && m.req.every(r => S.meta[r])));
+  document.querySelector('[data-sf=meta]').classList.toggle('badge', META.some(m => !S.meta[m.id] && S.novaBank >= m.cost && m.req.every(r => S.meta[r])) || (astOpen() && AST.some(a => astLv(a.id) < AST_MAX && S.novaBank >= astCost(a))));
 
   if (tab === 'gen') {
     let shownLocked = 0;
@@ -1157,6 +1253,7 @@ function refresh(structural) {
     }
     $('sf-meta-info').innerHTML = t('sf.metaInfo', { bank: num(S.novaBank), pct: num(Math.round(effNova() * novaPct() * 100)) });
     const mst = $('sf-mast'); if (mst) { mst.classList.toggle('hidden', !META.every(m => S.meta[m.id]) && !(S.mast > 0) && Object.keys(S.meta).length < 12); mst.querySelector('.mid span').textContent = t('sf.mastDesc', { n: S.mast || 0, m: fmt(Math.pow(mastK(), S.mast || 0)), p: has('m_mast') ? 17 : 15 }); mst.querySelector('.rt b').textContent = fmt(mastCost()) + '✦'; mst.classList.toggle('can', S.novaBank >= mastCost()); mst.classList.toggle('no', S.novaBank < mastCost()); }
+    refreshAst();
     panel.querySelectorAll('.sf-node').forEach(n => {
       const m = META.find(q => q.id === n.dataset.id);
       const open = m.req.every(r => S.meta[r]);
@@ -1193,6 +1290,7 @@ function checkAch() {
   if (dps() > 0) S.st.idleMax = Math.max(st('idleMax'), idleT);
   const hr = new Date().getHours(); if (hr >= 2 && hr < 5) S.st.night = 1;
   checkStage();
+  if (!S.st.atlas && META.every(m => S.meta[m.id])) { S.st.atlas = 1; toast(t('sf.astOpenT')); }   // Constellation complète : les Astérismes s'ouvrent, pour toujours
   for (const a of ACH) if (!S.ach[a.id] && a.test(S)) { S.ach[a.id] = 1; toast(t('sf.achToast', { name: a.name })); }
 }
 
@@ -1245,8 +1343,8 @@ function tick(dt) {
 }
 let autoAcc = 0, galAcc = 0, nextSky = 240 + Math.random() * 240;
 
-const offCap = () => (has('m_off3') ? 72 : has('m_off2') ? 24 : 8) * 3600;
-const offK = () => (has('m_off') ? 1 : 0.25) * UPGRADES.reduce((m, u) => S.upg[u.id] && u.fx.off ? m * u.fx.off : m, 1);   // veilleuses : ×1,5 et ×2
+const offCap = () => ((has('m_off3') ? 72 : has('m_off2') ? 24 : 8) + 2 * astK('a_lighthouse')) * 3600;
+const offK = () => (has('m_off') ? 1 : 0.25) * (1 + 0.15 * astK('a_lighthouse')) * UPGRADES.reduce((m, u) => S.upg[u.id] && u.fx.off ? m * u.fx.off : m, 1);   // veilleuses : ×1,5 et ×2
 function save() { if (window.PT_NOSAVE) return; S.last = Date.now(); try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
 function load() {
   try {
@@ -1300,4 +1398,4 @@ window.GAMES.forge = {
   hide() { visible = false; hideTip(); save(); },
 };
 // Accès de test (tools/sf-balance.mjs, console).
-window.__sf = { STAGES, stageOf, startSky, SKY, get shoots() { return shoots; }, catchShoot, checkAch, ACH, set idleT(v) { idleT = v; }, NOVA, buyMastery, mastCost, novaCurve, GALAXY, singGain, buyEngine, fmt, boostOn, get offPending() { return offPending; }, set offPending(v) { offPending = v; offUntil = Date.now() + 60000; }, watchBoost, watchOffline, get S() { return S; }, get comet() { return comet; }, spawnComet, catchComet, set S(v) { S = v; }, tick, buyGen, buyUpg, UPGRADES, GENS, costN, upgCost, dps, clickValue, novaGain, earn, fresh, resetRun, META, buyMeta, setMult: m => { buyMult = m; } };
+window.__sf = { AST, buyAst, astCost, astOpen, STAGES, stageOf, startSky, SKY, get shoots() { return shoots; }, catchShoot, checkAch, ACH, set idleT(v) { idleT = v; }, NOVA, buyMastery, mastCost, novaCurve, GALAXY, singGain, buyEngine, fmt, boostOn, get offPending() { return offPending; }, set offPending(v) { offPending = v; offUntil = Date.now() + 60000; }, watchBoost, watchOffline, get S() { return S; }, get comet() { return comet; }, spawnComet, catchComet, set S(v) { S = v; }, tick, buyGen, buyUpg, UPGRADES, GENS, costN, upgCost, dps, clickValue, novaGain, earn, fresh, resetRun, META, buyMeta, setMult: m => { buyMult = m; } };

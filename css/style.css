@@ -778,3 +778,24 @@ body[data-tab=blocks] #pt-cancel{background:url("data:image/svg+xml,%3Csvg xmlns
 #tab-blocks .bp-chap b,#tab-blocks .bp-chap small{font-family:'BQ Label',system-ui,sans-serif;font-weight:800}
 #tab-blocks .bp-lv.ice:not(.lock):not(.cur){box-shadow:inset 0 0 0 2px rgba(190,240,255,.55),inset 0 -3px 0 rgba(0,0,0,.4)}
 #tab-blocks .bp-lv.ice small,#tab-blocks .bp-lv.ice small svg.bqi{color:#bfeeff}
+/* Nova Foundry 1.8 — Astérismes : huit figures de dix étoiles, sous la Maîtrise stellaire */
+#tab-forge .sf-astw{margin-top:10px}
+#tab-forge .sf-astw.lock .sf-astg{opacity:.45;pointer-events:none}
+#tab-forge .sf-astg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:6px}
+@media (min-width:700px){#tab-forge .sf-astg{grid-template-columns:repeat(4,minmax(0,1fr))}}
+#tab-forge .sf-ast{display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 4px 7px;min-width:0;background:radial-gradient(circle at 50% 38%,rgba(28,42,92,.55),transparent 72%);border:1px solid rgba(184,151,85,.45);outline:1px solid rgba(184,151,85,.15);outline-offset:2px;color:inherit;text-align:center}
+#tab-forge .sf-ast.can{border-color:var(--gold2);box-shadow:0 0 10px rgba(243,212,138,.18) inset}
+#tab-forge .sf-ast.no{cursor:default}
+#tab-forge .sf-ast.full{border-color:rgba(243,212,138,.8);background:radial-gradient(circle at 50% 38%,rgba(70,58,24,.5),transparent 72%)}
+#tab-forge .sf-ast b{font:400 15px var(--title);color:#f3e3b8;line-height:1.15;max-width:100%;overflow-wrap:anywhere}
+#tab-forge .sf-ast small{font:400 12.5px var(--txt);color:var(--sepia)}
+#tab-forge .sf-ast small.c{font:400 15px var(--numf);color:var(--gold2)}
+#tab-forge .sf-astart{display:block;width:72%;max-width:96px}
+#tab-forge .sf-astfig{display:block;width:100%;height:auto}
+#tab-forge .sf-astfig line{stroke:rgba(184,151,85,.22);stroke-width:.5;stroke-dasharray:1 1.4}
+#tab-forge .sf-astfig line.on{stroke:#f3d48a;stroke-width:.8;stroke-dasharray:none;opacity:.85}
+#tab-forge .sf-astfig circle{fill:rgba(184,151,85,.45)}
+#tab-forge .sf-astfig circle.nx{fill:none;stroke:#f3d48a;stroke-width:.5;animation:sfAstNx 1.6s ease-in-out infinite}
+#tab-forge .sf-astfig path.on{fill:#fff1c8;filter:drop-shadow(0 0 1.2px #f3d48a)}
+@keyframes sfAstNx{50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){#tab-forge .sf-astfig circle.nx{animation:none}}

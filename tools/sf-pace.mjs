@@ -2,6 +2,8 @@
 // Supernovae et achète la Constellation (puis la Maîtrise). Une ligne par partie : heure cumulée, gain, Novae totales,
 // nœuds possédés, niveau de Maîtrise, améliorations achetées après 2 min et en fin de partie.
 //   node tools/sf-pace.mjs [time30|time15|time60|double|rate|meta] [clics/s]      RUNS=40 HRS=20 TUNE='{"cap":100}' ACH=1
+//   FULL=1e6 : part d'une Constellation complète avec autant de Novae (NOAST=1 : sans Astérismes, pour comparer)
+// (1.8) une fois la Constellation complète, le bot trace aussi les Astérismes (le moins cher d'abord, face à la Maîtrise)
 // (1.7) le bot attrape la moitié des étoiles filantes ; ACH=1 lui fait aussi gagner les succès (par défaut : non, comme avant)
 import { createRequire } from 'module'; import { execSync } from 'child_process';
 import http from 'http'; import fs from 'fs'; import path from 'path'; import url from 'url';
@@ -16,11 +18,12 @@ const CPS = +(process.argv[3] || 3);
   p.on('pageerror', e => console.log('ERR', e.message));
   await p.addInitScript(() => { window.PT_NOSAVE = 1; window.PT_MUTE = 1; localStorage.setItem('playtoon.welcomed', '1'); localStorage.setItem('starforge.intro', '1'); });
   await p.goto(`http://localhost:${srv.address().port}/#forge`); await p.waitForTimeout(1000);
-  const out = await p.evaluate(({ POLICY, CPS, RUNS, HRS, TUNE, ACH }) => {
+  const out = await p.evaluate(({ POLICY, CPS, RUNS, HRS, TUNE, ACH, FULL, NOAST }) => {
     const F = window.__sf; if (TUNE) Object.assign(F.NOVA, TUNE); F.S = F.fresh(); let S = F.S;
+    if (FULL) { F.META.forEach(m => { S.meta[m.id] = 1; }); S.snBase = 0; S.novaTotal = S.novaBank = FULL; S.prestiges = 60; S.mast = 10; S.st.atlas = NOAST ? 0 : 1; if (NOAST) F.AST.length = 0; }
     const NU = F.UPGRADES.length, NM = F.META.length;
     const runs = []; let T = 0;
-    const metaBuy = () => { const got = []; for (;;) { const c = F.META.filter(m => !S.meta[m.id] && m.req.every(q => S.meta[q]) && S.novaBank >= m.cost).sort((a, b) => a.cost - b.cost)[0]; if (!c) break; S.novaBank -= c.cost; S.meta[c.id] = 1; got.push(c.id); } const nx = () => F.META.filter(m => !S.meta[m.id] && m.req.every(q => S.meta[q])).sort((a, b) => a.cost - b.cost)[0]; for (;;) { const n = nx(); if (n && S.novaBank < 2 * n.cost && F.mastCost() > n.cost * 0.25) break; if (!F.buyMastery()) break; got.push('M'); } return got; };
+    const metaBuy = () => { const got = []; for (;;) { const c = F.META.filter(m => !S.meta[m.id] && m.req.every(q => S.meta[q]) && S.novaBank >= m.cost).sort((a, b) => a.cost - b.cost)[0]; if (!c) break; S.novaBank -= c.cost; S.meta[c.id] = 1; got.push(c.id); } const nx = () => F.META.filter(m => !S.meta[m.id] && m.req.every(q => S.meta[q])).sort((a, b) => a.cost - b.cost)[0]; for (;;) { const n = nx(); if (n && S.novaBank < 2 * n.cost && F.mastCost() > n.cost * 0.25) break; const a = F.AST && F.astOpen() ? F.AST.filter(x => ((S.ast || {})[x.id] || 0) < 10).sort((x, y) => F.astCost(x) - F.astCost(y))[0] : null; if (a && F.astCost(a) <= F.mastCost()) { if (!F.buyAst(a)) break; got.push('A'); continue; } if (!F.buyMastery()) break; got.push('M'); } return got; };
     const ach = () => { let n = 0; return n; };
     const nUpg = () => Object.keys(S.upg).length;
     function buyBest() {
@@ -55,13 +58,13 @@ const CPS = +(process.argv[3] || 3);
         if (go || t > 4 * 3600) {
           Object.assign(rec, { dur: t, gain: g, runTotal: S.runTotal, upgEnd: nUpg(), gens: S.gens.reduce((a, b) => a + b, 0), dps: F.dps(), reachPrev, avail: F.UPGRADES.filter(u => !S.upg[u.id] && u.req(S)).length, lockedUpg: F.UPGRADES.filter(u => !S.upg[u.id] && !u.req(S)).length });
           F.resetRun({ novaTotal: S.novaTotal + g, novaBank: S.novaBank + g, prestiges: S.prestiges + 1 });
-          S = F.S; rec.bought = metaBuy().join(','); rec.mast = S.mast; rec.metaAfter = Object.keys(S.meta).length; rec.bankAfter = S.novaBank; rec.novaTotalAfter = S.novaTotal; rec.ach = Object.keys(S.ach).length; rec.life = S.lifeTotal.toExponential(1); rec.stage = F.stageOf();
+          S = F.S; rec.bought = metaBuy().join(','); rec.mast = S.mast; rec.ast = Object.values(S.ast || {}).reduce((x, y) => x + y, 0); rec.metaAfter = Object.keys(S.meta).length; rec.bankAfter = S.novaBank; rec.novaTotalAfter = S.novaTotal; rec.ach = Object.keys(S.ach).length; rec.life = S.lifeTotal.toExponential(1); rec.stage = F.stageOf();
           rec.T = +(T / 3600).toFixed(2); runs.push(rec); break;
         }
       }
     }
     return { NU, NM, runs, fmt: null };
-  }, { POLICY, CPS, RUNS: +(process.env.RUNS||12), HRS: +(process.env.HRS||30), TUNE: process.env.TUNE ? JSON.parse(process.env.TUNE) : null, ACH: process.env.ACH === '1' });
+  }, { POLICY, CPS, RUNS: +(process.env.RUNS||12), HRS: +(process.env.HRS||30), TUNE: process.env.TUNE ? JSON.parse(process.env.TUNE) : null, ACH: process.env.ACH === '1', FULL: +(process.env.FULL || 0), NOAST: process.env.NOAST === '1' });
   console.log('POLICY', POLICY, 'CPS', CPS, 'upgrades', out.NU, 'meta', out.NM);
-  for (const r of out.runs) console.log([r.run, 'h' + r.T, 'gain ' + r.gain, 'nova ' + r.novaTotalAfter, 'meta ' + r.metaAfter, 'mast ' + r.mast, 'upg2m ' + r.upgAt['2min'], 'upgEnd ' + r.upgEnd, 'first ' + r.firstNova, 'life ' + r.life, 'stade ' + r.stage, 'succès ' + r.ach].join(' | '));
+  for (const r of out.runs) console.log([r.run, 'h' + r.T, 'gain ' + r.gain, 'nova ' + r.novaTotalAfter, 'meta ' + r.metaAfter, 'mast ' + r.mast, 'ast ' + r.ast, 'upg2m ' + r.upgAt['2min'], 'upgEnd ' + r.upgEnd, 'first ' + r.firstNova, 'life ' + r.life, 'stade ' + r.stage, 'succès ' + r.ach].join(' | '));
   await b.close(); srv.close();
