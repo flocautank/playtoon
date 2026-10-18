@@ -143,6 +143,17 @@ try { TUTO = !localStorage.getItem('blocparty.tuto'); } catch (e) {}
 let TIPS = {};
 try { TIPS = JSON.parse(localStorage.getItem('blocparty.tips') || '{}'); } catch (e) {}
 const saveTips = () => { try { localStorage.setItem('blocparty.tips', JSON.stringify(TIPS)); } catch (e) {} };
+// confort (1.11.0) : vibrations, animations réduites (par défaut : réglage du système), conseils à revoir
+let OPT = { vib: true, calm: null };
+try { OPT = Object.assign(OPT, JSON.parse(localStorage.getItem('blocparty.opt') || '{}')); } catch (e) {}
+const saveOpt = () => { try { localStorage.setItem('blocparty.opt', JSON.stringify(OPT)); } catch (e) {} };
+const sysCalm = () => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } };
+const calm = () => OPT.calm === null || OPT.calm === undefined ? sysCalm() : !!OPT.calm;
+const buzz = pat => { if (OPT.vib && navigator.vibrate) try { navigator.vibrate(pat); } catch (e) {} };
+// conseil : un message qui s'explique (mécanique, outil) reste lisible 3,5 s sur une étiquette en haut de la grille,
+// à part des éloges (qui se remplacent à chaque effacement)
+// q : à la suite des conseils en attente (présentations d'un niveau) ; sinon il remplace (outil, visée)
+const tip = (text, sub = '', delay = 0, dur = 3.6, q = false) => { const o = { text, sub, t: -delay, dur }; if (q) S.tips.push(o); else S.tips = [o]; };
 const tutoDone = () => { if (!TUTO) return; TUTO = false; try { localStorage.setItem('blocparty.tuto', '1'); } catch (e) {} };
 
 const $ = id => document.getElementById(id);
@@ -155,7 +166,7 @@ const S = {
   board: [], tray: [], score: 0, shown: 0, best: 0, combo: 0, over: false,
   drag: null, fx: [], pops: [], clearing: [], shake: 0, placedAnim: [],
   mode: 'classic', lvl: 1, goal: null, moves: 0, gems: new Set(), got: 0, ice: new Set(), broke: 0,
-  miss: 0, beams: [], rings: [], flyers: [], flash: 0, glow: 0, hit: 0, endAnim: null, bestStart: 0,
+  miss: 0, tips: [], beams: [], rings: [], flyers: [], flash: 0, glow: 0, hit: 0, endAnim: null, bestStart: 0,
 };
 let ADV = { stars: {} };
 // Boosters payés en pièces : gagnées à chaque ligne en classique, aux étoiles en Aventure.
@@ -328,7 +339,7 @@ function clearSpace() {
 }
 
 // état visuel et statistiques d'une partie neuve (toutes les modes)
-function freshRun() { S.xpRun = 0; S.ice = new Set(); S.broke = 0; S.miss = 0; S.lines = 0; S.maxCombo = 0; S.pieces = 0; S.endAnim = null; S.beams = []; S.rings = []; S.flyers = []; S.flash = 0; S.glow = 0; S.hit = 0; }
+function freshRun() { S.tips = []; S.xpRun = 0; S.ice = new Set(); S.broke = 0; S.miss = 0; S.lines = 0; S.maxCombo = 0; S.pieces = 0; S.endAnim = null; S.beams = []; S.rings = []; S.flyers = []; S.flash = 0; S.glow = 0; S.hit = 0; }
 function newGame() {
   clearTimeout(overTimer); clearTimeout(resTimer); S.contN = 0; S.placed = 0;
   S.mode = 'classic'; rnd = Math.random; S.gems.clear();
@@ -416,8 +427,8 @@ function startLevel(n) {
   fillTray();
   ['bp-over', 'bp-map', 'bp-res'].forEach(id => $(id).classList.add('hidden'));
   S.pops.push({ text: t('bp.level', { n }), sub: goalText(), t: 0 });
-  if (S.goal.type === 'ice' && (n === ICE_LVL || !ADV.stars[ICE_LVL])) S.pops.push({ text: t('bp.iceTitle'), sub: t('bp.iceSub'), t: -1.3 });   // présentation du givre
-  if (n === 9 || (n > 9 && !ADV.stars[9])) S.pops.push({ text: t('bp.hardTitle'), sub: t('bp.hardSub'), t: -1.3 });   // présentation des pierres dures
+  if (S.goal.type === 'ice' && (n === ICE_LVL || !ADV.stars[ICE_LVL])) tip(t('bp.iceTitle'), t('bp.iceSub'), 1.3, 4.5, true);   // présentation du givre
+  if (n === 9 || (n > 9 && !ADV.stars[9])) tip(t('bp.hardTitle'), t('bp.hardSub'), 1.3, 4.5, true);   // présentation des pierres dures
   updateHUD();
 }
 const goalText = () => S.goal.type === 'gems' ? t('bp.getGems', { n: S.goal.gems }) : S.goal.type === 'ice' ? t('bp.breakIce', { n: S.goal.ice }) : t('bp.clearLines', { n: S.goal.target });
@@ -723,7 +734,7 @@ function smash(cells) {
 function useTool(name, gx, gy) {
   const cost = S.freeTool && name === 'hammer' ? 0 : TOOLS[name];
   if (COINS < cost || S.mode === 'daily') return false;
-  if (S.mode === 'adv' && (S.toolsUsed || 0) >= ADV_TOOLS) { S.pops.length = 0; S.pops.push({ text: t('bp.toolLimit', { n: ADV_TOOLS }), sub: '', t: 0 }); tool = null; paintBoost(); return false; }
+  if (S.mode === 'adv' && (S.toolsUsed || 0) >= ADV_TOOLS) { tip(t('bp.toolLimit', { n: ADV_TOOLS })); tool = null; paintBoost(); return false; }
   if (name === 'shuffle') { S.tray = [null, null, null]; fillTray(); beep(700, 0.15, 'triangle', 0.05); }
   else {
     const cells = name === 'bomb' ? [-1, 0, 1].flatMap(dy => [-1, 0, 1].map(dx => [gx + dx, gy + dy])) : [[gx, gy]];
@@ -756,7 +767,7 @@ function place(idx, gx, gy) {
   const n = rows.length + cols.length;
   if (n > 0) {
     S.combo++; S.miss = 0;
-    if (S.combo === 1 && !TIPS.combo) { TIPS.combo = 1; saveTips(); S.pops.push({ text: t('bp.tipCombo'), sub: t('bp.tipComboSub'), t: -1.2 }); } S.maxCombo = Math.max(S.maxCombo || 0, S.combo); S.lines = (S.lines || 0) + n; window.ptEvent && window.ptEvent('bp_lines', n);
+    if (S.combo === 1 && !TIPS.combo) { TIPS.combo = 1; saveTips(); tip(t('bp.tipCombo'), t('bp.tipComboSub'), 1.2, 3.6, true); } S.maxCombo = Math.max(S.maxCombo || 0, S.combo); S.lines = (S.lines || 0) + n; window.ptEvent && window.ptEvent('bp_lines', n);
     if (S.mode !== 'adv') { COINS += n; saveCoins(); }
     const cells = new Map();
     rows.forEach(y => { for (let x = 0; x < N; x++) cells.set(y * N + x, [x, y]); });
@@ -783,19 +794,20 @@ function place(idx, gx, gy) {
     // le moment fort : faisceau sur chaque ligne, arrêt sur image, puis paliers (cadre, onde, éclair)
     rows.forEach(y => S.beams.push({ row: y, t: 0, color: tc(p.color) })); cols.forEach(x => S.beams.push({ col: x, t: 0, color: tc(p.color) }));
     if (n >= 2) { S.hit = Math.min(0.12, 0.05 + 0.025 * (n - 2)); S.glow = 1; S.glowColor = tc(p.color); }
-    if (n >= 3 || allClear) S.rings.push({ x: L.bx + (gx + p.w / 2) * L.cs, y: L.by + (gy + p.h / 2) * L.cs, t: 0 });
-    if (n >= 4 || allClear || S.combo >= 5) S.flash = 1;
+    if ((n >= 3 || allClear) && !calm()) S.rings.push({ x: L.bx + (gx + p.w / 2) * L.cs, y: L.by + (gy + p.h / 2) * L.cs, t: 0 });
+    if ((n >= 4 || allClear || S.combo >= 5) && !calm()) S.flash = 1;
     let fx = 0, fy = 0; for (const [x, y] of cells.values()) { fx += x; fy += y; } fx /= cells.size; fy /= cells.size;
     S.flyers.push({ x: L.bx + (fx + 0.5) * L.cs, y: L.by + (fy + 0.5) * L.cs, v: gained, t: 0 });
-    S.shake = Math.min(14, 3 + n * 3);
+    S.shake = calm() ? 0 : Math.min(14, 3 + n * 3);
     SFX.clear(n, S.combo);
-    if (navigator.vibrate) navigator.vibrate(n >= 3 ? [30, 40, 60] : 20 * n);
+    buzz(n >= 3 ? [30, 40, 60] : 20 * n);
   } else {
     // le combo survit à deux poses sans ligne : il tombe à la troisième (règle du genre, Block Blast compris)
     if (S.combo > 0 && ++S.miss >= 3) { S.combo = 0; S.miss = 0; SFX.lost(); }
     SFX.thock();
   }
   S.score += gained; if (S.mode === 'classic') track('score', S.score); saveCar();
+  if (!TIPS.grey && S.tray.some(q => q && !canPlaceAnywhere(q)) && S.tray.some(q => q && canPlaceAnywhere(q))) { TIPS.grey = 1; saveTips(); tip(t('bp.tipGrey'), t('bp.tipGreySub'), n ? 1.2 : 0, 4.5, true); }
   if (S.tray.every(t => !t)) fillTray();
   if (S.mode === 'adv') {
     S.moves--; S.used = (S.used || 0) + 1;
@@ -830,11 +842,11 @@ function place(idx, gx, gy) {
   save(); updateHUD();
 }
 
-const armOver = ms => { clearTimeout(overTimer); S.endAnim = { t: 0 }; setTimeout(() => { if (S.endAnim) { SFX.fail(); S.shake = 6; } }, 450); overTimer = setTimeout(gameOver, Math.max(ms, 1300)); };
+const armOver = ms => { clearTimeout(overTimer); S.endAnim = { t: 0 }; setTimeout(() => { if (S.endAnim) { SFX.fail(); S.shake = calm() ? 0 : 6; buzz(80); } }, 450); overTimer = setTimeout(gameOver, Math.max(ms, 1300)); };
 function gameOver() {
   S.over = true;
   countUp($('bp-final'), S.score);
-  $('bp-stats').textContent = t('bp.stats', { lines: num(S.lines || 0), combo: S.maxCombo || 0, pieces: num(S.pieces || 0) });
+  $('bp-stats').textContent = t('bp.stats', { lines: num(S.lines || 0), combo: S.maxCombo || 0, pieces: num(S.pieces || 0), lc: S.lines || 0, pc: S.pieces || 0 });
   $('bp-overtitle').textContent = S.mode === 'chrono' && S.endWhy === 'time' ? t('bp.timeUp') : t('bp.overTitle');
   const top = $('bp-top10'); top.classList.toggle('hidden', S.mode !== 'chrono');
   if (S.mode === 'chrono') {
@@ -857,7 +869,7 @@ function countUp(el, v) {
   step();
 }
 function confetti() {
-  for (let i = 0; i < 70; i++) S.fx.push({ x: W / 2 + (Math.random() - 0.5) * L.bs, y: L.by - 10, vx: (Math.random() - 0.5) * 7, vy: -Math.random() * 9 - 2, s: L.cs * (0.1 + Math.random() * 0.12), color: (curTheme().style === 'stone' ? ['#ffd24d', '#f0b23a', '#fff1c2', '#e8d3b0', '#d9822b'] : ['#ffd24d', '#ff5d8f', '#4dd4ff', '#7cff8a', '#fff'])[i % 5], life: 1.6, rot: Math.random() * 6, conf: 1 });
+  for (let i = 0, nb = calm() ? 16 : 70; i < nb; i++) S.fx.push({ x: W / 2 + (Math.random() - 0.5) * L.bs, y: L.by - 10, vx: (Math.random() - 0.5) * 7, vy: -Math.random() * 9 - 2, s: L.cs * (0.1 + Math.random() * 0.12), color: (curTheme().style === 'stone' ? ['#ffd24d', '#f0b23a', '#fff1c2', '#e8d3b0', '#d9822b'] : ['#ffd24d', '#ff5d8f', '#4dd4ff', '#7cff8a', '#fff'])[i % 5], life: 1.6, rot: Math.random() * 6, conf: 1 });
 }
 
 function burst(gx, gy, color) {
@@ -1082,6 +1094,7 @@ function draw(dt) {
   if (S.mode !== 'chrono') $('bp-score').classList.remove('urgent');
 
   let sx = 0, sy = 0;
+  if (S.shake > 0 && calm()) S.shake = 0;
   if (S.shake > 0) { sx = (Math.random() - 0.5) * S.shake; sy = (Math.random() - 0.5) * S.shake; S.shake = Math.max(0, S.shake - dt * 40); }
   ctx.save(); ctx.translate(sx, sy);
 
@@ -1190,7 +1203,7 @@ function draw(dt) {
     const r = slotRect(i), s = pieceScale(p, r);
     const ok = canPlaceAnywhere(p);
     const px = r.x + (r.w - p.w * s) / 2, py = r.y + (r.h - p.h * s) / 2;
-    const jit = S.endAnim && S.endAnim.t < 0.6 ? Math.sin(S.endAnim.t * 70) * L.cs * 0.08 : 0;
+    const jit = S.endAnim && S.endAnim.t < 0.6 && !calm() ? Math.sin(S.endAnim.t * 70) * L.cs * 0.08 : 0;
     for (const [x, y] of p.cells) cell(px + x * s + jit, py + y * s, s, ok ? p.color : '#555a72', ok ? 1 : 0.6);
     if (S.endAnim) {   // rien ne rentre : une croix sur chaque pièce
       const cx = r.x + r.w / 2 + jit, cy = r.y + r.h / 2, z = Math.min(r.w, r.h) * 0.22;
@@ -1261,7 +1274,7 @@ function draw(dt) {
     p.t += dt; if (p.t < 0) return;   // message différé (t négatif au départ)
     const k = p.t / 1.2;
     const a = k < 0.15 ? k / 0.15 : Math.max(0, 1 - (k - 0.6) / 0.4);
-    const sc = 1 + Math.max(0, 0.3 - k) * 2;
+    const sc = calm() ? 1 : 1 + Math.max(0, 0.3 - k) * 2;
     ctx.save(); ctx.globalAlpha = a; ctx.translate(W / 2, L.by + L.bs * 0.42 - k * 40); ctx.scale(sc, sc);
     ctx.textAlign = 'center'; ctx.font = `${Math.round(L.cs * (p.big ? 0.78 : 0.62))}px 'BQ Display',system-ui,sans-serif`;
     const mw = L.bs * 0.96 / sc;   // jamais plus large que la grille (textes longs, petits écrans)
@@ -1274,8 +1287,34 @@ function draw(dt) {
     ctx.restore();
   });
   S.pops = S.pops.filter(p => p.t < 1.2);
+  drawTip(dt);
   drawFlyers(dt);
   if (S.flash > 0) { ctx.fillStyle = `rgba(255,246,220,${S.flash * 0.38})`; ctx.fillRect(0, 0, W, H); S.flash = Math.max(0, S.flash - dt * 3); }
+}
+// conseil sur une étiquette de pierre en haut de la grille : titre + explication sur deux ou trois lignes, fondu doux
+function wrapText(str, w) {
+  const out = []; let line = '';
+  for (const word of String(str).split(' ')) { const tr = line ? line + ' ' + word : word; if (line && ctx.measureText(tr).width > w) { out.push(line); line = word; } else line = tr; }
+  if (line) out.push(line); return out;
+}
+function drawTip(dt) {
+  const q = S.tips[0]; if (!q) return;
+  q.t += dt; if (q.t < 0) return;
+  if (q.t > q.dur) { S.tips.shift(); if (S.tips[0] && S.tips[0].t < 0) S.tips[0].t = 0; return; }
+  if (!q.clean) { q.text = stripEmoji(q.text); q.sub = stripEmoji(q.sub); q.clean = 1; }
+  const a = Math.min(1, q.t / 0.18, (q.dur - q.t) / 0.4), w = L.bs * 0.9, fs1 = Math.round(L.cs * 0.4), fs2 = Math.round(L.cs * 0.3);
+  ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = `800 ${fs2}px 'BQ Label',system-ui,sans-serif`;
+  const lines = q.sub ? wrapText(q.sub, w - L.cs * 0.5) : [];
+  const h = fs1 * 1.35 + lines.length * fs2 * 1.25 + L.cs * 0.3, x = L.bx + (L.bs - w) / 2, y = L.by + L.cs * 0.25 + (calm() ? 0 : (1 - Math.min(1, q.t / 0.18)) * -6);
+  ctx.globalAlpha = a * (S.drag && S.drag.y - S.drag.oy < y + h + L.cs ? 0.35 : 1);   // s'efface quand la pièce en main passe dessous
+  ctx.fillStyle = 'rgba(30,20,14,.93)'; ctx.strokeStyle = 'rgba(255,214,150,.55)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(x + 6, y); ctx.lineTo(x + w * 0.5, y + 2); ctx.lineTo(x + w - 4, y); ctx.lineTo(x + w, y + h * 0.4); ctx.lineTo(x + w - 3, y + h); ctx.lineTo(x + w * 0.45, y + h - 2); ctx.lineTo(x + 3, y + h); ctx.lineTo(x, y + h * 0.55); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.font = `${fs1}px 'BQ Display',system-ui,sans-serif`; ctx.fillStyle = '#ffd27a';
+  ctx.fillText(q.text, L.bx + L.bs / 2, y + L.cs * 0.15 + fs1 * 0.68, w - L.cs * 0.4);
+  ctx.font = `800 ${fs2}px 'BQ Label',system-ui,sans-serif`; ctx.fillStyle = '#f6ead2';
+  lines.forEach((l, i) => ctx.fillText(l, L.bx + L.bs / 2, y + L.cs * 0.15 + fs1 * 1.35 + fs2 * (0.62 + i * 1.25), w - L.cs * 0.4));
+  ctx.restore();
 }
 // « +N » qui part de la ligne effacée et rejoint la case du score, qui rebondit à l'arrivée
 function drawFlyers(dt) {
@@ -1379,7 +1418,7 @@ canvas.addEventListener('pointerdown', e => {
     const gx = Math.floor((x - L.bx) / L.cs), gy = Math.floor((y - L.by) / L.cs);
     if (gx >= 0 && gy >= 0 && gx < N && gy < N) {
       // au doigt : un premier toucher vise (zone affichée), un second au même endroit frappe
-      if (e.pointerType === 'touch' && !(S.aim && S.aim[0] === gx && S.aim[1] === gy)) { S.aim = [gx, gy]; hover = { x, y }; SFX.snap(); S.pops.length = 0; S.pops.push({ text: t('bp.tapConfirm'), sub: '', t: 0.3 }); return; }
+      if (e.pointerType === 'touch' && !(S.aim && S.aim[0] === gx && S.aim[1] === gy)) { S.aim = [gx, gy]; hover = { x, y }; SFX.snap(); tip(t('bp.tapConfirm'), '', 0, 2.5); return; }
       S.aim = null; useTool(tool, gx, gy); return;
     }
   }
@@ -1391,6 +1430,7 @@ canvas.addEventListener('pointerdown', e => {
     S.drag = { idx: i, x, y, ox: p.w * L.cs / 2, oy, t0: performance.now(), s0: pieceScale(p, r) };
     canvas.setPointerCapture(e.pointerId);
     SFX.pick();
+    if (!canPlaceAnywhere(p)) { SFX.lost(); if (!S.greyAt || performance.now() - S.greyAt > 6000) { S.greyAt = performance.now(); tip(t('bp.tipGrey'), t('bp.tipGreySub'), 0, 3); } }
     break;
   }
 });
@@ -1469,13 +1509,34 @@ $('bp-overmap').onclick = () => { $('bp-over').classList.add('hidden'); openMap(
 const t2 = k => t(k);   // (t est masqué dans ce gestionnaire)
 document.querySelectorAll('#bp-boost button').forEach(b => b.onclick = () => {
   const t = b.dataset.tool;
-  if (S.mode === 'daily') { S.pops.length = 0; S.pops.push({ text: t('bp.noBoostDaily'), sub: '', t: 0 }); beep(180, 0.1, 'square', 0.03); return; }
+  if (S.mode === 'daily') { tip(t('bp.noBoostDaily')); beep(180, 0.1, 'square', 0.03); return; }
   if (S.over || (COINS < TOOLS[t] && !(S.freeTool && t === 'hammer'))) { beep(180, 0.1, 'square', 0.03); return; }
   if (t === 'shuffle') { useTool('shuffle'); return; }
   tool = tool === t ? null : t; S.aim = null; paintBoost();
-  if (tool) { S.pops.length = 0; S.pops.push({ text: t2(tool === 'bomb' ? 'bp.bombHow' : 'bp.hammerHow'), sub: t2('bp.toolCancel'), t: 0 }); }   // chaque outil s'explique au moment où on le prend
+  if (tool) tip(t2(tool === 'bomb' ? 'bp.bombHow' : 'bp.hammerHow'), t2(window.ptDesktop || !matchMedia('(pointer: coarse)').matches ? 'bp.toolCancelKey' : 'bp.toolCancel')); else S.tips = [];   // chaque outil s'explique au moment où on le prend
 });
 paintBoost();
+// réglages de confort : dans l'appli, rangés dans la roue dentée de la coquille ; sur le site, sous les thèmes
+function initComfort() {
+  const box = $('bp-comfort'); if (!box) return;
+  const host = $('bq-sfx') && $('bq-sfx').closest('.bq-row');
+  if (host && !box.dataset.moved) { box.dataset.moved = 1; host.after(box); box.classList.add('in-app'); }
+  const vib = $('bp-optvib'), cm = $('bp-optcalm');
+  vib.checked = OPT.vib; cm.checked = calm();
+  let coarse = false; try { coarse = matchMedia('(pointer: coarse)').matches; } catch (e) {}
+  $('bp-optvibrow').classList.toggle('hidden', !navigator.vibrate || !coarse || !!window.ptDesktop);   // PC : pas de vibreur
+  vib.onchange = () => { OPT.vib = vib.checked; saveOpt(); if (OPT.vib) buzz(30); };
+  cm.onchange = () => { OPT.calm = cm.checked; saveOpt(); };
+  $('bp-tipsagain').onclick = () => { TIPS = {}; saveTips(); TUTO = true; try { localStorage.removeItem('blocparty.tuto'); } catch (e) {} window.ptToast && window.ptToast(t('bp.tipsBack')); };
+}
+initComfort();
+// clavier (PC) : Échap pose l'outil en main, sinon ferme la fenêtre du jeu ouverte
+window.addEventListener('keydown', e => {
+  if (e.key !== 'Escape' || (document.body.dataset.tab && document.body.dataset.tab !== 'blocks')) return;
+  if (tool) { tool = null; S.aim = null; S.tips = []; paintBoost(); return; }
+  const open = [...document.querySelectorAll('#tab-blocks .overlay:not(.hidden)')].pop();
+  const b = open && open.querySelector('[data-back]'); if (b) b.click();
+});
 // langue : le HTML se traduit tout seul, le reste se redessine
 applyI18n();
 deEmoji($('tab-blocks'));
@@ -1517,7 +1578,7 @@ let inited = false;
 window.GAMES.blocks = {
   reward() { COINS += 30; saveCoins(); },   // objectif du jour
   show() {
-    loadFonts(); watchModal();
+    loadFonts(); watchModal(); initComfort();
     if (!document.body.dataset.tab) document.body.dataset.tab = 'blocks';   // appli : la coquille (réglages, confirmations, notifications) prend le style de la carrière
     if (!inited) { inited = true; if (!load()) newGame(); else if (!S.tray.some(t => t && canPlaceAnywhere(t))) newGame(); updateHUD(); }
     loginBonus(); checkMedals(); ensureWeek(); paintCarBtn();

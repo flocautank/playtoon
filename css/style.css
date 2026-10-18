@@ -954,3 +954,17 @@ body[data-tab=blocks] #bq-settings .card h2{font-family:'BQ Display',system-ui,s
   #nb-root #nb-endstats .nb-ebig{padding:2px 4px;flex-direction:row;gap:6px}
   #nb-root #nb-endstats .nb-ebig b{font-size:16px}#nb-root #nb-endstats .nb-ebig span{font-size:10px}
 }
+/* Block Quarry 1.11.0 — confort : cibles tactiles d'au moins 44 px, réglages de confort (sous les thèmes sur le site, dans la roue dentée dans l'appli) */
+#tab-blocks .bp-top .btn{min-height:44px;min-width:44px}
+#tab-blocks .bp-boost button,#tab-blocks #bq-gear{min-height:44px}
+#tab-blocks #bq-gear{min-width:44px}
+.bp-comfort{display:flex;flex-direction:column;gap:8px;width:100%;margin:6px 0 4px;padding-top:10px;border-top:1px solid rgba(255,225,180,.16);text-align:left}
+.bp-comfort .bq-row{display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:44px;font:600 16px 'BQ Label',system-ui,sans-serif;letter-spacing:.03em;color:#f3e3c6;cursor:pointer}
+.bp-comfort .bq-row.hidden{display:none}
+.bp-comfort input[type=checkbox]{accent-color:#d9822b;width:24px;height:24px;flex:none}
+.bp-comforth{font:800 12px 'BQ Label',system-ui,sans-serif;letter-spacing:.18em;text-transform:uppercase;color:#d9b98a}
+.bp-comfort #bp-tipsagain{align-self:flex-start;min-height:44px}
+.bp-comfort.in-app{margin:2px 0}
+@media (max-width:380px){body[data-tab=blocks] .pt-toasts div{font-size:13px;padding:8px 12px 9px}}
+@media (max-width:600px){#tab-blocks .bp-top .bp-stat small{letter-spacing:.09em}}
+@media (max-width:390px){#tab-blocks .bp-top{gap:3px;padding-left:4px;padding-right:4px}#tab-blocks .bp-top .bp-stat{padding:4px 2px}#tab-blocks .bp-top .bp-stat small{letter-spacing:.02em}#tab-blocks .bp-top .btn{padding-left:3px;padding-right:3px}}
