@@ -617,7 +617,7 @@ function gameOver() {
   const dl = S.mode === 'daily', ds = dailyStars(DAILY.best);
   $('bp-dstars').classList.toggle('hidden', !dl); $('bp-cal').classList.toggle('hidden', !dl); $('bp-share').classList.toggle('hidden', !dl || !(navigator.share || navigator.clipboard));
   if (dl) { $('bp-dstars').innerHTML = [1, 2, 3].map(k => k <= ds ? '★' : '<i>★</i>').join(''); $('bp-cal').innerHTML = calendarHTML(); }
-  else $('bp-newbest').textContent = S.score >= S.best && S.score > 0 ? t('bp.newRecord') : S.best - S.score <= S.best * 0.15 ? t('bp.nearBest', { n: num(S.best - S.score) }) : t('bp.record', { n: num(S.best) });
+  else $('bp-newbest').textContent = S.score >= S.best && S.score > 0 ? t('bp.newRecord') : S.score > 0 && S.best - S.score <= S.best * 0.15 ? t('bp.nearBest', { n: num(S.best - S.score) }) : t('bp.record', { n: num(S.best) });
   $('bp-cont').classList.toggle('hidden', COINS < contCost() || S.mode === 'chrono' || (S.mode === 'daily' && dailyContUsed()));
   $('bp-cont').textContent = t('bp.contBooster', { n: contCost() });
   $('bp-vidcont').classList.toggle('hidden', S.mode === 'chrono' || S.vidCont || !MON.canReward());
