@@ -71,6 +71,7 @@
         <div class="bp-stat"><small id="bp-l2" data-i18n="bp.best">BEST</small><b id="bp-best">0</b></div>
         <button class="btn ghost" id="bp-restart" data-i18n-title="bp.restartTip"><svg class="bqi" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12a7 7 0 1 1-2.1-5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><path d="M18.5 3.5V8H14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <button class="btn ghost" id="bp-themebtn" data-i18n-title="bp.themesTip">🎨</button>
+        <button class="btn ghost" id="bp-carbtn" data-i18n-title="bp.carTip">🏅<i class="bp-dot hidden" id="bp-cardot"></i></button>
       </div>
       <canvas id="bp-canvas"></canvas>
       <div class="bp-boost" id="bp-boost">
@@ -85,6 +86,7 @@
           <p><span data-i18n="bp.finalScore">Score:</span> <b id="bp-final">0</b></p>
           <p class="muted" id="bp-newbest"></p>
           <p class="small bp-statsline" id="bp-stats"></p>
+          <p class="small bp-xpline" id="bp-xpo"></p>
           <div class="bp-stars hidden" id="bp-dstars"></div>
           <div class="bp-cal hidden" id="bp-cal"></div>
           <button class="btn ghost hidden" id="bp-share" data-i18n="bp.share">Share</button>
@@ -113,11 +115,26 @@
           <button class="btn ghost" id="bp-themeclose" data-back data-i18n="close">Close</button>
         </div>
       </div>
+      <div class="overlay hidden" id="bp-career">
+        <div class="card wide bp-carcard">
+          <h2 data-i18n="bp.carTitle">Quarry log</h2>
+          <div class="bp-rank" id="bp-rank"></div>
+          <div class="bp-sech"><b data-i18n="bp.weekTitle">This week’s missions</b><small id="bp-weekleft"></small></div>
+          <div class="bp-missions" id="bp-missions"></div>
+          <div class="bp-chest" id="bp-chest"></div>
+          <div class="bp-sech"><b data-i18n="bp.medalsTitle">Chapter medals</b><small data-i18n="bp.medalsHelp">30 stars in a chapter</small></div>
+          <div class="bp-medals" id="bp-medals"></div>
+          <div class="bp-sech"><b data-i18n="bp.statsTitle">Career</b></div>
+          <div class="bp-cstats" id="bp-cstats"></div>
+          <button class="btn ghost" id="bp-carclose" data-back data-i18n="close">Close</button>
+        </div>
+      </div>
       <div class="overlay hidden" id="bp-res">
         <div class="card">
           <h2 id="bp-restitle" data-i18n="bp.cleared">Level cleared!</h2>
           <div class="bp-stars" id="bp-resstars"></div>
           <p class="muted" id="bp-restext"></p>
+          <p class="small bp-xpline" id="bp-resxp"></p>
           <div class="row"><button class="btn bp-vid hidden" id="bp-resvid" data-i18n="app.watchMoves">▶</button><button class="btn" id="bp-resmore" data-i18n="bp.more">+3</button><button class="btn ghost" id="bp-rescont" data-i18n="bp.cont">🔨</button><button class="btn" id="bp-resnext" data-i18n="bp.next">Next</button><button class="btn ghost" id="bp-resretry" data-i18n="bp.retry">Retry</button><button class="btn ghost" id="bp-resmap" data-i18n="bp.map">Map</button></div>
         </div>
       </div>

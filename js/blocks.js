@@ -35,6 +35,10 @@ const THEMES = [
   { id: 'pastel', cost: 80, style: 'soft', pal: ['#ffb3c7', '#ffe3a3', '#a8e6ff', '#b8f5c0', '#d9c2ff', '#ffc9a8', '#a8fff0'], bg: 'radial-gradient(ellipse at 50% 0%,#5a4a8a 0%,#3a3066 60%,#2a2450 100%)' },
   { id: 'pixel', cost: 100, style: 'pixel', pal: ['#e8405a', '#f6c03a', '#3aa8f6', '#4fd65a', '#9a5af6', '#f6823a', '#3af6c8'], bg: 'linear-gradient(#1a2440,#0c1224)' },
   { id: 'gold', cost: 200, style: 'gem', pal: ['#ffd24d', '#ffe899', '#e0a93a', '#fff0c2', '#c98a2a', '#ffb84d', '#f5d68a'], bg: 'radial-gradient(ellipse at 50% 0%,#2a2218 0%,#0a0806 70%)' },
+  // thèmes de grade (1.9.0) : ne s'achètent pas, ils se gagnent en montant de grade dans le Carnet
+  { id: 'marble', cost: 0, rank: 4, style: 'stone', pal: ['#d98a9c', '#e3c88f', '#8fb0d6', '#9cc9a4', '#b9a3d9', '#d9a37f', '#93d1c8'], bg: 'radial-gradient(ellipse at 50% -10%,rgba(255,250,240,.22) 0%,transparent 55%),repeating-linear-gradient(118deg,rgba(255,255,255,.035) 0 3px,transparent 3px 40px),linear-gradient(180deg,#4a4650 0%,#38343c 50%,#26232a 100%)' },
+  { id: 'basalt', cost: 0, rank: 8, style: 'stone', pal: ['#ff4a3d', '#ffb02e', '#ff7a1f', '#e8e26a', '#ff5c8a', '#ff8f4d', '#ffd06b'], bg: 'radial-gradient(ellipse at 50% 112%,rgba(255,90,30,.42) 0%,transparent 55%),repeating-linear-gradient(90deg,rgba(0,0,0,.18) 0 2px,transparent 2px 46px),linear-gradient(180deg,#1c1a1e 0%,#241a16 55%,#2e140b 100%)' },
+  { id: 'jade', cost: 0, rank: 12, style: 'stone', pal: ['#c9567a', '#d9b44a', '#3d9fb0', '#3fbf7a', '#7f6fd0', '#d0843f', '#5fd6a8'], bg: 'radial-gradient(ellipse at 50% -12%,rgba(140,255,200,.22) 0%,transparent 55%),repeating-linear-gradient(160deg,rgba(200,255,230,.03) 0 22px,rgba(0,0,0,.08) 22px 27px,transparent 27px 52px),linear-gradient(180deg,#14302a 0%,#11261f 50%,#0b1a15 100%)' },
 ];
 let THEME = { owned: ['quarry', 'classic'], cur: 'quarry' };
 try { THEME = Object.assign(THEME, JSON.parse(localStorage.getItem('blocparty.themes') || '{}')); } catch (e) {}
@@ -73,6 +77,7 @@ const BQI = {   // glyphes d'une seule couleur, « frappés » dans la pierre (r
   '🔥': '<path d="M12 3c1 4 6 6 6 11a6 6 0 0 1-12 0c0-3 2-4.5 2-7 1.5 1 2 2.5 2 4 1-2 2-5 2-8z"/>',
   '↻': '<path d="M19 12a7 7 0 1 1-2.1-5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><path d="M18.5 3.5V8H14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>',
   '▶': '<path d="M7 4l13 8-13 8z"/>',
+  '🏅': '<path d="M7 2h4l1 4.5L13 2h4l-2.6 7.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8.6 9.2L7 2"  fill="none" stroke="currentColor" stroke-width="1.8"/><path fill-rule="evenodd" d="M12 8.5a6.6 6.6 0 1 1 0 13.2 6.6 6.6 0 0 1 0-13.2zM12 11.4l1.2 2.5 2.7.4-2 1.9.5 2.7-2.4-1.3-2.4 1.3.5-2.7-2-1.9 2.7-.4z"/>',
   '👆': '<path d="M9 11V5.2a1.4 1.4 0 0 1 2.8 0V10M11.8 9.5V4a1.4 1.4 0 0 1 2.8 0v6M14.6 10V5.5a1.4 1.4 0 0 1 2.8 0V13c0 4.5-2.4 7.5-6 7.5-2.8 0-4.4-1.6-5.7-4l-2-3.6a1.3 1.3 0 0 1 2.2-1.4L9 14" fill="none" stroke="currentColor" stroke-width="2"/>',
 };
 const EMO = /(?![★☆])(\p{Extended_Pictographic}|↻|▶)\uFE0F?/gu;   // les étoiles ★ ☆ restent du texte (elles disparaissaient de la carte et des résultats)
@@ -280,7 +285,7 @@ function clearSpace() {
 }
 
 // état visuel et statistiques d'une partie neuve (toutes les modes)
-function freshRun() { S.ice = new Set(); S.broke = 0; S.miss = 0; S.lines = 0; S.maxCombo = 0; S.pieces = 0; S.endAnim = null; S.beams = []; S.rings = []; S.flyers = []; S.flash = 0; S.glow = 0; S.hit = 0; }
+function freshRun() { S.xpRun = 0; S.ice = new Set(); S.broke = 0; S.miss = 0; S.lines = 0; S.maxCombo = 0; S.pieces = 0; S.endAnim = null; S.beams = []; S.rings = []; S.flyers = []; S.flash = 0; S.glow = 0; S.hit = 0; }
 function newGame() {
   clearTimeout(overTimer); clearTimeout(resTimer); S.contN = 0; S.placed = 0;
   S.mode = 'classic'; rnd = Math.random; S.gems.clear();
@@ -377,7 +382,7 @@ const goalWon = () => S.goal.type === 'gems' ? S.gems.size === 0 : S.goal.type =
 // une plaque de givre brisée (effacement ou booster)
 function breakIce(x, y) {
   if (!S.ice.delete(y * N + x)) return false;
-  S.broke++; const i = S.broke;
+  S.broke++; const i = S.broke; track('ice');
   for (let k = 0; k < 7; k++) burst(x, y, '#d8f6ff');
   setTimeout(() => SFX.ice(i), 40);
   return true;
@@ -392,7 +397,9 @@ function advResult(win) {
     ADV.stars[S.lvl] = Math.max(prev, stars); saveAdv();
     S.gain = stars > prev ? (stars - prev) * 10 : 0;
     if (S.gain) { COINS += S.gain; saveCoins(); }
+    track('adv'); if (stars === 3) track('adv3'); gainXP(stars * 3); checkMedals();
   }
+  stat('games'); saveCar();
   clearTimeout(resTimer); resTimer = setTimeout(() => {
     const close = S.goal.type === 'gems' ? S.got >= S.goal.gems - 1 : S.goal.type === 'ice' ? S.ice.size <= 2 : S.lines >= S.goal.target - 1;
     $('bp-restitle').textContent = win ? t('bp.levelWon', { n: S.lvl }) : close ? t('bp.failClose') : t('bp.fail');
@@ -404,6 +411,7 @@ function advResult(win) {
     $('bp-resmore').classList.toggle('hidden', win || S.moves > 0 || S.moreBought || COINS < MORE_COST);   // seconde chance, une fois par tentative
     $('bp-resvid').classList.toggle('hidden', win || (S.moves <= 0 ? S.moreBought : S.vidCont) || !MON.canReward());
     $('bp-resvid').textContent = t(S.moves <= 0 ? 'app.watchMoves' : 'app.watchCont');   // …ou contre une vidéo (application)
+    $('bp-resxp').innerHTML = xpLine(); paintCarBtn();
     $('bp-res').classList.remove('hidden');
     if (win) SFX.best(); else SFX.fail();
   }, 700);
@@ -420,6 +428,7 @@ const dailyStars = sc => DAILY_GOALS.filter(g => sc >= g).length;
 function dailyRecord() {
   const st = dailyStars(DAILY.best); DAILY.hist = DAILY.hist || {};
   if (st > (DAILY.hist[DAILY.day] || 0)) {
+    const prev = DAILY.hist[DAILY.day] || 0; gainXP(10 * (st - prev)); if (st >= 2 && prev < 2) track('dstar');
     DAILY.hist[DAILY.day] = st;
     const keys = Object.keys(DAILY.hist).sort(); while (keys.length > 70) delete DAILY.hist[keys.shift()];
     const ym = Math.floor(DAILY.day / 100), n = Object.keys(DAILY.hist).filter(k => Math.floor(k / 100) === ym && DAILY.hist[k] > 0).length;
@@ -443,9 +452,121 @@ function shareDaily() {
 function dailyPlayed() {
   const today = dayKey(); if (DAILY.last === today) return;
   const y = new Date(); y.setDate(y.getDate() - 1);
-  DAILY.streak = DAILY.last === dayKey(y) ? DAILY.streak + 1 : 1; DAILY.last = today; saveDaily();
+  DAILY.streak = DAILY.last === dayKey(y) ? DAILY.streak + 1 : 1; DAILY.last = today; saveDaily(); stat('days'); track('daily');
 }
 const saveDaily = () => { try { localStorage.setItem('blocparty.daily', JSON.stringify(DAILY)); } catch (e) {} };
+// ---------- Carnet du carrier (1.9.0) : grade de carrière, missions de la semaine, médailles de chapitre, statistiques.
+// Tout se gagne en jouant, dans tous les modes ; les récompenses sont des pièces ou des thèmes (cosmétiques). Une vidéo
+// (application) peut seulement doubler les pièces d'une mission déjà remplie — jamais remplir une mission ni monter un grade.
+const RANK_XP = [0, 40, 120, 250, 420, 650, 950, 1300, 1750, 2300, 2950, 3700, 4600, 5600, 6800, 8200];   // 16 grades (8 titres × I/II)
+const rankOf = xp => { let r = 0; while (r + 1 < RANK_XP.length && xp >= RANK_XP[r + 1]) r++; return r; };
+const rankCoins = r => 20 + 10 * r;
+// missions : [objectif, pièces] ; « combo » et « score » retiennent le meilleur de la semaine, les autres cumulent
+const MISSIONS = {
+  lines: [120, 40], pieces: [400, 40], multi: [8, 50], combo: [6, 50], score: [1500, 60], chrono: [3, 40], clear: [1, 70],
+  adv: [6, 50], adv3: [3, 60], gems: [30, 40], ice: [40, 50], daily: [4, 60], dstar: [3, 60],
+};
+const M_GENERAL = ['lines', 'pieces', 'multi', 'combo', 'score', 'chrono', 'clear'], M_MODE = ['adv', 'adv3', 'gems', 'ice', 'daily', 'dstar'];
+const BEST_OF = new Set(['combo', 'score']);
+const WEEK_CHEST = 100, MISSION_XP = 30, MEDAL_COINS = 60;
+let CAR = { xp: 0, rank: 0, st: {}, week: null, medals: {} }, carFresh = true;
+try { const c = localStorage.getItem('blocparty.career'); if (c) { CAR = Object.assign(CAR, JSON.parse(c)); carFresh = false; } } catch (e) {}
+if (carFresh) {   // joueurs d'avant 1.9.0 : le grade part de la progression déjà faite (étoiles d'Aventure et du défi), sans récompense rétroactive
+  const advSt = Object.values(ADV.stars).reduce((a, b) => a + b, 0), dSt = Object.values(DAILY.hist || {}).reduce((a, b) => a + b, 0);
+  CAR.xp = advSt * 3 + dSt * 10; CAR.rank = rankOf(CAR.xp);
+}
+const saveCar = () => { try { localStorage.setItem('blocparty.career', JSON.stringify(CAR)); } catch (e) {} };
+const toast = m => window.ptToast && window.ptToast(m);
+const rankName = r => { const n = t('bp.ranks'); return `${(Array.isArray(n) && n[r >> 1]) || ''} ${r % 2 ? 'II' : 'I'}`; };
+const weekKey = (d = new Date()) => { const m = new Date(d); m.setDate(m.getDate() - (m.getDay() + 6) % 7); return dayKey(m); };
+function ensureWeek() {
+  const k = weekKey(); if (CAR.week && CAR.week.k === k) return CAR.week;
+  // trois missions par semaine, les mêmes pour tout le monde : deux générales, une liée à un mode (Aventure ou défi)
+  const r = mulberry32(k * 17 + 3), mix = a => a.map(id => [r(), id]).sort((a, b) => a[0] - b[0]).map(x => x[1]);
+  const mode = mix(M_MODE.filter(id => id !== 'ice' || unlockedLvl() > ICE_LVL));
+  CAR.week = { k, ids: [...mix(M_GENERAL).slice(0, 2), mode[0]], p: {}, got: {}, chest: 0 };
+  saveCar(); return CAR.week;
+}
+const mDone = id => (CAR.week.p[id] || 0) >= MISSIONS[id][0];
+const mText = id => t('bp.m.' + id, { n: num(MISSIONS[id][0]) });
+const claimable = () => { const w = ensureWeek(); return w.ids.some(id => mDone(id) && !w.got[id]) || (!w.chest && w.ids.every(id => w.got[id])); };
+function paintCarBtn() { const d = $('bp-cardot'); if (d) d.classList.toggle('hidden', !claimable()); }
+// progression d'une mission de la semaine (v : quantité, ou valeur atteinte pour combo/score)
+function track(id, v = 1) {
+  const w = ensureWeek(); if (!w.ids.includes(id) || mDone(id)) return;
+  w.p[id] = BEST_OF.has(id) ? Math.max(w.p[id] || 0, v) : (w.p[id] || 0) + v;
+  if (mDone(id)) { toast(t('bp.mDone', { m: mText(id) })); paintCarBtn(); }
+  saveCar();
+}
+function stat(k, v = 1, best) { CAR.st[k] = best ? Math.max(CAR.st[k] || 0, v) : (CAR.st[k] || 0) + v; }
+// XP de carrière : 1 par ligne, 3 par étoile d'un niveau gagné, 10 par étoile du défi, 30 par mission
+function gainXP(n) {
+  if (!n) return; CAR.xp += n; S.xpRun = (S.xpRun || 0) + n;
+  const r = rankOf(CAR.xp);
+  if (r > CAR.rank) {   // un seul message, même si plusieurs grades passent d'un coup
+    let g = 0; const ths = [];
+    while (CAR.rank < r) { CAR.rank++; g += rankCoins(CAR.rank); const th = THEMES.find(x => x.rank === CAR.rank); if (th) ths.push(t('bp.th.' + th.id)); }
+    COINS += g; saveCoins();
+    toast(t('bp.rankUp', { rank: rankName(CAR.rank), n: g }) + ths.map(th => ' · ' + t('bp.themeWon', { th })).join(''));
+    if (!S.over) S.pops.push({ text: t('bp.rankUpPop'), sub: rankName(CAR.rank), t: -1.2, big: true });
+    paintCarBtn();
+  }
+  saveCar();
+}
+// médaille de maîtrise : les 30 étoiles d'un chapitre
+function checkMedals() {
+  for (let c = 0; c < LEVELS / CHAPTER; c++) {
+    if (CAR.medals[c]) continue;
+    let st = 0; for (let i = 1; i <= CHAPTER; i++) st += ADV.stars[c * CHAPTER + i] || 0;
+    if (st < CHAPTER * 3) continue;
+    CAR.medals[c] = 1; COINS += MEDAL_COINS; saveCoins(); saveCar();
+    const names = t('bp.chapters'); toast(t('bp.medalGot', { c: (Array.isArray(names) && names[c]) || c + 1, n: MEDAL_COINS }));
+  }
+}
+function claimMission(id, mult) {
+  const w = ensureWeek(); if (!mDone(id) || w.got[id]) return;
+  w.got[id] = mult; COINS += MISSIONS[id][1] * mult; saveCoins(); gainXP(MISSION_XP); saveCar();
+  beep(880, 0.2, 'triangle', 0.06); openCareer();
+}
+function claimChest() {
+  const w = ensureWeek(); if (w.chest || !w.ids.every(id => w.got[id])) return;
+  w.chest = 1; COINS += WEEK_CHEST; saveCoins(); gainXP(60); saveCar(); SFX.best(); openCareer();
+}
+const bar = k => `<span class="bp-bar"><i style="width:${Math.round(Math.max(0, Math.min(1, k)) * 100)}%"></i></span>`;
+// ligne de grade sous un écran de fin : grade, XP gagnée dans la partie, barre vers le grade suivant
+function xpLine() {
+  const r = CAR.rank, top = r >= RANK_XP.length - 1, a = RANK_XP[r], b = RANK_XP[Math.min(r + 1, RANK_XP.length - 1)];
+  return `<b>${rankName(r)}</b>${S.xpRun ? ` · +${num(S.xpRun)} XP` : ''}${bar(top ? 1 : (CAR.xp - a) / (b - a))}`;
+}
+function openCareer() {
+  const w = ensureWeek(), r = CAR.rank, top = r >= RANK_XP.length - 1, a = RANK_XP[r], b = RANK_XP[Math.min(r + 1, RANK_XP.length - 1)];
+  const nth = THEMES.find(x => x.rank === r + 1);
+  $('bp-rank').innerHTML = `<div class="bp-rkb">${r + 1}</div><div class="bp-rkt"><b>${rankName(r)}</b>${bar(top ? 1 : (CAR.xp - a) / (b - a))}<small>${top ? t('bp.rankMax', { xp: num(CAR.xp) }) : t('bp.rankNext', { xp: num(CAR.xp - a), need: num(b - a), n: rankCoins(r + 1) }) + (nth ? ' · ' + t('bp.th.' + nth.id) : '')}</small></div><span class="bp-coins">🪙 ${num(COINS)}</span>`;
+  const left = Math.max(1, Math.ceil((new Date(Math.floor(w.k / 10000), Math.floor(w.k / 100) % 100 - 1, w.k % 100 + 7) - new Date()) / 864e5));
+  $('bp-weekleft').textContent = t('bp.weekLeft', { n: left });
+  const vid = MON.canReward();
+  $('bp-missions').innerHTML = w.ids.map(id => {
+    const [n, c] = MISSIONS[id], p = Math.min(n, w.p[id] || 0), done = p >= n, got = w.got[id];
+    const btns = got ? `<span class="bp-msok">✓ +${c * got} 🪙</span>` : done ? `<button class="btn" data-claim="${id}">+${c} 🪙</button>${vid ? `<button class="btn bp-vid" data-claim2="${id}">${t('bp.claimVid', { n: c * 2 })}</button>` : ''}` : `<small class="bp-msc">+${c} 🪙</small>`;
+    return `<div class="bp-ms${done ? ' done' : ''}${got ? ' got' : ''}"><div class="bp-mst"><b>${mText(id)}</b>${bar(p / n)}<small>${num(p)} / ${num(n)}</small></div><div class="bp-msb">${btns}</div></div>`;
+  }).join('');
+  const all = w.ids.every(id => w.got[id]);
+  $('bp-chest').innerHTML = w.chest ? `<span class="bp-msok">✓ ${t('bp.chestGot')}</span>` : all ? `<button class="btn" id="bp-chestbtn">${t('bp.chestOpen', { n: WEEK_CHEST })}</button>` : `<small>${t('bp.chestHint', { n: WEEK_CHEST, k: w.ids.filter(id => w.got[id]).length })}</small>`;
+  const names = t('bp.chapters');
+  $('bp-medals').innerHTML = Array.from({ length: LEVELS / CHAPTER }, (_, c) => {
+    let st = 0; for (let i = 1; i <= CHAPTER; i++) st += ADV.stars[c * CHAPTER + i] || 0;
+    return `<span class="bp-md${CAR.medals[c] ? ' on' : ''}" title="${(Array.isArray(names) && names[c]) || ''}">🏅<small>${c + 1}</small><em>${st}/${CHAPTER * 3}</em></span>`;
+  }).join('');
+  const st = CAR.st, advSt = Object.values(ADV.stars).reduce((x, y) => x + y, 0);
+  $('bp-cstats').innerHTML = [[t('bp.cs.lines'), num(st.lines || 0)], [t('bp.cs.pieces'), num(st.pieces || 0)], [t('bp.cs.games'), num(st.games || 0)], [t('bp.cs.combo'), '×' + (st.combo || 0)],
+    [t('bp.cs.clears'), num(st.clears || 0)], [t('bp.cs.best'), num(S.best || 0)], [t('bp.cs.stars'), `${advSt}/${LEVELS * 3}`], [t('bp.cs.days'), num(st.days || 0)]]
+    .map(([k, v]) => `<div><small>${k}</small><b>${v}</b></div>`).join('');
+  $('bp-career').querySelectorAll('[data-claim]').forEach(e => e.onclick = () => claimMission(e.dataset.claim, 1));
+  $('bp-career').querySelectorAll('[data-claim2]').forEach(e => e.onclick = () => MON.reward('mission').then(ok => ok && claimMission(e.dataset.claim2, 2)));
+  const cb = $('bp-chestbtn'); if (cb) cb.onclick = claimChest;
+  $('bp-career').classList.remove('hidden');
+  paintCarBtn();
+}
 function startDaily(seedDay) {
   clearTimeout(overTimer); clearTimeout(resTimer); S.contN = 0;
   const today = typeof seedDay === 'number' ? seedDay : dayKey();   // seedDay : outils de mesure seulement
@@ -468,14 +589,15 @@ function openThemes() {
   const box = $('bp-thgrid'); box.innerHTML = '';
   const tr = t;
   for (const th of THEMES) {
-    const owned = THEME.owned.includes(th.id), cur = THEME.cur === th.id;
-    const d = document.createElement('button'); d.className = 'bp-th' + (cur ? ' cur' : '') + (!owned && COINS < th.cost ? ' no' : '');
-    d.innerHTML = `<canvas width="200" height="100"></canvas><b>${tr('bp.th.' + th.id)}</b><small>${cur ? tr('bp.equipped') : owned ? tr('bp.equip') : '🪙 ' + th.cost}</small>`;
+    const rlock = th.rank && CAR.rank < th.rank, owned = !rlock && (THEME.owned.includes(th.id) || !!th.rank), cur = THEME.cur === th.id;
+    const d = document.createElement('button'); d.className = 'bp-th' + (cur ? ' cur' : '') + ((!owned && COINS < th.cost) || rlock ? ' no' : '');
+    d.innerHTML = `<canvas width="200" height="100"></canvas><b>${tr('bp.th.' + th.id)}</b><small>${cur ? tr('bp.equipped') : owned ? tr('bp.equip') : rlock ? '🔒 ' + rankName(th.rank) : '🪙 ' + th.cost}</small>`;
     // aperçu : 4 cases dans le style du thème, sur son fond
     const cv = d.querySelector('canvas'), g = cv.getContext('2d'), prev = THEME.cur;
     THEME.cur = th.id; g.fillStyle = '#211d24'; g.fillRect(0, 0, 200, 100); g.strokeStyle = 'rgba(0,0,0,.6)'; g.lineWidth = 4; g.strokeRect(2, 2, 196, 96);
     [0, 1, 2, 3].forEach(i => cell(18 + i * 42, 30, 40, COLORS[i], 1, g)); THEME.cur = prev;
     d.onclick = () => {
+      if (rlock) { beep(180, 0.1, 'square', 0.03); window.ptToast && window.ptToast(t('bp.themeRank', { rank: rankName(th.rank) })); return; }
       if (!owned) { if (COINS < th.cost) { beep(180, 0.1, 'square', 0.03); return; } COINS -= th.cost; saveCoins(); THEME.owned.push(th.id); beep(880, 0.2, 'triangle', 0.06); }
       THEME.cur = th.id; saveTheme(); applyTheme(); openThemes();
     };
@@ -505,7 +627,7 @@ function chronoEnd() {
   S.over = true; S.endWhy = S.clock <= 0.05 ? 'time' : 'stuck'; S.clock = Math.max(0, S.clock);
   const entry = { s: S.score, d: date(new Date(), { day: 'numeric', month: 'short' }), t: Date.now() };
   if (S.score > 0) { TOP.push(entry); TOP.sort((a, b) => b.s - a.s); TOP = TOP.slice(0, 10); }   // un chrono à 0 point n'est pas un record
-  S.myRank = TOP.indexOf(entry);
+  S.myRank = TOP.indexOf(entry); track('chrono');
   try { localStorage.setItem('blocparty.chrono', JSON.stringify(TOP)); } catch (e) {}
   updateHUD();
   armOver(400);
@@ -521,7 +643,7 @@ function openMap() {
     if (n % CHAPTER === 1) {   // en-tête de chapitre : nom, étoiles gagnées sur 30
       const c = (n - 1) / CHAPTER, got = Array.from({ length: CHAPTER }, (_, i) => ADV.stars[n + i] || 0).reduce((a, b) => a + b, 0);
       const h = document.createElement('div'); h.className = 'bp-chap' + (n > open ? ' lock' : '') + (n === ICE_LVL ? ' ice' : '');
-      h.innerHTML = `<b>${t('bp.chapter', { n: c + 1 })} · ${(Array.isArray(names) && names[c]) || ''}</b><small>★ ${got}/${CHAPTER * 3}</small>`;
+      h.innerHTML = `<b>${t('bp.chapter', { n: c + 1 })} · ${(Array.isArray(names) && names[c]) || ''}</b><small>${CAR.medals[c] ? '🏅 ' : ''}★ ${got}/${CHAPTER * 3}</small>`;
       box.appendChild(h);
     }
     const st = ADV.stars[n] || 0, lock = n > open;
@@ -548,7 +670,7 @@ function smash(cells) {
     S.clearing.push({ x, y, color, t: 0, delay: hit * 0.02 });
     S.board[y][x] = null;
     for (let k = 0; k < 5; k++) burst(x, y, color);
-    if (S.gems.delete(y * N + x)) { S.got++; for (let k = 0; k < 10; k++) burst(x, y, '#7ff6ff'); }
+    if (S.gems.delete(y * N + x)) { S.got++; track('gems'); for (let k = 0; k < 10; k++) burst(x, y, '#7ff6ff'); }
   }
   S.shake = 8; beep(120, 0.25, 'sawtooth', 0.05);
   if (S.mode === 'adv' && !S.over && S.goal.type !== 'lines' && goalWon()) advResult(true);
@@ -580,7 +702,7 @@ function linesToClear(board) {
 }
 
 function place(idx, gx, gy) {
-  tutoDone(); S.placed = (S.placed || 0) + 1; S.pieces = (S.pieces || 0) + 1;
+  tutoDone(); S.placed = (S.placed || 0) + 1; S.pieces = (S.pieces || 0) + 1; stat('pieces'); track('pieces');
   if (S.mode === 'daily') dailyPlayed();
   window.ptEvent && window.ptEvent('bp_pieces', 1);
   const p = S.tray[idx];
@@ -607,13 +729,14 @@ function place(idx, gx, gy) {
       S.board[y][x] = null;
       breakIce(x, y);
       for (let k = 0; k < 4 + Math.min(6, S.combo); k++) burst(x, y, color);
-      if (S.gems.delete(y * N + x)) { S.got++; for (let k = 0; k < 10; k++) burst(x, y, '#7ff6ff'); setTimeout(() => SFX.gem(S.got), 80); }
+      if (S.gems.delete(y * N + x)) { S.got++; track('gems'); for (let k = 0; k < 10; k++) burst(x, y, '#7ff6ff'); setTimeout(() => SFX.gem(S.got), 80); }
     }
     const allClear = S.board.every(r => r.every(c => !c));
     if (allClear) gained += 300;
     const label = allClear ? t('bp.allClear') + (S.combo > 1 ? '  ' + t('bp.combo', { n: S.combo }) : '') : (t('bp.praise')[Math.min(n, 5)] || '') + (S.combo > 1 ? '  ' + t('bp.combo', { n: S.combo }) : '');
     S.pops.length = 0;   // un seul message à la fois : les éloges successifs ne se superposent plus
     S.pops.push({ text: label, sub: '+' + (gained), t: 0, big: n >= 3 || allClear || S.combo >= 5 });
+    stat('lines', n); stat('combo', S.combo, 1); track('lines', n); track('combo', S.combo); if (n >= 3) track('multi'); if (allClear) { stat('clears'); track('clear'); } gainXP(n);   // Carnet
     // le moment fort : faisceau sur chaque ligne, arrêt sur image, puis paliers (cadre, onde, éclair)
     rows.forEach(y => S.beams.push({ row: y, t: 0, color: tc(p.color) })); cols.forEach(x => S.beams.push({ col: x, t: 0, color: tc(p.color) }));
     if (n >= 2) { S.hit = Math.min(0.12, 0.05 + 0.025 * (n - 2)); S.glow = 1; S.glowColor = tc(p.color); }
@@ -629,7 +752,7 @@ function place(idx, gx, gy) {
     if (S.combo > 0 && ++S.miss >= 3) { S.combo = 0; S.miss = 0; SFX.lost(); }
     SFX.thock();
   }
-  S.score += gained;
+  S.score += gained; if (S.mode === 'classic') track('score', S.score); saveCar();
   if (S.tray.every(t => !t)) fillTray();
   if (S.mode === 'adv') {
     S.moves--; S.used = (S.used || 0) + 1;
@@ -682,6 +805,7 @@ function gameOver() {
   $('bp-cont').classList.toggle('hidden', COINS < contCost() || S.mode === 'chrono' || (S.mode === 'daily' && dailyContUsed()));
   $('bp-cont').textContent = t('bp.contBooster', { n: contCost() });
   $('bp-vidcont').classList.toggle('hidden', S.mode === 'chrono' || S.vidCont || !MON.canReward());
+  stat('games'); saveCar(); $('bp-xpo').innerHTML = xpLine(); paintCarBtn();
   $('bp-over').classList.remove('hidden');
 }
 function countUp(el, v) {
@@ -1214,6 +1338,8 @@ $('bp-chrono').onclick = startChrono;
 $('bp-mapbtn').onclick = openMap;
 $('bp-themebtn').onclick = openThemes;
 $('bp-themeclose').onclick = () => $('bp-themes').classList.add('hidden');
+$('bp-carbtn').onclick = openCareer;
+$('bp-carclose').onclick = () => $('bp-career').classList.add('hidden');
 applyTheme();
 // reprendre une grille bloquée : on ferme l'écran de fin et on arme le marteau
 // reprendre une grille bloquée : zone 3×3 dégagée et pièces qui rentrent — la reprise marche à coup sûr
@@ -1275,7 +1401,7 @@ deEmoji($('tab-blocks'));
 new MutationObserver(ms => { for (const m of ms) { if (m.type === 'characterData') deEmoji(m.target.parentNode); else m.addedNodes.forEach(n => n.nodeType === 3 ? deEmoji(n.parentNode) : n.nodeType === 1 && deEmoji(n)); } }).observe($('tab-blocks'), { subtree: true, childList: true, characterData: true });
 new MutationObserver(() => { if (document.body.dataset.tab === 'blocks') deEmoji($('pt-modal-txt')); }).observe($('pt-modal-txt'), { childList: true, subtree: true, characterData: true });
 const sel = document.getElementById('pt-langsel'); if (sel) import('./i18n.js').then(m => m.langSelect(sel));
-window.addEventListener('pt-lang', () => { updateHUD(); if (!$('bp-themes').classList.contains('hidden')) openThemes(); if (!$('bp-map').classList.contains('hidden')) openMap(); });
+window.addEventListener('pt-lang', () => { updateHUD(); if (!$('bp-themes').classList.contains('hidden')) openThemes(); if (!$('bp-map').classList.contains('hidden')) openMap(); if (!$('bp-career').classList.contains('hidden')) openCareer(); });
 $('bp-mapclose').onclick = () => { $('bp-map').classList.add('hidden'); if (S.over && S.mode !== 'adv') $('bp-over').classList.remove('hidden'); };   // fermer la carte après une fin de partie ramène à l'écran de fin
 $('bp-daily').onclick = () => startDaily();
 $('bp-classic').onclick = () => { $('bp-map').classList.add('hidden'); if (S.mode === 'classic' && S.over) { newGame(); return; } if (S.mode !== 'classic') { S.mode = 'classic'; rnd = Math.random; S.gems.clear(); freshRun(); if (!load() || !S.tray.some(t => t && canPlaceAnywhere(t))) newGame(); S.over = false; updateHUD(); } };
@@ -1303,10 +1429,10 @@ window.GAMES.blocks = {
   show() {
     loadFonts();
     if (!inited) { inited = true; if (!load()) newGame(); else if (!S.tray.some(t => t && canPlaceAnywhere(t))) newGame(); updateHUD(); }
-    loginBonus();
+    loginBonus(); checkMedals(); ensureWeek(); paintCarBtn();
     running = true; requestAnimationFrame(() => { resize(); last = performance.now(); requestAnimationFrame(frame); });
   },
   hide() { running = false; S.drag = null; },
 };
 // Accès de test (tools/smoke.mjs, console).
-window.__bp = { S, L, newGame, refill: fillTray, place, fits, startLevel, startDaily, startChrono, linesToClear, canPlaceAnywhere, N, gameOver, endNow: () => { S.over = true; armOver(600); } };
+window.__bp = { CAR, MISSIONS, openCareer, ensureWeek, track, gainXP, S, L, newGame, refill: fillTray, place, fits, startLevel, startDaily, startChrono, linesToClear, canPlaceAnywhere, N, gameOver, endNow: () => { S.over = true; armOver(600); } };

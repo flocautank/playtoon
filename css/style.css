@@ -78,6 +78,39 @@ main{position:fixed;inset:var(--nav-h) 0 0 0}
 .bp-boost button.on{background:linear-gradient(160deg,#ff5d8f,#c43a6a);box-shadow:0 3px 0 #6a1a38,0 0 14px rgba(255,93,143,.6)}
 .bp-boost button.no{opacity:.4}
 #bp-themebtn{font-size:16px;padding:6px 10px}
+/* Carnet du carrier (1.9.0) : grade, missions de la semaine, médailles, statistiques */
+#bp-carbtn{font-size:16px;padding:6px 10px;position:relative}
+.bp-dot{position:absolute;top:2px;right:2px;width:10px;height:10px;border-radius:50%;background:#ff5d3d;box-shadow:0 0 0 2px #2a1a10,0 0 8px rgba(255,120,60,.8);animation:bpDot 1.2s ease-in-out infinite}
+@keyframes bpDot{50%{transform:scale(1.25)}}
+.bp-bar{display:block;height:7px;border-radius:4px;background:rgba(0,0,0,.4);overflow:hidden;margin:4px 0 2px;box-shadow:inset 0 1px 2px rgba(0,0,0,.5)}
+.bp-bar i{display:block;height:100%;background:linear-gradient(90deg,#d9822b,#ffd24d);border-radius:4px}
+.bp-xpline{margin:0 auto 4px;max-width:260px;width:100%;color:#e8d3b0;font-size:13px}
+.bp-xpline b{color:#ffd24d}
+#bp-career .card{gap:8px;max-width:480px}
+#bp-career .bp-rank .bp-coins{flex:none;align-self:flex-start;font-size:14px;padding:4px 8px;min-width:0}
+.bp-rank{display:flex;align-items:center;gap:12px;text-align:left;background:rgba(0,0,0,.22);border-radius:10px;padding:8px 12px}
+.bp-rkb{flex:none;width:46px;height:46px;display:flex;align-items:center;justify-content:center;font:400 24px 'BQ Display',system-ui,sans-serif;color:#2a1608;background:radial-gradient(circle at 35% 30%,#fff1c2,#e0a33a 55%,#8a5a1a);clip-path:polygon(50% 0,93% 25%,93% 75%,50% 100%,7% 75%,7% 25%)}
+.bp-rkt{flex:1;min-width:0}.bp-rkt b{font-size:17px;color:#ffd24d}.bp-rkt small{display:block;font-size:12px;color:#d9c3a0}
+.bp-sech{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-top:4px;text-align:left;border-bottom:1px solid rgba(255,225,180,.18);padding-bottom:2px}
+.bp-sech b{font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:#f3dcb4}.bp-sech small{font-size:11px;color:#b9a080;text-align:right}
+.bp-missions{display:flex;flex-direction:column;gap:6px}
+.bp-ms{display:flex;align-items:center;gap:8px;text-align:left;background:rgba(0,0,0,.2);border-radius:8px;padding:6px 10px}
+.bp-ms.done:not(.got){background:rgba(255,190,70,.16);box-shadow:inset 0 0 0 1px rgba(255,210,77,.45)}
+.bp-ms.got{opacity:.7}
+.bp-mst{flex:1;min-width:0}.bp-mst b{font-size:14px;font-weight:700;color:#fff1d6}.bp-mst small{font-size:11px;color:#b9a080;font-variant-numeric:tabular-nums}
+.bp-msb{flex:none;display:flex;flex-direction:column;gap:4px;align-items:stretch}
+.bp-msb .btn{padding:5px 10px;font-size:13px;white-space:nowrap}
+.bp-msc{font-size:12px;color:#ffd24d;font-weight:800;white-space:nowrap}.bp-msok{font-size:12px;color:#7cff8a;font-weight:800;white-space:nowrap}
+.bp-chest{font-size:12px;color:#d9c3a0}.bp-chest .btn{width:100%}
+.bp-medals{display:grid;grid-template-columns:repeat(6,1fr);gap:4px}
+.bp-md{display:flex;flex-direction:column;align-items:center;font-size:22px;color:#5a4a3c;line-height:1}
+.bp-md svg.bqi{width:26px;height:26px}
+.bp-md small{font-size:11px;color:#9c8b76;margin-top:2px}.bp-md em{font-style:normal;font-size:10px;color:#9c8b76}
+#tab-blocks .bp-md.on{color:#ffd24d}.bp-md.on small,.bp-md.on em{color:#ffd24d}
+.bp-cstats{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.bp-cstats div{background:rgba(0,0,0,.2);border-radius:6px;padding:4px 2px;display:flex;flex-direction:column;justify-content:space-between}
+.bp-cstats small{font-size:10px;color:#b9a080;line-height:1.15}.bp-cstats b{font:400 16px 'BQ Display',system-ui,sans-serif;color:#fff1d6}
+@media (max-width:600px){#bp-career .card{padding:12px 12px}.bp-cstats{grid-template-columns:repeat(4,1fr)}.bp-mst b{font-size:13px}}
 .bp-thgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
 .bp-th{border-radius:12px;padding:8px;border:2px solid var(--line);background:var(--panel2);display:flex;flex-direction:column;gap:6px;align-items:center}
 .bp-th canvas{width:100%;aspect-ratio:2;border-radius:8px}
@@ -90,7 +123,7 @@ main{position:fixed;inset:var(--nav-h) 0 0 0}
 .bp-stat b.urgent{color:#ff4d6a;animation:blink .5s steps(2) infinite}
 @keyframes blink{50%{opacity:.55}}
 .bp-scrollhint{display:none}
-@media (max-width:600px){.bp-top{gap:6px;padding:8px 6px 0}.bp-stat{min-width:0;flex:1;padding:4px 8px}.bp-stat b{font-size:19px}.bp-stat small{font-size:9px;letter-spacing:.06em}#bp-restart,#bp-themebtn{padding:6px 8px;font-size:16px}#bp-mapbtn{padding:4px 7px}.bp-scrollhint{display:block}}
+@media (max-width:600px){.bp-top{gap:6px;padding:8px 6px 0}.bp-stat{min-width:0;flex:1;padding:4px 8px}.bp-stat b{font-size:19px}.bp-stat small{font-size:9px;letter-spacing:.06em}#bp-restart,#bp-themebtn,#bp-carbtn{padding:6px 8px;font-size:16px}#bp-mapbtn{padding:4px 7px}.bp-scrollhint{display:block}}
 .bp-levels{display:grid;grid-template-columns:repeat(auto-fill,minmax(58px,1fr));gap:8px;max-height:52vh;overflow:auto;padding:4px}
 .bp-lv{aspect-ratio:1;border-radius:14px;background:linear-gradient(160deg,#5b3fb0,#3a2a80);font-weight:800;font-size:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:0 3px 0 #1d1447}
 .bp-lv small{font-size:10px;letter-spacing:1px;color:#ffc94d}
@@ -799,3 +832,5 @@ body[data-tab=blocks] #pt-cancel{background:url("data:image/svg+xml,%3Csvg xmlns
 #tab-forge .sf-astfig path.on{fill:#fff1c8;filter:drop-shadow(0 0 1.2px #f3d48a)}
 @keyframes sfAstNx{50%{opacity:.35}}
 @media (prefers-reduced-motion:reduce){#tab-forge .sf-astfig circle.nx{animation:none}}
+/* Block Quarry 1.9.0 : un bouton de plus dans la barre du haut — plus serrée sous 390 px */
+@media (max-width:390px){.bp-top{gap:4px}#tab-blocks .bp-top .bp-stat{padding:4px 3px}#bp-restart,#bp-themebtn,#bp-carbtn{padding:6px 5px}#bp-mapbtn{padding:4px 4px}}

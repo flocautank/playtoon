@@ -113,6 +113,17 @@ await page.mouse.click(bb.x, bb.y); await page.waitForTimeout(500);
 const filledAfter = await page.evaluate(() => window.__bp.S.board.flat().filter(Boolean).length);
 log(`bombe : cases ${filledBefore} → ${filledAfter}, pièces ${coinsBefore} → ${await page.$eval('#bp-coins', e => e.textContent)}`);
 await page.click('[data-tool=shuffle]'); await page.waitForTimeout(200); await shot(page, 'blocks-boost');
+// Carnet (1.9.0) : une mission remplie se récupère une seule fois, en pièces
+{
+  const r = await page.evaluate(() => { const B = window.__bp, w = B.ensureWeek(), id = w.ids[0]; B.track(id, B.MISSIONS[id][0]); return { id, n: w.ids.length }; });
+  await page.click('#bp-carbtn'); await page.waitForTimeout(300); await shot(page, 'blocks-career');
+  const c0 = +(await page.$eval('#bp-coins', e => e.textContent));
+  await page.click(`[data-claim="${r.id}"]`); await page.waitForTimeout(200);
+  const c1 = +(await page.$eval('#bp-coins', e => e.textContent)), again = await page.$(`[data-claim="${r.id}"]`);
+  log(`carnet : ${r.n} missions, « ${r.id} » récupérée ${c0} → ${c1} pièces, 2e récupération possible : ${!!again}`);
+  if (r.n !== 3 || c1 - c0 < 40 || again) errs.push('[desktop] Carnet : mission mal récupérée');
+  await page.click('#bp-carclose');
+}
 log('étape : Star Forge'); await page.goto(base + '#forge'); await page.waitForTimeout(700);
 const intro = await page.$eval('#sf-intro', e => !e.classList.contains('hidden')); await shot(page, 'forge-intro'); if (intro) await page.click('#sf-intro-ok');
 log('intro Star Forge affichée au 1er lancement :', intro);
