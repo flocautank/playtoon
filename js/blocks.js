@@ -1,5 +1,7 @@
 // BLOCK QUARRY (ex-Bloc Party) — puzzle casual façon "Block Blast" : pose les pièces, complète lignes et colonnes.
-import { t, num, date, applyI18n } from './i18n.js';
+import { t, num, date, applyI18n, addStrings } from './i18n.js';
+import BQ_TEXT from './lang/blocks.js';
+addStrings(BQ_TEXT);
 import { loadFonts } from './quarry-fonts.js';
 window.GAMES = window.GAMES || {};
 
