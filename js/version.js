@@ -1,3 +1,3 @@
 // Version de chaque jeu : source unique pour le site et les applications Android
 // (apps/<jeu>/build.mjs la reprend comme versionName). À augmenter à chaque changement visible du jeu.
-export const VERSIONS = { blocks: '1.11.0', forge: '1.8.0', bonk: '1.18.0' };
+export const VERSIONS = { blocks: '1.11.1', forge: '1.8.0', bonk: '1.18.0' };

@@ -141,7 +141,7 @@ const stripEmoji = s => String(s).replace(EMO, '').replace(/\s{2,}/g, ' ').trim(
 let TUTO = false;
 try { TUTO = !localStorage.getItem('blocparty.tuto'); } catch (e) {}
 let TIPS = {};
-try { TIPS = JSON.parse(localStorage.getItem('blocparty.tips') || '{}'); } catch (e) {}
+try { TIPS = JSON.parse(localStorage.getItem('blocparty.tips') || '{}') || {}; } catch (e) {}
 const saveTips = () => { try { localStorage.setItem('blocparty.tips', JSON.stringify(TIPS)); } catch (e) {} };
 // confort (1.11.0) : vibrations, animations réduites (par défaut : réglage du système), conseils à revoir
 let OPT = { vib: true, calm: null };
@@ -1243,7 +1243,7 @@ function draw(dt) {
     { const k = L.cs * 0.045; ctx.save(); ctx.translate(hx - L.cs * 0.1, hy + L.cs * 0.1); ctx.scale(k, k); ctx.lineWidth = 2.4; ctx.strokeStyle = '#26140c'; ctx.fillStyle = '#f3dcb4'; const hp = new Path2D('M9 11V5.2a1.4 1.4 0 0 1 2.8 0V10M11.8 9.5V4a1.4 1.4 0 0 1 2.8 0v6M14.6 10V5.5a1.4 1.4 0 0 1 2.8 0V13c0 4.5-2.4 7.5-6 7.5-2.8 0-4.4-1.6-5.7-4l-2-3.6a1.3 1.3 0 0 1 2.2-1.4L9 14z'); ctx.fill(hp); ctx.stroke(hp); ctx.restore(); }
     ctx.globalAlpha = 1;
     ctx.font = `800 ${Math.round(L.cs * 0.4)}px 'BQ Label',system-ui,sans-serif`; ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
-    ctx.fillText(t('bp.tuto'), L.bx + L.bs / 2, L.by - 14 + (L.by < 30 ? 30 : 0));
+    if (S.mode === 'classic') ctx.fillText(t('bp.tuto'), L.bx + L.bs / 2, L.by - 14 + (L.by < 30 ? 30 : 0));   // ailleurs, la ligne d'objectif occupe cet endroit
   }
 
   // pièce en main
@@ -1509,7 +1509,7 @@ $('bp-overmap').onclick = () => { $('bp-over').classList.add('hidden'); openMap(
 const t2 = k => t(k);   // (t est masqué dans ce gestionnaire)
 document.querySelectorAll('#bp-boost button').forEach(b => b.onclick = () => {
   const t = b.dataset.tool;
-  if (S.mode === 'daily') { tip(t('bp.noBoostDaily')); beep(180, 0.1, 'square', 0.03); return; }
+  if (S.mode === 'daily') { tip(t2('bp.noBoostDaily')); beep(180, 0.1, 'square', 0.03); return; }
   if (S.over || (COINS < TOOLS[t] && !(S.freeTool && t === 'hammer'))) { beep(180, 0.1, 'square', 0.03); return; }
   if (t === 'shuffle') { useTool('shuffle'); return; }
   tool = tool === t ? null : t; S.aim = null; paintBoost();
