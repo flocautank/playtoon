@@ -22,6 +22,13 @@ que par de vrais joueurs sur de vrais appareils :*
 - Synth Horde : gemmes laissées en hauteur en fin d'étape 2–3 par un bot — à confirmer par un humain (sinon, aimant périodique) ;
 - Nova Foundry : puits de Novae après la Constellation pour les joueurs de plus de 10 h (optionnel).
 
+## Routine nocturne — journal
+
+Consigne : `ROUTINE.md`. Ordre Block Quarry → Nova Foundry → Synth Horde ; axe suivant dans la rotation
+bugs → contenu → durée de vie → identité graphique → enrichissement. Première nuit : axe « bugs » pour les trois jeux.
+
+- 2026-10-18 · tous · — · — · routine mise en place ; textes de Block Quarry sortis du socle commun (`fa52203`), applis vérifiées indépendantes.
+
 ## Synth Horde vs Megabonk
 
 *Évaluation du 2026-10-04 : lecture de `js/bonk.js` (2203 lignes), une run jouée sous Playwright (stage 1, niveau 20, boss, écran de fin), et des sources publiques sur Megabonk (v1.0.x, Vedinad, sept. 2025, plus de 2 M d'exemplaires vendus).*
