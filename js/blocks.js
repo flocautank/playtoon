@@ -56,7 +56,9 @@ let rnd = Math.random;
 // Monétisation : fournie par l'application Android (apps/block-quarry) ; sur le web, rien (pas de pub).
 const MON = {
   canReward: () => !!(window.PT_MON && window.PT_MON.canReward()),
-  reward: kind => window.PT_MON ? window.PT_MON.reward(kind) : Promise.resolve(false),
+  // une vidéo à la fois : un double toucher sur un bouton « vidéo » ne doit ni lancer deux vidéos ni payer deux fois
+  reward: kind => { if (!window.PT_MON || MON.busy) return Promise.resolve(false); MON.busy = true; return Promise.resolve(window.PT_MON.reward(kind)).catch(() => false).finally(() => { MON.busy = false; }); },
+  busy: false,
   pause: () => window.PT_MON ? window.PT_MON.pause() : Promise.resolve(),   // pause publicitaire éventuelle (plafonnée) entre deux parties
 };
 // ---------- icônes dessinées (plus d'emoji dans l'interface) : chaque emoji des textes du jeu est remplacé à la volée
@@ -149,6 +151,9 @@ try { OPT = Object.assign(OPT, JSON.parse(localStorage.getItem('blocparty.opt') 
 const saveOpt = () => { try { localStorage.setItem('blocparty.opt', JSON.stringify(OPT)); } catch (e) {} };
 const sysCalm = () => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } };
 const calm = () => OPT.calm === null || OPT.calm === undefined ? sysCalm() : !!OPT.calm;
+// animations réduites aussi pour le CSS (minuteur qui clignote, pastille qui pulse, rebond du score, médaille)
+const paintCalm = () => { const tb = document.getElementById('tab-blocks'); if (tb) tb.toggleAttribute('data-calm', calm()); };
+try { matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', paintCalm); } catch (e) {}
 const buzz = pat => { if (OPT.vib && navigator.vibrate) try { navigator.vibrate(pat); } catch (e) {} };
 // conseil : un message qui s'explique (mécanique, outil) reste lisible 3,5 s sur une étiquette en haut de la grille,
 // à part des éloges (qui se remplacent à chaque effacement)
@@ -533,8 +538,12 @@ const saveCar = () => { try { localStorage.setItem('blocparty.career', JSON.stri
 const toast = m => window.ptToast && window.ptToast(m);
 const rankName = r => { const n = t('bp.ranks'); return `${(Array.isArray(n) && n[r >> 1]) || ''} ${r % 2 ? 'II' : 'I'}`; };
 const weekKey = (d = new Date()) => { const m = new Date(d); m.setDate(m.getDate() - (m.getDay() + 6) % 7); return dayKey(m); };
+const keyDate = k => new Date(Math.floor(k / 10000), Math.floor(k / 100) % 100 - 1, k % 100);
 function ensureWeek() {
   const k = weekKey(); if (CAR.week && CAR.week.k === k) return CAR.week;
+  // horloge qui recule de peu (voyage vers l'ouest un lundi, heure corrigée) : on garde la semaine en cours — la
+  // remplacer effaçait la progression, puis une seconde fois au retour du lundi, et rouvrait des missions déjà payées
+  if (CAR.week && k < CAR.week.k && keyDate(CAR.week.k) - keyDate(k) <= 14 * 864e5) return CAR.week;
   // trois missions par semaine, les mêmes pour tout le monde : deux générales, une liée à un mode (Aventure ou défi)
   const r = mulberry32(k * 17 + 3), mix = a => a.map(id => [r(), id]).sort((a, b) => a[0] - b[0]).map(x => x[1]);
   const mode = mix(M_MODE.filter(id => id !== 'ice' || unlockedLvl() > ICE_LVL));
@@ -596,7 +605,7 @@ function openCareer() {
   const w = ensureWeek(), r = CAR.rank, top = r >= RANK_XP.length - 1, a = RANK_XP[r], b = RANK_XP[Math.min(r + 1, RANK_XP.length - 1)];
   const nth = THEMES.find(x => x.rank === r + 1);
   $('bp-rank').innerHTML = `<div class="bp-rkb">${rankBadge(r)}<b>${r + 1}</b></div><div class="bp-rkt"><b>${rankName(r)}</b>${bar(top ? 1 : (CAR.xp - a) / (b - a))}<small>${top ? t('bp.rankMax', { xp: num(CAR.xp) }) : t('bp.rankNext', { xp: num(CAR.xp - a), need: num(b - a), n: rankCoins(r + 1) }) + (nth ? ' · ' + t('bp.th.' + nth.id) : '')}</small></div><span class="bp-coins">🪙 ${num(COINS)}</span>`;
-  const left = Math.max(1, Math.ceil((new Date(Math.floor(w.k / 10000), Math.floor(w.k / 100) % 100 - 1, w.k % 100 + 7) - new Date()) / 864e5));
+  const left = Math.min(7, Math.max(1, Math.ceil((new Date(Math.floor(w.k / 10000), Math.floor(w.k / 100) % 100 - 1, w.k % 100 + 7) - new Date()) / 864e5)));
   $('bp-weekleft').textContent = t('bp.weekLeft', { n: left });
   const vid = MON.canReward();
   $('bp-missions').innerHTML = w.ids.map(id => {
@@ -723,6 +732,7 @@ function smash(cells) {
     if (color === STONE2) { S.board[y][x] = STONEC; for (let k = 0; k < 3; k++) burst(x, y, STONE); continue; }   // les boosters fissurent aussi, sans briser
     S.clearing.push({ x, y, color, t: 0, delay: hit * 0.02 });
     S.board[y][x] = null;
+    breakIce(x, y);   // le givre sous le bloc se brise avec lui, comme sous une ligne effacée (il restait sous la masse et la dynamite)
     for (let k = 0; k < 5; k++) burst(x, y, color);
     if (S.gems.delete(y * N + x)) { S.got++; track('gems'); for (let k = 0; k < 10; k++) burst(x, y, '#7ff6ff'); }
   }
@@ -1078,7 +1088,7 @@ function shatter(c, k) {
   }
 }
 // une fenêtre ouverte (carte, thèmes, profil, confirmation…) met le Chrono en pause
-const overlayOpen = () => !!document.querySelector('#tab-blocks .overlay:not(.hidden), #pt-profile:not(.hidden), #pt-modal:not(.hidden)');
+const overlayOpen = () => !!document.querySelector('#tab-blocks .overlay:not(.hidden), #pt-profile:not(.hidden), #pt-modal:not(.hidden), #bq-settings:not(.hidden)');   // bq-settings : réglages de l'appli (le Chrono continuait de tourner dessous)
 function draw(dt) {
   if (S.hit > 0) { S.hit -= dt; dt *= 0.12; }
   if (S.mode === 'chrono' && !S.over && !overlayOpen()) {
@@ -1526,7 +1536,8 @@ function initComfort() {
   let coarse = false; try { coarse = matchMedia('(pointer: coarse)').matches; } catch (e) {}
   $('bp-optvibrow').classList.toggle('hidden', !navigator.vibrate || !coarse || !!window.ptDesktop);   // PC : pas de vibreur
   vib.onchange = () => { OPT.vib = vib.checked; saveOpt(); if (OPT.vib) buzz(30); };
-  cm.onchange = () => { OPT.calm = cm.checked; saveOpt(); };
+  cm.onchange = () => { OPT.calm = cm.checked; saveOpt(); paintCalm(); };
+  paintCalm();
   $('bp-tipsagain').onclick = () => { TIPS = {}; saveTips(); TUTO = true; try { localStorage.removeItem('blocparty.tuto'); } catch (e) {} window.ptToast && window.ptToast(t('bp.tipsBack')); };
 }
 initComfort();
@@ -1555,7 +1566,7 @@ const sel = document.getElementById('pt-langsel'); if (sel) import('./i18n.js').
 window.addEventListener('pt-lang', () => { updateHUD(); if (!$('bp-themes').classList.contains('hidden')) openThemes(); if (!$('bp-map').classList.contains('hidden')) openMap(); if (!$('bp-career').classList.contains('hidden')) openCareer(); });
 $('bp-mapclose').onclick = () => { $('bp-map').classList.add('hidden'); if (S.over && S.mode !== 'adv') $('bp-over').classList.remove('hidden'); };   // fermer la carte après une fin de partie ramène à l'écran de fin
 $('bp-daily').onclick = () => startDaily();
-$('bp-classic').onclick = () => { $('bp-map').classList.add('hidden'); if (S.mode === 'classic' && S.over) { newGame(); return; } if (S.mode !== 'classic') { S.mode = 'classic'; rnd = Math.random; S.gems.clear(); freshRun(); if (!load() || !S.tray.some(t => t && canPlaceAnywhere(t))) newGame(); S.over = false; updateHUD(); } };
+$('bp-classic').onclick = () => { clearTimeout(overTimer); clearTimeout(resTimer); $('bp-map').classList.add('hidden'); if (S.mode === 'classic' && S.over) { newGame(); return; } if (S.mode !== 'classic') { S.mode = 'classic'; rnd = Math.random; S.gems.clear(); freshRun(); if (!load() || !S.tray.some(t => t && canPlaceAnywhere(t))) newGame(); S.over = false; updateHUD(); } };
 $('bp-resnext').onclick = () => MON.pause().then(() => startLevel(Math.min(LEVELS, S.lvl + 1)));
 $('bp-resretry').onclick = () => startLevel(S.lvl);
 $('bp-resmap').onclick = () => { $('bp-res').classList.add('hidden'); openMap(); };
@@ -1582,7 +1593,9 @@ window.GAMES.blocks = {
     if (!document.body.dataset.tab) document.body.dataset.tab = 'blocks';   // appli : la coquille (réglages, confirmations, notifications) prend le style de la carrière
     if (!inited) { inited = true; if (!load()) newGame(); else if (!S.tray.some(t => t && canPlaceAnywhere(t))) newGame(); updateHUD(); }
     loginBonus(); checkMedals(); ensureWeek(); paintCarBtn();
-    running = true; requestAnimationFrame(() => { resize(); last = performance.now(); requestAnimationFrame(frame); });
+    // une seule boucle de dessin : un second show() sans hide() (reprise de l'appli) en lançait une deuxième, et le
+    // Chrono s'écoulait deux fois plus vite (chaque image de la boucle en trop comptait 16 ms)
+    const loop = !running; running = true; requestAnimationFrame(() => { resize(); if (loop) { last = performance.now(); requestAnimationFrame(frame); } });
   },
   hide() { running = false; S.drag = null; },
 };

@@ -82,6 +82,8 @@ main{position:fixed;inset:var(--nav-h) 0 0 0}
 #bp-carbtn{font-size:16px;padding:6px 10px;position:relative}
 .bp-dot{position:absolute;top:2px;right:2px;width:10px;height:10px;border-radius:50%;background:#ff5d3d;box-shadow:0 0 0 2px #2a1a10,0 0 8px rgba(255,120,60,.8);animation:bpDot 1.2s ease-in-out infinite}
 @keyframes bpDot{50%{transform:scale(1.25)}}
+/* « animations réduites » (réglage Confort, ou celui du système par défaut) : ni clignotement, ni pulsation, ni rebond */
+#tab-blocks[data-calm] .bp-dot,#tab-blocks[data-calm] .bp-stat b.urgent,#tab-blocks[data-calm] #bp-score.bump,#tab-blocks[data-calm] .bp-md.on svg.bp-mdi{animation:none}
 .bp-bar{display:block;height:7px;border-radius:4px;background:rgba(0,0,0,.4);overflow:hidden;margin:4px 0 2px;box-shadow:inset 0 1px 2px rgba(0,0,0,.5)}
 .bp-bar i{display:block;height:100%;background:linear-gradient(90deg,#d9822b,#ffd24d);border-radius:4px}
 .bp-xpline{margin:0 auto 4px;max-width:260px;width:100%;color:#e8d3b0;font-size:13px}

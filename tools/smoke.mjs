@@ -124,6 +124,63 @@ await page.click('[data-tool=shuffle]'); await page.waitForTimeout(200); await s
   if (r.n !== 3 || c1 - c0 < 40 || again) errs.push('[desktop] Carnet : mission mal récupérée');
   await page.click('#bp-carclose');
 }
+// 1.11.2 : défauts corrigés (un test chacun)
+{
+  // givre sous un bloc : la masse brise le bloc ET la plaque (elle restait sous le bloc)
+  await page.evaluate(() => { const B = window.__bp, S = B.S; window.GAMES.blocks.reward(); B.startLevel(41); const i = [...S.ice][0]; S.board[(i / 8) | 0][i % 8] = '#ff5d8f'; window.__iceCell = i; });
+  await page.click('[data-tool=hammer]');
+  const ic = await page.$eval('#bp-canvas', c => { const r = c.getBoundingClientRect(), L = window.__bp.L, i = window.__iceCell; return { x: r.left + L.bx + (i % 8 + .5) * L.cs, y: r.top + L.by + (((i / 8) | 0) + .5) * L.cs }; });
+  await page.mouse.click(ic.x, ic.y); await page.waitForTimeout(200);
+  const iceLeft = await page.evaluate(() => window.__bp.S.ice.has(window.__iceCell));
+  log('masse sur un bloc posé sur le givre : plaque brisée', !iceLeft); if (iceLeft) errs.push('[desktop] givre resté sous un bloc brisé à la masse');
+  // horloge qui recule d'une semaine : la semaine en cours (et sa progression) est gardée
+  const wk = await page.evaluate(() => {
+    const B = window.__bp, w = B.ensureWeek(), id = w.ids[0]; w.p[id] = 3; const R = Date;
+    window.Date = class extends R { constructor(...a) { if (a.length) super(...a); else super(R.now() - 8 * 864e5); } static now() { return R.now() - 8 * 864e5; } };
+    const w2 = B.ensureWeek(); window.Date = R; const w3 = B.ensureWeek();
+    return w2.k === w.k && w3.k === w.k && w3.p[id] === 3;
+  });
+  log('horloge reculée : semaine gardée', wk); if (!wk) errs.push('[desktop] missions de la semaine effacées par une horloge qui recule');
+  // Chrono en pause sous les réglages de l'appli (#bq-settings)
+  const chronoPaused = await page.evaluate(async () => {
+    const B = window.__bp; B.startChrono(); const d = document.createElement('div'); d.id = 'bq-settings'; document.body.appendChild(d);
+    await new Promise(r => setTimeout(r, 200)); const c0 = B.S.clock; await new Promise(r => setTimeout(r, 700)); const c1 = B.S.clock; d.remove(); return c0 === c1;
+  });
+  log('Chrono en pause sous les réglages de l\'appli', chronoPaused); if (!chronoPaused) errs.push('[desktop] le Chrono tourne sous les réglages de l\'appli');
+  // fin de Chrono puis Modes → Classique aussitôt : l'écran de fin du Chrono ne revient pas par-dessus la partie classique
+  const stale = await page.evaluate(async () => {
+    const B = window.__bp; B.startChrono(); B.S.clock = 0.01;
+    for (let k = 0; k < 100 && !B.S.over; k++) await new Promise(r => setTimeout(r, 20));   // fin du Chrono (écran de fin armé)
+    document.getElementById('bp-mapbtn').click(); document.getElementById('bp-classic').click();
+    await new Promise(r => setTimeout(r, 1600));
+    return !document.getElementById('bp-over').classList.contains('hidden') || B.S.over || B.S.mode !== 'classic';
+  });
+  log('Chrono fini → Classique : pas d\'écran de fin fantôme', !stale); if (stale) errs.push('[desktop] écran de fin du Chrono affiché sur la partie classique');
+  // double toucher sur une vidéo récompensée : une seule vidéo, une seule récompense
+  const vid = await page.evaluate(async () => {
+    let n = 0; window.PT_MON = { canReward: () => true, reward: () => { n++; return new Promise(r => setTimeout(() => r(true), 150)); }, pause: () => Promise.resolve() };
+    document.getElementById('bp-themebtn').click(); const c0 = +document.getElementById('bp-coins').textContent, b = document.getElementById('bp-vidcoins');
+    b.click(); b.click(); await new Promise(r => setTimeout(r, 400)); document.getElementById('bp-themeclose').click(); delete window.PT_MON;
+    return { n, gain: +document.getElementById('bp-coins').textContent - c0 };
+  });
+  log(`vidéo touchée deux fois : ${vid.n} vidéo, +${vid.gain} pièces`); if (vid.n !== 1 || vid.gain !== 20) errs.push('[desktop] double toucher sur une vidéo : récompense doublée');
+  // animations réduites : appliquées aussi au CSS (minuteur qui clignote)
+  const calmCss = await page.evaluate(() => { const cb = document.getElementById('bp-optcalm'), was = cb.checked; cb.checked = true; cb.dispatchEvent(new Event('change'));
+    const el = document.getElementById('bp-score'); el.classList.add('urgent'); const a = getComputedStyle(el).animationName; el.classList.remove('urgent'); cb.checked = was; cb.dispatchEvent(new Event('change')); return a; });
+  log('animations réduites → minuteur sans clignotement :', calmCss); if (calmCss !== 'none') errs.push('[desktop] animations réduites ignorées par le CSS');
+  // un second show() sans hide() ne lance pas une deuxième boucle de dessin (le Chrono allait deux fois plus vite)
+  // (compte des rappels requestAnimationFrame par image : indépendant de la charge de la machine)
+  const speed = await page.evaluate(async () => {
+    const B = window.__bp, raf = window.requestAnimationFrame.bind(window);
+    const perFrame = () => new Promise(res => { let calls = 0, frames = 0, on = true;
+      window.requestAnimationFrame = cb => { calls++; return raf(cb); };
+      const tick = () => { if (!on) return; frames++; raf(tick); }; raf(tick);
+      setTimeout(() => { on = false; window.requestAnimationFrame = raf; res(calls / Math.max(1, frames)); }, 800); });
+    B.startChrono(); await new Promise(r => setTimeout(r, 200)); const a = await perFrame(); window.GAMES.blocks.show(); await new Promise(r => setTimeout(r, 200)); const b = await perFrame(); return { a, b };
+  });
+  log(`boucles de dessin par image avant / après un second show() : ${speed.a.toFixed(2)} / ${speed.b.toFixed(2)}`); if (speed.b > speed.a + 0.5) errs.push('[desktop] deux boucles de dessin après un second show()');
+  await page.evaluate(() => window.__bp.newGame());
+}
 log('étape : Star Forge'); await page.goto(base + '#forge'); await page.waitForTimeout(700);
 const intro = await page.$eval('#sf-intro', e => !e.classList.contains('hidden')); await shot(page, 'forge-intro'); if (intro) await page.click('#sf-intro-ok');
 log('intro Star Forge affichée au 1er lancement :', intro);
