@@ -28,6 +28,9 @@ Consigne : `ROUTINE.md`. Ordre Block Quarry → Nova Foundry → Synth Horde ; a
 bugs → contenu → durée de vie → identité graphique → enrichissement. Première nuit : axe « bugs » pour les trois jeux.
 
 - 2026-10-18 · tous · — · — · routine mise en place ; textes de Block Quarry sortis du socle commun (`fa52203`), applis vérifiées indépendantes.
+- 2026-10-18 · Block Quarry · bugs · 1.7.1 · 38 parties automatisées (classique, aventure niv. 1–40, chrono, défi), geste tactile réel, persistance, six langues : un seul défaut, « Nur noch 0 bis zum Rekord » affiché sans record ; corrigé.
+- 2026-10-18 · Nova Foundry · bugs · 1.7.1 · économie jusqu'à 1e300 sans NaN, gain hors-ligne et retour d'arrière-plan corrects ; libellé de l'onglet actif tronqué sur mobile étroit (fr/es/it) corrigé.
+- 2026-10-18 · Synth Horde · bugs · 1.15.2 · 9 runs aléatoires + une run complète jusqu'à la victoire sans erreur ni NaN, six langues sans débordement ; l'annonce (« Survive… », boss) restait lisible par-dessus l'écran de niveau/pause (minuteur gelé) : masquée. Le test du joystick du smoke a échoué une fois sur trois (11,5 / 0), non reproduit ensuite : à surveiller.
 
 ## Synth Horde vs Megabonk
 

@@ -767,3 +767,5 @@ body[data-tab=blocks] #pt-cancel{background:url("data:image/svg+xml,%3Csvg xmlns
 }
 /* Nova Foundry, téléphone étroit : le libellé de l'onglet actif (avec sa pastille ✦) ne doit plus être tronqué en fr/es/it/de */
 @media (max-width:420px){#tab-forge .sf-tabs button.on{font-size:12px;letter-spacing:0;padding-left:0;padding-right:0}#tab-forge .sf-tabs button.on.badge::after{margin-left:1px}#tab-forge .sf-tabs button.on span{margin-left:2px}#tab-forge .sf-tabs button i svg.eng{margin-right:1px}}
+/* Synth Horde : le bandeau d'annonce (« Survive. Collect XP… », boss) ne se lit pas par-dessus un écran ouvert — son minuteur est gelé pendant la pause */
+#nb-root:has(#nb-levelup:not(.hidden),#nb-pause:not(.hidden),#nb-end:not(.hidden),#nb-second:not(.hidden)) #nb-msg{visibility:hidden}
