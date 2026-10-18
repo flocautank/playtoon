@@ -2,10 +2,10 @@
   "appId": "io.github.flocautank.blockquarry",
   "appName": "Block Quarry",
   "webDir": "www",
-  "backgroundColor": "#120f2a",
+  "backgroundColor": "#24180f",
   "android": { "allowMixedContent": false },
   "plugins": {
-    "SplashScreen": { "launchAutoHide": false, "backgroundColor": "#120f2a", "showSpinner": false },
-    "StatusBar": { "backgroundColor": "#120f2a", "style": "DARK", "overlaysWebView": false }
+    "SplashScreen": { "launchAutoHide": false, "backgroundColor": "#24180f", "showSpinner": false },
+    "StatusBar": { "backgroundColor": "#2c2230", "style": "DARK", "overlaysWebView": false }
   }
 }

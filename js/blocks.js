@@ -78,6 +78,8 @@ const BQI = {   // glyphes d'une seule couleur, « frappés » dans la pierre (r
   '↻': '<path d="M19 12a7 7 0 1 1-2.1-5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><path d="M18.5 3.5V8H14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>',
   '▶': '<path d="M7 4l13 8-13 8z"/>',
   '🏅': '<path d="M7 2h4l1 4.5L13 2h4l-2.6 7.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8.6 9.2L7 2"  fill="none" stroke="currentColor" stroke-width="1.8"/><path fill-rule="evenodd" d="M12 8.5a6.6 6.6 0 1 1 0 13.2 6.6 6.6 0 0 1 0-13.2zM12 11.4l1.2 2.5 2.7.4-2 1.9.5 2.7-2.4-1.3-2.4 1.3.5-2.7-2-1.9 2.7-.4z"/>',
+  '⚙': '<path fill-rule="evenodd" d="M10.3 2h3.4l.5 2.6 1.9.8 2.2-1.5 2.4 2.4-1.5 2.2.8 1.9 2.6.5v3.4l-2.6.5-.8 1.9 1.5 2.2-2.4 2.4-2.2-1.5-1.9.8-.5 2.6h-3.4l-.5-2.6-1.9-.8-2.2 1.5-2.4-2.4 1.5-2.2-.8-1.9L2 13.7v-3.4l2.6-.5.8-1.9-1.5-2.2 2.4-2.4 2.2 1.5 1.9-.8zM12 8.4a3.6 3.6 0 1 0 .01 0z"/>',
+  '🌐': '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 12h18M12 3c-3.2 3.4-3.2 14.6 0 18M12 3c3.2 3.4 3.2 14.6 0 18" fill="none" stroke="currentColor" stroke-width="1.6"/>',
   '👆': '<path d="M9 11V5.2a1.4 1.4 0 0 1 2.8 0V10M11.8 9.5V4a1.4 1.4 0 0 1 2.8 0v6M14.6 10V5.5a1.4 1.4 0 0 1 2.8 0V13c0 4.5-2.4 7.5-6 7.5-2.8 0-4.4-1.6-5.7-4l-2-3.6a1.3 1.3 0 0 1 2.2-1.4L9 14" fill="none" stroke="currentColor" stroke-width="2"/>',
 };
 const EMO = /(?![★☆])(\p{Extended_Pictographic}|↻|▶)\uFE0F?/gu;   // les étoiles ★ ☆ restent du texte (elles disparaissaient de la carte et des résultats)
@@ -92,6 +94,47 @@ function deEmoji(root) {
     sp.innerHTML = n.nodeValue.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]).replace(EMO, m => bqIcon(m));
     n.parentNode.replaceChild(sp, n);
   }
+}
+// ---------- insignes du Carnet (1.10.0) : dessinés, gravés — pas d'emoji ni de badge générique
+// grade : écu de métal (bronze → fer → argent → or selon le titre), outil du métier gravé au centre, chevrons I / II
+const METAL = [['#f0b98a', '#a8642e', '#4a260c'], ['#d9dde2', '#7c838c', '#2a2e35'], ['#fbf7ee', '#b8b2a6', '#4e4940'], ['#fff3c2', '#e0a536', '#5c3a08']];
+const EMB = {   // emblèmes, en coordonnées 48 × 56, centrés vers (24, 24)
+  chisel: '<path d="M21.6 9h4.8v4h-4.8z"/><path d="M22.4 13.4h3.2v12.2l-1.6 4.2-1.6-4.2z"/>',
+  pick: '<path d="M10.5 19.5C16 12 32 12 37.5 19.5l-1.6 1.6C30 16.4 18 16.4 12.1 21.1z"/><path d="M22.7 15.2h2.6v19.6h-2.6z"/>',
+  hammer: '<path d="M15.5 12.5h17v7.2h-17z"/><path d="M22.7 19.7h2.6v15h-2.6z"/>',
+  gem: '<path fill-rule="evenodd" d="M17 14h14l5.4 6.2L24 34.6 11.6 20.2zM19 16.2l-3.6 4h17.2l-3.6-4zM16.4 22.2 24 31l7.6-8.8z"/>',
+  crown: '<path d="M16.5 6.2l2.8 3 4.7-4 4.7 4 2.8-3v6H16.5z"/>',
+};
+const crossed = () => `<g transform="rotate(-38 24 24)">${EMB.pick}</g><g transform="rotate(40 24 24)">${EMB.hammer}</g>`;
+const laurel = () => { let o = ''; for (const sd of [-1, 1]) for (let i = 0; i < 4; i++) { const a = (200 + i * 26) * Math.PI / 180, x = 24 + sd * Math.cos(a) * -14.5, y = 25 - Math.sin(a) * -14.5 + 2; o += `<ellipse cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" rx="1.5" ry="3.1" transform="rotate(${(sd * (-30 + i * 26)).toFixed(0)} ${x.toFixed(1)} ${y.toFixed(1)})"/>`; } return o; };
+const tilt = (d, a) => `<g transform="rotate(${a} 24 24)">${d}</g>`;   // outils de biais : droits, ils se lisaient comme un « T »
+const RANK_EMB = [() => tilt(EMB.chisel, 28), () => tilt(EMB.pick, -32), () => tilt(EMB.hammer, 34), crossed, () => crossed() + laurel(), () => EMB.gem, () => EMB.gem + laurel(), () => EMB.crown + EMB.gem + laurel()];
+function rankBadge(r, cls = 'bp-ins') {
+  const tier = Math.max(0, Math.min(7, r >> 1)), [hi, mid, lo] = METAL[tier >> 1], id = 'bqr' + r;
+  const sh = 'M24 2.5 43.5 8.2V26c0 13.4-8.4 22.4-19.5 27.5C12.9 48.4 4.5 39.4 4.5 26V8.2z', ish = 'M24 6.4 40 11v15c0 11-6.8 18.6-16 23.2C14.8 44.6 8 37 8 26V11z';
+  const emb = RANK_EMB[tier](), chev = (r % 2 ? [40, 45] : [42.5]).map(y => `<path d="M15.5 ${y}l8.5 4.6 8.5-4.6" fill="none" stroke-width="2.6" stroke-linejoin="round"/>`).join('');
+  return `<svg class="${cls}" viewBox="0 0 48 56" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="${hi}"/><stop offset=".55" stop-color="${mid}"/><stop offset="1" stop-color="${lo}"/></linearGradient></defs>`
+    + `<path d="${sh}" fill="${lo}" transform="translate(0 1.6)"/><path d="${sh}" fill="url(#${id})"/><path d="${ish}" fill="none" stroke="${lo}" stroke-opacity=".55" stroke-width="1.4"/><path d="${ish}" fill="none" stroke="#fff" stroke-opacity=".28" stroke-width=".8" transform="translate(.6 .9)"/>`
+    + `<g transform="translate(0 -1)"><g fill="#fff" stroke="#fff" fill-opacity=".35" stroke-opacity=".35" transform="translate(0 .9)">${emb}${chev}</g><g fill="${lo}" stroke="${lo}">${emb}${chev}</g></g></svg>`;
+}
+// médaille de chapitre : pièce au bord crénelé, motif du chapitre frappé au centre ; pas encore gagnée : son empreinte dans la pierre
+const MEDAL_MOTIF = [
+  '<g transform="rotate(-32 20 21)"><path d="M9.5 18.2C13 13.4 27 13.4 30.5 18.2l-1.4 1.3C25 16.6 15 16.6 10.9 19.5z"/><path d="M18.9 15.6h2.2v14h-2.2z"/></g>',   // front de taille : pic
+  '<path fill-rule="evenodd" d="M11 11h18v18H11zM14.5 14.5a1.3 1.3 0 1 0 .01 0zM25.5 14.5a1.3 1.3 0 1 0 .01 0zM14.5 25.5a1.3 1.3 0 1 0 .01 0zM25.5 25.5a1.3 1.3 0 1 0 .01 0z"/>',   // roche dure : bloc riveté
+  '<path d="M10 14.5c3.4-2.4 6.6 2.4 10 0s6.6-2.4 10 0M10 20c3.4-2.4 6.6 2.4 10 0s6.6-2.4 10 0M10 25.5c3.4-2.4 6.6 2.4 10 0s6.6-2.4 10 0" fill="none" stroke-width="2.4" stroke-linecap="round"/>',   // filons profonds : strates
+  '<path d="M12 30l8-19 8 19M14.6 24h10.8M16.8 18.6h6.4" fill="none" stroke-width="2.2" stroke-linejoin="round"/><circle cx="20" cy="11.5" r="3.2" fill="none" stroke-width="1.8"/>',   // le puits : chevalement
+  '<path d="M20 9v22M10.5 14.5l19 11M10.5 25.5l19-11" fill="none" stroke-width="2.2" stroke-linecap="round"/><path d="M17.4 10.6 20 13.2l2.6-2.6M17.4 29.4 20 26.8l2.6 2.6" fill="none" stroke-width="1.6" stroke-linecap="round"/>',   // galerie gelée : flocon
+  '<path d="M15 31V17l3-4 3 4v14zM21.5 31V12.5l3.2-4.2 3.3 4.2V31zM10.8 31v-8.6l2.4-3 2.2 3V31z"/>',   // veine glaciaire : cristaux
+];
+function medalSVG(c, on, cls = 'bp-mdi') {
+  const id = 'bqm' + c + (on ? 'a' : 'b'), m = MEDAL_MOTIF[c % MEDAL_MOTIF.length];
+  let teeth = ''; for (let i = 0; i < 28; i++) { const a = i / 28 * Math.PI * 2; teeth += `M${(20 + Math.cos(a) * 16.4).toFixed(2)} ${(20 + Math.sin(a) * 16.4).toFixed(2)}L${(20 + Math.cos(a) * 18.6).toFixed(2)} ${(20 + Math.sin(a) * 18.6).toFixed(2)}`; }
+  if (!on) return `<svg class="${cls}" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18.5" fill="rgba(0,0,0,.38)"/><circle cx="20" cy="20.8" r="18" fill="none" stroke="rgba(255,235,200,.12)" stroke-width="1.2"/><circle cx="20" cy="20" r="13.6" fill="none" stroke="rgba(0,0,0,.45)" stroke-width="1.2"/><g fill="rgba(255,235,200,.16)" stroke="rgba(255,235,200,.16)">${m}</g></svg>`;
+  const [hi, mid, lo] = c >= 4 ? ['#f2fbff', '#9fc6d6', '#2c4a5a'] : METAL[3];   // chapitres du givre : argent bleui
+  return `<svg class="${cls}" viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" y1="0" x2=".4" y2="1"><stop offset="0" stop-color="${hi}"/><stop offset=".55" stop-color="${mid}"/><stop offset="1" stop-color="${lo}"/></linearGradient></defs>`
+    + `<circle cx="20" cy="21.2" r="18.6" fill="${lo}"/><circle cx="20" cy="20" r="18.6" fill="url(#${id})"/><path d="${teeth}" stroke="${lo}" stroke-opacity=".55" stroke-width="1.1"/>`
+    + `<circle cx="20" cy="20" r="13.8" fill="${lo}" fill-opacity=".22"/><circle cx="20" cy="20" r="13.8" fill="none" stroke="${lo}" stroke-opacity=".6" stroke-width="1.2"/><circle cx="20" cy="20.7" r="13.8" fill="none" stroke="#fff" stroke-opacity=".3" stroke-width=".7"/>`
+    + `<g fill="#fff" stroke="#fff" fill-opacity=".4" stroke-opacity=".4" transform="translate(0 .8)">${m}</g><g fill="${lo}" stroke="${lo}">${m}</g></svg>`;
 }
 const stripEmoji = s => String(s).replace(EMO, '').replace(/\s{2,}/g, ' ').trim();
 
@@ -160,10 +203,10 @@ function tone(f0, f1, dur, type, vol, at = 0) {
 }
 const PENTA = [262, 294, 330, 392, 440, 523, 587, 659, 784, 880, 1046, 1175, 1318];
 const SFX = {
-  pick() { tone(520, 700, 0.05, 'sine', 0.025); },
+  pick() { tone(2350, 1900, 0.045, 'triangle', 0.02); noise(0.025, 3800, 4, 0.025, 'bandpass'); },   // ciseau qui touche la pierre
   snap() { tone(1500, 1500, 0.018, 'sine', 0.01); },
   thock() { tone(190, 70, 0.11, 'sine', 0.09); noise(0.05, 1100, 1.2, 0.05); },   // pierre posée sur l'ardoise
-  back() { tone(300, 180, 0.08, 'triangle', 0.025); },
+  back() { noise(0.12, 700, 1.4, 0.04, 'bandpass'); tone(240, 150, 0.08, 'triangle', 0.02); },   // pierre qui racle en revenant
   // éboulement + accord qui monte d'un degré par combo
   clear(n, combo) {
     noise(0.22 + 0.06 * n, 500 + 120 * n, 0.7, 0.05 + 0.015 * n, 'lowpass'); noise(0.12, 2600, 2, 0.02, 'bandpass', 0.03);
@@ -536,12 +579,12 @@ const bar = k => `<span class="bp-bar"><i style="width:${Math.round(Math.max(0, 
 // ligne de grade sous un écran de fin : grade, XP gagnée dans la partie, barre vers le grade suivant
 function xpLine() {
   const r = CAR.rank, top = r >= RANK_XP.length - 1, a = RANK_XP[r], b = RANK_XP[Math.min(r + 1, RANK_XP.length - 1)];
-  return `<b>${rankName(r)}</b>${S.xpRun ? ` · +${num(S.xpRun)} XP` : ''}${bar(top ? 1 : (CAR.xp - a) / (b - a))}`;
+  return `${rankBadge(r, 'bp-ins sm')}<b>${rankName(r)}</b>${S.xpRun ? ` · +${num(S.xpRun)} XP` : ''}${bar(top ? 1 : (CAR.xp - a) / (b - a))}`;
 }
 function openCareer() {
   const w = ensureWeek(), r = CAR.rank, top = r >= RANK_XP.length - 1, a = RANK_XP[r], b = RANK_XP[Math.min(r + 1, RANK_XP.length - 1)];
   const nth = THEMES.find(x => x.rank === r + 1);
-  $('bp-rank').innerHTML = `<div class="bp-rkb">${r + 1}</div><div class="bp-rkt"><b>${rankName(r)}</b>${bar(top ? 1 : (CAR.xp - a) / (b - a))}<small>${top ? t('bp.rankMax', { xp: num(CAR.xp) }) : t('bp.rankNext', { xp: num(CAR.xp - a), need: num(b - a), n: rankCoins(r + 1) }) + (nth ? ' · ' + t('bp.th.' + nth.id) : '')}</small></div><span class="bp-coins">🪙 ${num(COINS)}</span>`;
+  $('bp-rank').innerHTML = `<div class="bp-rkb">${rankBadge(r)}<b>${r + 1}</b></div><div class="bp-rkt"><b>${rankName(r)}</b>${bar(top ? 1 : (CAR.xp - a) / (b - a))}<small>${top ? t('bp.rankMax', { xp: num(CAR.xp) }) : t('bp.rankNext', { xp: num(CAR.xp - a), need: num(b - a), n: rankCoins(r + 1) }) + (nth ? ' · ' + t('bp.th.' + nth.id) : '')}</small></div><span class="bp-coins">🪙 ${num(COINS)}</span>`;
   const left = Math.max(1, Math.ceil((new Date(Math.floor(w.k / 10000), Math.floor(w.k / 100) % 100 - 1, w.k % 100 + 7) - new Date()) / 864e5));
   $('bp-weekleft').textContent = t('bp.weekLeft', { n: left });
   const vid = MON.canReward();
@@ -555,7 +598,7 @@ function openCareer() {
   const names = t('bp.chapters');
   $('bp-medals').innerHTML = Array.from({ length: LEVELS / CHAPTER }, (_, c) => {
     let st = 0; for (let i = 1; i <= CHAPTER; i++) st += ADV.stars[c * CHAPTER + i] || 0;
-    return `<span class="bp-md${CAR.medals[c] ? ' on' : ''}" title="${(Array.isArray(names) && names[c]) || ''}">🏅<small>${c + 1}</small><em>${st}/${CHAPTER * 3}</em></span>`;
+    return `<span class="bp-md${CAR.medals[c] ? ' on' : ''}" title="${(Array.isArray(names) && names[c]) || ''}">${medalSVG(c, !!CAR.medals[c])}<small>${c + 1}</small><em>${st}/${CHAPTER * 3}</em></span>`;
   }).join('');
   const st = CAR.st, advSt = Object.values(ADV.stars).reduce((x, y) => x + y, 0);
   $('bp-cstats').innerHTML = [[t('bp.cs.lines'), num(st.lines || 0)], [t('bp.cs.pieces'), num(st.pieces || 0)], [t('bp.cs.games'), num(st.games || 0)], [t('bp.cs.combo'), '×' + (st.combo || 0)],
@@ -591,7 +634,7 @@ function openThemes() {
   for (const th of THEMES) {
     const rlock = th.rank && CAR.rank < th.rank, owned = !rlock && (THEME.owned.includes(th.id) || !!th.rank), cur = THEME.cur === th.id;
     const d = document.createElement('button'); d.className = 'bp-th' + (cur ? ' cur' : '') + ((!owned && COINS < th.cost) || rlock ? ' no' : '');
-    d.innerHTML = `<canvas width="200" height="100"></canvas><b>${tr('bp.th.' + th.id)}</b><small>${cur ? tr('bp.equipped') : owned ? tr('bp.equip') : rlock ? '🔒 ' + rankName(th.rank) : '🪙 ' + th.cost}</small>`;
+    d.innerHTML = `<canvas width="200" height="100"></canvas><b>${tr('bp.th.' + th.id)}</b><small>${cur ? tr('bp.equipped') : owned ? tr('bp.equip') : rlock ? rankBadge(th.rank, 'bp-ins sm') + rankName(th.rank) : '🪙 ' + th.cost}</small>`;
     // aperçu : 4 cases dans le style du thème, sur son fond
     const cv = d.querySelector('canvas'), g = cv.getContext('2d'), prev = THEME.cur;
     THEME.cur = th.id; g.fillStyle = '#211d24'; g.fillRect(0, 0, 200, 100); g.strokeStyle = 'rgba(0,0,0,.6)'; g.lineWidth = 4; g.strokeRect(2, 2, 196, 96);
@@ -643,7 +686,7 @@ function openMap() {
     if (n % CHAPTER === 1) {   // en-tête de chapitre : nom, étoiles gagnées sur 30
       const c = (n - 1) / CHAPTER, got = Array.from({ length: CHAPTER }, (_, i) => ADV.stars[n + i] || 0).reduce((a, b) => a + b, 0);
       const h = document.createElement('div'); h.className = 'bp-chap' + (n > open ? ' lock' : '') + (n === ICE_LVL ? ' ice' : '');
-      h.innerHTML = `<b>${t('bp.chapter', { n: c + 1 })} · ${(Array.isArray(names) && names[c]) || ''}</b><small>${CAR.medals[c] ? '🏅 ' : ''}★ ${got}/${CHAPTER * 3}</small>`;
+      h.innerHTML = `<b>${t('bp.chapter', { n: c + 1 })} · ${(Array.isArray(names) && names[c]) || ''}</b><small>${CAR.medals[c] ? medalSVG(c, true, 'bp-mdi sm') : ''}★ ${got}/${CHAPTER * 3}</small>`;
       box.appendChild(h);
     }
     const st = ADV.stars[n] || 0, lock = n > open;
@@ -728,7 +771,7 @@ function place(idx, gx, gy) {
       S.clearing.push({ x, y, color, t: 0, delay: (Math.abs(x - gx) + Math.abs(y - gy)) * 0.025 });
       S.board[y][x] = null;
       breakIce(x, y);
-      for (let k = 0; k < 4 + Math.min(6, S.combo); k++) burst(x, y, color);
+      for (let k = 0, nb = curTheme().style === 'stone' ? 1 + Math.min(3, S.combo >> 1) : 4 + Math.min(6, S.combo); k < nb; k++) burst(x, y, color);
       if (S.gems.delete(y * N + x)) { S.got++; track('gems'); for (let k = 0; k < 10; k++) burst(x, y, '#7ff6ff'); setTimeout(() => SFX.gem(S.got), 80); }
     }
     const allClear = S.board.every(r => r.every(c => !c));
@@ -814,7 +857,7 @@ function countUp(el, v) {
   step();
 }
 function confetti() {
-  for (let i = 0; i < 70; i++) S.fx.push({ x: W / 2 + (Math.random() - 0.5) * L.bs, y: L.by - 10, vx: (Math.random() - 0.5) * 7, vy: -Math.random() * 9 - 2, s: L.cs * (0.1 + Math.random() * 0.12), color: ['#ffd24d', '#ff5d8f', '#4dd4ff', '#7cff8a', '#fff'][i % 5], life: 1.6, rot: Math.random() * 6, conf: 1 });
+  for (let i = 0; i < 70; i++) S.fx.push({ x: W / 2 + (Math.random() - 0.5) * L.bs, y: L.by - 10, vx: (Math.random() - 0.5) * 7, vy: -Math.random() * 9 - 2, s: L.cs * (0.1 + Math.random() * 0.12), color: (curTheme().style === 'stone' ? ['#ffd24d', '#f0b23a', '#fff1c2', '#e8d3b0', '#d9822b'] : ['#ffd24d', '#ff5d8f', '#4dd4ff', '#7cff8a', '#fff'])[i % 5], life: 1.6, rot: Math.random() * 6, conf: 1 });
 }
 
 function burst(gx, gy, color) {
@@ -995,6 +1038,33 @@ function frame(t) {
   requestAnimationFrame(frame);
 }
 
+// pierre qui éclate (thèmes de pierre) : d'abord la fente (un point d'impact, quatre fissures claires), puis quatre
+// éclats triangulaires qui partent du point d'impact, tournent et tombent ; chaque case a son propre point d'impact
+function shatter(c, k) {
+  const s = L.cs, x0 = L.bx + c.x * s, y0 = L.by + c.y * s, r = mulberry32((c.x * 31 + c.y * 17 + 3) * 2654435761);
+  const px = s * (0.35 + r() * 0.3), py = s * (0.35 + r() * 0.3);
+  const C = [[0, 0], [s, 0], [s, s], [0, s]], SPLIT = 0.22;
+  if (k < SPLIT) {
+    cell(x0, y0, s, c.color, 1);
+    const q = k / SPLIT;
+    ctx.save(); ctx.strokeStyle = `rgba(255,244,220,${0.5 + 0.5 * q})`; ctx.lineWidth = Math.max(1.2, s * 0.045); ctx.lineCap = 'round'; ctx.beginPath();
+    for (const [cx, cy] of C) { ctx.moveTo(x0 + px, y0 + py); ctx.lineTo(x0 + px + (cx - px) * (0.35 + 0.65 * q), y0 + py + (cy - py) * (0.35 + 0.65 * q)); }
+    ctx.stroke(); ctx.restore(); return;
+  }
+  const q = (k - SPLIT) / (1 - SPLIT), spr = stoneSprite(tc(c.color), Math.max(6, Math.ceil(s / 6) * 6));
+  for (let i = 0; i < 4; i++) {
+    const [ax, ay] = C[i], [bx, by] = C[(i + 1) % 4], gx = (px + ax + bx) / 3, gy = (py + ay + by) / 3;
+    const dx = gx - px, dy = gy - py, d = Math.hypot(dx, dy) || 1, sp = s * (0.55 + r() * 0.35);
+    const ox = dx / d * sp * q, oy = dy / d * sp * q + s * 1.1 * q * q, rot = (i % 2 ? 1 : -1) * (0.6 + r() * 0.8) * q;
+    ctx.save(); ctx.globalAlpha = q < 0.65 ? 1 : Math.max(0, 1 - (q - 0.65) / 0.35);
+    ctx.translate(x0 + gx + ox, y0 + gy + oy); ctx.rotate(rot); ctx.translate(-gx, -gy);
+    ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(ax, ay); ctx.lineTo(bx, by); ctx.closePath(); ctx.clip();
+    ctx.drawImage(spr, 0, 0, s, s);
+    ctx.strokeStyle = 'rgba(20,10,5,.55)'; ctx.lineWidth = Math.max(1.5, s * 0.05); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(ax, ay); ctx.strokeStyle = 'rgba(255,240,210,.35)'; ctx.lineWidth = 1; ctx.stroke();
+    ctx.restore();
+  }
+}
 // une fenêtre ouverte (carte, thèmes, profil, confirmation…) met le Chrono en pause
 const overlayOpen = () => !!document.querySelector('#tab-blocks .overlay:not(.hidden), #pt-profile:not(.hidden), #pt-modal:not(.hidden)');
 function draw(dt) {
@@ -1071,15 +1141,17 @@ function draw(dt) {
   S.placedAnim.forEach(a => a.t += dt); S.placedAnim = S.placedAnim.filter(a => a.t < 0.25);
 
   // cases qui s'effacent
+  const CLR = stone ? 0.46 : 0.3;
   S.clearing.forEach(c => {
-    c.t += dt; const k = Math.max(0, c.t - c.delay) / 0.3;
+    c.t += dt; const k = Math.max(0, c.t - c.delay) / CLR;
     if (k >= 1) return;
+    if (stone) { shatter(c, k); return; }
     const s = L.cs * (1 - k);
     ctx.save(); ctx.translate(L.bx + (c.x + .5) * L.cs, L.by + (c.y + .5) * L.cs); ctx.rotate(k * 1.5);
     cell(-s / 2, -s / 2, s, k < 0.15 ? '#ffffff' : c.color, 1 - k * 0.5);
     ctx.restore();
   });
-  S.clearing = S.clearing.filter(c => c.t - c.delay < 0.3);
+  S.clearing = S.clearing.filter(c => c.t - c.delay < CLR);
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   S.beams.forEach(b => {
     b.t += dt; const k = b.t / 0.4; if (k >= 1) return;
@@ -1104,9 +1176,11 @@ function draw(dt) {
   if (tool && hover) {
     const gx = Math.floor((hover.x - L.bx) / L.cs), gy = Math.floor((hover.y - L.by) / L.cs), R = tool === 'bomb' ? 1 : 0;
     if (gx >= 0 && gy >= 0 && gx < N && gy < N) {
-      ctx.fillStyle = 'rgba(255,93,143,.28)'; ctx.strokeStyle = '#ff5d8f'; ctx.lineWidth = 2;
+      const st = curTheme().style === 'stone';
+      ctx.fillStyle = st ? 'rgba(255,170,60,.22)' : 'rgba(255,93,143,.28)'; ctx.strokeStyle = st ? '#ffc56b' : '#ff5d8f'; ctx.lineWidth = st ? 2.5 : 2;
       const x0 = Math.max(0, gx - R), y0 = Math.max(0, gy - R), x1 = Math.min(N - 1, gx + R), y1 = Math.min(N - 1, gy + R);
-      rr(L.bx + x0 * L.cs, L.by + y0 * L.cs, (x1 - x0 + 1) * L.cs, (y1 - y0 + 1) * L.cs, L.cs * 0.2); ctx.fill(); ctx.stroke();
+      if (st) ctx.setLineDash([L.cs * 0.2, L.cs * 0.09]);
+      rr(L.bx + x0 * L.cs, L.by + y0 * L.cs, (x1 - x0 + 1) * L.cs, (y1 - y0 + 1) * L.cs, L.cs * 0.2); ctx.fill(); ctx.stroke(); ctx.setLineDash([]);
     }
   }
 
@@ -1120,8 +1194,15 @@ function draw(dt) {
     for (const [x, y] of p.cells) cell(px + x * s + jit, py + y * s, s, ok ? p.color : '#555a72', ok ? 1 : 0.6);
     if (S.endAnim) {   // rien ne rentre : une croix sur chaque pièce
       const cx = r.x + r.w / 2 + jit, cy = r.y + r.h / 2, z = Math.min(r.w, r.h) * 0.22;
-      ctx.save(); ctx.strokeStyle = 'rgba(255,80,90,.9)'; ctx.lineWidth = Math.max(3, L.cs * 0.12); ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.moveTo(cx - z, cy - z); ctx.lineTo(cx + z, cy + z); ctx.moveTo(cx + z, cy - z); ctx.lineTo(cx - z, cy + z); ctx.stroke(); ctx.restore();
+      ctx.save(); ctx.lineCap = 'round';
+      if (curTheme().style === 'stone') {
+        for (const [w, a, j] of [[0.13, 0.55, 0.06], [0.07, 0.9, -0.04]]) {
+          ctx.strokeStyle = `rgba(244,230,204,${a})`; ctx.lineWidth = Math.max(2, L.cs * w); ctx.beginPath();
+          ctx.moveTo(cx - z, cy - z * (1 + j)); ctx.quadraticCurveTo(cx + z * j, cy - z * j, cx + z, cy + z * (1 - j));
+          ctx.moveTo(cx + z * (1 + j), cy - z); ctx.quadraticCurveTo(cx - z * j, cy + z * j, cx - z, cy + z * (1 + j)); ctx.stroke();
+        }
+      } else { ctx.strokeStyle = 'rgba(255,80,90,.9)'; ctx.lineWidth = Math.max(3, L.cs * 0.12); ctx.beginPath(); ctx.moveTo(cx - z, cy - z); ctx.lineTo(cx + z, cy + z); ctx.moveTo(cx + z, cy - z); ctx.lineTo(cx - z, cy + z); ctx.stroke(); }
+      ctx.restore();
     }
   }
   if (S.endAnim) S.endAnim.t += dt;
@@ -1148,7 +1229,7 @@ function draw(dt) {
     const p = S.tray[0]; for (const [x, y] of p.cells) cell(hx - p.w * L.cs / 2 + x * L.cs, hy - p.h * L.cs / 2 + y * L.cs, L.cs, p.color, 0.45 * ctx.globalAlpha);
     { const k = L.cs * 0.045; ctx.save(); ctx.translate(hx - L.cs * 0.1, hy + L.cs * 0.1); ctx.scale(k, k); ctx.lineWidth = 2.4; ctx.strokeStyle = '#26140c'; ctx.fillStyle = '#f3dcb4'; const hp = new Path2D('M9 11V5.2a1.4 1.4 0 0 1 2.8 0V10M11.8 9.5V4a1.4 1.4 0 0 1 2.8 0v6M14.6 10V5.5a1.4 1.4 0 0 1 2.8 0V13c0 4.5-2.4 7.5-6 7.5-2.8 0-4.4-1.6-5.7-4l-2-3.6a1.3 1.3 0 0 1 2.2-1.4L9 14z'); ctx.fill(hp); ctx.stroke(hp); ctx.restore(); }
     ctx.globalAlpha = 1;
-    ctx.font = `800 ${Math.round(L.cs * 0.4)}px 'BQ Label',system-ui,sans-serif`; ctx.fillStyle = '#fff';
+    ctx.font = `800 ${Math.round(L.cs * 0.4)}px 'BQ Label',system-ui,sans-serif`; ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
     ctx.fillText(t('bp.tuto'), L.bx + L.bs / 2, L.by - 14 + (L.by < 30 ? 30 : 0));
   }
 
@@ -1399,7 +1480,16 @@ paintBoost();
 applyI18n();
 deEmoji($('tab-blocks'));
 new MutationObserver(ms => { for (const m of ms) { if (m.type === 'characterData') deEmoji(m.target.parentNode); else m.addedNodes.forEach(n => n.nodeType === 3 ? deEmoji(n.parentNode) : n.nodeType === 1 && deEmoji(n)); } }).observe($('tab-blocks'), { subtree: true, childList: true, characterData: true });
-new MutationObserver(() => { if (document.body.dataset.tab === 'blocks') deEmoji($('pt-modal-txt')); }).observe($('pt-modal-txt'), { childList: true, subtree: true, characterData: true });
+// fenêtre de confirmation : dans l'appli, elle est créée par la coquille APRÈS le chargement de ce module — on la
+// surveille dès qu'elle existe (sinon observe(null) levait une exception et le jeu ne démarrait pas dans l'appli)
+let modalWatched = false;
+function watchModal() {
+  const m = $('pt-modal-txt'); if (modalWatched || !m) return;
+  modalWatched = true;
+  deEmoji($('bq-settings'));   // appli : réglages de la coquille (🌐…) en glyphes dessinés
+  new MutationObserver(() => { if (!document.body.dataset.tab || document.body.dataset.tab === 'blocks') deEmoji(m); }).observe(m, { childList: true, subtree: true, characterData: true });
+}
+watchModal();
 const sel = document.getElementById('pt-langsel'); if (sel) import('./i18n.js').then(m => m.langSelect(sel));
 window.addEventListener('pt-lang', () => { updateHUD(); if (!$('bp-themes').classList.contains('hidden')) openThemes(); if (!$('bp-map').classList.contains('hidden')) openMap(); if (!$('bp-career').classList.contains('hidden')) openCareer(); });
 $('bp-mapclose').onclick = () => { $('bp-map').classList.add('hidden'); if (S.over && S.mode !== 'adv') $('bp-over').classList.remove('hidden'); };   // fermer la carte après une fin de partie ramène à l'écran de fin
@@ -1427,7 +1517,8 @@ let inited = false;
 window.GAMES.blocks = {
   reward() { COINS += 30; saveCoins(); },   // objectif du jour
   show() {
-    loadFonts();
+    loadFonts(); watchModal();
+    if (!document.body.dataset.tab) document.body.dataset.tab = 'blocks';   // appli : la coquille (réglages, confirmations, notifications) prend le style de la carrière
     if (!inited) { inited = true; if (!load()) newGame(); else if (!S.tray.some(t => t && canPlaceAnywhere(t))) newGame(); updateHUD(); }
     loginBonus(); checkMedals(); ensureWeek(); paintCarBtn();
     running = true; requestAnimationFrame(() => { resize(); last = performance.now(); requestAnimationFrame(frame); });

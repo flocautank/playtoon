@@ -1,4 +1,5 @@
 // Captures d'écran Google Play (1080×1920, téléphone) de l'application, en anglais et en français.
+// iPhone (1290×2796) : SHOT_W=430 SHOT_H=932 SHOT_OUT=store/ios-screenshots/ ; Steam (1920×1080) : SHOT_W=1280 SHOT_H=720 SHOT_DSF=1.5 SHOT_MOBILE=0 SHOT_OUT=../desktop/steam/block-quarry/screenshots/
 // Prérequis : `node build.mjs`, puis servir www/ sur le port 8790 (npx http-server -p 8790 -s www).
 // Usage : node tools/store-shots.mjs  →  store/screenshots/<langue>/NN-scene.png
 import { createRequire } from 'module';
@@ -15,7 +16,7 @@ const PREP = `(() => { const bp = window.__bp, S = bp.S, C = ['#ff5d8f','#ffc94d
   window.__fill = (rows) => { for (const [y, pat] of rows) for (let x = 0; x < 8; x++) if (pat[x] !== '.') S.board[y][x] = C[+pat[x]]; };
 })()`;
 const SCENES = [
-  ['01-classic', async p => p.evaluate(() => { const S = window.__bp.S; S.score = S.shown = 2480; S.best = 3120;
+  ['01-classic', async p => p.evaluate(() => { const S = window.__bp.S; S.score = S.shown = 2480; S.best = S.bestStart = 3120;
     window.__fill([[3, '0011.222'], [4, '0.1..2.3'], [5, '44.3.333'], [6, '4455.663'], [7, '4455.666']]);
     S.pops.push({ text: window.PT_I18N.t('bp.praise')[3] + '  ' + window.PT_I18N.t('bp.combo', { n: 3 }), sub: '+185', t: 0.25 });
     document.getElementById('bp-best').textContent = (3120).toLocaleString(window.PT_I18N.lang); })],
@@ -23,7 +24,10 @@ const SCENES = [
   ['03-map', async p => { await p.evaluate(() => { localStorage.setItem('blocparty.adv', JSON.stringify({ stars: { 1: 3, 2: 3, 3: 2, 4: 3, 5: 1, 6: 2, 7: 3 } })); }); await p.reload(); await p.waitForTimeout(600); await p.evaluate(PREP); await p.click('#bp-mapbtn'); }],
   ['04-timeattack', async p => p.evaluate(() => { window.__bp.startChrono(); const S = window.__bp.S; S.clock = 74; S.chronoT = 46; S.score = S.shown = 1260; S.pops.length = 0;
     window.__fill([[5, '22.2.222'], [6, '11113.33'], [7, '0000.555']]); })],
-  ['05-themes', async p => { await p.evaluate(() => { localStorage.setItem('blocparty.themes', JSON.stringify({ owned: ['classic', 'neon', 'pixel'], cur: 'neon' })); localStorage.setItem('blocparty.coins', '140'); }); await p.reload(); await p.waitForTimeout(600); await p.evaluate(PREP); await p.evaluate(() => { const S = window.__bp.S; window.__fill([[4, '0011.222'], [5, '0.1..2.3'], [6, '44.3.333'], [7, '4455.663']]); S.score = S.shown = 1740; document.getElementById('bp-best').textContent = (2960).toLocaleString(window.PT_I18N.lang); }); }],
+  // Carnet du carrier (1.9.0) : grade gravé, missions de la semaine, médailles de chapitre — à la place de l'ancien thème Néon
+  ['05-career', async p => { await p.evaluate(() => { const a = {}; for (let i = 1; i <= 26; i++) a[i] = i <= 20 ? 3 : 2; localStorage.setItem('blocparty.adv', JSON.stringify({ stars: a }));
+      localStorage.setItem('blocparty.career', JSON.stringify({ xp: 1460, rank: 7, st: { lines: 812, pieces: 2140, games: 64, combo: 7, clears: 9, days: 12 }, medals: { 0: 1, 1: 1 } })); localStorage.setItem('blocparty.coins', '240'); });
+    await p.reload(); await p.waitForTimeout(700); await p.evaluate(() => { const bp = window.__bp, w = bp.ensureWeek(); w.p[w.ids[0]] = bp.MISSIONS[w.ids[0]][0]; w.got[w.ids[0]] = 1; w.p[w.ids[1]] = Math.ceil(bp.MISSIONS[w.ids[1]][0] * 0.6); w.p[w.ids[2]] = Math.ceil(bp.MISSIONS[w.ids[2]][0] * 0.3); bp.openCareer(); }); }],
   ['06-daily', async p => p.evaluate(() => { window.__bp.startDaily(); window.__bp.S.pops.length = 0; })],
 ];
 

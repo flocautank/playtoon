@@ -1,6 +1,6 @@
 // Visuels de la page Steam des trois jeux, aux tailles exigées par Steamworks (Store / Library assets), dessinés
 // avec les mêmes fonctions que les icônes mobiles (apps/<jeu>/make-assets.mjs). Sortie : steam/<jeu>/art/.
-//   node make-art.mjs   (Chromium headless via Playwright)
+//   node make-art.mjs   (Chromium headless via Playwright ; ONLY=<jeu> pour n'en refaire qu'un)
 import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
 import { readFileSync, writeFileSync, mkdirSync } from 'fs';
@@ -9,12 +9,14 @@ const { chromium } = require('playwright');
 const HERE = fileURLToPath(new URL('./', import.meta.url));
 // Synth Horde : les rendus 3D de la distribution (apps/synth-horde/assets/cast/, node tools/cast/poster.mjs) remplacent les dessins plats
 import { CAST_PRELOAD } from '../../synth-horde/cast-preload.mjs';
-const preload = async id => id === 'synth-horde' ? CAST_PRELOAD : '';
+// Block Quarry : ses polices (Bungee, Big Shoulders), pour un titre dans la typographie du jeu
+import { QUARRY_FONTS_PRELOAD } from '../../block-quarry/fonts-preload.mjs';
+const preload = async id => id === 'synth-horde' ? CAST_PRELOAD : id === 'block-quarry' ? QUARRY_FONTS_PRELOAD : '';
 const draw = id => { const s = readFileSync(`${HERE}../../${id}/make-assets.mjs`, 'utf8'); return s.slice(s.indexOf('const DRAW = `') + 14, s.indexOf('`;', s.indexOf('const DRAW = `'))); };
 
 // pour chaque jeu : fond, motif (l'icône) et couleurs du titre
 const GAMES = {
-  'block-quarry': { title: 'Block Quarry', tag: 'Clear lines · Free the gems', glow: '#ff5d8f', sub: '#c9c3ff',
+  'block-quarry': { title: 'Block Quarry', tag: 'Clear lines · Free the gems', glow: '#ff9d2e', sub: '#e8d3b0',
     back: 'bg(g,w,h)', motif: (x, y, s) => `logo(g,${x},${y},(${s})*0.74)` },
   'nova-foundry': { title: 'Nova Foundry', tag: 'Forge stars · Go Supernova', glow: '#ffb84d', sub: '#ffd98a',
     back: 'bg(g,w,h)', motif: (x, y, s) => `star(g,${x},${y},(${s})*0.42)` },
@@ -22,10 +24,10 @@ const GAMES = {
     back: 'bg(g,w,h,.6,w*0.3)', motif: (x, y, s) => `horde(g,${x},(${y})+(${s})*0.05,(${s})*0.42,9,(${s})*0.06);hero(g,${x},${y},(${s})*0.24)` },
 };
 // titre ajusté à la largeur donnée, avec halo
-const TITLE = `function T(g,txt,x,y,maxW,size,glow,align){g.save();g.textAlign=align||'center';g.textBaseline='middle';let s=size;
+const TITLE = `function T(g,txt,x,y,maxW,size,glow,align){if(typeof TITLE_OVERRIDE==='function')return TITLE_OVERRIDE(g,txt,x,y,maxW,size,align);g.save();g.textAlign=align||'center';g.textBaseline='middle';let s=size;
   do{g.font='900 '+s+'px system-ui,sans-serif';s-=2;}while(g.measureText(txt).width>maxW&&s>8);
   g.shadowColor=glow;g.shadowBlur=s*.35;g.fillStyle='#fff';g.fillText(txt,x,y);g.shadowBlur=0;g.fillText(txt,x,y);g.restore();}
-function U(g,txt,x,y,maxW,size,col,align){g.save();g.textAlign=align||'center';g.textBaseline='middle';let s=size;
+function U(g,txt,x,y,maxW,size,col,align){if(typeof SUB_OVERRIDE==='function')return SUB_OVERRIDE(g,txt,x,y,maxW,size,col,align);g.save();g.textAlign=align||'center';g.textBaseline='middle';let s=size;
   do{g.font='700 '+s+'px system-ui,sans-serif';s-=1;}while(g.measureText(txt).width>maxW&&s>8);g.fillStyle=col;g.fillText(txt,x,y);g.restore();}`;
 // formats Steamworks : [nom, largeur, hauteur, composition]
 const FORMATS = G => [
@@ -44,6 +46,7 @@ const FORMATS = G => [
 
 const b = await chromium.launch();
 for (const [id, G] of Object.entries(GAMES)) {
+  if (process.env.ONLY && process.env.ONLY !== id) continue;   // ONLY=block-quarry : un seul jeu
   const out = `${HERE}${id}/art/`; mkdirSync(out, { recursive: true });
   const pre = await preload(id);
   for (const [name, w, h, code, transparent] of FORMATS(G)) {

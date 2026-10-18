@@ -3,7 +3,7 @@
 export const GAMES = {
   'block-quarry': {
     title: 'Block Quarry', game: 'blocks', section: 'tab-blocks', versionKey: 'blocks',
-    appId: 'io.github.flocautank.blockquarry.desktop', exe: 'BlockQuarry', bg: '#120f2a',
+    appId: 'io.github.flocautank.blockquarry.desktop', exe: 'BlockQuarry', bg: '#24180f',
     width: 1100, height: 860, gearHost: '#bp-boost', gearIcon: '⚙', music: false,
     icon: '../block-quarry/assets/icon-only.png', steamPrefix: 'BQ',
   },
