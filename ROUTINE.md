@@ -64,8 +64,13 @@ Un bug **bloquant** trouvé en chemin passe avant l'axe de la nuit, quel qu'il s
 - `python3 -m http.server 8765` à la racine, puis `node tools/smoke.mjs` : doit finir par **« OK — aucune erreur console »**.
 - Captures mobile **et** PC du changement, relues.
 - Outil de mesure du jeu si l'axe touche l'équilibrage ou la durée de vie.
-- **Indépendance** : construire les trois applis (`cd apps/<jeu> && node build.mjs`) et vérifier que le `www/app.js` de chaque
-  appli ne contient le nom d'aucun autre jeu (`grep -c "Block Quarry\|Nova Foundry\|Synth Horde"`) ni « Playtoon ».
+- **Applis** : `node tools/apps-smoke.mjs` doit finir par **« OK — applis : aucune erreur »**. Il construit le `www/` des
+  trois applis mobiles et le dossier que charge chaque fenêtre Electron, puis les ouvre en téléphone 420×860 tactile et
+  en 1280×720 : zéro erreur au chargement, jeu jouable, réglages et langue, pont natif absent toléré, et **indépendance**
+  (aucun autre jeu ni « Playtoon » dans `www/app.js`). `tools/smoke.mjs` ne teste que le site : Block Quarry 1.6.0 → 1.9.x
+  ne démarrait plus dans l'appli sans que personne ne le voie. Il faut les `node_modules` dans `apps/<jeu>/` et
+  `apps/desktop/` (`npm ci` ; pour `desktop`, `ELECTRON_SKIP_BINARY_DOWNLOAD=1` suffit). La CI le rejoue (job `apps-smoke`
+  du workflow Android).
 - Version du jeu augmentée dans `js/version.js` (correctif : 1.x.**y** ; contenu : 1.**x**.0). Nouveau fichier JS →
   l'ajouter à `CORE` dans `sw.js` et monter `CACHE`.
 

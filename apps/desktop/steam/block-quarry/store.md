@@ -10,9 +10,9 @@ Relaxing, Tile-Matching, Singleplayer, Colorful, Cute, Minimalist, 2D, Family Fr
 Graphics: `art/` (every Steamworks size) · Screenshots: `screenshots/en/*.png` (1920×1080) + `screenshots/fr/`.
 
 ## Short description (≤ 300 characters)
-EN: `Drag colorful pieces onto an 8×8 grid, clear rows and columns, chain combos. 40 hand-built Adventure levels with gems and hard stones, a daily challenge, a two-minute Time Attack and unlockable themes. A calm, fair block puzzle — no ads, no timers, no pay-to-win.`
+EN: `Drag colorful pieces onto an 8×8 grid, clear rows and columns, chain combos. 60 Adventure levels in six chapters with gems, hard stones and frost, a Quarry Log of ranks and weekly missions, a daily challenge and themes earned by rank. A calm, fair block puzzle — no ads.`
 
-FR: `Glisse des pièces colorées sur une grille 8×8, complète lignes et colonnes, enchaîne les combos. 60 niveaux d'Aventure avec gemmes, pierres dures et givre, un défi du jour, un Chrono de deux minutes et des thèmes à débloquer. Un puzzle de blocs serein et équitable — sans pub ni achat.`
+FR: `Glisse des pièces sur une grille 8×8, complète lignes et colonnes, enchaîne les combos. 60 niveaux en six chapitres avec gemmes, pierres dures et givre, un Carnet du carrier (grades, missions de la semaine, médailles), un défi du jour et des thèmes gagnés par grade. Sans pub ni achat.`
 
 ## About this game
 ### EN
@@ -27,10 +27,15 @@ FOUR WAYS TO PLAY
 • Daily challenge — the same grid and the same pieces for everyone, every day. Keep your streak alive.
 • Time Attack — two minutes on the clock, every line buys you time and points grow faster as you go.
 
+THE QUARRY LOG
+• 16 ranks to climb, from Apprentice to Quarry Legend, in every mode.
+• Three new missions every week, and a chest when all three are done.
+• A medal for each chapter mastered with all 30 stars.
+
 FAIR BY DESIGN
 • Fair piece dealing: the game looks for a set of three you can place, and lends a hand when the grid fills up.
 • Hammer, bomb and shuffle boosters, bought with the coins you earn in play — never with real money.
-• Five themes to unlock: Classic, Neon, Pastel, Pixel, Gold & Obsidian.
+• Nine themes: Neon, Pastel, Pixel and Gold & Obsidian bought with coins; Marble, Basalt & Lava and Jade earned by rank.
 • No ads, no energy, no in-game purchases. Buy once, play forever.
 • Six languages: English, Français, Deutsch, Español, Italiano, Português.
 ```
@@ -46,10 +51,15 @@ QUATRE FAÇONS DE JOUER
 • Défi du jour — la même grille et les mêmes pièces pour tout le monde, chaque jour. Garde ta série.
 • Chrono — deux minutes, chaque ligne rend du temps et les points grimpent au fil de la partie.
 
+LE CARNET DU CARRIER
+• 16 grades à gravir, d'Apprenti à Légende de la carrière, dans tous les modes.
+• Trois nouvelles missions chaque semaine, et un coffre quand les trois sont remplies.
+• Une médaille pour chaque chapitre maîtrisé avec ses 30 étoiles.
+
 ÉQUITABLE
 • Tirage juste : le jeu cherche un trio de pièces que tu peux poser, et donne un coup de pouce quand la grille se remplit.
 • Marteau, bombe et mélange, achetés avec les pièces gagnées en jouant — jamais avec de l'argent réel.
-• Cinq thèmes à débloquer : Classique, Néon, Pastel, Pixel, Or & Obsidienne.
+• Neuf thèmes : Néon, Pastel, Pixel et Or & Obsidienne contre des pièces ; Marbre, Basalte & lave et Jade gagnés par grade.
 • Ni publicité, ni énergie, ni achat dans le jeu. Achète une fois, joue pour toujours.
 • Six langues : English, Français, Deutsch, Español, Italiano, Português.
 ```

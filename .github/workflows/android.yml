@@ -15,6 +15,7 @@ on:
       - 'js/**'
       - 'css/style.css'
       - 'index.html'
+      - 'tools/apps-smoke.mjs'
       - '.github/workflows/android.yml'
   workflow_dispatch:
 
@@ -158,3 +159,24 @@ jobs:
             launch.png
             logcat.txt
           retention-days: 14
+
+  # Les trois applis (www/ mobile et dossier chargé par Electron) dans Chromium headless, téléphone et PC : le jeu
+  # démarre sans erreur, se joue, la coquille s'ouvre, le pont natif absent est toléré, aucun autre jeu ne fuit.
+  # tools/smoke.mjs ne teste que le site : sans ce job, Block Quarry 1.6.0 → 1.9.x n'a pas démarré dans l'appli.
+  apps-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: 'Dépendances des applis (Electron : le paquet seulement, sans binaire)'
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+        run: |
+          for d in block-quarry nova-foundry synth-horde desktop; do (cd apps/$d && npm ci --no-audit --no-fund); done
+          npm install -g playwright@1.56.1
+          npx -y playwright@1.56.1 install --with-deps chromium
+      - name: Test de fumée des applis
+        run: node tools/apps-smoke.mjs
