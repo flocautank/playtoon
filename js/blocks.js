@@ -160,8 +160,17 @@ try { matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', 
 const buzz = pat => { if (OPT.vib && navigator.vibrate) try { navigator.vibrate(pat); } catch (e) {} };
 // conseil : un message qui s'explique (mécanique, outil) reste lisible 3,5 s sur une étiquette en haut de la grille,
 // à part des éloges (qui se remplacent à chaque effacement)
-// q : à la suite des conseils en attente (présentations d'un niveau) ; sinon il remplace (outil, visée)
-const tip = (text, sub = '', delay = 0, dur = 3.6, q = false) => { const o = { text, sub, t: -delay, dur }; if (q) S.tips.push(o); else S.tips = [o]; };
+// q : à la suite des conseils en attente (présentations d'un niveau) ; sinon c'est un conseil du moment (outil, visée,
+// pièce grisée) : il passe en tête de file sans rien effacer — il remplace seulement le conseil du moment précédent, et
+// la présentation qu'il interrompt (givre, pierres dures, filon) reprend ensuite depuis le début (1.12.1 : elle se perdait)
+const tip = (text, sub = '', delay = 0, dur = 3.6, q = false) => {
+  const o = { text, sub, t: -delay, dur, now: !q };
+  if (q) { S.tips.push(o); return; }
+  S.tips = S.tips.filter(x => !x.now);
+  if (S.tips[0] && S.tips[0].t > 0) S.tips[0].t = -0.3;   // interrompue : rejouée en entier après
+  S.tips.unshift(o);
+};
+const dropTips = () => { S.tips = S.tips.filter(x => !x.now); if (S.tips[0] && S.tips[0].t > 0) S.tips[0].t = -0.3; };   // l'outil reposé : ses conseils partent, pas les présentations
 const tutoDone = () => { if (!TUTO) return; TUTO = false; try { localStorage.setItem('blocparty.tuto', '1'); } catch (e) {} };
 
 const $ = id => document.getElementById(id);
@@ -352,7 +361,7 @@ function clearSpace() {
 }
 
 // état visuel et statistiques d'une partie neuve (toutes les modes)
-function freshRun() { S.tips = []; S.xpRun = 0; S.ice = new Set(); S.broke = 0; S.miss = 0; S.lines = 0; S.maxCombo = 0; S.pieces = 0; S.endAnim = null; S.beams = []; S.rings = []; S.flyers = []; S.flash = 0; S.glow = 0; S.hit = 0; }
+function freshRun() { S.counted = false; S.tips = []; S.xpRun = 0; S.ice = new Set(); S.broke = 0; S.miss = 0; S.lines = 0; S.maxCombo = 0; S.pieces = 0; S.endAnim = null; S.beams = []; S.rings = []; S.flyers = []; S.flash = 0; S.glow = 0; S.hit = 0; }
 function newGame() {
   clearTimeout(overTimer); clearTimeout(resTimer); S.contN = 0; S.placed = 0;
   S.mode = 'classic'; rnd = Math.random; S.gems.clear();
@@ -494,7 +503,7 @@ function advResult(win) {
     if (S.gain) { COINS += S.gain; saveCoins(); }
     track('adv'); if (stars === 3) track('adv3'); gainXP(stars * 3); checkMedals();
   }
-  stat('games'); saveCar();
+  if (!S.counted) { S.counted = true; stat('games'); } saveCar();   // une reprise suivie d'une seconde fin ne recompte pas la partie
   clearTimeout(resTimer); resTimer = setTimeout(() => {
     const close = S.goal.type === 'color' ? S.vein >= S.goal.need - 2 : S.goal.type === 'gems' ? S.got >= S.goal.gems - 1 : S.goal.type === 'ice' ? S.ice.size <= 2 : S.lines >= S.goal.target - 1;
     $('bp-restitle').textContent = win ? t('bp.levelWon', { n: S.lvl }) : close ? t('bp.failClose') : t('bp.fail');
@@ -908,7 +917,7 @@ function gameOver() {
   $('bp-cont').classList.toggle('hidden', COINS < contCost() || S.mode === 'chrono' || (S.mode === 'daily' && dailyContUsed()));
   $('bp-cont').textContent = t('bp.contBooster', { n: contCost() });
   $('bp-vidcont').classList.toggle('hidden', S.mode === 'chrono' || S.vidCont || !MON.canReward());
-  stat('games'); saveCar(); $('bp-xpo').innerHTML = xpLine(); paintCarBtn();
+  if (!S.counted) { S.counted = true; stat('games'); } saveCar(); $('bp-xpo').innerHTML = xpLine(); paintCarBtn();
   $('bp-over').classList.remove('hidden');
 }
 function countUp(el, v) {
@@ -1561,7 +1570,7 @@ document.querySelectorAll('#bp-boost button').forEach(b => b.onclick = () => {
   if (S.over || (COINS < TOOLS[t] && !(S.freeTool && t === 'hammer'))) { beep(180, 0.1, 'square', 0.03); return; }
   if (t === 'shuffle') { useTool('shuffle'); return; }
   tool = tool === t ? null : t; S.aim = null; paintBoost();
-  if (tool) tip(t2(tool === 'bomb' ? 'bp.bombHow' : 'bp.hammerHow'), t2(window.ptDesktop || !matchMedia('(pointer: coarse)').matches ? 'bp.toolCancelKey' : 'bp.toolCancel')); else S.tips = [];   // chaque outil s'explique au moment où on le prend
+  if (tool) tip(t2(tool === 'bomb' ? 'bp.bombHow' : 'bp.hammerHow'), t2(window.ptDesktop || !matchMedia('(pointer: coarse)').matches ? 'bp.toolCancelKey' : 'bp.toolCancel')); else dropTips();   // chaque outil s'explique au moment où on le prend
 });
 paintBoost();
 // réglages de confort : dans l'appli, rangés dans la roue dentée de la coquille ; sur le site, sous les thèmes
@@ -1582,7 +1591,7 @@ initComfort();
 // clavier (PC) : Échap pose l'outil en main, sinon ferme la fenêtre du jeu ouverte
 window.addEventListener('keydown', e => {
   if (e.key !== 'Escape' || (document.body.dataset.tab && document.body.dataset.tab !== 'blocks')) return;
-  if (tool) { tool = null; S.aim = null; S.tips = []; paintBoost(); return; }
+  if (tool) { tool = null; S.aim = null; dropTips(); paintBoost(); return; }
   const open = [...document.querySelectorAll('#tab-blocks .overlay:not(.hidden)')].pop();
   const b = open && open.querySelector('[data-back]'); if (b) b.click();
 });

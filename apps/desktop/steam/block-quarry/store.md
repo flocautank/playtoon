@@ -10,9 +10,9 @@ Relaxing, Tile-Matching, Singleplayer, Colorful, Cute, Minimalist, 2D, Family Fr
 Graphics: `art/` (every Steamworks size) · Screenshots: `screenshots/en/*.png` (1920×1080) + `screenshots/fr/`.
 
 ## Short description (≤ 300 characters)
-EN: `Drag colorful pieces onto an 8×8 grid, clear rows and columns, chain combos. 60 Adventure levels in six chapters with gems, hard stones and frost, a Quarry Log of ranks and weekly missions, a daily challenge and themes earned by rank. A calm, fair block puzzle — no ads.`
+EN: `Drag colorful pieces onto an 8×8 grid, clear rows and columns, chain combos. 80 Adventure levels in eight chapters with gems, hard stones, frost and colour veins, a Quarry Log of ranks and weekly missions, a daily challenge and themes earned by rank. A calm, fair block puzzle — no ads.`
 
-FR: `Glisse des pièces sur une grille 8×8, complète lignes et colonnes, enchaîne les combos. 60 niveaux en six chapitres avec gemmes, pierres dures et givre, un Carnet du carrier (grades, missions de la semaine, médailles), un défi du jour et des thèmes gagnés par grade. Sans pub ni achat.`
+FR: `Glisse des pièces sur une grille 8×8, complète lignes et colonnes, enchaîne les combos. 80 niveaux en huit chapitres avec gemmes, pierres dures, givre et filons, un Carnet du carrier (grades, missions de la semaine, médailles), un défi du jour et des thèmes gagnés par grade. Sans pub ni achat.`
 
 ## About this game
 ### EN
@@ -23,7 +23,7 @@ Drag pieces onto the 8×8 grid. Fill a row or a column and it clears. Clear seve
 
 FOUR WAYS TO PLAY
 • Classic — the endless mode: how far can you push your best score?
-• Adventure — 60 levels in six chapters: free the gems trapped in stone, clear a number of lines, beat the move limit. Hard stones arrive at level 9 and need two clears; frost covers the floor from level 41.
+• Adventure — 80 levels in eight chapters: free the gems trapped in stone, clear a number of lines, beat the move limit. Hard stones arrive at level 9 and need two clears; frost covers the floor from level 41; from level 61, colour veins ask you to clear blocks of one marked colour.
 • Daily challenge — the same grid and the same pieces for everyone, every day. Keep your streak alive.
 • Time Attack — two minutes on the clock, every line buys you time and points grow faster as you go.
 
@@ -47,7 +47,7 @@ Glisse les pièces sur la grille 8×8. Complète une ligne ou une colonne et ell
 
 QUATRE FAÇONS DE JOUER
 • Classique — le mode sans fin : jusqu'où iras-tu ?
-• Aventure — 60 niveaux en six chapitres : libère les gemmes prisonnières de la pierre, efface un nombre de lignes, tiens dans la limite de coups. Les pierres dures arrivent au niveau 9 et s'effacent en deux fois ; le givre couvre le sol dès le niveau 41.
+• Aventure — 80 niveaux en huit chapitres : libère les gemmes prisonnières de la pierre, efface un nombre de lignes, tiens dans la limite de coups. Les pierres dures arrivent au niveau 9 et s'effacent en deux fois ; le givre couvre le sol dès le niveau 41 ; dès le niveau 61, les filons de couleur demandent de dégager les blocs d'une couleur indiquée.
 • Défi du jour — la même grille et les mêmes pièces pour tout le monde, chaque jour. Garde ta série.
 • Chrono — deux minutes, chaque ligne rend du temps et les points grimpent au fil de la partie.
 

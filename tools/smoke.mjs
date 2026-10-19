@@ -192,6 +192,27 @@ await page.click('[data-tool=shuffle]'); await page.waitForTimeout(200); await s
   log(`boucles de dessin par image avant / après un second show() : ${speed.a.toFixed(2)} / ${speed.b.toFixed(2)}`); if (speed.b > speed.a + 0.5) errs.push('[desktop] deux boucles de dessin après un second show()');
   await page.evaluate(() => window.__bp.newGame());
 }
+// 1.12.1 : trois défauts de conception notés en 1.11.2 (un test chacun)
+{
+  // un conseil d'outil passe devant la présentation du givre sans l'effacer ; reposer l'outil la laisse en file
+  await page.evaluate(() => { window.GAMES.blocks.reward(); window.__bp.startLevel(41); });
+  await page.click('[data-tool=hammer]');
+  const tq = await page.evaluate(() => { const S = window.__bp.S; return { first: !!(S.tips[0] && S.tips[0].now), intro: S.tips.filter(x => !x.now).length }; });
+  await page.keyboard.press('Escape');
+  const tq2 = await page.evaluate(() => window.__bp.S.tips.filter(x => !x.now).length);
+  log(`conseils : outil en tête ${tq.first}, présentations gardées ${tq.intro} → après Échap ${tq2}`);
+  if (!tq.first || !tq.intro || !tq2) errs.push('[desktop] la présentation du givre est perdue sous un conseil d\'outil');
+  // Échap sur l'écran de fin : retour aux modes (pas « Rejouer », qui peut lancer une pub)
+  await page.evaluate(() => { window.__bp.newGame(); window.__bp.endNow(); }); await page.waitForTimeout(1600);
+  await page.keyboard.press('Escape'); await page.waitForTimeout(200);
+  const esc = await page.evaluate(() => ({ over: !document.getElementById('bp-over').classList.contains('hidden'), map: !document.getElementById('bp-map').classList.contains('hidden') }));
+  log('Échap sur la fin de partie → carte des modes :', esc.map && !esc.over); if (!esc.map || esc.over) errs.push('[desktop] Échap ne fait rien sur l\'écran de fin');
+  await page.click('#bp-mapclose');
+  // une reprise suivie d'une seconde fin ne recompte pas la partie
+  const gm = await page.evaluate(() => { const B = window.__bp; B.newGame(); const g0 = B.CAR.st.games || 0; B.gameOver(); B.gameOver(); return (B.CAR.st.games || 0) - g0; });
+  log('parties comptées pour une fin, une reprise et une seconde fin :', gm); if (gm !== 1) errs.push('[desktop] Carnet : partie comptée deux fois');
+  await page.evaluate(() => { document.getElementById('bp-over').classList.add('hidden'); window.__bp.newGame(); });
+}
 log('étape : Star Forge'); await page.goto(base + '#forge'); await page.waitForTimeout(700);
 const intro = await page.$eval('#sf-intro', e => !e.classList.contains('hidden')); await shot(page, 'forge-intro'); if (intro) await page.click('#sf-intro-ok');
 log('intro Star Forge affichée au 1er lancement :', intro);
