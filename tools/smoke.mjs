@@ -133,6 +133,17 @@ await page.click('[data-tool=shuffle]'); await page.waitForTimeout(200); await s
   await page.mouse.click(ic.x, ic.y); await page.waitForTimeout(200);
   const iceLeft = await page.evaluate(() => window.__bp.S.ice.has(window.__iceCell));
   log('masse sur un bloc posé sur le givre : plaque brisée', !iceLeft); if (iceLeft) errs.push('[desktop] givre resté sous un bloc brisé à la masse');
+  // 1.12.0 : veine de couleur (niveau 61) — seules les cases de la couleur désignée comptent, les boosters aussi
+  const vn = await page.evaluate(() => {
+    const B = window.__bp, S = B.S; B.startLevel(61); const g = S.goal, other = ['#ff5d8f', '#ffc94d', '#4dd4ff'].find(c => c !== g.color);
+    const pcs = S.tray.filter(Boolean).length;
+    for (let x = 0; x < 8; x++) S.board[7][x] = x < 3 ? g.color : other; for (let x = 0; x < 8; x++) { if (S.board[6][x]) S.board[6][x] = null; }
+    S.vein = 0; const before = S.vein; S.tray[0] = { cells: [[0, 0]], w: 1, h: 1, color: other }; S.board[6].fill(null); S.board[7][7] = null;
+    B.place(0, 7, 7);   // ferme la rangée 7 : 3 cases de la couleur désignée partent
+    return { type: g.type, need: g.need, got: S.vein, before, pcs };
+  });
+  log(`veine de couleur : niveau 61 « ${vn.type} », ${vn.got} cases comptées sur 3 attendues`);
+  if (vn.type !== 'color' || vn.got !== 3) errs.push('[desktop] veine de couleur : décompte faux (' + JSON.stringify(vn) + ')');
   // horloge qui recule d'une semaine : la semaine en cours (et sa progression) est gardée
   const wk = await page.evaluate(() => {
     const B = window.__bp, w = B.ensureWeek(), id = w.ids[0]; w.p[id] = 3; const R = Date;

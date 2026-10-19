@@ -34,7 +34,7 @@ barre d'adresse (Chrome, Edge) l'installe comme une application. Une fois charg�
 ## Outils de développement
 
 - `node tools/smoke.mjs` — test de fumée Chromium headless (les trois jeux, desktop + mobile, PWA hors-ligne)
-- `node tools/bp-levels.mjs` — solveur glouton qui calibre les 60 niveaux d'Aventure de Block Quarry
+- `node tools/bp-levels.mjs` — solveur glouton qui calibre les 80 niveaux d'Aventure de Block Quarry
 - `node tools/sf-balance.mjs` — joueur simulé qui mesure la progression de Star Forge
 - `node tools/make-icons.mjs` — régénère les icônes de la PWA
 

@@ -47,8 +47,9 @@ if (!THEME.owned.includes('quarry')) { THEME.owned.unshift('quarry'); if (THEME.
 const saveTheme = () => { try { localStorage.setItem('blocparty.themes', JSON.stringify(THEME)); } catch (e) {} };
 const curTheme = () => THEMES.find(t => t.id === THEME.cur) || THEMES[0];
 const tc = c => { const i = COLORS.indexOf(c); return i >= 0 ? curTheme().pal[i] : c; };
-const LEVELS = 60;   // 6 chapitres de 10 ; le givre arrive au chapitre 5 (niveau 41)
+const LEVELS = 80;   // 8 chapitres de 10 ; le givre arrive au chapitre 5 (niveau 41), les veines de couleur au chapitre 7 (niveau 61)
 const ICE_LVL = 41;
+const VEIN_LVL = 61;
 const CHAPTER = 10;
 // Générateur déterministe : un niveau d'aventure a toujours la même grille et les mêmes pièces.
 function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
@@ -127,12 +128,14 @@ const MEDAL_MOTIF = [
   '<path d="M12 30l8-19 8 19M14.6 24h10.8M16.8 18.6h6.4" fill="none" stroke-width="2.2" stroke-linejoin="round"/><circle cx="20" cy="11.5" r="3.2" fill="none" stroke-width="1.8"/>',   // le puits : chevalement
   '<path d="M20 9v22M10.5 14.5l19 11M10.5 25.5l19-11" fill="none" stroke-width="2.2" stroke-linecap="round"/><path d="M17.4 10.6 20 13.2l2.6-2.6M17.4 29.4 20 26.8l2.6 2.6" fill="none" stroke-width="1.6" stroke-linecap="round"/>',   // galerie gelée : flocon
   '<path d="M15 31V17l3-4 3 4v14zM21.5 31V12.5l3.2-4.2 3.3 4.2V31zM10.8 31v-8.6l2.4-3 2.2 3V31z"/>',   // veine glaciaire : cristaux
+  '<path d="M20 9.5 29.5 17 20 31 10.5 17z" fill="none" stroke-width="2.2" stroke-linejoin="round"/><path d="M10.5 17h19M15.2 17 20 9.5l4.8 7.5M15.2 17 20 31l4.8-14" fill="none" stroke-width="1.5" stroke-linejoin="round"/>',   // filons colorés : gemme taillée
+  '<path d="M20 9c4.6 4.4 8 8.6 8 12.6a8 8 0 0 1-16 0C12 17.600 15.400 13.400 20 9z"/><path d="M16.200 22.600a4 4 0 0 0 3.800 4" fill="none" stroke-width="1.6" stroke-linecap="round" stroke="#fff" stroke-opacity=".5"/>',   // cœur de la montagne : goutte de lave
 ];
 function medalSVG(c, on, cls = 'bp-mdi') {
   const id = 'bqm' + c + (on ? 'a' : 'b'), m = MEDAL_MOTIF[c % MEDAL_MOTIF.length];
   let teeth = ''; for (let i = 0; i < 28; i++) { const a = i / 28 * Math.PI * 2; teeth += `M${(20 + Math.cos(a) * 16.4).toFixed(2)} ${(20 + Math.sin(a) * 16.4).toFixed(2)}L${(20 + Math.cos(a) * 18.6).toFixed(2)} ${(20 + Math.sin(a) * 18.6).toFixed(2)}`; }
   if (!on) return `<svg class="${cls}" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18.5" fill="rgba(0,0,0,.38)"/><circle cx="20" cy="20.8" r="18" fill="none" stroke="rgba(255,235,200,.12)" stroke-width="1.2"/><circle cx="20" cy="20" r="13.6" fill="none" stroke="rgba(0,0,0,.45)" stroke-width="1.2"/><g fill="rgba(255,235,200,.16)" stroke="rgba(255,235,200,.16)">${m}</g></svg>`;
-  const [hi, mid, lo] = c >= 4 ? ['#f2fbff', '#9fc6d6', '#2c4a5a'] : METAL[3];   // chapitres du givre : argent bleui
+  const [hi, mid, lo] = c >= 6 ? ['#ffe6c0', '#e8923a', '#5c2a0e'] : c >= 4 ? ['#f2fbff', '#9fc6d6', '#2c4a5a'] : METAL[3];   // chapitres du givre : argent bleui ; des veines : cuivre
   return `<svg class="${cls}" viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" y1="0" x2=".4" y2="1"><stop offset="0" stop-color="${hi}"/><stop offset=".55" stop-color="${mid}"/><stop offset="1" stop-color="${lo}"/></linearGradient></defs>`
     + `<circle cx="20" cy="21.2" r="18.6" fill="${lo}"/><circle cx="20" cy="20" r="18.6" fill="url(#${id})"/><path d="${teeth}" stroke="${lo}" stroke-opacity=".55" stroke-width="1.1"/>`
     + `<circle cx="20" cy="20" r="13.8" fill="${lo}" fill-opacity=".22"/><circle cx="20" cy="20" r="13.8" fill="none" stroke="${lo}" stroke-opacity=".6" stroke-width="1.2"/><circle cx="20" cy="20.7" r="13.8" fill="none" stroke="#fff" stroke-opacity=".3" stroke-width=".7"/>`
@@ -267,7 +270,12 @@ function pickShape() {
 }
 function makePiece() {
   const cells = pickShape();
-  return { cells, w: Math.max(...cells.map(c => c[0])) + 1, h: Math.max(...cells.map(c => c[1])) + 1, color: COLORS[(rnd() * COLORS.length) | 0] };
+  return { cells, w: Math.max(...cells.map(c => c[0])) + 1, h: Math.max(...cells.map(c => c[1])) + 1, color: pieceColor() };
+}
+// veine de couleur : une pièce sur deux (niveaux d'Aventure) porte la couleur désignée
+function pieceColor() {
+  if (S.mode === 'adv' && S.goal && S.goal.type === 'color' && rnd() < 0.5) return S.goal.color;
+  return COLORS[(rnd() * COLORS.length) | 0];
 }
 function fits(p, gx, gy, board = S.board) {
   for (const [x, y] of p.cells) {
@@ -358,6 +366,7 @@ function newGame() {
 
 // Objectif d'un niveau : 1–40 comme avant ; 41–60 : givre surtout, gemmes et lignes en rappel
 function levelType(n) {
+  if (n >= VEIN_LVL) { const k = n - 60; return k % 5 === 0 ? 'lines' : k % 4 === 0 ? 'gems' : k % 2 ? 'color' : 'ice'; }
   if (n < ICE_LVL) return n % 4 === 0 ? 'lines' : 'gems';
   const k = n - 40;
   return k % 5 === 0 ? 'lines' : k % 3 === 0 ? 'gems' : 'ice';
@@ -365,7 +374,7 @@ function levelType(n) {
 // Givre (niveau 41+) : plaques de glace collées au sol de la dalle. On pose dessus normalement ; une ligne ou une
 // colonne effacée qui passe sur une plaque la brise. Objectif : briser tout le givre avant la fin des coups.
 function genIce(n) {
-  const k = n - 40, r = mulberry32(n * 6151 + 29);
+  const k = Math.min(n - 40, 26), r = mulberry32(n * 6151 + 29);
   const board = Array.from({ length: N }, () => Array(N).fill(null));
   const bands = 1 + Math.floor(k / 7);
   let hard = 0;
@@ -386,11 +395,32 @@ function genIce(n) {
     for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) if (!board[y][x] && ice.size < want) ice.add(y * N + x);
   }
   const rows = new Set([...ice].map(i => (i / N) | 0)).size, cols = new Set([...ice].map(i => i % N)).size;
-  const moves = Math.round(8 + Math.min(rows, cols) * 2.4 + ice.size * 0.45 + hard * 0.6 + (n === ICE_LVL ? 3 : 0));
+  const moves = Math.round(8 + Math.min(rows, cols) * 2.4 + ice.size * 0.45 + hard * 0.6 + (n === ICE_LVL ? 3 : 0) + (n > 60 ? 7 : 0));
   return { board, gems: new Set(), ice, goal: { type: 'ice', ice: ice.size, gems: 0, target: 0, moves } };
+}
+// Veine de couleur (niveau 61+) : une couleur est désignée, il faut dégager N cases de cette couleur (lignes effacées
+// ou boosters). La moitié des pièces tirées porte cette couleur ; des bandes de pierres gardent le relief.
+function genColor(n) {
+  const k = n - 60, r = mulberry32(n * 4909 + 17);
+  const board = Array.from({ length: N }, () => Array(N).fill(null));
+  const bands = 2 + Math.floor(k / 6); let hard = 0;
+  for (let b = 0; b < bands; b++) {
+    const horiz = r() < 0.5, idx = (r() * N) | 0, fill = 3 + ((r() * 3) | 0);
+    for (const j of [...Array(N).keys()].sort(() => r() - 0.5).slice(0, fill)) {
+      const x = horiz ? j : idx, y = horiz ? idx : j;
+      if (board[y][x]) continue;
+      board[y][x] = r() < 0.4 ? STONE2 : STONE;
+      if (board[y].every(c => c) || board.every(row => row[x])) { board[y][x] = null; continue; }
+      if (board[y][x] === STONE2) hard++;
+    }
+  }
+  const color = COLORS[(k * 3 + ((r() * 7) | 0)) % COLORS.length], need = Math.min(30, 10 + Math.round(k * 0.9));
+  const moves = Math.round(7 + need * 0.95 + hard * 0.5 + (n === VEIN_LVL ? 4 : 0));
+  return { board, gems: new Set(), ice: new Set(), goal: { type: 'color', color, need, ice: 0, gems: 0, target: 0, moves } };
 }
 function genLevel(n) {
   if (levelType(n) === 'ice') return genIce(n);
+  if (levelType(n) === 'color') return genColor(n);
   // Les pierres forment des lignes / colonnes à trous : on les complète pour libérer les gemmes.
   const r = mulberry32(n * 7919 + 13);
   const board = Array.from({ length: N }, () => Array(N).fill(null));
@@ -419,25 +449,26 @@ function genLevel(n) {
   // au-delà du niveau 16, les coups se resserrent (−1,2 % par niveau, jusqu'à −28 %)
   const tight = 1 - Math.min(0.28, Math.max(0, n - 16) * 0.012);
   // niveaux « lignes » resserrés en seconde moitié (ils étaient triviaux), niveaux 9–11 un peu plus larges (présentation)
-  const moves = Math.round((type === 'gems' ? 6 + Math.round(gemsN * 1.5) + bands * 2 + hard * 0.6 + (n >= 9 && n <= 11 ? 4 : 0) : (6 + target * 3) * (n >= 16 ? 0.8 : 1)) * tight) + (n > 40 ? 3 : 0);
+  const moves = Math.round((type === 'gems' ? 6 + Math.round(gemsN * 1.5) + bands * 2 + hard * 0.6 + (n >= 9 && n <= 11 ? 4 : 0) : (6 + target * 3) * (n >= 16 ? 0.8 : 1)) * tight) + (n > 40 ? 3 : 0) + (n > 60 ? 3 : 0);
   return { board, gems: type === 'gems' ? gems : new Set(), ice: new Set(), goal: { type, gems: type === 'gems' ? gemsN : 0, target, moves } };
 }
 function startLevel(n) {
   clearTimeout(overTimer); clearTimeout(resTimer); S.contN = 0; S.vidCont = false;
   const L0 = genLevel(n);
   S.mode = 'adv'; S.lvl = n; S.goal = L0.goal; S.moves = L0.goal.moves; S.gems = L0.gems; S.got = 0; S.lines = 0; S.rescue = n >= 9 ? 2 : 1; S.moreBought = false; S.toolsUsed = 0; S.gain = 0;
-  S.used = 0; S.board = L0.board; S.score = 0; S.shown = 0; S.combo = 0; S.over = false; S.fx = []; S.pops = []; S.clearing = []; freshRun();
+  S.vein = 0; S.used = 0; S.board = L0.board; S.score = 0; S.shown = 0; S.combo = 0; S.over = false; S.fx = []; S.pops = []; S.clearing = []; freshRun();
   S.ice = L0.ice; S.broke = 0;
   rnd = mulberry32(n * 104729 + 7);
   fillTray();
   ['bp-over', 'bp-map', 'bp-res'].forEach(id => $(id).classList.add('hidden'));
   S.pops.push({ text: t('bp.level', { n }), sub: goalText(), t: 0 });
   if (S.goal.type === 'ice' && (n === ICE_LVL || !ADV.stars[ICE_LVL])) tip(t('bp.iceTitle'), t('bp.iceSub'), 1.3, 4.5, true);   // présentation du givre
+  if (S.goal.type === 'color' && (n === VEIN_LVL || !ADV.stars[VEIN_LVL])) tip(t('bp.veinTitle'), t('bp.veinSub'), 1.3, 4.5, true);   // présentation des veines de couleur
   if (n === 9 || (n > 9 && !ADV.stars[9])) tip(t('bp.hardTitle'), t('bp.hardSub'), 1.3, 4.5, true);   // présentation des pierres dures
   updateHUD();
 }
-const goalText = () => S.goal.type === 'gems' ? t('bp.getGems', { n: S.goal.gems }) : S.goal.type === 'ice' ? t('bp.breakIce', { n: S.goal.ice }) : t('bp.clearLines', { n: S.goal.target });
-const goalWon = () => S.goal.type === 'gems' ? S.gems.size === 0 : S.goal.type === 'ice' ? S.ice.size === 0 : S.lines >= S.goal.target;
+const goalText = () => S.goal.type === 'color' ? t('bp.getVein', { n: S.goal.need }) : S.goal.type === 'gems' ? t('bp.getGems', { n: S.goal.gems }) : S.goal.type === 'ice' ? t('bp.breakIce', { n: S.goal.ice }) : t('bp.clearLines', { n: S.goal.target });
+const goalWon = () => S.goal.type === 'color' ? S.vein >= S.goal.need : S.goal.type === 'gems' ? S.gems.size === 0 : S.goal.type === 'ice' ? S.ice.size === 0 : S.lines >= S.goal.target;
 // une plaque de givre brisée (effacement ou booster)
 function breakIce(x, y) {
   if (!S.ice.delete(y * N + x)) return false;
@@ -445,6 +476,11 @@ function breakIce(x, y) {
   for (let k = 0; k < 7; k++) burst(x, y, '#d8f6ff');
   setTimeout(() => SFX.ice(i), 40);
   return true;
+}
+// une case de la couleur désignée dégagée (veine de couleur)
+function veinCell(color) {
+  if (S.mode !== 'adv' || !S.goal || S.goal.type !== 'color' || color !== S.goal.color) return;
+  S.vein++;
 }
 function advResult(win) {
   S.over = true;
@@ -460,7 +496,7 @@ function advResult(win) {
   }
   stat('games'); saveCar();
   clearTimeout(resTimer); resTimer = setTimeout(() => {
-    const close = S.goal.type === 'gems' ? S.got >= S.goal.gems - 1 : S.goal.type === 'ice' ? S.ice.size <= 2 : S.lines >= S.goal.target - 1;
+    const close = S.goal.type === 'color' ? S.vein >= S.goal.need - 2 : S.goal.type === 'gems' ? S.got >= S.goal.gems - 1 : S.goal.type === 'ice' ? S.ice.size <= 2 : S.lines >= S.goal.target - 1;
     $('bp-restitle').textContent = win ? t('bp.levelWon', { n: S.lvl }) : close ? t('bp.failClose') : t('bp.fail');
     $('bp-resstars').innerHTML = [1, 2, 3].map(k => k <= stars ? '★' : '<i>★</i>').join('');
     $('bp-restext').textContent = win ? t('bp.resWin', { used: S.used, total: S.goal.moves, coins: COINS }) + (S.gain ? `  ·  +${S.gain} 🪙` : '') : (S.moves <= 0 ? t('bp.noMoves') : t('bp.noRoom'));
@@ -705,7 +741,7 @@ function openMap() {
   for (let n = 1; n <= LEVELS; n++) {
     if (n % CHAPTER === 1) {   // en-tête de chapitre : nom, étoiles gagnées sur 30
       const c = (n - 1) / CHAPTER, got = Array.from({ length: CHAPTER }, (_, i) => ADV.stars[n + i] || 0).reduce((a, b) => a + b, 0);
-      const h = document.createElement('div'); h.className = 'bp-chap' + (n > open ? ' lock' : '') + (n === ICE_LVL ? ' ice' : '');
+      const h = document.createElement('div'); h.className = 'bp-chap' + (n > open ? ' lock' : '') + (n === ICE_LVL ? ' ice' : n === VEIN_LVL ? ' vein' : '');
       h.innerHTML = `<b>${t('bp.chapter', { n: c + 1 })} · ${(Array.isArray(names) && names[c]) || ''}</b><small>${CAR.medals[c] ? medalSVG(c, true, 'bp-mdi sm') : ''}★ ${got}/${CHAPTER * 3}</small>`;
       box.appendChild(h);
     }
@@ -713,8 +749,8 @@ function openMap() {
     const b = document.createElement('button');
     b.className = 'bp-lv' + (lock ? ' lock' : '') + (n === open && !st ? ' cur' : '');
     const ty = levelType(n);
-    b.dataset.n = n; if (ty === 'ice') b.classList.add('ice');
-    b.innerHTML = `${lock ? '🔒' : n}<small>${st ? '★'.repeat(st) : ty === 'lines' ? t('bp.mapLines') : ty === 'ice' ? '❄' : '💎'}</small>`;
+    b.dataset.n = n; if (ty === 'ice') b.classList.add('ice'); if (n >= VEIN_LVL) b.classList.add('vein');
+    b.innerHTML = `${lock ? '🔒' : n}<small>${st ? '★'.repeat(st) : ty === 'lines' ? t('bp.mapLines') : ty === 'ice' ? '❄' : ty === 'color' ? `<i class="bp-sw" style="background:${tc(genColor(n).goal.color)}"></i>` : '💎'}</small>`;
     if (!lock) b.onclick = () => startLevel(n);
     box.appendChild(b);
   }
@@ -731,6 +767,7 @@ function smash(cells) {
     const color = S.board[y][x]; hit++;
     if (color === STONE2) { S.board[y][x] = STONEC; for (let k = 0; k < 3; k++) burst(x, y, STONE); continue; }   // les boosters fissurent aussi, sans briser
     S.clearing.push({ x, y, color, t: 0, delay: hit * 0.02 });
+    veinCell(color);
     S.board[y][x] = null;
     breakIce(x, y);   // le givre sous le bloc se brise avec lui, comme sous une ligne effacée (il restait sous la masse et la dynamite)
     for (let k = 0; k < 5; k++) burst(x, y, color);
@@ -790,6 +827,7 @@ function place(idx, gx, gy) {
       const color = S.board[y][x];
       if (color === STONE2) { S.board[y][x] = STONEC; S.placedAnim.push({ x, y, t: 0 }); for (let k = 0; k < 3; k++) burst(x, y, STONE); continue; }
       S.clearing.push({ x, y, color, t: 0, delay: (Math.abs(x - gx) + Math.abs(y - gy)) * 0.025 });
+      veinCell(color);
       S.board[y][x] = null;
       breakIce(x, y);
       for (let k = 0, nb = curTheme().style === 'stone' ? 1 + Math.min(3, S.combo >> 1) : 4 + Math.min(6, S.combo); k < nb; k++) burst(x, y, color);
@@ -903,7 +941,7 @@ function updateHUD() {
   }
   if (adv) {
     $('bp-score').textContent = S.moves;
-    $('bp-best').textContent = S.goal.type === 'gems' ? `💎 ${S.got}/${S.goal.gems}` : S.goal.type === 'ice' ? `❄ ${S.broke}/${S.goal.ice}` : `▤ ${Math.min(S.lines, S.goal.target)}/${S.goal.target}`;
+    $('bp-best')[S.goal.type === 'color' ? 'innerHTML' : 'textContent'] = S.goal.type === 'color' ? `<i class="bp-sw" style="background:${tc(S.goal.color)}"></i>${Math.min(S.vein, S.goal.need)}/${S.goal.need}` : S.goal.type === 'gems' ? `💎 ${S.got}/${S.goal.gems}` : S.goal.type === 'ice' ? `❄ ${S.broke}/${S.goal.ice}` : `▤ ${Math.min(S.lines, S.goal.target)}/${S.goal.target}`;
   } else $('bp-best').textContent = num(Math.max(S.bestStart || 0, Math.round(S.shown)));
 }
 

@@ -1035,3 +1035,8 @@ body[data-tab=blocks] #bq-settings .card h2{font-family:'BQ Display',system-ui,s
 #nb-root.nb-big .nb-msg{font-size:27px}
 #nb-root.nb-big .nb-prompt{font-size:21px}
 #nb-root.nb-big .nb-choice p,#nb-root.nb-big .nb-choice .muted.small{font-size:15px}
+/* veines de couleur (niveaux 61+) : pastille de la couleur désignée, au HUD et sur la carte */
+.bp-sw{display:inline-block;width:.8em;height:.8em;margin-right:.3em;border-radius:2px;transform:rotate(45deg) scale(.82);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.55),0 0 0 1.5px rgba(0,0,0,.55);vertical-align:-.05em}
+.bp-lv small .bp-sw{width:9px;height:9px;margin:0}
+.bp-chap.vein b{color:#ffc27a}
+#tab-blocks .bp-lv.vein:not(.lock):not(.cur){box-shadow:inset 0 0 0 2px rgba(255,170,90,.5),inset 0 -3px 0 rgba(0,0,0,.4)}
