@@ -307,7 +307,7 @@ main{position:fixed;inset:var(--nav-h) 0 0 0}
 }
 .nb-keys b{color:var(--text)}
 #nb-endstats{display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;text-align:left;font-size:14px}
-#nb-endstats div{display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding:3px 0}
+#nb-endstats div{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line);padding:3px 0}
 @media (max-width:600px){.neon{font-size:30px}.nb-hp{width:118px}.nb-timer{font-size:19px;top:20px}.nb-msg{white-space:normal;width:92vw;font-size:15px;top:96px}.nb-boss{top:214px;width:86vw}.nb-weapons{max-width:130px}}
 #nb-start{position:sticky;bottom:0;z-index:2;box-shadow:0 -10px 20px var(--panel),0 3px 0 rgba(0,0,0,.35)}
 .pt-lang{display:flex;gap:6px;align-items:center;justify-content:center}.pt-lang select{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:3px 6px}
@@ -941,13 +941,13 @@ body[data-tab=blocks] #bq-settings .card h2{font-family:'BQ Display',system-ui,s
 #nb-root #nb-endstats .nb-ebig{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:#160c22;border:2px solid #fff;border-bottom:2px solid #fff;padding:6px 4px 5px;transform:skewX(-8deg);box-shadow:4px 4px 0 var(--cy)}
 #nb-root #nb-endstats .nb-ebig:nth-child(2n){box-shadow:4px 4px 0 var(--pink)}
 #nb-root #nb-endstats .nb-ebig > *{transform:skewX(8deg)}
-#nb-root #nb-endstats .nb-ebig b{font:400 24px/1 var(--disp);color:var(--yel);max-width:100%;overflow:hidden;text-overflow:ellipsis}
+#nb-root #nb-endstats .nb-ebig b{font:400 24px/1 var(--disp);color:var(--yel);max-width:100%;white-space:nowrap}
 #nb-root #nb-endstats .nb-ebig span{font:800 italic 12px var(--lab);letter-spacing:.12em;text-transform:uppercase;color:#d9d2ea;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
 @media (max-width:600px){
   #nb-root .nb-eslab{font-size:19px;padding:3px 12px 3px 4px;gap:8px}
   #nb-root .nb-eslab .nb-face{width:44px;height:44px;margin:-8px 0 -8px -2px}
   #nb-root #nb-endstats .nb-ebigs{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 10px}
-  #nb-root #nb-endstats .nb-ebig b{font-size:21px}
+  #nb-root #nb-endstats .nb-ebig b{font-size:clamp(13px,5.2vw,21px)}
 }
 @media (max-height:500px) and (orientation:landscape){
   #nb-root .nb-eslab{font-size:17px;padding:2px 12px 2px 4px}
@@ -1060,3 +1060,7 @@ body[data-tab=blocks] #bq-settings .card h2{font-family:'BQ Display',system-ui,s
 #tab-forge #sf-io{border-radius:0!important;background:var(--ink)!important;border:1px solid rgba(184,151,85,.45)!important;color:var(--paper)!important;font:400 12px var(--txt)!important}
 #tab-forge .sf-panel input[type=checkbox]{accent-color:#c99a45;width:16px;height:16px;vertical-align:-3px;margin-right:4px}
 #tab-forge .sf-panel label.small{font:400 14px var(--txt);color:var(--paper)}
+
+/* Synth Horde 1.20.1 — Reprendre / Abandonner restent visibles en bas de la pause, même avec un long équipement (portrait et PC) */
+#nb-pause .nb-prow{position:sticky;bottom:-2px;z-index:3;background:var(--ink);padding:8px 0 4px;margin-top:6px;box-shadow:0 -8px 10px -4px var(--ink)}
+@media (max-height:500px) and (orientation:landscape){#nb-pause .nb-prow{position:static;padding:0;margin:0;box-shadow:none;background:none}}

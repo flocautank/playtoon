@@ -307,6 +307,12 @@ const diffMin = () => ST().m0 + (S.t - (S.stageT || 0)) / 60 * ST().mRate;
 const META_KEY = 'neonbonk.meta.v1';
 let META = { totalKills: 0, bossKills: 0, maxLevel: 0, bestTime: 0, bestKills: 0, runs: 0, wins: 0, sel: 'glitch', sens: 1, credits: 0, shop: {}, music: true, heatWon: {}, heatSel: 0 };
 try { Object.assign(META, JSON.parse(localStorage.getItem(META_KEY) || '{}')); } catch (e) {}
+// sauvegarde éditée à la main : les tables doivent être des objets, les compteurs des nombres finis
+{
+  const plain = v => v && typeof v === 'object' && !Array.isArray(v);
+  for (const k of ['shop', 'quests', 'dHist', 'heatWon']) if (META[k] !== undefined && !plain(META[k])) META[k] = {};
+  for (const k of ['credits', 'bestTime', 'bestKills', 'totalKills', 'bossKills', 'maxLevel', 'runs', 'wins']) if (META[k] !== undefined && !(Number.isFinite(META[k]) && META[k] >= 0)) META[k] = 0;
+}
 // Boutique permanente : crédits gagnés à chaque run, améliorations conservées d'une run à l'autre.
 const SHOP = [
   { id: 'hp', ic: '❤️', max: 5, base: 30, desc: l => tr('nb.shd.hp', { n: 10 * l }), fx: (s, l) => s.hp += 10 * l },
@@ -362,7 +368,10 @@ const dailyScore = () => Math.round(S.kills + S.level * 25 + Math.floor(S.t) * 2
 const dailyPrize = streak => 120 + 30 * Math.min(Math.max(0, streak - 1), 6);   // 120 → 300 crédits avec la série
 function dailyState() {   // état du jour (remis à zéro au changement de date)
   const k = dayKey();
-  if (!META.daily || META.daily.key !== k) META.daily = { key: k, best: 0, tries: 0, done: false };
+  if (!META.daily || META.daily.key !== k) {   // un jour déjà validé (horloge revenue en arrière) n'est pas rejoué : l'historique fait foi
+    const was = META.dHist && META.dHist[k];
+    META.daily = { key: k, best: was || 0, tries: 0, done: was !== undefined && was !== null };
+  }
   const streakAlive = META.dLast === k || META.dLast === dayBefore(k);
   return { ...META.daily, streak: streakAlive ? META.dStreak || 0 : 0 };
 }
@@ -1630,7 +1639,9 @@ function offerSecondChance() {
 async function secondChance(watch) {
   if (!S || S.state !== 'offer') return;
   $('nb-second').classList.add('hidden');
-  if (watch && await MON.reward('revive')) {
+  const run = S, ok = watch && await MON.reward('revive');
+  if (S !== run || S.state !== 'offer') return;   // une autre run a démarré pendant la vidéo
+  if (ok) {
     S.state = 'play'; revive(); clock.getDelta();
     if (window.PT_MUSIC !== false && active) music.start(S.stage);
   } else { S.state = 'play'; endRun(false); }
@@ -2363,6 +2374,7 @@ function closeChoices() {
   $('nb-levelup').classList.add('hidden');
   S.state = 'play'; S.iframe = Math.max(S.iframe, 0.6); S.vendor = null;
   lockPointer();
+  if (S.musicOff) { S.musicOff = false; if (window.PT_MUSIC !== false && active) music.start(S.stage); }   // l'onglet a été quitté pendant le choix : la musique reprend
 }
 const leaveShop = () => { if (S && S.state === 'levelup' && (choiceMode === 'shop' || choiceMode === 'dup')) closeChoices(); };
 
@@ -3532,8 +3544,9 @@ function renderEnd() {
     + (best ? full(tr('nb.newBest'), '#ffc94d') : '') + (heatRec ? full(tr('nb.heatRec', { n: S.heat }), '#ff8a4d') : '')
     + (firstWin ? full(tr('nb.heatUnlocked'), '#ff8a4d') : '')
     + ((S.gold || 0) >= 40 ? full(tr('nb.goldCr', { g: num(S.gold), c: num(Math.floor(S.gold / 40 * (1 + 0.25 * (S.heat || 0)))) }), '#ffc94d') : '');
+  const bigNum = n => n >= 1e7 ? new Intl.NumberFormat(lang, { notation: 'compact', maximumFractionDigits: 1 }).format(n) : num(n);   // tuile de 130 px : au-delà de 7 chiffres, forme abrégée
   const big = (a, b) => `<div class="nb-ebig"><b>${b}</b><span>${tr(a)}</span></div>`;   // les quatre chiffres de la run, en gros, comme un flyer
-  $('nb-endstats').innerHTML = `<div class="nb-ebigs">${big('nb.eTime', `${Math.floor(surv / 60)}:${String(surv % 60).padStart(2, '0')}`) + big('nb.eLevel', S.level) + big('nb.eKills', num(S.kills)) + big('nb.eDmg', num(S.dmgDealt))}</div>`
+  $('nb-endstats').innerHTML = `<div class="nb-ebigs">${big('nb.eTime', `${Math.floor(surv / 60)}:${String(surv % 60).padStart(2, '0')}`) + big('nb.eLevel', S.level) + big('nb.eKills', bigNum(S.kills)) + big('nb.eDmg', bigNum(S.dmgDealt))}</div>`
     + row('nb.eChests', S.chestsOpened) + row('nb.eChar', S.ch.name) + row('nb.eStage', (S.stage + 1) + ' / ' + STAGES.length)
     + (S.heat ? row('nb.heat', '🔥 ' + S.heat) : '')
     + (S.dailyRes ? dailyEndHTML(S.dailyRes, row, full) : '')
@@ -3548,9 +3561,11 @@ function renderEnd() {
   dbl.textContent = tr('nb.double', { n: num(cr) });
 }
 $('nb-double').onclick = async () => {
-  if (!S || S.doubled || !S.endInfo) return;
+  if (!S || S.doubled || !S.endInfo || S.doubling) return;
+  const run = S; S.doubling = true;   // une vidéo à la fois (double toucher : deux vidéos, une récompense)
   const ok = await MON.reward('credits');
-  if (!ok || S.doubled) return;
+  run.doubling = false;
+  if (!ok || run.doubled || S !== run) return;   // si une nouvelle run a démarré pendant la vidéo, rien n'est versé sur la mauvaise
   S.doubled = true; META.credits = (META.credits || 0) + S.endInfo.cr; S.endInfo.cr *= 2; saveMeta();
   renderEnd(); msg(tr('nb.doubled'), 2, '#7ff6ff'); sfx('chest');
 };
@@ -3788,7 +3803,7 @@ window.GAMES.bonk = {
   },
   hide() {
     active = false; cancelAnimationFrame(rafId); music.stop(0.2);
-    if (S && S.state === 'play') pause();
+    if (S && (S.state === 'play' || S.state === 'levelup')) { if (S.state === 'play') pause(); else S.musicOff = true; }
     for (const k in keys) keys[k] = false;
   },
 };

@@ -611,7 +611,7 @@ Object.assign(pt, {"nb.w.drop": "Drop de grave", "nb.wd.drop": "Uma nota grave c
 Object.assign(en, {
   'nb.dTitle': 'Daily challenge', 'nb.dStreak': v => `${v.n} ${s(v.n, 'day', 'days')}`, 'nb.dStreakTip': 'Streak: days in a row with a validated daily challenge',
   'nb.dLent': 'lent for today', 'nb.dBest': 'Today’s best: {n}', 'nb.dTries': v => `${v.n} ${s(v.n, 'try', 'tries')}`, 'nb.dNone': 'Same map for everyone today. Last {t} to validate the day.',
-  'nb.dWeek': 'Last 7 days', 'nb.dNext': 'new one in {h} h {m}', 'nb.dPlay': 'Play the daily · ◈ +{n}', 'nb.dAgain': 'Beat today’s best',
+  'nb.dWeek': 'Last 7 days', 'nb.dNext': 'new one in {h} h {m} min', 'nb.dPlay': 'Play the daily · ◈ +{n}', 'nb.dAgain': 'Beat today’s best',
   'nb.dScore': 'Daily score', 'nb.dRec': '🏅 New best today: {n}!', 'nb.dDone': v => `📅 Day validated: ◈ +${v.n} · streak ${v.s} ${s(v.s, 'day', 'days')}`,
   'nb.dShort': 'Last {t} to validate the day (streak and bonus)', 'nb.dStale': 'Started yesterday: not counted for today', 'nb.dGo': 'DAILY CHALLENGE — {mods}', 'nb.dTag': 'DAILY',
   'nb.dm.glass': 'Glass Cannon', 'nb.dm.horde': 'Tidal Wave', 'nb.dm.rich': 'Gold Rush', 'nb.dm.swift': 'Double Time', 'nb.dm.crit': 'Razor Edge', 'nb.dm.echo': 'Feedback', 'nb.dm.giants': 'Colossi', 'nb.dm.float': 'Zero-G',
@@ -622,7 +622,7 @@ Object.assign(en, {
 Object.assign(fr, {
   'nb.dTitle': 'Défi du jour', 'nb.dStreak': v => `${v.n} ${s(v.n, 'jour', 'jours')}`, 'nb.dStreakTip': 'Série : jours d’affilée avec un défi du jour validé',
   'nb.dLent': 'prêté pour la journée', 'nb.dBest': 'Record du jour : {n}', 'nb.dTries': v => `${v.n} ${s(v.n, 'essai', 'essais')}`, 'nb.dNone': 'La même carte pour tous aujourd’hui. Tiens {t} pour valider la journée.',
-  'nb.dWeek': '7 derniers jours', 'nb.dNext': 'le prochain dans {h} h {m}', 'nb.dPlay': 'Jouer le défi · ◈ +{n}', 'nb.dAgain': 'Battre le record du jour',
+  'nb.dWeek': '7 derniers jours', 'nb.dNext': 'le prochain dans {h} h {m} min', 'nb.dPlay': 'Jouer le défi · ◈ +{n}', 'nb.dAgain': 'Battre le record du jour',
   'nb.dScore': 'Score du défi', 'nb.dRec': '🏅 Nouveau record du jour : {n} !', 'nb.dDone': v => `📅 Journée validée : ◈ +${v.n} · série de ${v.s} ${s(v.s, 'jour', 'jours')}`,
   'nb.dShort': 'Tiens {t} pour valider la journée (série et prime)', 'nb.dStale': 'Commencé hier : ne compte pas pour aujourd’hui', 'nb.dGo': 'DÉFI DU JOUR — {mods}', 'nb.dTag': 'DÉFI',
   'nb.dm.glass': 'Canon de verre', 'nb.dm.horde': 'Marée', 'nb.dm.rich': 'Ruée vers l’or', 'nb.dm.swift': 'Tempo double', 'nb.dm.crit': 'Fil du rasoir', 'nb.dm.echo': 'Larsen', 'nb.dm.giants': 'Colosses', 'nb.dm.float': 'Apesanteur',
@@ -633,7 +633,7 @@ Object.assign(fr, {
 Object.assign(es, {
   'nb.dTitle': 'Desafío diario', 'nb.dStreak': v => `${v.n} ${s(v.n, 'día', 'días')}`, 'nb.dStreakTip': 'Racha: días seguidos con un desafío diario validado',
   'nb.dLent': 'prestado por hoy', 'nb.dBest': 'Récord de hoy: {n}', 'nb.dTries': v => `${v.n} ${s(v.n, 'intento', 'intentos')}`, 'nb.dNone': 'El mismo mapa para todos hoy. Aguanta {t} para validar el día.',
-  'nb.dWeek': 'Últimos 7 días', 'nb.dNext': 'el próximo en {h} h {m}', 'nb.dPlay': 'Jugar el desafío · ◈ +{n}', 'nb.dAgain': 'Superar el récord de hoy',
+  'nb.dWeek': 'Últimos 7 días', 'nb.dNext': 'el próximo en {h} h {m} min', 'nb.dPlay': 'Jugar el desafío · ◈ +{n}', 'nb.dAgain': 'Superar el récord de hoy',
   'nb.dScore': 'Puntuación del desafío', 'nb.dRec': '🏅 ¡Nuevo récord de hoy: {n}!', 'nb.dDone': v => `📅 Día validado: ◈ +${v.n} · racha de ${v.s} ${s(v.s, 'día', 'días')}`,
   'nb.dShort': 'Aguanta {t} para validar el día (racha y premio)', 'nb.dStale': 'Empezado ayer: no cuenta para hoy', 'nb.dGo': 'DESAFÍO DIARIO — {mods}', 'nb.dTag': 'DESAFÍO',
   'nb.dm.glass': 'Cañón de cristal', 'nb.dm.horde': 'Marea', 'nb.dm.rich': 'Fiebre del oro', 'nb.dm.swift': 'Doble tempo', 'nb.dm.crit': 'Filo de navaja', 'nb.dm.echo': 'Acople', 'nb.dm.giants': 'Colosos', 'nb.dm.float': 'Ingravidez',
@@ -644,7 +644,7 @@ Object.assign(es, {
 Object.assign(de, {
   'nb.dTitle': 'Tagesherausforderung', 'nb.dStreak': v => `${v.n} ${s(v.n, 'Tag', 'Tage')}`, 'nb.dStreakTip': 'Serie: Tage in Folge mit bestandener Tagesherausforderung',
   'nb.dLent': 'heute geliehen', 'nb.dBest': 'Tagesrekord: {n}', 'nb.dTries': v => `${v.n} ${s(v.n, 'Versuch', 'Versuche')}`, 'nb.dNone': 'Heute für alle dieselbe Karte. Halte {t} durch, um den Tag zu werten.',
-  'nb.dWeek': 'Letzte 7 Tage', 'nb.dNext': 'neue in {h} Std. {m}', 'nb.dPlay': 'Herausforderung spielen · ◈ +{n}', 'nb.dAgain': 'Tagesrekord schlagen',
+  'nb.dWeek': 'Letzte 7 Tage', 'nb.dNext': 'neue in {h} Std. {m} Min.', 'nb.dPlay': 'Herausforderung spielen · ◈ +{n}', 'nb.dAgain': 'Tagesrekord schlagen',
   'nb.dScore': 'Tagespunkte', 'nb.dRec': '🏅 Neuer Tagesrekord: {n}!', 'nb.dDone': v => `📅 Tag gewertet: ◈ +${v.n} · Serie ${v.s} ${s(v.s, 'Tag', 'Tage')}`,
   'nb.dShort': 'Halte {t} durch, um den Tag zu werten (Serie und Bonus)', 'nb.dStale': 'Gestern begonnen: zählt nicht für heute', 'nb.dGo': 'TAGESHERAUSFORDERUNG — {mods}', 'nb.dTag': 'TAG',
   'nb.dm.glass': 'Glaskanone', 'nb.dm.horde': 'Flutwelle', 'nb.dm.rich': 'Goldrausch', 'nb.dm.swift': 'Doppeltempo', 'nb.dm.crit': 'Rasierklinge', 'nb.dm.echo': 'Rückkopplung', 'nb.dm.giants': 'Kolosse', 'nb.dm.float': 'Schwerelos',
@@ -655,7 +655,7 @@ Object.assign(de, {
 Object.assign(it, {
   'nb.dTitle': 'Sfida del giorno', 'nb.dStreak': v => `${v.n} ${s(v.n, 'giorno', 'giorni')}`, 'nb.dStreakTip': 'Serie: giorni di fila con una sfida del giorno convalidata',
   'nb.dLent': 'in prestito per oggi', 'nb.dBest': 'Record di oggi: {n}', 'nb.dTries': v => `${v.n} ${s(v.n, 'tentativo', 'tentativi')}`, 'nb.dNone': 'Oggi la stessa mappa per tutti. Resisti {t} per convalidare la giornata.',
-  'nb.dWeek': 'Ultimi 7 giorni', 'nb.dNext': 'la prossima tra {h} h {m}', 'nb.dPlay': 'Gioca la sfida · ◈ +{n}', 'nb.dAgain': 'Batti il record di oggi',
+  'nb.dWeek': 'Ultimi 7 giorni', 'nb.dNext': 'la prossima tra {h} h {m} min', 'nb.dPlay': 'Gioca la sfida · ◈ +{n}', 'nb.dAgain': 'Batti il record di oggi',
   'nb.dScore': 'Punteggio della sfida', 'nb.dRec': '🏅 Nuovo record di oggi: {n}!', 'nb.dDone': v => `📅 Giornata convalidata: ◈ +${v.n} · serie di ${v.s} ${s(v.s, 'giorno', 'giorni')}`,
   'nb.dShort': 'Resisti {t} per convalidare la giornata (serie e premio)', 'nb.dStale': 'Iniziata ieri: non conta per oggi', 'nb.dGo': 'SFIDA DEL GIORNO — {mods}', 'nb.dTag': 'SFIDA',
   'nb.dm.glass': 'Cannone di vetro', 'nb.dm.horde': 'Marea', 'nb.dm.rich': 'Febbre dell’oro', 'nb.dm.swift': 'Tempo doppio', 'nb.dm.crit': 'Filo del rasoio', 'nb.dm.echo': 'Larsen', 'nb.dm.giants': 'Colossi', 'nb.dm.float': 'Gravità zero',
@@ -666,7 +666,7 @@ Object.assign(it, {
 Object.assign(pt, {
   'nb.dTitle': 'Desafio do dia', 'nb.dStreak': v => `${v.n} ${s(v.n, 'dia', 'dias')}`, 'nb.dStreakTip': 'Sequência: dias seguidos com um desafio do dia validado',
   'nb.dLent': 'emprestado por hoje', 'nb.dBest': 'Recorde de hoje: {n}', 'nb.dTries': v => `${v.n} ${s(v.n, 'tentativa', 'tentativas')}`, 'nb.dNone': 'O mesmo mapa para todos hoje. Aguente {t} para validar o dia.',
-  'nb.dWeek': 'Últimos 7 dias', 'nb.dNext': 'o próximo em {h} h {m}', 'nb.dPlay': 'Jogar o desafio · ◈ +{n}', 'nb.dAgain': 'Bater o recorde de hoje',
+  'nb.dWeek': 'Últimos 7 dias', 'nb.dNext': 'o próximo em {h} h {m} min', 'nb.dPlay': 'Jogar o desafio · ◈ +{n}', 'nb.dAgain': 'Bater o recorde de hoje',
   'nb.dScore': 'Pontuação do desafio', 'nb.dRec': '🏅 Novo recorde de hoje: {n}!', 'nb.dDone': v => `📅 Dia validado: ◈ +${v.n} · sequência de ${v.s} ${s(v.s, 'dia', 'dias')}`,
   'nb.dShort': 'Aguente {t} para validar o dia (sequência e bônus)', 'nb.dStale': 'Começou ontem: não conta para hoje', 'nb.dGo': 'DESAFIO DO DIA — {mods}', 'nb.dTag': 'DESAFIO',
   'nb.dm.glass': 'Canhão de vidro', 'nb.dm.horde': 'Maré', 'nb.dm.rich': 'Corrida do ouro', 'nb.dm.swift': 'Tempo dobrado', 'nb.dm.crit': 'Fio da navalha', 'nb.dm.echo': 'Microfonia', 'nb.dm.giants': 'Colossos', 'nb.dm.float': 'Gravidade zero',
