@@ -9,7 +9,7 @@ export const GAMES = {
   },
   'nova-foundry': {
     title: 'Nova Foundry', game: 'forge', section: 'tab-forge', versionKey: 'forge',
-    appId: 'io.github.flocautank.novafoundry.desktop', exe: 'NovaFoundry', bg: '#0b0a1f',
+    appId: 'io.github.flocautank.novafoundry.desktop', exe: 'NovaFoundry', bg: '#0b1028',
     width: 1280, height: 800, gearHost: '.sf-tabs', gearIcon: '☰', music: false,
     icon: '../nova-foundry/assets/icon-only.png', steamPrefix: 'NF',
   },

@@ -53,7 +53,10 @@ const ENG = {
   compass: '<circle cx="12" cy="12" r="8.5"/><path d="M12 4.5l2 7.5-2 7.5-2-7.5z"/><path d="M4.5 12h2M17.5 12h2" class="h"/>',
   glass: '<path d="M7 3h10M7 21h10M8 3c0 5 8 6 8 9s-8 4-8 9M16 3c0 5-8 6-8 9s8 4 8 9"/><path d="M10 18.5h4" class="h"/>',
   medal: '<circle cx="12" cy="9" r="5"/><path d="M9 13.5L7.5 21l4.5-2.5 4.5 2.5L15 13.5"/><path d="M12 6.5l.8 1.7 1.9.2-1.4 1.3.4 1.9-1.7-1-1.7 1 .4-1.9-1.4-1.3 1.9-.2z" class="h"/>',
-  gear: '<circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>',
+  gear: '<path d="M10.6 3h2.8l.5 2.4 1.7.7 2-1.4 2 2-1.4 2 .7 1.7 2.4.5v2.8l-2.4.5-.7 1.7 1.4 2-2 2-2-1.4-1.7.7-.5 2.4h-2.8l-.5-2.4-1.7-.7-2 1.4-2-2 1.4-2-.7-1.7L3 13.4v-2.8l2.4-.5.7-1.7-1.4-2 2-2 2 1.4 1.7-.7z"/><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="5.6" class="h"/>',
+  // 1.11 : onglet Options (sauvegarde, affichage, comment jouer) — un livre ouvert ; vidéo récompensée — une bobine
+  book: '<path d="M12 6.5c-2-1.6-5-2-8.5-1.5v13c3.5-.5 6.5-.1 8.5 1.5 2-1.6 5-2 8.5-1.5V5c-3.5-.5-6.5-.1-8.5 1.5zM12 6.5v13"/><path d="M5.5 8.5c1.8-.2 3.5 0 4.6.6M5.5 11.5c1.8-.2 3.5 0 4.6.6M13.9 9.1c1.1-.6 2.8-.8 4.6-.6M13.9 12.1c1.1-.6 2.8-.8 4.6-.6" class="h"/>',
+  reel: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="7" r="2"/><circle cx="12" cy="17" r="2"/><circle cx="7" cy="12" r="2"/><circle cx="17" cy="12" r="2"/>',
   seal: '<circle cx="12" cy="12" r="8"/><path d="M12 6l1.5 4.5H18l-3.7 2.7 1.4 4.4L12 15l-3.7 2.6 1.4-4.4L6 10.5h4.5z" class="h"/>',
   // 1.7 : synergies et évènements du ciel
   link: '<circle cx="8.5" cy="12" r="5"/><circle cx="15.5" cy="12" r="5"/><path d="M12 8.4v7.2" class="h"/>',
@@ -66,6 +69,23 @@ const ENG = {
   star: '<path d="M12 2.5l2.2 7.3 7.3 2.2-7.3 2.2L12 21.5l-2.2-7.3L2.5 12l7.3-2.2z"/><circle cx="12" cy="12" r="2.2" class="h"/>',
 };
 const engSvg = (k, cls = '') => `<svg class="eng ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ENG[k]}</svg>`;
+// 1.11 : les emoji qui restaient dans les textes (récompense des défis 🏅, conseil du Big Bang 💡, titre de l'introduction ✨,
+// vidéos 📺…) deviennent des gravures ; les signes sans gravure deviennent des signes typographiques
+const EMO_ENG = { '☄': 'comet', '🌙': 'moon', '💥': 'bang', '🌌': 'nebula', '🌠': 'shower', '🌑': 'eclipse', '🕳': 'eclipse', '⚒': 'anvil', '🏅': 'medal', '🏆': 'medal', '✨': 'spark', '⏱': 'glass', '👆': 'hand', '🧱': 'anvil', '📺': 'reel' };
+const EMO_TXT = { '💡': '', '▶': '▸', '♾': '∞', '✅': '✓', '🚫': '✕', '⚠': '!' };
+const EMO_RE = /(\p{Extended_Pictographic}|\p{Regional_Indicator})\uFE0F?\s?/gu;
+const emoHtml = s => String(s).replace(EMO_RE, m => { const k = m.replace(/\uFE0F|\s/g, ''), sp = /\s$/.test(m) ? ' ' : ''; return EMO_ENG[k] ? engSvg(EMO_ENG[k], 'emo') + sp : k in EMO_TXT ? EMO_TXT[k] + (EMO_TXT[k] ? sp : '') : '✦' + sp; });
+function deEmoji(root) {
+  if (!root || root.nodeType !== 1) return;
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), hits = [];
+  for (let n = w.nextNode(); n; n = w.nextNode()) { EMO_RE.lastIndex = 0; if (EMO_RE.test(n.nodeValue)) hits.push(n); }
+  for (const n of hits) {
+    if (!n.parentNode || n.parentNode.closest('textarea,select,option')) continue;
+    const sp = document.createElement('span'); sp.className = 'sf-emo';
+    sp.innerHTML = emoHtml(n.nodeValue.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]));
+    n.parentNode.replaceChild(sp, n);
+  }
+}
 function hashStr(str) { let h = 2166136261; for (let i = 0; i < str.length; i++) h = Math.imul(h ^ str.charCodeAt(i), 16777619); return h >>> 0; }
 const CGLY = new Map();
 function constGlyph(id) {
@@ -599,7 +619,7 @@ function buyGen(i) {
   const c = costN(i, n);
   if (c > S.dust) return;
   S.dust -= c; S.gens[i] += n; window.ptEvent && window.ptEvent('sf_forges', n); dqAdd('forges', n);
-  sfx(520 + i * 30, 0.06, 'triangle');
+  anvil(660 + i * 40, 0.045);
   refresh(true);
 }
 // les moins chères d'abord : ce que « Tout acheter » prendrait avec la poussière actuelle
@@ -612,7 +632,7 @@ function buyAllUpg() {
   if (inChal('c_noupg')) { toast(t('sf.ascetic')); return; }
   const l = affordableUpg(); if (!l.length) return;
   for (const u of l) { S.dust -= upgCost(u); S.upg[u.id] = 1; } S.st.nUpg = st('nUpg') + l.length;
-  sfx(880, 0.12, 'triangle'); sfx(1320, 0.12, 'triangle', 0.08); sfx(1760, 0.14, 'triangle', 0.16);
+  bell(880, 0.6, 0.04); bell(1320, 0.6, 0.03, 0.06); bell(1760, 0.7, 0.025, 0.12);
   toast(t('sf.boughtN', { n: l.length }));
   refresh(true);
 }
@@ -621,7 +641,7 @@ function buyUpg(u) {
   if (inChal('c_noupg')) { toast(t('sf.ascetic')); return; }
   if (S.upg[u.id] || c > S.dust || !u.req(S)) return;
   S.dust -= c; S.upg[u.id] = 1; S.st.nUpg = st('nUpg') + 1;
-  sfx(880, 0.12, 'triangle'); sfx(1320, 0.12, 'triangle', 0.08);
+  bell(880, 0.6, 0.04); bell(1320, 0.6, 0.03, 0.06);
   refresh(true);
 }
 function buyMeta(m) {
@@ -774,6 +794,33 @@ function sfx(f, d = 0.05, type = 'sine', v = 0.05) {
   } catch (e) {}
 }
 
+// 1.11 : la forge sonne comme du métal frappé — partiels inharmoniques d'une cloche (1 ; 2,76 ; 5,4) qui s'éteignent
+// vite, et pour un achat de forge un coup de marteau (bruit bref filtré) sur l'enclume
+function bell(f, d = 0.5, v = 0.05, delay = 0) {
+  if (window.PT_MUTE) return;
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const t0 = actx.currentTime + delay;
+    [[1, 1, 1], [2.76, 0.45, 0.55], [5.4, 0.22, 0.3]].forEach(([m, a, k]) => {
+      const o = actx.createOscillator(), g = actx.createGain(); o.type = 'sine'; o.frequency.value = f * m;
+      g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(v * a, t0 + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t0 + d * k);
+      o.connect(g); g.connect(actx.destination); o.start(t0); o.stop(t0 + d * k + 0.02);
+    });
+  } catch (e) {}
+}
+function anvil(f, v = 0.05) {
+  if (window.PT_MUTE) return;
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const t0 = actx.currentTime, len = Math.floor(actx.sampleRate * 0.03), buf = actx.createBuffer(1, len, actx.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+    const src = actx.createBufferSource(), bp = actx.createBiquadFilter(), g = actx.createGain();
+    src.buffer = buf; bp.type = 'bandpass'; bp.frequency.value = f * 3; bp.Q.value = 4; g.gain.value = v * 1.6;
+    src.connect(bp); bp.connect(g); g.connect(actx.destination); src.start(t0);
+  } catch (e) {}
+  bell(f, 0.35, v * 0.7);
+}
+
 // ---------- rendu de l'étoile ----------
 const cv = $('sf-canvas'), cx2 = cv.getContext('2d');
 let snAnim = 0, snBoom = false;
@@ -854,13 +901,20 @@ function drawStar(dt, time) {
     const small = ch < 260, orb = R * (small ? 1.3 + i * 0.14 : 1.5 + i * 0.22);
     if (small ? orb * 0.42 > ch * 0.5 || orb > cw * 0.48 : orb > Math.min(cw, ch) * 0.5) return;
     c.setLineDash([2, 6]); c.strokeStyle = 'rgba(243,212,138,.18)'; c.beginPath(); c.ellipse(X, Y, orb, orb * 0.42, -0.3, 0, Math.PI * 2); c.stroke(); c.setLineDash([]);
-    const n = Math.min(S.gens[i], 18), co = Math.cos(-0.3), si = Math.sin(-0.3);
+    const n = Math.min(S.gens[i], small ? 7 : 14), co = Math.cos(-0.3), si = Math.sin(-0.3);
+    // 1.11 : plus de pastilles de couleur (confettis) — des repères d'atlas à l'encre dorée, une forme par forge
+    // (point, anneau, étoile à quatre branches, croix pointée), pleins devant l'étoile, au trait derrière
+    const shape = small ? 0 : i % 4; c.lineWidth = 1;   // petit cadre (téléphone) : des points seulement, moins chargé
     for (let k = 0; k < n; k++) {
       const a = time * (0.5 - i * 0.035) + k * Math.PI * 2 / n + i, ca = Math.cos(a) * orb, sa = Math.sin(a) * orb * 0.42;
-      c.fillStyle = g.col; c.globalAlpha = Math.sin(a) > 0 ? 1 : 0.45;
-      c.beginPath(); c.arc(X + ca * co - sa * si, Y + ca * si + sa * co, 1.8 + (Math.sin(a) > 0 ? 1 : 0), 0, Math.PI * 2); c.fill();
+      const front = Math.sin(a) > 0, px = X + ca * co - sa * si, py = Y + ca * si + sa * co, z = (front ? 2.6 : 1.9) * (small ? 0.75 : 1);
+      const ink = front ? (i % 2 ? '#efe2bf' : '#f3d48a') : 'rgba(184,151,85,.6)';
+      c.fillStyle = ink; c.strokeStyle = ink; c.beginPath();
+      if (shape === 0) { c.arc(px, py, z * 0.8, 0, Math.PI * 2); front ? c.fill() : c.stroke(); }
+      else if (shape === 1) { c.arc(px, py, z, 0, Math.PI * 2); c.stroke(); if (front) { c.beginPath(); c.arc(px, py, 0.8, 0, Math.PI * 2); c.fill(); } }
+      else if (shape === 2) { const q = z * 1.5; c.moveTo(px, py - q); c.lineTo(px + q * 0.3, py - q * 0.3); c.lineTo(px + q, py); c.lineTo(px + q * 0.3, py + q * 0.3); c.lineTo(px, py + q); c.lineTo(px - q * 0.3, py + q * 0.3); c.lineTo(px - q, py); c.lineTo(px - q * 0.3, py - q * 0.3); c.closePath(); front ? c.fill() : c.stroke(); }
+      else { const q = z * 1.4; c.moveTo(px - q, py); c.lineTo(px + q, py); c.moveTo(px, py - q); c.lineTo(px, py + q); c.stroke(); if (front) { c.beginPath(); c.arc(px, py, 1, 0, Math.PI * 2); c.fill(); } }
     }
-    c.globalAlpha = 1;
   });
   // couronne : halo, plus large et plus dense à chaque stade
   const crn = R * (2 + sg * 0.14), gr = c.createRadialGradient(X, Y, R * 0.5, X, Y, crn);
@@ -906,7 +960,7 @@ function drawStar(dt, time) {
   parts.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += 0.1; p.life -= dt * 1.5; c.globalAlpha = Math.max(0, p.life); c.fillStyle = p.col; c.fillRect(p.x, p.y, p.s, p.s); });
   parts = parts.filter(p => p.life > 0);
   c.textAlign = 'center';
-  floats.forEach(f => { f.y -= dt * 60; f.life -= dt; c.globalAlpha = Math.max(0, f.life); c.font = f.small ? "13px 'NF Num',Georgia,serif" : f.big ? "30px 'NF Num',Georgia,serif" : "19px 'NF Num',Georgia,serif"; c.fillStyle = f.col; c.fillText(f.t, f.x, f.y); });
+  floats.forEach(f => { f.y -= dt * 60; f.life -= dt; c.globalAlpha = Math.max(0, f.life); c.font = f.small ? "13px 'NF Num',Georgia,serif" : f.big ? "30px 'NF Num',Georgia,serif" : "19px 'NF Num',Georgia,serif"; c.lineJoin = 'round'; c.lineWidth = f.small ? 2.5 : 3.5; c.strokeStyle = 'rgba(11,16,40,.75)'; c.strokeText(f.t, f.x, f.y); c.fillStyle = f.col; c.fillText(f.t, f.x, f.y); });   // cerné d'encre : lisible sur tous les stades
   floats = floats.filter(f => f.life > 0);
   c.globalAlpha = 1;
   if (snK >= 0.33) {   // onde de choc dorée, puis bleue
@@ -1086,14 +1140,16 @@ function drawSky(c, X, Y, R, time) {
 const autoRate = () => has('m_auto4') ? 100 : has('m_auto3') ? 50 : has('m_auto2') ? 20 : 5;
 const critX = () => has('m_crit2') ? 25 : 10;
 const critP = auto => has('m_crit') && (!auto || has('m_auto3')) ? 0.05 : 0;   // clic critique : ×10
-let autoN = 0;
+let autoF = 0;   // instant du dernier nombre de l’Automate affiché
 function autoClick() {
   const v = clickValue() * (Math.random() < critP(true) ? critX() : 1); earn(v); S.clicks++; S.lifeClicks++; dqAdd('clicks'); window.ptEvent && window.ptEvent('sf_clicks', 1);
   if (!visible || !cw || v <= 0) return;
   pulse = Math.max(pulse, 0.35);
-  if (++autoN % 3 === 0) {   // une main fantôme : un nombre plus discret que le clic du joueur
+  const now = performance.now();
+  if (now - autoF > 650) {   // une main fantôme : un nombre plus discret que le clic du joueur ; 1.11 : un toutes les 0,65 s au plus (en fin de partie, des dizaines par seconde recouvraient l'étoile)
+    autoF = now;
     const X = cw / 2, Y = ch / 2, R = starR(), a = Math.random() * Math.PI * 2;
-    floats.push({ x: X + Math.cos(a) * R * 0.7, y: Y + Math.sin(a) * R * 0.5, t: '+' + fmt(v), life: 0.8, col: '#9fd8ff', small: 1 });
+    floats.push({ x: X + Math.cos(a) * R * 1.15, y: Y + Math.sin(a) * R * 0.95, t: '+' + fmt(v), life: 0.8, col: '#d8c79a', small: 1 });   // 1.11 : hors du disque, à l'encre (le bleu se fondait dans les étoiles bleues)
   }
 }
 function clickStar(x, y) {
@@ -1108,7 +1164,7 @@ function clickStar(x, y) {
   if (v > st('clickMax')) S.st.clickMax = v;
   floats.push({ x: x + (Math.random() - .5) * 20, y, t: (crit ? '✦ ' : '+') + fmt(v), life: crit ? 1.4 : 1, col: crit ? '#ffffff' : S.buffs.some(b => b.type === 'click') ? '#ff9dfc' : '#ffe38a', big: crit });
   for (let k = 0; k < 6; k++) parts.push({ x, y, vx: (Math.random() - .5) * 5, vy: -Math.random() * 5, life: 1, col: '#ffe38a', s: 2 + Math.random() * 2 });
-  sfx(700 + Math.random() * 200, 0.04, 'sine', 0.03);
+  bell([784, 880, 988, 1175, 1319][(Math.random() * 5) | 0], 0.28, 0.022);   // pentatonique : une série de clics sonne comme un carillon
 }
 // clic du joueur (pas de l'Automate) : série de clics (moins d'une seconde d'écart), fin de la contemplation, compteurs d'évènements
 function manualClick() {
@@ -1127,7 +1183,7 @@ let tip = null, lastPT = 'mouse';
 document.addEventListener('pointerdown', e => { lastPT = e.pointerType; if (tip && !tip.el.contains(e.target)) hideTip(); }, true);
 function showTip(el, html) {
   const fn = typeof html === 'function' ? html : () => html;
-  hideTip(); tip = document.createElement('div'); tip.className = 'sf-tip'; tip.innerHTML = fn(); tip.el = el; tip.fn = fn; document.body.appendChild(tip);
+  hideTip(); tip = document.createElement('div'); tip.className = 'sf-tip'; tip.innerHTML = emoHtml(fn()); tip.el = el; tip.fn = fn; document.body.appendChild(tip);
   const r = el.getBoundingClientRect(); const tr = tip.getBoundingClientRect();
   let x = r.left + r.width / 2 - tr.width / 2, y = r.top - tr.height - 8;
   if (y < 40) y = r.bottom + 8; x = Math.max(6, Math.min(innerWidth - tr.width - 6, x));
@@ -1215,7 +1271,7 @@ function build() {
   } else if (tab === 'opt') {
     panel.innerHTML = `<div class="sf-h">${t('sf.optSave')}</div>
       <p class="muted small">${t(document.body.classList.contains('bq-app') ? 'sf.optSaveTxtApp' : 'sf.optSaveTxt')}</p>
-      <div class="row" style="justify-content:flex-start"><button class="btn ghost small" id="sf-exp">${t('sf.export')}</button><button class="btn ghost small" id="sf-imp">${t('sf.import')}</button><button class="btn small" id="sf-wipe" style="background:#a0304a">${t('sf.wipe')}</button></div>
+      <div class="row" style="justify-content:flex-start"><button class="btn ghost small" id="sf-exp">${t('sf.export')}</button><button class="btn ghost small" id="sf-imp">${t('sf.import')}</button><button class="btn small" id="sf-wipe">${t('sf.wipe')}</button></div>
       <textarea id="sf-io" style="width:100%;height:90px;margin-top:8px;background:#0a0c16;color:#ccd;border:1px solid #2a3050;border-radius:8px;padding:6px;font-size:11px"></textarea>
       <div class="sf-h">${t('sf.optDisplay')}</div>
       <label class="small"><input type="checkbox" id="sf-sci"> ${t('sf.optSci')}</label>
@@ -1613,7 +1669,10 @@ window.GAMES.forge = {
     const n = Math.max(1, Math.round(S.novaTotal * 0.02)); S.novaTotal += n; S.novaBank += n; save(); if (built) refresh(true);
   },
   show() {
-    document.querySelectorAll('.sf-tabs button').forEach(b => { const k = { gen: 'anvil', upg: 'compass', ord: 'scroll', meta: 'spark', chal: 'glass', ach: 'medal', opt: 'gear' }[b.dataset.sf], i = b.querySelector('i'); if (!k || b.dataset.eng) return; b.dataset.eng = 1; if (i) i.innerHTML = engSvg(k); else b.innerHTML = engSvg(k); });
+    document.querySelectorAll('.sf-tabs button').forEach(b => { const k = { gen: 'anvil', upg: 'compass', ord: 'scroll', meta: 'spark', chal: 'glass', ach: 'medal', opt: 'book' }[b.dataset.sf], i = b.querySelector('i'); if (!k || b.dataset.eng) return; b.dataset.eng = 1; if (i) i.innerHTML = engSvg(k); else b.innerHTML = engSvg(k); });
+    const gear = document.querySelector('.sf-tabs #bq-gear'); if (gear && !gear.dataset.eng) { gear.dataset.eng = 1; gear.innerHTML = engSvg('gear'); }
+    const set = $('bq-settings');   // appli : le 🌐 des réglages devient un globe gravé
+    if (set && !set.dataset.eng) { set.dataset.eng = 1; set.querySelectorAll('.bq-row > span').forEach(sp => { const n = sp.firstChild; if (n && n.nodeType === 3 && /🌐/u.test(n.nodeValue)) { const g = document.createElement('span'); g.innerHTML = '<svg class="nfg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><ellipse cx="12" cy="12" rx="3.6" ry="8.5"/><path d="M3.8 9h16.4M3.8 15h16.4"/></svg> '; n.replaceWith(g); } }); }
     visible = true; loadFonts();
     if (!inited) { inited = true; load(); lastT = performance.now(); requestAnimationFrame(loop); }
     try { if (!localStorage.getItem('starforge.intro') && !S.lifeTotal) $('sf-intro').classList.remove('hidden'); } catch (e) {}
@@ -1621,5 +1680,8 @@ window.GAMES.forge = {
   },
   hide() { visible = false; hideTip(); save(); },
 };
+// gravures à la place des emoji, dans tout l'onglet (textes reconstruits à chaque rafraîchissement compris)
+deEmoji($('tab-forge'));
+new MutationObserver(ms => { for (const m of ms) { if (m.type === 'characterData') { EMO_RE.lastIndex = 0; if (EMO_RE.test(m.target.nodeValue)) deEmoji(m.target.parentNode); } else m.addedNodes.forEach(n => n.nodeType === 3 ? deEmoji(n.parentNode) : deEmoji(n)); } }).observe($('tab-forge'), { subtree: true, childList: true, characterData: true });
 // Accès de test (tools/sf-balance.mjs, console).
 window.__sf = { snNow, bbNow, chalNow, CHALS, BIGBANG_MIN, buyGal, totalDps, checkOrders, swapOrder, ord, rank, rankAt, set ordOff(v) { ordOff = v; }, set clock(f) { clock = f; }, get log() { return S.log; }, AST, buyAst, astCost, astOpen, STAGES, stageOf, startSky, SKY, get shoots() { return shoots; }, catchShoot, checkAch, ACH, set idleT(v) { idleT = v; }, NOVA, buyMastery, mastCost, novaCurve, GALAXY, singGain, buyEngine, fmt, boostOn, get offPending() { return offPending; }, set offPending(v) { offPending = v; offUntil = Date.now() + 60000; }, watchBoost, watchOffline, get S() { return S; }, get comet() { return comet; }, spawnComet, catchComet, set S(v) { S = v; }, tick, buyGen, buyUpg, UPGRADES, GENS, costN, upgCost, dps, clickValue, novaGain, earn, fresh, resetRun, META, buyMeta, setMult: m => { buyMult = m; } };

@@ -11,15 +11,17 @@ const HERE = fileURLToPath(new URL('./', import.meta.url));
 import { CAST_PRELOAD } from '../../synth-horde/cast-preload.mjs';
 // Block Quarry : ses polices (Bungee, Big Shoulders), pour un titre dans la typographie du jeu
 import { QUARRY_FONTS_PRELOAD } from '../../block-quarry/fonts-preload.mjs';
-const preload = async id => id === 'synth-horde' ? CAST_PRELOAD : id === 'block-quarry' ? QUARRY_FONTS_PRELOAD : '';
+// Nova Foundry : ses polices d'atlas (IM Fell English SC, Alegreya Sans, Young Serif)
+import { FORGE_FONTS_PRELOAD } from '../../nova-foundry/fonts-preload.mjs';
+const preload = async id => id === 'synth-horde' ? CAST_PRELOAD : id === 'block-quarry' ? QUARRY_FONTS_PRELOAD : id === 'nova-foundry' ? FORGE_FONTS_PRELOAD : '';
 const draw = id => { const s = readFileSync(`${HERE}../../${id}/make-assets.mjs`, 'utf8'); return s.slice(s.indexOf('const DRAW = `') + 14, s.indexOf('`;', s.indexOf('const DRAW = `'))); };
 
 // pour chaque jeu : fond, motif (l'icône) et couleurs du titre
 const GAMES = {
   'block-quarry': { title: 'Block Quarry', tag: 'Clear lines · Free the gems', glow: '#ff9d2e', sub: '#e8d3b0',
     back: 'bg(g,w,h)', motif: (x, y, s) => `logo(g,${x},${y},(${s})*0.74)` },
-  'nova-foundry': { title: 'Nova Foundry', tag: 'Forge stars · Go Supernova', glow: '#ffb84d', sub: '#ffd98a',
-    back: 'bg(g,w,h)', motif: (x, y, s) => `star(g,${x},${y},(${s})*0.42)` },
+  'nova-foundry': { title: 'Nova Foundry', tag: 'Forge stars · Go Supernova', glow: '#f3d48a', sub: '#d8c79a',
+    back: 'bg(g,w,h)', motif: (x, y, s) => `star(g,${x},${y},(${s})*0.2)` },
   'synth-horde': { title: 'Synth Horde', tag: 'Survive the neon hordes', glow: '#ff3fd8', sub: '#ffe86b',
     back: 'bg(g,w,h,.6,w*0.3)', motif: (x, y, s) => `horde(g,${x},(${y})+(${s})*0.05,(${s})*0.42,9,(${s})*0.06);hero(g,${x},${y},(${s})*0.24)` },
 };

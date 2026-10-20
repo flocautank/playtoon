@@ -13,4 +13,4 @@ const mon = createMon({
   products: [{ sku: 'eternal_boost', name: 'sfapp.eternal', desc: 'sfapp.eternalDesc', owned: 'sfapp.eternalOwned' }],
   interstitial: null,
 });
-initShell({ game: 'forge', gearHost: '.sf-tabs', gearIcon: '☰', mon, version: CONFIG.version, statusColor: '#0b0a1f' });
+initShell({ game: 'forge', gearHost: '.sf-tabs', gearIcon: '☰', mon, version: CONFIG.version, statusColor: '#0b1028' });

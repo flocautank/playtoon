@@ -3,13 +3,14 @@
 // Aucune dépendance native : la partie mobile (Capacitor) est dans shell.js, la partie PC dans apps/desktop/src/shell.js.
 import { applyI18n, langSelect, t, addStrings } from '../../js/i18n.js';
 
+// « close » n'existait plus que dans les textes de Block Quarry : Nova Foundry et Synth Horde affichaient la clé
 addStrings({
-  en: { 'app.fullscreen': 'Full screen', 'app.quit': 'Quit game' },
-  fr: { 'app.fullscreen': 'Plein écran', 'app.quit': 'Quitter le jeu' },
-  es: { 'app.fullscreen': 'Pantalla completa', 'app.quit': 'Salir del juego' },
-  de: { 'app.fullscreen': 'Vollbild', 'app.quit': 'Spiel beenden' },
-  it: { 'app.fullscreen': 'Schermo intero', 'app.quit': 'Esci dal gioco' },
-  pt: { 'app.fullscreen': 'Tela cheia', 'app.quit': 'Sair do jogo' },
+  en: { 'close': 'Close', 'app.fullscreen': 'Full screen', 'app.quit': 'Quit game' },
+  fr: { 'close': 'Fermer', 'app.fullscreen': 'Plein écran', 'app.quit': 'Quitter le jeu' },
+  es: { 'close': 'Cerrar', 'app.fullscreen': 'Pantalla completa', 'app.quit': 'Salir del juego' },
+  de: { 'close': 'Schließen', 'app.fullscreen': 'Vollbild', 'app.quit': 'Spiel beenden' },
+  it: { 'close': 'Chiudi', 'app.fullscreen': 'Schermo intero', 'app.quit': 'Esci dal gioco' },
+  pt: { 'close': 'Fechar', 'app.fullscreen': 'Tela cheia', 'app.quit': 'Sair do jogo' },
 });
 
 const $ = id => document.getElementById(id);

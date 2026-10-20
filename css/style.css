@@ -1064,3 +1064,27 @@ body[data-tab=blocks] #bq-settings .card h2{font-family:'BQ Display',system-ui,s
 /* Synth Horde 1.20.1 — Reprendre / Abandonner restent visibles en bas de la pause, même avec un long équipement (portrait et PC) */
 #nb-pause .nb-prow{position:sticky;bottom:-2px;z-index:3;background:var(--ink);padding:8px 0 4px;margin-top:6px;box-shadow:0 -8px 10px -4px var(--ink)}
 @media (max-height:500px) and (orientation:landscape){#nb-pause .nb-prow{position:static;padding:0;margin:0;box-shadow:none;background:none}}
+/* ---- Nova Foundry 1.11 : identité (Veille du jour, options, réglages et notifications de l'appli, gravures à la place des emoji) ---- */
+#tab-forge svg.eng.emo{width:1.15em;height:1.15em;vertical-align:-.2em;margin:0 .1em;color:var(--gold2)}
+#tab-forge .sf-ch .rw svg.eng.emo{color:var(--novae)}
+#tab-forge .overlay h2 svg.eng.emo{width:.9em;height:.9em;vertical-align:-.05em;margin-right:.25em}
+/* onglet Options : plus de bouton rose ni de champ d'appli */
+#tab-forge #sf-wipe{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='80'%3E%3Cfilter id='r'%3E%3CfeTurbulence baseFrequency='.08' numOctaves='2' seed='7'/%3E%3CfeDisplacementMap in='SourceGraphic' scale='5'/%3E%3C/filter%3E%3Crect x='5' y='6' width='190' height='68' rx='10' fill='%238e1d17' filter='url%28%23r%29'/%3E%3C/svg%3E") center/100% 100% no-repeat!important;color:#f8e6c4!important;box-shadow:none!important;text-shadow:0 -1px 0 rgba(0,0,0,.45)!important}
+
+/* réglages de l'appli : la même note à l'encre sur papier vergé que les confirmations */
+body[data-tab=forge] #bq-settings .card{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Cfilter id='r'%3E%3CfeTurbulence baseFrequency='.05' numOctaves='3' seed='5'/%3E%3CfeDisplacementMap in='SourceGraphic' scale='9'/%3E%3C/filter%3E%3Crect x='8' y='8' width='384' height='284' fill='%23ead9b0' filter='url%28%23r%29'/%3E%3C/svg%3E") center/100% 100% no-repeat;border:none;box-shadow:none;border-radius:0;color:#2a1d0c;padding:34px 34px 28px;filter:drop-shadow(0 12px 30px rgba(0,0,0,.6));font-family:'NF Text',Georgia,serif;max-width:380px}
+body[data-tab=forge] #bq-settings .card h2{font:400 28px 'NF Title',Georgia,serif;color:#5a1712;letter-spacing:.02em;border-bottom:1px solid rgba(90,23,18,.35);padding-bottom:4px;margin-bottom:2px}
+body[data-tab=forge] #bq-settings .bq-row{font:400 17px 'NF Text',Georgia,serif;color:#2a1d0c;border-bottom:1px dashed rgba(107,82,34,.35);padding:4px 0 7px}
+body[data-tab=forge] #bq-settings input[type=checkbox]{accent-color:#8e1d17;width:20px;height:20px}
+body[data-tab=forge] #bq-settings select{background:transparent;color:#2a1d0c;border:1px solid #6b5222;border-radius:0;font:400 16px 'NF Text',Georgia,serif;padding:3px 6px}
+body[data-tab=forge] #bq-settings .bq-link{color:#5a1712;font:italic 400 15px 'NF Text',Georgia,serif}
+body[data-tab=forge] #bq-settings .muted{color:#6b5a3a;font:400 14px 'NF Num',Georgia,serif}
+body[data-tab=forge] #bq-settings .bq-shop{border-color:rgba(107,82,34,.35)}
+body[data-tab=forge] #bq-settings .btn{border-radius:0;box-shadow:none;background:transparent;color:#3a2a14;border:1px solid #6b5222;font:400 17px 'NF Title',Georgia,serif;letter-spacing:.04em;text-transform:none}
+body[data-tab=forge] #bq-settings .btn:not(.ghost){background:#8e1d17;color:#f8e6c4;border-color:#5a1712}
+body[data-tab=forge] #bq-settings svg.nfg{width:17px;height:17px;vertical-align:-3px;fill:none;stroke:#5a1712;stroke-width:1.4;stroke-linecap:round}
+.sf-tabs #bq-gear svg.eng{width:20px;height:20px}
+/* notifications de l'appli (achats, pubs) : étiquette d'encre, filet doré */
+body[data-tab=forge] .pt-toasts div{background:rgba(11,16,40,.96);border:1px solid #b89755;outline:1px solid rgba(184,151,85,.3);outline-offset:3px;border-radius:0;color:#f3d48a;font:400 15px 'NF Text',Georgia,serif;letter-spacing:.02em}
+/* téléphone : les chiffres de la Supernova tenaient sur trois lignes et écrasaient l'étoile */
+@media (max-width:760px){#tab-forge .sf-prestige .small b{font-size:16px}#tab-forge .sf-prestige .small{line-height:1.35}}

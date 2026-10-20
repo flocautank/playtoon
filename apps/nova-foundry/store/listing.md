@@ -4,7 +4,7 @@ Package: `io.github.flocautank.novafoundry` · Category: **Games → Simulation*
 Content: all ages (IARC: no violence, no gambling, no user interaction; contains ads; in-app purchase).
 Privacy policy: https://flocautank.github.io/playtoon/privacy.html
 
-Graphics: `../assets/play-icon-512.png`, `../assets/feature-graphic.png`, `screenshots/en/*.png`, `screenshots/fr/*.png` (1080×1920).
+Graphics: `../assets/play-icon-512.png`, `../assets/feature-graphic.png`, `screenshots/en/*.png`, `screenshots/fr/*.png` (1080×1920), iPhone : `ios-screenshots/` (1290×2796). Captures (1.11.0) : forges et étoile évoluée, Constellation, Astérismes, Commandes, Veille du jour, Supernova — `node tools/store-shots.mjs`.
 
 ---
 
@@ -17,19 +17,27 @@ Graphics: `../assets/play-icon-512.png`, `../assets/feature-graphic.png`, `scree
 **Full description**:
 
 ```
-Tap the star. Collect stardust. Build forges that keep working while you are away — then blow it all up in a Supernova and come back stronger.
+Tap the star. Collect stardust. Build forges that keep working while you are away — then blow it all up in a Supernova and come back stronger. Drawn like an old star atlas: engraved suns, gilt astrolabes, constellations traced in ink.
 
-★ A DEEP IDLE CLIMB
-• 10 cosmic forges, from a humble Spark to the Big Bang Engine
-• Nearly 100 upgrades and doubling milestones
-• Golden comets, rare meteors and eclipses that shake up your strategy
+★ A STAR THAT GROWS WITH YOU
+• Your star evolves through 10 stages, from a red dwarf to a blue hypergiant, a pulsar and a quasar
+• 12 cosmic forges, from a humble Spark to the Star Anvil
+• 138 upgrades, forge synergies and doubling milestones
+• Golden comets, dark comets, shooting stars and five sky events: eclipse, shooting-star shower, conjunction, solar flare, aurora
 • Offline progress: your foundry keeps producing while you sleep
 
-★ THREE LAYERS OF PROGRESSION
+★ LAYERS OF PROGRESSION
 • Supernova: reset your run for Novae, a permanent production bonus
-• Constellation: a skill tree of 14 permanent nodes (automation, cheaper forges, longer comets…)
+• Constellation: a permanent tree of 66 nodes, then Stellar Mastery
+• Asterisms: chart eight figures star by star — the Crucible, the Lyre, the Sextant… — each strengthening one mechanic
 • Big Bang: the second prestige — trade Novae for Singularities and automate your Galaxy
-• 6 challenges with permanent rewards, and dozens of achievements
+• 6 challenges with permanent rewards and 102 achievements
+
+★ ALWAYS SOMETHING TO DO
+• Forge Orders: three goals cut to your current run, each paying Novae and a seal
+• Guild rank: seals raise you from Apprentice to Grand master, +3% production per rank, forever
+• Daily Watch: three new goals every day, a chest and a streak bonus
+• Logbook: your notable Supernovae, stages, records and ranks, with the time they took
 
 ★ PLAYS YOUR WAY
 • Tap as much as you like, or let the Automaton click for you
@@ -55,19 +63,27 @@ Your star is waiting. How far can your foundry go?
 **Description complète** :
 
 ```
-Touche l'étoile. Récolte la poussière d'étoile. Bâtis des forges qui travaillent même quand tu es parti — puis fais tout exploser en Supernova pour revenir plus fort.
+Touche l'étoile. Récolte la poussière d'étoile. Bâtis des forges qui travaillent même quand tu es parti — puis fais tout exploser en Supernova pour revenir plus fort. Dessiné comme un vieil atlas céleste : soleils gravés, astrolabes dorés, constellations tracées à l'encre.
 
-★ UNE PROGRESSION IDLE PROFONDE
-• 10 forges cosmiques, de l'humble Étincelle au Moteur à Big Bang
-• Près de 100 améliorations et des paliers qui doublent la production
-• Comètes dorées, météores rares et éclipses qui bousculent ta stratégie
+★ UNE ÉTOILE QUI GRANDIT AVEC TOI
+• Ton étoile évolue en 10 stades, de la naine rouge à l'hypergéante bleue, au pulsar et au quasar
+• 12 forges cosmiques, de l'humble Étincelle à l'Enclume stellaire
+• 138 améliorations, des synergies entre forges et des paliers qui doublent la production
+• Comètes dorées, comètes sombres, étoiles filantes et cinq évènements du ciel : éclipse, pluie d’étoiles filantes, conjonction, éruption solaire, aurore
 • Progression hors-ligne : ta fonderie produit pendant que tu dors
 
-★ TROIS COUCHES DE PROGRESSION
+★ DES COUCHES DE PROGRESSION
 • Supernova : recommence ta run contre des Novae, un bonus de production permanent
-• Constellation : un arbre de 14 talents permanents (automatisation, forges moins chères, comètes plus longues…)
+• Constellation : un arbre permanent de 66 nœuds, puis la Maîtrise stellaire
+• Astérismes : trace huit figures étoile par étoile — le Creuset, la Lyre, le Sextant… — chacune renforce un mécanisme
 • Big Bang : le deuxième prestige — échange tes Novae contre des Singularités et automatise ta Galaxie
-• 6 défis à récompense permanente et des dizaines de succès
+• 6 défis à récompense permanente et 102 succès
+
+★ TOUJOURS QUELQUE CHOSE À FAIRE
+• Commandes de la forge : trois objectifs taillés sur ta partie, payés en Novae et en sceaux
+• Rang de compagnonnage : les sceaux te font passer d'Apprenti à Grand maître, +3 % de production par rang, pour toujours
+• Veille du jour : trois nouveaux objectifs chaque jour, un coffre et une série de jours
+• Carnet de bord : tes Supernovae marquantes, stades, records et rangs, avec le temps qu'il t'a fallu
 
 ★ À TON RYTHME
 • Tapote autant que tu veux, ou laisse l'Automate cliquer pour toi
