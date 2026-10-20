@@ -587,6 +587,9 @@ const saveDaily = () => { try { localStorage.setItem('blocparty.daily', JSON.str
 const RANK_XP = [0, 40, 120, 250, 420, 650, 950, 1300, 1750, 2300, 2950, 3700, 4600, 5600, 6800, 8200];   // 16 grades (8 titres × I/II)
 const rankOf = xp => { let r = 0; while (r + 1 < RANK_XP.length && xp >= RANK_XP[r + 1]) r++; return r; };
 const rankCoins = r => 20 + 10 * r;
+// au-delà du dernier grade : une étoile de légende tous les 1 000 XP (pièces seulement, aucun avantage de jeu)
+const LEGEND_XP = 1000, LEGEND_COINS = 100, TOP_XP = RANK_XP[RANK_XP.length - 1];
+const legendOf = xp => Math.max(0, Math.floor((xp - TOP_XP) / LEGEND_XP));
 // missions : [objectif, pièces] ; « combo » et « score » retiennent le meilleur de la semaine, les autres cumulent
 const MISSIONS = {
   lines: [120, 40], pieces: [400, 40], multi: [8, 50], combo: [6, 50], score: [1500, 60], chrono: [3, 40], clear: [1, 70],
@@ -601,6 +604,7 @@ if (carFresh) {   // joueurs d'avant 1.9.0 : le grade part de la progression dé
   const advSt = Object.values(ADV.stars).reduce((a, b) => a + b, 0), dSt = Object.values(DAILY.hist || {}).reduce((a, b) => a + b, 0);
   CAR.xp = advSt * 3 + dSt * 10; CAR.rank = rankOf(CAR.xp);
 }
+if (CAR.lg == null) CAR.lg = legendOf(CAR.xp);   // joueurs d'avant 1.14.0 : les étoiles déjà méritées ne rapportent rien rétroactivement
 const saveCar = () => { try { localStorage.setItem('blocparty.career', JSON.stringify(CAR)); } catch (e) {} };
 const toast = m => window.ptToast && window.ptToast(m);
 const rankName = r => { const n = t('bp.ranks'); return `${(Array.isArray(n) && n[r >> 1]) || ''} ${r % 2 ? 'II' : 'I'}`; };
@@ -641,6 +645,12 @@ function gainXP(n) {
     if (!S.over) S.pops.push({ text: t('bp.rankUpPop'), sub: rankName(CAR.rank), t: -1.2, big: true });
     paintCarBtn();
   }
+  const lg = legendOf(CAR.xp);
+  if (lg > CAR.lg) {   // un seul message, même si plusieurs étoiles passent d'un coup
+    const g = (lg - CAR.lg) * LEGEND_COINS; CAR.lg = lg; COINS += g; saveCoins();
+    toast(t('bp.legendUp', { k: lg, n: g }));
+    if (!S.over) S.pops.push({ text: '★' + lg, sub: rankName(CAR.rank), t: -1.2, big: true });
+  }
   saveCar();
 }
 // médaille de maîtrise : les 30 étoiles d'un chapitre
@@ -666,12 +676,12 @@ const bar = k => `<span class="bp-bar"><i style="width:${Math.round(Math.max(0, 
 // ligne de grade sous un écran de fin : grade, XP gagnée dans la partie, barre vers le grade suivant
 function xpLine() {
   const r = CAR.rank, top = r >= RANK_XP.length - 1, a = RANK_XP[r], b = RANK_XP[Math.min(r + 1, RANK_XP.length - 1)];
-  return `${rankBadge(r, 'bp-ins sm')}<b>${rankName(r)}</b>${S.xpRun ? ` · +${num(S.xpRun)} XP` : ''}${bar(top ? 1 : (CAR.xp - a) / (b - a))}`;
+  return `${rankBadge(r, 'bp-ins sm')}<b>${rankName(r)}</b>${S.xpRun ? ` · +${num(S.xpRun)} XP` : ''}${top && CAR.lg ? ` ★${CAR.lg}` : ''}${bar(top ? (CAR.xp - TOP_XP) % LEGEND_XP / LEGEND_XP : (CAR.xp - a) / (b - a))}`;
 }
 function openCareer() {
   const w = ensureWeek(), r = CAR.rank, top = r >= RANK_XP.length - 1, a = RANK_XP[r], b = RANK_XP[Math.min(r + 1, RANK_XP.length - 1)];
   const nth = THEMES.find(x => x.rank === r + 1);
-  $('bp-rank').innerHTML = `<div class="bp-rkb">${rankBadge(r)}<b>${r + 1}</b></div><div class="bp-rkt"><b>${rankName(r)}</b>${bar(top ? 1 : (CAR.xp - a) / (b - a))}<small>${top ? t('bp.rankMax', { xp: num(CAR.xp) }) : t('bp.rankNext', { xp: num(CAR.xp - a), need: num(b - a), n: rankCoins(r + 1) }) + (nth ? ' · ' + t('bp.th.' + nth.id) : '')}</small></div><span class="bp-coins">🪙 ${num(COINS)}</span>`;
+  $('bp-rank').innerHTML = `<div class="bp-rkb">${rankBadge(r)}<b>${r + 1}</b></div><div class="bp-rkt"><b>${rankName(r)}${top && CAR.lg ? ` ★${CAR.lg}` : ''}</b>${bar(top ? (CAR.xp - TOP_XP) % LEGEND_XP / LEGEND_XP : (CAR.xp - a) / (b - a))}<small>${top ? t('bp.rankMax', { xp: num(CAR.xp), x: num((CAR.xp - TOP_XP) % LEGEND_XP), need: num(LEGEND_XP), n: LEGEND_COINS }) : t('bp.rankNext', { xp: num(CAR.xp - a), need: num(b - a), n: rankCoins(r + 1) }) + (nth ? ' · ' + t('bp.th.' + nth.id) : '')}</small></div><span class="bp-coins">🪙 ${num(COINS)}</span>`;
   const left = Math.min(7, Math.max(1, Math.ceil((new Date(Math.floor(w.k / 10000), Math.floor(w.k / 100) % 100 - 1, w.k % 100 + 7) - new Date()) / 864e5)));
   $('bp-weekleft').textContent = t('bp.weekLeft', { n: left });
   const vid = MON.canReward();
