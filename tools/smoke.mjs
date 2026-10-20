@@ -83,6 +83,8 @@ log('défi du jour :', await page.evaluate(() => {
   const d = JSON.parse(localStorage.getItem('blocparty.daily'));
   return `identique=${a === b} score=${S.score} meilleur=${d.best} série=${d.streak} mode=${S.mode}`;
 }));
+// la grille du défi change chaque jour : les placements au hasard peuvent finir la partie, l'écran de fin masquerait alors la suite
+await page.waitForTimeout(1500); await page.evaluate(() => document.getElementById('bp-over').classList.add('hidden'));   // l'écran de fin s'arme avec un délai (≥ 1,3 s)
 await page.click('#bp-mapbtn'); await page.waitForTimeout(200); await shot(page, 'blocks-map2'); await page.click('#bp-classic'); await page.waitForTimeout(300);
 // chrono : le temps s'écoule, une ligne rend du temps, fin → top 10
 await page.click('#bp-mapbtn'); await page.waitForTimeout(200); await page.click('#bp-chrono'); await page.waitForTimeout(1500); await shot(page, 'blocks-chrono');
