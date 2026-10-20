@@ -1102,3 +1102,9 @@ body[data-tab=forge] .pt-toasts div{background:rgba(11,16,40,.96);border:1px sol
 #nb-root .nb-lbbtn,.nb-lbbtn{display:inline-flex;align-items:center;justify-content:center;gap:7px;align-self:center}
 #nb-root .nb-lbbtn svg.nbi{width:24px;height:24px;vertical-align:middle}
 #pt-lb .nb-pf{outline:3px solid #7ff6ff!important;outline-offset:3px}
+
+.bp-ms2{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+.bp-mi{background:rgba(0,0,0,.2);border-radius:6px;padding:6px 8px;display:grid;grid-template-columns:1fr auto;gap:2px 6px;align-items:center}
+.bp-mi small{font-size:11px;color:#b9a080}.bp-mi b{font:400 13px 'BQ Display',system-ui,sans-serif;color:#fff1d6;text-align:right}
+.bp-mi .bp-bar{grid-column:1/3}.bp-mi em{grid-column:1/3;font-style:normal;font-size:10px;letter-spacing:2px;color:#f0b23a}
+.bp-mi.done b{color:#f0b23a}

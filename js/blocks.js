@@ -511,7 +511,7 @@ function advResult(win) {
     if (S.gain) { COINS += S.gain; saveCoins(); }
     track('adv'); if (stars === 3) track('adv3'); gainXP(stars * 3); checkMedals();
   }
-  if (!S.counted) { S.counted = true; stat('games'); } saveCar();   // une reprise suivie d'une seconde fin ne recompte pas la partie
+  if (!S.counted) { S.counted = true; stat('games'); } saveCar(); checkMilestones();   // une reprise suivie d'une seconde fin ne recompte pas la partie
   clearTimeout(resTimer); resTimer = setTimeout(() => {
     const close = S.goal.type === 'color' ? S.vein >= S.goal.need - 2 : S.goal.type === 'gems' ? S.got >= S.goal.gems - 1 : S.goal.type === 'ice' ? S.ice.size <= 2 : S.lines >= S.goal.target - 1;
     $('bp-restitle').textContent = win ? t('bp.levelWon', { n: S.lvl }) : close ? t('bp.failClose') : t('bp.fail');
@@ -598,7 +598,7 @@ const MISSIONS = {
 const M_GENERAL = ['lines', 'pieces', 'multi', 'combo', 'score', 'chrono', 'clear'], M_MODE = ['adv', 'adv3', 'gems', 'ice', 'daily', 'dstar'];
 const BEST_OF = new Set(['combo', 'score']);
 const WEEK_CHEST = 100, MISSION_XP = 30, MEDAL_COINS = 60;
-let CAR = { xp: 0, rank: 0, st: {}, week: null, medals: {} }, carFresh = true;
+let CAR = { xp: 0, rank: 0, st: {}, week: null, medals: {}, ms: {} }, carFresh = true;
 try { const c = localStorage.getItem('blocparty.career'); if (c) { CAR = Object.assign(CAR, JSON.parse(c)); carFresh = false; } } catch (e) {}
 if (carFresh) {   // joueurs d'avant 1.9.0 : le grade part de la progression déjà faite (étoiles d'Aventure et du défi), sans récompense rétroactive
   const advSt = Object.values(ADV.stars).reduce((a, b) => a + b, 0), dSt = Object.values(DAILY.hist || {}).reduce((a, b) => a + b, 0);
@@ -663,6 +663,23 @@ function checkMedals() {
     const names = t('bp.chapters'); toast(t('bp.medalGot', { c: (Array.isArray(names) && names[c]) || c + 1, n: MEDAL_COINS }));
   }
 }
+// jalons à vie (1.14.0) : des paliers lointains sous chaque statistique du Carnet, payés une fois, sans bouton ni vidéo —
+// de quoi viser au-delà du dernier grade. Pièces et XP seulement, rien qui se règle contre de l'argent.
+const MS_FAM = [['lines', [250, 1500, 6000, 25000], s => s.lines], ['pieces', [800, 5000, 20000, 80000], s => s.pieces], ['games', [10, 60, 250, 1000], s => s.games],
+  ['combo', [6, 9, 12, 15], s => s.combo], ['clears', [1, 10, 50, 200], s => s.clears], ['days', [3, 10, 30, 100], s => s.days], ['best', [2500, 8000, 20000, 50000], s => S.best]];
+const MS_COINS = [30, 60, 100, 200], MS_XP = [20, 40, 80, 150];
+function checkMilestones() {
+  if (!CAR.ms) CAR.ms = {};
+  let coins = 0, xp = 0, n = 0;
+  for (const [id, steps, get] of MS_FAM) {
+    const v = get(CAR.st) || 0; let k = CAR.ms[id] || 0;
+    while (k < steps.length && v >= steps[k]) { coins += MS_COINS[k]; xp += MS_XP[k]; k++; n++; }
+    CAR.ms[id] = k;
+  }
+  if (!n) return;
+  COINS += coins; saveCoins(); saveCar(); toast(t('bp.msGot', { n: coins }));
+  gainXP(xp); paintCarBtn();
+}
 function claimMission(id, mult) {
   const w = ensureWeek(); if (!mDone(id) || w.got[id]) return;
   w.got[id] = mult; COINS += MISSIONS[id][1] * mult; saveCoins(); gainXP(MISSION_XP); saveCar();
@@ -701,6 +718,10 @@ function openCareer() {
   $('bp-cstats').innerHTML = [[t('bp.cs.lines'), num(st.lines || 0)], [t('bp.cs.pieces'), num(st.pieces || 0)], [t('bp.cs.games'), num(st.games || 0)], [t('bp.cs.combo'), '×' + (st.combo || 0)],
     [t('bp.cs.clears'), num(st.clears || 0)], [t('bp.cs.best'), num(S.best || 0)], [t('bp.cs.stars'), `${advSt}/${LEVELS * 3}`], [t('bp.cs.days'), num(st.days || 0)]]
     .map(([k, v]) => `<div><small>${k}</small><b>${v}</b></div>`).join('');
+  $('bp-ms').innerHTML = MS_FAM.map(([id, steps, get]) => {
+    const k = (CAR.ms || {})[id] || 0, v = get(st) || 0, done = k >= steps.length, goal = steps[Math.min(k, steps.length - 1)], lo = k ? steps[k - 1] : 0;
+    return `<div class="bp-mi${done ? ' done' : ''}"><small>${t('bp.cs.' + id)}</small><b>${done ? '✓ ' + num(steps[steps.length - 1]) : num(Math.min(v, goal)) + ' / ' + num(goal)}</b>${bar(done ? 1 : (v - lo) / (goal - lo))}<em>${'◆'.repeat(k)}${'◇'.repeat(steps.length - k)}</em></div>`;
+  }).join('');
   $('bp-career').querySelectorAll('[data-claim]').forEach(e => e.onclick = () => claimMission(e.dataset.claim, 1));
   $('bp-career').querySelectorAll('[data-claim2]').forEach(e => e.onclick = () => MON.reward('mission').then(ok => ok && claimMission(e.dataset.claim2, 2)));
   const cb = $('bp-chestbtn'); if (cb) cb.onclick = claimChest;
@@ -951,7 +972,7 @@ function gameOver() {
   $('bp-cont').classList.toggle('hidden', COINS < contCost() || S.mode === 'chrono' || (S.mode === 'daily' && dailyContUsed()));
   $('bp-cont').textContent = t('bp.contBooster', { n: contCost() });
   $('bp-vidcont').classList.toggle('hidden', S.mode === 'chrono' || S.vidCont || !MON.canReward());
-  if (!S.counted) { S.counted = true; stat('games'); } saveCar(); $('bp-xpo').innerHTML = xpLine(); paintCarBtn();
+  if (!S.counted) { S.counted = true; stat('games'); } saveCar(); checkMilestones(); $('bp-xpo').innerHTML = xpLine(); paintCarBtn();
   $('bp-dnext').classList.toggle('hidden', !dl); if (dl) $('bp-dnext').textContent = t('bp.dailyNext', { t: nextDaily() });
   // classements : le défi seulement pour la graine du jour UTC en cours (une partie commencée avant minuit UTC n'y entre pas)
   if (S.mode === 'daily') LB.submit('daily', S.score, S.dday); else if (S.mode === 'classic' || S.mode === 'chrono') LB.submit(S.mode, S.score);
@@ -1697,7 +1718,7 @@ window.GAMES.blocks = {
     loadFonts(); watchModal(); initComfort();
     if (!document.body.dataset.tab) document.body.dataset.tab = 'blocks';   // appli : la coquille (réglages, confirmations, notifications) prend le style de la carrière
     if (!inited) { inited = true; if (!load()) newGame(); else if (!S.tray.some(t => t && canPlaceAnywhere(t))) newGame(); updateHUD(); }
-    loginBonus(); checkMedals(); ensureWeek(); paintCarBtn(); lbSync();
+    loginBonus(); checkMedals(); checkMilestones(); ensureWeek(); paintCarBtn(); lbSync();
     // une seule boucle de dessin : un second show() sans hide() (reprise de l'appli) en lançait une deuxième, et le
     // Chrono s'écoulait deux fois plus vite (chaque image de la boucle en trop comptait 16 ms)
     const loop = !running; running = true; requestAnimationFrame(() => { resize(); if (loop) { last = performance.now(); requestAnimationFrame(frame); } });

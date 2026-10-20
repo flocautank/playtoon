@@ -41,7 +41,7 @@ const TXT = {
     'bp.themes': 'Themes', 'bp.themesHelp': 'Unlock block styles with your coins 🪙 (earned by clearing lines and winning stars). Three more are earned by rank in the Quarry log.',
     // Carnet (1.9.0)
     'bp.carTip': 'Quarry log: rank, weekly missions, medals', 'bp.carTitle': 'Quarry log', 'bp.weekTitle': 'This week’s missions', 'bp.weekLeft': v => `new ones in ${v.n} ${s(v.n, 'day', 'days')}`,
-    'bp.medalsTitle': 'Chapter medals', 'bp.medalsHelp': 'all 30 stars of a chapter · +60 🪙', 'bp.statsTitle': 'Career',
+    'bp.medalsTitle': 'Chapter medals', 'bp.medalsHelp': 'all 30 stars of a chapter · +60 🪙', 'bp.msTitle': 'Lifetime milestones', 'bp.msHelp': '4 tiers each · coins and XP', 'bp.msGot': 'Milestone reached · +{n} 🪙', 'bp.statsTitle': 'Career',
     'bp.ranks': ['Apprentice', 'Digger', 'Stonecutter', 'Mason', 'Foreman', 'Master Mason', 'Quarry Master', 'Quarry Legend'],
     'bp.rankUp': 'New rank: {rank} · +{n} coins', 'bp.rankUpPop': 'RANK UP!', 'bp.themeWon': 'theme “{th}” unlocked', 'bp.themeRank': 'Reach the rank {rank} in the Quarry log to unlock this theme',
     'bp.rankNext': '{xp} / {need} XP · next rank: +{n} 🪙', 'bp.rankMax': 'Top rank reached · {xp} XP · next legend star: {x} / {need} XP (+{n} 🪙)', 'bp.legendUp': 'Legend star ★{k} · +{n} coins', 'bp.mDone': 'Mission complete: {m} — claim it in the Quarry log',
@@ -93,7 +93,7 @@ const TXT = {
     'bp.themes': 'Thèmes', 'bp.themesHelp': 'Débloque des styles de blocs avec tes pièces 🪙 (gagnées en effaçant des lignes et en décrochant des étoiles). Trois autres se gagnent au grade, dans le Carnet.',
     // Carnet (1.9.0)
     'bp.carTip': 'Carnet du carrier : grade, missions de la semaine, médailles', 'bp.carTitle': 'Carnet du carrier', 'bp.weekTitle': 'Missions de la semaine', 'bp.weekLeft': v => `nouvelles dans ${v.n} ${s(v.n, 'jour', 'jours')}`,
-    'bp.medalsTitle': 'Médailles de chapitre', 'bp.medalsHelp': 'les 30 étoiles d’un chapitre · +60 🪙', 'bp.statsTitle': 'Carrière',
+    'bp.medalsTitle': 'Médailles de chapitre', 'bp.medalsHelp': 'les 30 étoiles d’un chapitre · +60 🪙', 'bp.msTitle': 'Jalons de carrière', 'bp.msHelp': '4 paliers chacun · pièces et XP', 'bp.msGot': 'Jalon atteint · +{n} 🪙', 'bp.statsTitle': 'Carrière',
     'bp.ranks': ['Apprenti', 'Terrassier', 'Tailleur de pierre', 'Maçon', 'Contremaître', 'Maître maçon', 'Maître carrier', 'Légende de la carrière'],
     'bp.rankUp': 'Nouveau grade : {rank} · +{n} pièces', 'bp.rankUpPop': 'NOUVEAU GRADE !', 'bp.themeWon': 'thème « {th} » débloqué', 'bp.themeRank': 'Atteins le grade {rank} dans le Carnet pour débloquer ce thème',
     'bp.rankNext': '{xp} / {need} XP · grade suivant : +{n} 🪙', 'bp.rankMax': 'Grade maximal atteint · {xp} XP · prochaine étoile de légende : {x} / {need} XP (+{n} 🪙)', 'bp.legendUp': 'Étoile de légende ★{k} · +{n} pièces', 'bp.mDone': 'Mission remplie : {m} — à récupérer dans le Carnet',
@@ -145,7 +145,7 @@ const TXT = {
     'bp.themes': 'Temas', 'bp.themesHelp': 'Desbloquea estilos de bloques con tus monedas 🪙 (se ganan borrando líneas y consiguiendo estrellas). Otros tres se ganan por rango en el Cuaderno.',
     // Carnet (1.9.0)
     'bp.carTip': 'Cuaderno del cantero: rango, misiones semanales, medallas', 'bp.carTitle': 'Cuaderno del cantero', 'bp.weekTitle': 'Misiones de la semana', 'bp.weekLeft': v => `nuevas en ${v.n} ${s(v.n, 'día', 'días')}`,
-    'bp.medalsTitle': 'Medallas de capítulo', 'bp.medalsHelp': 'las 30 estrellas de un capítulo · +60 🪙', 'bp.statsTitle': 'Carrera',
+    'bp.medalsTitle': 'Medallas de capítulo', 'bp.medalsHelp': 'las 30 estrellas de un capítulo · +60 🪙', 'bp.msTitle': 'Hitos de carrera', 'bp.msHelp': '4 niveles cada uno · monedas y XP', 'bp.msGot': 'Hito alcanzado · +{n} 🪙', 'bp.statsTitle': 'Carrera',
     'bp.ranks': ['Aprendiz', 'Peón', 'Picapedrero', 'Albañil', 'Capataz', 'Maestro albañil', 'Maestro cantero', 'Leyenda de la cantera'],
     'bp.rankUp': 'Nuevo rango: {rank} · +{n} monedas', 'bp.rankUpPop': '¡NUEVO RANGO!', 'bp.themeWon': 'tema «{th}» desbloqueado', 'bp.themeRank': 'Alcanza el rango {rank} en el Cuaderno para desbloquear este tema',
     'bp.rankNext': '{xp} / {need} XP · siguiente rango: +{n} 🪙', 'bp.rankMax': 'Rango máximo alcanzado · {xp} XP · próxima estrella de leyenda: {x} / {need} XP (+{n} 🪙)', 'bp.legendUp': 'Estrella de leyenda ★{k} · +{n} monedas', 'bp.mDone': 'Misión cumplida: {m} — recógela en el Cuaderno',
@@ -197,7 +197,7 @@ const TXT = {
     'bp.themes': 'Designs', 'bp.themesHelp': 'Schalte Block-Designs mit deinen Münzen 🪙 frei (verdient durch geräumte Linien und Sterne). Drei weitere gibt es über den Rang im Logbuch.',
     // Carnet (1.9.0)
     'bp.carTip': 'Steinbruch-Logbuch: Rang, Wochenmissionen, Medaillen', 'bp.carTitle': 'Steinbruch-Logbuch', 'bp.weekTitle': 'Missionen der Woche', 'bp.weekLeft': v => `neue in ${v.n} ${s(v.n, 'Tag', 'Tagen')}`,
-    'bp.medalsTitle': 'Kapitelmedaillen', 'bp.medalsHelp': 'alle 30 Sterne eines Kapitels · +60 🪙', 'bp.statsTitle': 'Karriere',
+    'bp.medalsTitle': 'Kapitelmedaillen', 'bp.medalsHelp': 'alle 30 Sterne eines Kapitels · +60 🪙', 'bp.msTitle': 'Karriere-Meilensteine', 'bp.msHelp': 'je 4 Stufen · Münzen und XP', 'bp.msGot': 'Meilenstein erreicht · +{n} 🪙', 'bp.statsTitle': 'Karriere',
     'bp.ranks': ['Lehrling', 'Gräber', 'Steinhauer', 'Maurer', 'Vorarbeiter', 'Maurermeister', 'Bruchmeister', 'Steinbruch-Legende'],
     'bp.rankUp': 'Neuer Rang: {rank} · +{n} Münzen', 'bp.rankUpPop': 'NEUER RANG!', 'bp.themeWon': 'Design „{th}“ freigeschaltet', 'bp.themeRank': 'Erreiche im Logbuch den Rang {rank}, um dieses Design freizuschalten',
     'bp.rankNext': '{xp} / {need} XP · nächster Rang: +{n} 🪙', 'bp.rankMax': 'Höchster Rang erreicht · {xp} XP · nächster Legendenstern: {x} / {need} XP (+{n} 🪙)', 'bp.legendUp': 'Legendenstern ★{k} · +{n} Münzen', 'bp.mDone': 'Mission erfüllt: {m} — im Logbuch abholen',
@@ -249,7 +249,7 @@ const TXT = {
     'bp.themes': 'Temi', 'bp.themesHelp': 'Sblocca stili di blocchi con le tue monete 🪙 (guadagnate completando linee e ottenendo stelle). Altri tre si guadagnano con il grado nel Taccuino.',
     // Carnet (1.9.0)
     'bp.carTip': 'Taccuino del cavatore: grado, missioni settimanali, medaglie', 'bp.carTitle': 'Taccuino del cavatore', 'bp.weekTitle': 'Missioni della settimana', 'bp.weekLeft': v => `nuove tra ${v.n} ${s(v.n, 'giorno', 'giorni')}`,
-    'bp.medalsTitle': 'Medaglie dei capitoli', 'bp.medalsHelp': 'tutte le 30 stelle di un capitolo · +60 🪙', 'bp.statsTitle': 'Carriera',
+    'bp.medalsTitle': 'Medaglie dei capitoli', 'bp.medalsHelp': 'tutte le 30 stelle di un capitolo · +60 🪙', 'bp.msTitle': 'Traguardi di carriera', 'bp.msHelp': '4 livelli ciascuno · monete e XP', 'bp.msGot': 'Traguardo raggiunto · +{n} 🪙', 'bp.statsTitle': 'Carriera',
     'bp.ranks': ['Apprendista', 'Sterratore', 'Scalpellino', 'Muratore', 'Caposquadra', 'Mastro muratore', 'Mastro cavatore', 'Leggenda della cava'],
     'bp.rankUp': 'Nuovo grado: {rank} · +{n} monete', 'bp.rankUpPop': 'NUOVO GRADO!', 'bp.themeWon': 'tema «{th}» sbloccato', 'bp.themeRank': 'Raggiungi il grado {rank} nel Taccuino per sbloccare questo tema',
     'bp.rankNext': '{xp} / {need} XP · grado successivo: +{n} 🪙', 'bp.rankMax': 'Grado massimo raggiunto · {xp} XP · prossima stella leggenda: {x} / {need} XP (+{n} 🪙)', 'bp.legendUp': 'Stella leggenda ★{k} · +{n} monete', 'bp.mDone': 'Missione compiuta: {m} — riscuotila nel Taccuino',
@@ -301,7 +301,7 @@ const TXT = {
     'bp.themes': 'Temas', 'bp.themesHelp': 'Desbloqueie estilos de blocos com suas moedas 🪙 (ganhas limpando linhas e conquistando estrelas). Outros três são ganhos por posto no Caderno.',
     // Carnet (1.9.0)
     'bp.carTip': 'Caderno da pedreira: posto, missões semanais, medalhas', 'bp.carTitle': 'Caderno da pedreira', 'bp.weekTitle': 'Missões da semana', 'bp.weekLeft': v => `novas em ${v.n} ${s(v.n, 'dia', 'dias')}`,
-    'bp.medalsTitle': 'Medalhas de capítulo', 'bp.medalsHelp': 'as 30 estrelas de um capítulo · +60 🪙', 'bp.statsTitle': 'Carreira',
+    'bp.medalsTitle': 'Medalhas de capítulo', 'bp.medalsHelp': 'as 30 estrelas de um capítulo · +60 🪙', 'bp.msTitle': 'Marcos de carreira', 'bp.msHelp': '4 níveis cada · moedas e XP', 'bp.msGot': 'Marco alcançado · +{n} 🪙', 'bp.statsTitle': 'Carreira',
     'bp.ranks': ['Aprendiz', 'Cavador', 'Canteiro', 'Pedreiro', 'Capataz', 'Mestre pedreiro', 'Mestre da pedreira', 'Lenda da pedreira'],
     'bp.rankUp': 'Novo posto: {rank} · +{n} moedas', 'bp.rankUpPop': 'NOVO POSTO!', 'bp.themeWon': 'tema “{th}” desbloqueado', 'bp.themeRank': 'Alcance o posto {rank} no Caderno para desbloquear este tema',
     'bp.rankNext': '{xp} / {need} XP · próximo posto: +{n} 🪙', 'bp.rankMax': 'Posto máximo alcançado · {xp} XP · próxima estrela de lenda: {x} / {need} XP (+{n} 🪙)', 'bp.legendUp': 'Estrela de lenda ★{k} · +{n} moedas', 'bp.mDone': 'Missão cumprida: {m} — resgate no Caderno',
