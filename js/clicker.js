@@ -11,6 +11,8 @@ const $ = id => document.getElementById(id);
 const SAVE_KEY = 'starforge.save.v1';
 // Notation scientifique (option) : déclarée avant tout appel à fmt(), utilisé dès le chargement.
 let SCI = false;
+let HOLD = true;   // toucher long (1.12.0) : maintenir sur l'étoile répète les clics
+try { HOLD = localStorage.getItem('starforge.hold') !== '0'; } catch (e) {}
 // effets calmes : réglage du joueur, sinon réglage système « réduire les animations » ; supprime les éclairs plein écran
 let CALM = null; try { const c = localStorage.getItem('starforge.calm'); if (c !== null) CALM = c === '1'; } catch (e) {}
 const calm = () => CALM !== null ? CALM : !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -874,7 +876,7 @@ function drawStar(dt, time) {
     snScale = snK < 0.33 ? 1 - Math.pow(snK / 0.33, 2) * 0.82 : 0.18 + (1 - Math.pow(1 - (snK - 0.33) / 0.67, 3)) * 0.82;
     if (!snBoom && snK >= 0.33) { snBoom = true; flash = 1; sfx(55, 1.4, 'sawtooth', 0.09); for (let k = 0; k < 90; k++) { const a = Math.random() * 6.3, v = 3 + Math.random() * 9; parts.push({ x: cw / 2, y: ch / 2, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 1.4, col: ['#fff4d0', '#f3d48a', '#9fc7ff', '#ffffff'][k % 4], s: 2 + Math.random() * 3 }); } }
   }
-  const X = cw / 2, Y = ch / 2, R = starR() * (1 + pulse * 0.08) * snScale;
+  const X = cw / 2, Y = ch / 2, R = starR() * (1 + pulse * (calm() ? 0.02 : 0.08)) * snScale;
   pulse = Math.max(0, pulse - dt * 5);
   // couleur spectrale : jaune au début, blanc puis bleu-blanc à mesure que les Novae s'accumulent
   // couleur et ornements du stade d'évolution (naine rouge → … → quasar)
@@ -1178,7 +1180,17 @@ function manualClick() {
   if (S.buffs.some(b => b.type === 'eclipse')) S.st.eclClk = st('eclClk') + 1;
   if (S.buffs.some(b => b.type === 'flare')) S.st.flareClk = st('flareClk') + 1;
 }
-cv.addEventListener('pointerdown', e => { const r = cv.getBoundingClientRect(); clickStar(e.clientX - r.left, e.clientY - r.top); });
+// toucher long : maintenir le doigt (ou le bouton) répète le clic ~6 fois par seconde, comme un joueur qui tapote — pas de gain automatique
+let holdT = null;
+const holdStop = () => { if (holdT) { clearInterval(holdT); holdT = null; } };
+cv.addEventListener('pointerdown', e => {
+  const r = cv.getBoundingClientRect(); const x = e.clientX - r.left, y = e.clientY - r.top; clickStar(x, y);
+  holdStop(); if (!HOLD) return;
+  const first = setTimeout(() => { holdT = setInterval(() => clickStar(x, y), 160); }, 350);
+  const end = () => { clearTimeout(first); holdStop(); cv.removeEventListener('pointerup', end); cv.removeEventListener('pointercancel', end); cv.removeEventListener('pointerleave', end); };
+  cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end); cv.addEventListener('pointerleave', end);
+});
+document.addEventListener('visibilitychange', holdStop);
 
 // ---------- UI ----------
 let tab = 'gen', built = null;
@@ -1280,11 +1292,13 @@ function build() {
       <div class="sf-h">${t('sf.optDisplay')}</div>
       <label class="small"><input type="checkbox" id="sf-sci"> ${t('sf.optSci')}</label>
       <label class="small" style="display:block;margin-top:6px"><input type="checkbox" id="sf-calm"> ${t('sf.optCalm')}</label>
+      <label class="small" style="display:block;margin-top:6px"><input type="checkbox" id="sf-hold"> ${t('sf.optHold')}</label>
       <div class="sf-h">${t('sf.optHow')}</div>
       <p class="small muted">${t('sf.optHowTxt')}</p>`;
     $('sf-sci').checked = SCI;
     $('sf-sci').onchange = e => { SCI = e.target.checked; try { localStorage.setItem('starforge.sci', SCI ? '1' : '0'); } catch (x) {} refresh(true); };
-    $('sf-calm').checked = calm();
+    $('sf-calm').checked = calm(); $('sf-hold').checked = HOLD;
+    $('sf-hold').onchange = e => { HOLD = e.target.checked; try { localStorage.setItem('starforge.hold', HOLD ? '1' : '0'); } catch (x) {} };
     $('sf-calm').onchange = e => { CALM = e.target.checked; try { localStorage.setItem('starforge.calm', CALM ? '1' : '0'); } catch (x) {} };
     $('sf-exp').onclick = () => { save(); $('sf-io').value = btoa(unescape(encodeURIComponent(JSON.stringify(S)))); };
     $('sf-imp').onclick = () => { try { const d = JSON.parse(decodeURIComponent(escape(atob($('sf-io').value.trim())))); S = Object.assign(fresh(), d); save(); toast(t('sf.imported')); refresh(true); } catch (e) { toast(t('sf.invalid')); } };
