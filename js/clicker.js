@@ -11,6 +11,9 @@ const $ = id => document.getElementById(id);
 const SAVE_KEY = 'starforge.save.v1';
 // Notation scientifique (option) : déclarée avant tout appel à fmt(), utilisé dès le chargement.
 let SCI = false;
+// effets calmes : réglage du joueur, sinon réglage système « réduire les animations » ; supprime les éclairs plein écran
+let CALM = null; try { const c = localStorage.getItem('starforge.calm'); if (c !== null) CALM = c === '1'; } catch (e) {}
+const calm = () => CALM !== null ? CALM : !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
 try { SCI = localStorage.getItem('starforge.sci') === '1'; } catch (e) {}
 
 // ---------- données ----------
@@ -980,6 +983,7 @@ function drawStar(dt, time) {
   c.strokeStyle = 'rgba(184,151,85,.7)'; c.lineWidth = 1;
   for (const sgn of [-1, 1]) { const x0 = cw / 2 + sgn * (lw / 2 + 8), x1 = x0 + sgn * 34; c.beginPath(); c.moveTo(x0, ly - fs * 0.33); c.lineTo(x1, ly - fs * 0.33); c.stroke(); c.beginPath(); c.moveTo(x1 + sgn * 4, ly - fs * 0.33 - 3); c.lineTo(x1 + sgn * 7, ly - fs * 0.33); c.lineTo(x1 + sgn * 4, ly - fs * 0.33 + 3); c.lineTo(x1 + sgn, ly - fs * 0.33); c.closePath(); c.fillStyle = '#b89755'; c.fill(); }
   c.restore();
+  if (flash > 0 && calm()) flash = 0;
   if (flash > 0) { c.fillStyle = `rgba(255,240,255,${flash})`; c.fillRect(0, 0, cw, ch); flash = Math.max(0, flash - dt * 0.8); }
 }
 
@@ -1275,10 +1279,13 @@ function build() {
       <textarea id="sf-io" style="width:100%;height:90px;margin-top:8px;background:#0a0c16;color:#ccd;border:1px solid #2a3050;border-radius:8px;padding:6px;font-size:11px"></textarea>
       <div class="sf-h">${t('sf.optDisplay')}</div>
       <label class="small"><input type="checkbox" id="sf-sci"> ${t('sf.optSci')}</label>
+      <label class="small" style="display:block;margin-top:6px"><input type="checkbox" id="sf-calm"> ${t('sf.optCalm')}</label>
       <div class="sf-h">${t('sf.optHow')}</div>
       <p class="small muted">${t('sf.optHowTxt')}</p>`;
     $('sf-sci').checked = SCI;
     $('sf-sci').onchange = e => { SCI = e.target.checked; try { localStorage.setItem('starforge.sci', SCI ? '1' : '0'); } catch (x) {} refresh(true); };
+    $('sf-calm').checked = calm();
+    $('sf-calm').onchange = e => { CALM = e.target.checked; try { localStorage.setItem('starforge.calm', CALM ? '1' : '0'); } catch (x) {} };
     $('sf-exp').onclick = () => { save(); $('sf-io').value = btoa(unescape(encodeURIComponent(JSON.stringify(S)))); };
     $('sf-imp').onclick = () => { try { const d = JSON.parse(decodeURIComponent(escape(atob($('sf-io').value.trim())))); S = Object.assign(fresh(), d); save(); toast(t('sf.imported')); refresh(true); } catch (e) { toast(t('sf.invalid')); } };
     $('sf-wipe').onclick = async () => { if (await ptConfirm(noEmoji(t('sf.wipeQ')), t('sf.wipe'))) { S = fresh(); save(); refresh(true); } };
