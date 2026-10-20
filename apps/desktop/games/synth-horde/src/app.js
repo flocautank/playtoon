@@ -2,4 +2,4 @@
 import '../../../../../js/bonk.js';
 import { initDesktop } from '../../../src/shell.js';
 import { CONFIG } from './config.js';
-initDesktop({ game: 'bonk', gearHost: "#nb-menu .card", gearIcon: "⚙", version: CONFIG.version, music: true });
+initDesktop({ game: 'bonk', gearHost: "#nb-menu .card", gearIcon: "⚙", version: CONFIG.version, music: true, scores: {"daily":{"label":"nb.lb.daily","daily":true,"time":false},"survival":{"label":"nb.lb.survival","daily":false,"time":true}} });

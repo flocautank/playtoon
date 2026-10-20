@@ -1,5 +1,7 @@
 # Block Quarry — Google Play store listing
 
+> Leaderboards (1.13.0): keep the two lines about leaderboards only once they are live in Play Console (`../../RELEASE-GUIDE.md` → *Leaderboards*). On the App Store, write « Game Center » instead of « Google Play Games ».
+
 Package: `io.github.flocautank.blockquarry` · Category: **Games → Puzzle** · Tags: Block puzzle, Casual, Offline
 Content: all ages (IARC questionnaire: no violence, no gambling, no user interaction; contains ads, in-app purchase).
 Contact for the listing: the developer email of the Play account · Privacy policy: https://flocautank.github.io/playtoon/privacy.html
@@ -24,7 +26,7 @@ Block Quarry is a relaxing block puzzle with a twist: some rows are made of ston
 ★ FOUR WAYS TO PLAY
 • Classic — the endless, calm mode. No timer, no pressure: beat your best score one line at a time.
 • Adventure — 80 handcrafted levels in 8 chapters. Free every gem or clear the lines you need before you run out of moves, and earn up to 3 stars. Hard stones need two clears, and from level 41 frost covers the floor: clear a line over the ice to break it. From level 61, colour veins: clear the blocks of the marked colour.
-• Daily challenge — the same grid and the same pieces for everyone, every day. Keep your streak alive!
+• Daily challenge — the same grid and the same pieces for everyone, every day. Keep your streak alive and climb the daily leaderboard!
 • Time Attack — 2 minutes on the clock, every line gives time back, and points grow as the timer runs.
 
 ★ SATISFYING, NEVER FRUSTRATING
@@ -39,6 +41,7 @@ Block Quarry is a relaxing block puzzle with a twist: some rows are made of ston
 
 ★ MAKE IT YOURS
 • 9 block themes: Quarry and Classic from the start, Neon, Pastel, Pixel and Gold & Obsidian for coins, Marble, Basalt & Lava and Jade earned by rank
+• Leaderboards on Google Play Games: daily challenge, Classic and Time Attack records
 • Plays offline, portrait, one hand
 • In 6 languages: English, Français, Español, Deutsch, Italiano, Português
 
@@ -67,7 +70,7 @@ Block Quarry est un puzzle de blocs détendant, avec une particularité : certai
 ★ QUATRE FAÇONS DE JOUER
 • Classique — le mode sans fin, tout en calme. Pas de chrono, pas de pression : bats ton record ligne après ligne.
 • Aventure — 80 niveaux en 8 chapitres. Libère toutes les gemmes ou efface les lignes demandées avant la fin des coups, et décroche jusqu'à 3 étoiles. Les pierres dures s'effacent en deux fois, et dès le niveau 41 le givre couvre le sol : efface une ligne sur la glace pour la briser. Dès le niveau 61, les filons de couleur : dégage les blocs de la couleur indiquée.
-• Défi du jour — la même grille et les mêmes pièces pour tout le monde, chaque jour. Entretiens ta série !
+• Défi du jour — la même grille et les mêmes pièces pour tout le monde, chaque jour. Entretiens ta série et grimpe au classement du jour !
 • Chrono — 2 minutes au compteur, chaque ligne rend du temps et les points grimpent au fil des secondes.
 
 ★ SATISFAISANT, JAMAIS FRUSTRANT
@@ -82,6 +85,7 @@ Block Quarry est un puzzle de blocs détendant, avec une particularité : certai
 
 ★ À TON STYLE
 • 9 thèmes de blocs : Carrière et Classique d'emblée, Néon, Pastel, Pixel et Or & Obsidienne contre des pièces, Marbre, Basalte & lave et Jade gagnés par grade
+• Classements Google Play Jeux : défi du jour, records Classique et Chrono
 • Jouable hors ligne, en portrait, à une main
 • En 6 langues : English, Français, Español, Deutsch, Italiano, Português
 

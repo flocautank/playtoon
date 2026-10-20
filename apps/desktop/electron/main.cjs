@@ -28,7 +28,8 @@ function createWindow() {
     width: st.width || GAME.width, height: st.height || GAME.height, x: st.x, y: st.y,
     minWidth: 800, minHeight: 600, backgroundColor: GAME.bg, title: GAME.title, show: false, autoHideMenuBar: true,
     icon: path.join(__dirname, 'icon.png'), fullscreen: !!st.fullscreen,
-    webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true, devTools: !app.isPackaged, spellcheck: false },
+    webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true, devTools: !app.isPackaged, spellcheck: false,
+      additionalArguments: GAME.boards ? ['--pt-scores'] : [] },   // classements : seulement les jeux qui en ont
   });
   win.loadURL('app://game/index.html');
   win.once('ready-to-show', () => win.show());
@@ -56,6 +57,13 @@ app.whenReady().then(() => {
   ipcMain.handle('pt:fullscreen', (e, v) => { win.setFullScreen(v === undefined ? !win.isFullScreen() : !!v); return win.isFullScreen(); });
   ipcMain.handle('pt:isFullscreen', () => win.isFullScreen());
   ipcMain.on('pt:quit', () => app.quit());
+  // classements Steam (Block Quarry, Synth Horde) : jamais d'exception vers la page, « indisponible » au pire
+  if (GAME.boards) {
+    const steam = require('./steam.cjs').createSteam(GAME);
+    ipcMain.handle('pt:lb-status', () => steam.status());
+    ipcMain.handle('pt:lb-submit', (e, board, score, day) => steam.submit(board, score, day));
+    ipcMain.handle('pt:lb-entries', (e, board) => steam.entries(board));
+  }
   createWindow();
 });
 app.on('window-all-closed', () => app.quit());

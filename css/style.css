@@ -1088,3 +1088,17 @@ body[data-tab=forge] #bq-settings svg.nfg{width:17px;height:17px;vertical-align:
 body[data-tab=forge] .pt-toasts div{background:rgba(11,16,40,.96);border:1px solid #b89755;outline:1px solid rgba(184,151,85,.3);outline-offset:3px;border-radius:0;color:#f3d48a;font:400 15px 'NF Text',Georgia,serif;letter-spacing:.02em}
 /* téléphone : les chiffres de la Supernova tenaient sur trois lignes et écrasaient l'étoile */
 @media (max-width:760px){#tab-forge .sf-prestige .small b{font-size:16px}#tab-forge .sf-prestige .small{line-height:1.35}}
+/* Block Quarry — classements (1.13.0, applis seulement : masqués sur le site) : un podium de blocs taillés et son étoile */
+#tab-blocks .bp-lbbtn{display:inline-flex;align-items:center;justify-content:center;gap:7px}
+#tab-blocks .bp-lbbtn svg.bqi,#tab-blocks .bp-lbmini svg.bqi{fill:currentColor;color:#ffd27a;width:20px;height:20px;margin:0;filter:drop-shadow(0 1px 0 rgba(0,0,0,.45))}
+#tab-blocks .bp-lbmini{flex:0 0 auto;padding:6px 14px;display:flex;align-items:center;justify-content:center}
+#tab-blocks .bp-lbmini svg.bqi{width:34px;height:34px}
+#tab-blocks .bp-dnext{margin:2px 0 0;letter-spacing:.04em}
+/* Synth Horde — classements (1.21.0, applis seulement : masqués sur le site) : l'égaliseur-podium, en aplats néon */
+.nb-drow{display:flex;gap:8px;align-items:stretch}
+.nb-drow .nb-dplay{flex:1 1 auto}
+#nb-root .nb-lbmini,.nb-lbmini{flex:0 0 auto;background:#160c22;color:#fff;border:2px solid #ff3df0;border-radius:0;transform:skewX(-6deg);box-shadow:4px 4px 0 #ff3df0;padding:4px 12px;display:flex;align-items:center;justify-content:center}
+#nb-root .nb-lbmini svg.nbi{width:26px;height:26px;transform:skewX(6deg);vertical-align:middle}
+#nb-root .nb-lbbtn,.nb-lbbtn{display:inline-flex;align-items:center;justify-content:center;gap:7px;align-self:center}
+#nb-root .nb-lbbtn svg.nbi{width:24px;height:24px;vertical-align:middle}
+#pt-lb .nb-pf{outline:3px solid #7ff6ff!important;outline-offset:3px}

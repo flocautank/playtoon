@@ -4,6 +4,8 @@
 #   dont la variable <PRÉFIXE>_STEAM_APPID existe (BQ = Block Quarry, NF = Nova Foundry, SH = Synth Horde).
 #   Dépôts Steam attendus : App ID + 1 = Windows, + 2 = Linux, + 3 = macOS (voir apps/desktop/STEAM.md).
 #   Secrets : STEAM_USERNAME (compte de build dédié) et STEAM_CONFIG_VDF (config.vdf encodé en base64, Steam Guard validé).
+# Classements Steam (Block Quarry, Synth Horde) : steamworks.js empaqueté pour les trois systèmes ; l'App ID
+# (<PRÉFIXE>_STEAM_APPID) est aussi inscrit dans la construction s'il existe. Sans Steam lancé : classements masqués.
 name: Desktop
 
 on:
@@ -15,6 +17,7 @@ on:
       - 'apps/shared/build-app.mjs'
       - 'apps/shared/index.html'
       - 'apps/shared/app.css'
+      - 'apps/shared/leaderboards.mjs'
       - 'js/**'
       - 'css/style.css'
       - 'index.html'
@@ -45,6 +48,9 @@ jobs:
           - { os: macos-latest, plat: mac, name: macos, dir: mac-universal }
     runs-on: ${{ matrix.os }}
     timeout-minutes: 40
+    env:
+      BQ_STEAM_APPID: ${{ vars.BQ_STEAM_APPID }}
+      SH_STEAM_APPID: ${{ vars.SH_STEAM_APPID }}
     defaults:
       run:
         working-directory: apps/desktop
@@ -72,6 +78,10 @@ jobs:
             if [ $code -ne 124 ]; then echo "::error::$d s'est arrêté (code $code)"; cat run-$d.log; exit 1; fi
             echo "$d : démarre et reste ouvert"
           done
+          # classements : steamworks.js présent hors de l'archive pour BQ et SH, absent de Nova Foundry
+          for d in block-quarry synth-horde; do test -f dist/$d/linux-unpacked/resources/app.asar.unpacked/steamworks/dist/linux64/libsteam_api.so || { echo "::error::$d : steamworks absent"; exit 1; }; done
+          if [ -e dist/nova-foundry/linux-unpacked/resources/app.asar.unpacked/steamworks ]; then echo "::error::Nova Foundry ne doit pas embarquer Steamworks"; exit 1; fi
+          grep -h "Steam indisponible" run-block-quarry.log run-synth-horde.log || true
       # archive tar : garde les droits d'exécution et les liens symboliques (indispensables à l'app macOS et au binaire Linux)
       - name: Archives
         run: |

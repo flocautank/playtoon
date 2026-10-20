@@ -4,7 +4,7 @@
 **Genres** (Steamworks → Basic Info): Casual, Puzzle · **Tags** (up to 20, the first ones weigh most): Puzzle, Casual,
 Relaxing, Tile-Matching, Singleplayer, Colorful, Cute, Minimalist, 2D, Family Friendly, Logic, Score Attack.
 **Languages** (interface + subtitles, no audio): English, French, German, Spanish – Spain, Italian, Portuguese – Brazil.
-**Controller**: none (mouse; the Steam Deck touchscreen works). **Steam Cloud**: yes (see `../../STEAM.md`).
+**Controller**: none (mouse; the Steam Deck touchscreen works). **Steam Cloud**: yes (see `../../STEAM.md`). **Steam Leaderboards**: yes — daily challenge (one per UTC day), Classic record, Time Attack record (tick *Steam Leaderboards* in the store page features).
 **Content survey**: no violence, no nudity, no mature content, no in-game purchases, no ads → "All ages".
 
 Graphics: `art/` (every Steamworks size) · Screenshots: `screenshots/en/*.png` (1920×1080) + `screenshots/fr/`.

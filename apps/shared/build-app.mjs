@@ -2,8 +2,11 @@
 // dans le modèle apps/shared/index.html, le JS de l'application est regroupé par esbuild.
 // Identifiants publicitaires : variables d'environnement (ADMOB_REWARDED_ID, ADMOB_INTERSTITIAL_ID),
 // sinon identifiants de TEST de Google (sans risque, ne rapportent rien).
+// Classements (Block Quarry, Synth Horde) : identifiants Google Play Jeux PLAY_LB_<NOM> (voir leaderboards.mjs) ;
+// absents → aucun classement Play Jeux (Game Center et Steam utilisent les noms fixés dans leaderboards.mjs).
 import { readFileSync, writeFileSync, mkdirSync, rmSync, copyFileSync } from 'fs';
 import { fileURLToPath, pathToFileURL } from 'url';
+import { LEADERBOARDS } from './leaderboards.mjs';
 
 // chemins système (fileURLToPath : correct aussi sous Windows, où URL.pathname donnerait /D:/…)
 const SHARED = fileURLToPath(new URL('./', import.meta.url)), ROOT = fileURLToPath(new URL('../../', import.meta.url));
@@ -12,7 +15,7 @@ const TEST = { rewarded: 'ca-app-pub-3940256099942544/5224354917', interstitial:
 const TEST_IOS = { rewarded: 'ca-app-pub-3940256099942544/1712485313', interstitial: 'ca-app-pub-3940256099942544/4411468910' };
 
 // app : { dir (dossier de l'application), section (id de la <section> du jeu), versionKey, title, ads (false : appli payante), config (champs en plus),
-//        esbuild (la fonction build d'esbuild, installé dans l'application) }
+//        esbuild (la fonction build d'esbuild, installé dans l'application), scores (clé du jeu dans LEADERBOARDS : classements natifs) }
 export async function buildApp(app) {
   const OUT = app.dir + 'www/', env = process.env;
   const { VERSIONS } = await import(pathToFileURL(ROOT + 'js/version.js').href);
@@ -27,6 +30,10 @@ export async function buildApp(app) {
     iosInterstitialId: env.ADMOB_IOS_INTERSTITIAL_ID || TEST_IOS.interstitial,
     ...(app.config || {}),
   };
+  if (app.scores) {
+    const L = LEADERBOARDS[app.scores];
+    config.scores = { play: Object.fromEntries(Object.entries(L.boards).map(([k, b]) => [k, env['PLAY_LB_' + b.play] || ''])) };
+  }
   writeFileSync(app.dir + 'src/config.js', '// généré par build.mjs — ne pas modifier à la main\nexport const CONFIG = ' + JSON.stringify(config, null, 2) + ';\n');
   rmSync(OUT, { recursive: true, force: true }); mkdirSync(OUT, { recursive: true });
   const site = readFileSync(ROOT + 'index.html', 'utf8');
@@ -38,6 +45,6 @@ export async function buildApp(app) {
   copyFileSync(SHARED + 'app.css', OUT + 'app.css');
   for (const f of app.copy || []) copyFileSync(ROOT + f, OUT + f.split('/').pop());
   await app.esbuild({ entryPoints: [app.dir + 'src/app.js'], bundle: true, format: 'esm', target: 'es2020', minify: true, outfile: OUT + 'app.js', nodePaths: [app.dir + 'node_modules'], logLevel: 'warning', loader: { '.png': 'file' } });
-  console.log(`www/ prêt (${app.title}) —`, app.ads === false ? 'application payante, sans publicité' : config.testAds ? 'publicités de TEST' : 'publicités réelles', '— version', config.version);
+  console.log(`www/ prêt (${app.title}) —`, app.ads === false ? 'application payante, sans publicité' : config.testAds ? 'publicités de TEST' : 'publicités réelles', '— version', config.version, app.scores ? `— classements Play Jeux : ${Object.values(config.scores.play).filter(Boolean).length}/${Object.keys(config.scores.play).length}` : '');
   return config;
 }

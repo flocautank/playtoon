@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Rien n'est déclaré ici : l'identifiant Play Jeux (com.google.android.gms.games.APP_ID) n'est ajouté au manifeste de
+     l'appli que si la CI reçoit PLAY_GAMES_APP_ID (voir android/app/build.gradle de l'appli). Sans lui, le plugin reste inactif. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" />

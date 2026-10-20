@@ -1,5 +1,7 @@
 # Synth Horde — Google Play store listing
 
+> Leaderboards (1.21.0): keep the line about leaderboards only once they are live in Play Console (`../../RELEASE-GUIDE.md` → *Leaderboards*). On the App Store, write « Game Center » instead of « Google Play Games ».
+
 Package: `io.github.flocautank.synthhorde` · Category: **Games → Action** · Tags: Roguelike, Survival, Arcade, Offline
 **Paid app** — price set in Play Console (suggested **2,99 € / US$ 2.99**, see `../../PRICING.md`). No ads, no in-app purchase.
 Content: 7+ / Everyone 10+ likely (IARC: cartoon fantasy violence against living audio gear — speakers, cassettes, TVs — no blood, no humans; no ads; no purchases).
@@ -45,7 +47,8 @@ The grid is alive — and the music wants you gone. Speakers waddle, cassettes m
 
 ★ BUY ONCE, PLAY FOREVER
 • The full game: no ads, no in-app purchases, no energy timers
-• Plays offline, no account, no data collected
+• Leaderboards on Google Play Games: daily challenge and best survival
+• Plays offline, no account to create
 • 6 languages: English, Français, Español, Deutsch, Italiano, Português
 
 How long can you last?
@@ -86,7 +89,8 @@ La grille est vivante — et la musique veut ta peau. Les enceintes se dandinent
 
 ★ ACHETÉ UNE FOIS, À TOI POUR TOUJOURS
 • Le jeu complet : aucune publicité, aucun achat intégré, aucune jauge d'énergie
-• Jouable hors-ligne, sans compte, aucune donnée collectée
+• Classements Google Play Jeux : défi du jour et meilleure survie
+• Jouable hors-ligne, sans compte à créer
 • 6 langues : English, Français, Español, Deutsch, Italiano, Português
 
 Combien de temps tiendras-tu ?

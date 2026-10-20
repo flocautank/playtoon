@@ -665,6 +665,67 @@ await shot(m, 'm-bonk-pause');
   await ctxL.close();
 }
 
+// ---------- classements (1.13.0 / 1.21.0) : le site n'en a pas ; défi du jour en date UTC, migration des séries
+// sans perte ni double prime, « nouveau défi dans H:MM » jusqu'à minuit UTC
+{
+  const bad = [];
+  const at = async (tz, iso, seed) => {
+    const ctx = await browser.newContext({ viewport: { width: 1280, height: 760 }, timezoneId: tz });
+    await ctx.clock.setFixedTime(new Date(iso));
+    await ctx.addInitScript(sd => { if (sessionStorage.getItem('lbseed')) return; sessionStorage.setItem('lbseed', 1); localStorage.setItem('playtoon.welcomed', '1'); for (const [k, v] of Object.entries(sd)) localStorage.setItem(k, JSON.stringify(v)); }, seed);
+    const p = await guard(await ctx.newPage()); watch(p, 'classements ' + tz);
+    return { ctx, p };
+  };
+  const meta = (d, last, streak, hist) => ({ daily: { key: d, best: 500, tries: 1, done: true }, dLast: last, dStreak: streak, dDays: 9, dHist: hist });
+  // ouest de Greenwich, le soir : 20 oct. 20:00 à Los Angeles = 21 oct. 03:00 UTC ; la journée locale jouée devient le 21
+  {
+    const { ctx, p } = await at('America/Los_Angeles', '2026-10-21T03:00:00Z', {
+      'blocparty.daily': { day: 20261020, last: 20261020, best: 900, streak: 4, hist: { 20261020: 1 } },
+      'neonbonk.meta.v1': meta('2026-10-20', '2026-10-20', 3, { '2026-10-20': 500 }) });
+    await p.goto(base + '#blocks'); await p.waitForTimeout(800);
+    const r = await p.evaluate(async () => {
+      const B = window.__bp, d0 = JSON.parse(localStorage.getItem('blocparty.daily')), days0 = B.CAR.st.days || 0;
+      B.startDaily(); const { S, place, fits, N } = B;
+      let done = false; S.tray.forEach((pc, i) => { if (done || !pc) return; for (let y = 0; y < N && !done; y++) for (let x = 0; x < N && !done; x++) if (fits(pc, x, y)) { place(i, x, y); done = true; } });
+      const d1 = JSON.parse(localStorage.getItem('blocparty.daily'));
+      const lb = ['bp-lbover', 'bp-lbdaily', 'bp-lball'].map(id => document.getElementById(id).classList.contains('hidden'));
+      const M = window.__nb.META;
+      return { d0, d1, days: (B.CAR.st.days || 0) - days0, lb, scores: 'PT_SCORES' in window, nb: { key: M.daily.key, last: M.dLast, streak: M.dStreak, hist: M.dHist } };
+    });
+    const ok = r.d0.day === 20261021 && r.d0.last === 20261021 && r.d0.hist[20261021] === 1 && !(20261020 in r.d0.hist) && r.d1.streak === 4 && r.days === 0 && r.d1.day === 20261021
+      && r.lb.every(Boolean) && !r.scores && r.nb.key === '2026-10-21' && r.nb.last === '2026-10-21' && r.nb.streak === 3 && r.nb.hist['2026-10-21'] === 500 && !('2026-10-20' in r.nb.hist);
+    log(`classements, ouest (LA 20 oct. 20:00) : BQ jour=${r.d1.day} série=${r.d1.streak} jours+${r.days} · SH jour=${r.nb.key} série=${r.nb.streak} · boutons masqués=${r.lb.every(Boolean)} · PT_SCORES=${r.scores}`, ok ? 'OK' : 'ÉCHEC');
+    if (!ok) bad.push('migration ouest ' + JSON.stringify(r));
+    await ctx.close();
+  }
+  // est, après minuit : 21 oct. 01:00 à Tokyo = 20 oct. 16:00 UTC ; le défi est celui du 20, la journée du 21 déjà comptée
+  {
+    const { ctx, p } = await at('Asia/Tokyo', '2026-10-20T16:00:00Z', {
+      'blocparty.daily': { day: 20261021, last: 20261021, best: 900, streak: 4, hist: { 20261020: 2, 20261021: 1 } },
+      'neonbonk.meta.v1': meta('2026-10-21', '2026-10-21', 3, { '2026-10-20': 400, '2026-10-21': 500 }) });
+    await p.goto(base + '#blocks'); await p.waitForTimeout(800);
+    const r = await p.evaluate(async () => {
+      const B = window.__bp, days0 = B.CAR.st.days || 0;
+      B.startDaily(); const { S, place, fits, N } = B;
+      let done = false; S.tray.forEach((pc, i) => { if (done || !pc) return; for (let y = 0; y < N && !done; y++) for (let x = 0; x < N && !done; x++) if (fits(pc, x, y)) { place(i, x, y); done = true; } });
+      const d1 = JSON.parse(localStorage.getItem('blocparty.daily'));
+      B.gameOver(); await new Promise(res => setTimeout(res, 300));
+      return { d1, days: (B.CAR.st.days || 0) - days0, next: document.getElementById('bp-dnext').textContent, nextShown: !document.getElementById('bp-dnext').classList.contains('hidden'),
+        lbOver: document.getElementById('bp-lbover').classList.contains('hidden') };
+    });
+    await p.evaluate(() => { document.getElementById('bp-over').classList.add('hidden'); window.location.hash = '#bonk'; });
+    await p.goto(base + '#bonk'); await p.waitForTimeout(1500);
+    const n = await p.evaluate(() => { const M = window.__nb.META; return { key: M.daily.key, last: M.dLast, streak: M.dStreak, dinfo: document.getElementById('nb-dinfo').innerText, play: document.getElementById('nb-dplay').textContent,
+      lb: ['nb-lbdaily', 'nb-lbmenu', 'nb-lbend'].map(id => document.getElementById(id).classList.contains('hidden')) }; });
+    const ok = r.d1.day === 20261020 && r.d1.streak === 4 && r.days === 0 && r.nextShown && /08:00/.test(r.next) && r.lbOver
+      && /8 h 00 min/.test(n.dinfo) && n.lb.every(Boolean) && /\b3\b/.test(n.dinfo) && n.last === '2026-10-21';
+    log(`classements, est (Tokyo 21 oct. 01:00) : BQ défi du ${r.d1.day} série=${r.d1.streak} jours+${r.days} « ${r.next} » · SH « ${n.dinfo.replace(/\s+/g, ' ').slice(0, 90)} » · boutons masqués=${n.lb.every(Boolean)}`, ok ? 'OK' : 'ÉCHEC');
+    if (!ok) bad.push('migration est ' + JSON.stringify({ r, n }));
+    await ctx.close();
+  }
+  if (bad.length) errs.push('[classements] ' + bad.join(' | '));
+}
+
 await browser.close(); srv.close();
 if (errs.length) { console.error('ERREURS :\n' + errs.join('\n')); process.exit(1); }
 log('OK — aucune erreur console');

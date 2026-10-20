@@ -689,4 +689,21 @@ Object.assign(de, {"nb.big": "Größerer Text", "nb.subs": "Gefahren-Untertitel"
 Object.assign(it, {"nb.big": "Testo più grande", "nb.subs": "Sottotitoli dei pericoli", "nb.setJump": "Impostazioni", "nb.cap.boss": "Attacco del boss in arrivo", "nb.cap.vent": "Eruzione di lava", "nb.cap.fuse": "Kamikaze sta per esplodere", "nb.cap.charge": "Un caricatore prende la rincorsa", "nb.keysPadMenu": "menu: <b>croce</b> o <b>stick</b>, <b>A</b> scegli, <b>B</b> indietro"});
 Object.assign(pt, {"nb.big": "Texto maior", "nb.subs": "Legendas de perigo", "nb.setJump": "Ajustes", "nb.cap.boss": "Ataque do chefe iminente", "nb.cap.vent": "Erupção de lava", "nb.cap.fuse": "Kamikaze prestes a explodir", "nb.cap.charge": "Um investidor toma impulso", "nb.keysPadMenu": "menus: <b>direcional</b> ou <b>analógico</b>, <b>A</b> escolher, <b>B</b> voltar"});
 
+// classements natifs (1.21.0, applis seulement)
+const LB = {
+  en: { lbBtn: 'Leaderboard', lbAll: 'Leaderboards', lbDailyTip: 'Daily challenge leaderboard', 'lb.daily': 'Daily challenge', 'lb.survival': 'Best survival',
+    'lb.title': 'Leaderboards', 'lb.top': 'Top 10', 'lb.around': 'Around you', 'lb.empty': 'No score yet: be the first!', 'lb.offline': 'Leaderboard unavailable right now.', 'lb.loading': 'Loading…', 'lb.today': 'Today (UTC)' },
+  fr: { lbBtn: 'Classement', lbAll: 'Classements', lbDailyTip: 'Classement du défi du jour', 'lb.daily': 'Défi du jour', 'lb.survival': 'Meilleure survie',
+    'lb.title': 'Classements', 'lb.top': 'Top 10', 'lb.around': 'Autour de toi', 'lb.empty': 'Aucun score pour l’instant : sois le premier !', 'lb.offline': 'Classement indisponible pour le moment.', 'lb.loading': 'Chargement…', 'lb.today': 'Aujourd’hui (UTC)' },
+  es: { lbBtn: 'Clasificación', lbAll: 'Clasificaciones', lbDailyTip: 'Clasificación del desafío diario', 'lb.daily': 'Desafío diario', 'lb.survival': 'Mejor supervivencia',
+    'lb.title': 'Clasificaciones', 'lb.top': 'Top 10', 'lb.around': 'A tu alrededor', 'lb.empty': 'Aún no hay puntuaciones: ¡sé el primero!', 'lb.offline': 'Clasificación no disponible ahora mismo.', 'lb.loading': 'Cargando…', 'lb.today': 'Hoy (UTC)' },
+  de: { lbBtn: 'Bestenliste', lbAll: 'Bestenlisten', lbDailyTip: 'Bestenliste der Tagesherausforderung', 'lb.daily': 'Tagesherausforderung', 'lb.survival': 'Längstes Überleben',
+    'lb.title': 'Bestenlisten', 'lb.top': 'Top 10', 'lb.around': 'Um dich herum', 'lb.empty': 'Noch kein Ergebnis: sei der Erste!', 'lb.offline': 'Bestenliste gerade nicht verfügbar.', 'lb.loading': 'Lädt…', 'lb.today': 'Heute (UTC)' },
+  it: { lbBtn: 'Classifica', lbAll: 'Classifiche', lbDailyTip: 'Classifica della sfida del giorno', 'lb.daily': 'Sfida del giorno', 'lb.survival': 'Miglior sopravvivenza',
+    'lb.title': 'Classifiche', 'lb.top': 'Top 10', 'lb.around': 'Intorno a te', 'lb.empty': 'Ancora nessun punteggio: sii il primo!', 'lb.offline': 'Classifica non disponibile al momento.', 'lb.loading': 'Caricamento…', 'lb.today': 'Oggi (UTC)' },
+  pt: { lbBtn: 'Classificação', lbAll: 'Classificações', lbDailyTip: 'Classificação do desafio do dia', 'lb.daily': 'Desafio do dia', 'lb.survival': 'Melhor sobrevivência',
+    'lb.title': 'Classificações', 'lb.top': 'Top 10', 'lb.around': 'Perto de você', 'lb.empty': 'Ainda sem pontuação: seja o primeiro!', 'lb.offline': 'Classificação indisponível no momento.', 'lb.loading': 'Carregando…', 'lb.today': 'Hoje (UTC)' },
+};
+for (const [l, o] of Object.entries({ en, fr, es, de, it, pt })) for (const [k, v] of Object.entries(LB[l])) o['nb.' + k] = v;
+
 export default { en, fr, es, de, it, pt };

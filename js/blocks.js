@@ -62,6 +62,14 @@ const MON = {
   busy: false,
   pause: () => window.PT_MON ? window.PT_MON.pause() : Promise.resolve(),   // pause publicitaire éventuelle (plafonnée) entre deux parties
 };
+// Classements natifs (1.13.0) : fournis par l'appli — Google Play Jeux, Game Center (apps/shared/scores.js), Steam
+// (apps/desktop). Sur le web, pas de window.PT_SCORES : boutons masqués, rien n'est envoyé. Tableaux : daily, classic,
+// chrono (noms, bornes et identifiants : apps/shared/leaderboards.mjs). Jamais d'exception vers le jeu.
+const LB = {
+  ok: () => { try { return !!(window.PT_SCORES && window.PT_SCORES.available()); } catch (e) { return false; } },
+  submit: (board, score, day) => { if (!LB.ok() || !(score > 0)) return; try { Promise.resolve(window.PT_SCORES.submit(board, Math.floor(score), day)).catch(() => {}); } catch (e) {} },
+  show: board => { if (!LB.ok()) return; try { Promise.resolve(window.PT_SCORES.show(board)).catch(() => {}); } catch (e) {} },
+};
 // ---------- icônes dessinées (plus d'emoji dans l'interface) : chaque emoji des textes du jeu est remplacé à la volée
 // par son dessin, dans toutes les langues ; un emoji inconnu disparaît
 const BQI = {   // glyphes d'une seule couleur, « frappés » dans la pierre (relief en CSS) — pas d'imitation d'emoji
@@ -520,12 +528,27 @@ function advResult(win) {
     if (win) SFX.best(); else SFX.fail();
   }, 700);
 }
-// ---------- défi du jour : même grille et mêmes pièces pour tout le monde, graine = date locale
+// ---------- défi du jour : même grille et mêmes pièces pour tout le monde, graine = date UTC (1.13.0 : c'est la journée
+// des classements Play Jeux / Game Center / Steam ; avant, la date locale). Bonus de connexion et semaine : date locale.
 const dayKey = (d = new Date()) => d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
-const todayLabel = () => date(new Date(), { day: 'numeric', month: 'long' });
+const uKey = (d = new Date()) => d.getUTCFullYear() * 10000 + (d.getUTCMonth() + 1) * 100 + d.getUTCDate();
+const todayLabel = () => date(new Date(), { day: 'numeric', month: 'long', timeZone: 'UTC' });
+const nextDaily = () => { const s = Math.max(60, Math.ceil((864e5 - Date.now() % 864e5) / 1000)); return `${String(Math.floor(s / 3600)).padStart(2, '0')}:${String(Math.floor(s % 3600 / 60)).padStart(2, '0')}`; };   // HH:MM jusqu'à minuit UTC
 let DAILY = { day: 0, best: 0, streak: 0, last: 0 };
 try { DAILY = Object.assign(DAILY, JSON.parse(localStorage.getItem('blocparty.daily') || '{}')); } catch (e) {}
 if (!DAILY.last && DAILY.day && DAILY.streak) DAILY.last = DAILY.day;   // avant 1.4.0, la série comptait les jours ouverts
+// passage à la date UTC (1.13.0), sans perdre la série ni primer deux fois la même journée :
+// - à l'ouest de Greenwich, le soir, la journée UTC a un jour d'avance : la journée locale déjà jouée devient la journée UTC ;
+// - à l'est, après minuit, c'est la journée locale qui est en avance : la série la compte déjà (DAILY.last ≥ aujourd'hui).
+if (!DAILY.utc) {
+  const Lk = dayKey(), Uk = uKey();
+  if (Uk > Lk) {
+    for (const f of ['day', 'last', 'cont']) if (DAILY[f] === Lk) DAILY[f] = Uk;
+    if (DAILY.hist && DAILY.hist[Lk] !== undefined) { DAILY.hist[Uk] = Math.max(DAILY.hist[Uk] || 0, DAILY.hist[Lk]); delete DAILY.hist[Lk]; }
+  }
+  DAILY.utc = 1;
+  try { localStorage.setItem('blocparty.daily', JSON.stringify(DAILY)); } catch (e) {}
+}
 // objectifs du défi (mesurés : glouton sur 30 graines, médiane ≈ 1 360) et historique pour le calendrier du mois
 const DAILY_GOALS = [500, 1500, 3000];
 const dailyStars = sc => DAILY_GOALS.filter(g => sc >= g).length;
@@ -541,11 +564,11 @@ function dailyRecord() {
   saveDaily();
 }
 function calendarHTML() {
-  const d0 = new Date(), y = d0.getFullYear(), m = d0.getMonth(), first = (new Date(y, m, 1).getDay() + 6) % 7, days = new Date(y, m + 1, 0).getDate();
+  const d0 = new Date(), y = d0.getUTCFullYear(), m = d0.getUTCMonth(), first = (new Date(Date.UTC(y, m, 1)).getUTCDay() + 6) % 7, days = new Date(Date.UTC(y, m + 1, 0)).getUTCDate(), td = d0.getUTCDate();
   const h = DAILY.hist || {}, ym = y * 100 + m + 1, got = Object.keys(h).filter(k => Math.floor(k / 100) === ym && h[k] > 0).length;
   let g = ''; for (let i = 0; i < first; i++) g += '<i></i>';
-  for (let dd = 1; dd <= days; dd++) { const k = ym * 100 + dd, st = h[k] || 0; g += `<i class="s${st}${dd === d0.getDate() ? ' today' : ''}${dd > d0.getDate() ? ' fut' : ''}">${dd}<b>${st ? '★'.repeat(st) : ''}</b></i>`; }
-  return `<div class="bp-calh">${(DAILY.trophies || {})[ym] ? '🏆 ' : ''}${t('bp.calTitle', { month: date(d0, { month: 'long' }), n: got })}</div><div class="bp-calg">${g}</div>`;
+  for (let dd = 1; dd <= days; dd++) { const k = ym * 100 + dd, st = h[k] || 0; g += `<i class="s${st}${dd === td ? ' today' : ''}${dd > td ? ' fut' : ''}">${dd}<b>${st ? '★'.repeat(st) : ''}</b></i>`; }
+  return `<div class="bp-calh">${(DAILY.trophies || {})[ym] ? '🏆 ' : ''}${t('bp.calTitle', { month: date(d0, { month: 'long', timeZone: 'UTC' }), n: got })}</div><div class="bp-calg">${g}</div>`;
 }
 function shareDaily() {
   const st = dailyStars(DAILY.best), txt = t('bp.shareTxt', { date: todayLabel(), stars: '★'.repeat(st) + '☆'.repeat(3 - st), score: num(DAILY.best), n: DAILY.streak }) + '\nhttps://flocautank.github.io/playtoon/';
@@ -554,9 +577,8 @@ function shareDaily() {
 }
 // premier coup du jour dans le défi : c'est lui qui fait avancer la série
 function dailyPlayed() {
-  const today = dayKey(); if (DAILY.last === today) return;
-  const y = new Date(); y.setDate(y.getDate() - 1);
-  DAILY.streak = DAILY.last === dayKey(y) ? DAILY.streak + 1 : 1; DAILY.last = today; saveDaily(); stat('days'); track('daily');
+  const today = uKey(); if (DAILY.last >= today) return;   // ≥ : journée déjà comptée (migration UTC, horloge revenue en arrière)
+  DAILY.streak = DAILY.last === uKey(new Date(Date.now() - 864e5)) ? DAILY.streak + 1 : 1; DAILY.last = today; saveDaily(); stat('days'); track('daily');
 }
 const saveDaily = () => { try { localStorage.setItem('blocparty.daily', JSON.stringify(DAILY)); } catch (e) {} };
 // ---------- Carnet du carrier (1.9.0) : grade de carrière, missions de la semaine, médailles de chapitre, statistiques.
@@ -677,18 +699,18 @@ function openCareer() {
 }
 function startDaily(seedDay) {
   clearTimeout(overTimer); clearTimeout(resTimer); S.contN = 0;
-  const today = typeof seedDay === 'number' ? seedDay : dayKey();   // seedDay : outils de mesure seulement
+  const today = typeof seedDay === 'number' ? seedDay : uKey();   // seedDay : outils de mesure seulement
   S.placed = 0;
   if (DAILY.day !== today) { DAILY.day = today; DAILY.best = 0; saveDaily(); }
   const r = mulberry32(today);
   const board = Array.from({ length: N }, () => Array(N).fill(null));
   for (let k = 0; k < 7; k++) { const x = (r() * N) | 0, y = (r() * N) | 0; board[y][x] = STONE; }
-  S.mode = 'daily'; S.vidCont = false; S.gems = new Set(); S.board = board; S.score = 0; S.shown = 0; S.combo = 0; S.over = false; S.fx = []; S.pops = []; S.clearing = []; freshRun(); tool = null; paintBoost();
+  S.mode = 'daily'; S.dday = today; S.vidCont = false; S.gems = new Set(); S.board = board; S.score = 0; S.shown = 0; S.combo = 0; S.over = false; S.fx = []; S.pops = []; S.clearing = []; freshRun(); tool = null; paintBoost();
   rnd = mulberry32(today * 31 + 7);
   fillTray();
   ['bp-over', 'bp-map', 'bp-res'].forEach(id => $(id).classList.add('hidden'));
   S.pops.push({ text: t('bp.daily'), sub: t('bp.dailyGoals', { a: num(DAILY_GOALS[0]), b: num(DAILY_GOALS[1]), c: num(DAILY_GOALS[2]) }), t: -1.3 });
-  S.pops.push({ text: t('bp.daily'), sub: t('bp.dailySub', { date: todayLabel(), n: DAILY.last === today || DAILY.last === dayKey(new Date(Date.now() - 864e5)) ? DAILY.streak + (DAILY.last === today ? 0 : 1) : 1 }), t: 0 });
+  S.pops.push({ text: t('bp.daily'), sub: t('bp.dailySub', { date: todayLabel(), n: DAILY.last >= uKey(new Date(Date.now() - 864e5)) ? DAILY.streak + (DAILY.last >= today ? 0 : 1) : 1 }), t: 0 });
   updateHUD();
 }
 
@@ -743,7 +765,9 @@ function chronoEnd() {
 
 function openMap() {
   tool = null; paintBoost();
-  $('bp-daily').innerHTML = `${t('bp.dailyBtn')}<small>${todayLabel()}${DAILY.day === dayKey() && DAILY.best ? t('bp.dailyBest', { n: num(DAILY.best) }) : ''}${DAILY.streak > 1 && DAILY.day === dayKey() ? t('bp.dailyStreak', { n: DAILY.streak }) : ''}${DAILY.day === dayKey() && DAILY.best ? ' · ' + '★'.repeat(dailyStars(DAILY.best)) + '☆'.repeat(3 - dailyStars(DAILY.best)) : ''}</small>`;
+  const dk = uKey();
+  $('bp-daily').innerHTML = `${t('bp.dailyBtn')}<small>${todayLabel()}${DAILY.day === dk && DAILY.best ? t('bp.dailyBest', { n: num(DAILY.best) }) : ''}${DAILY.streak > 1 && DAILY.day === dk ? t('bp.dailyStreak', { n: DAILY.streak }) : ''}${DAILY.day === dk && DAILY.best ? ' · ' + '★'.repeat(dailyStars(DAILY.best)) + '☆'.repeat(3 - dailyStars(DAILY.best)) : ''}</small>`;
+  paintLb();
   const box = $('bp-levels'); box.innerHTML = '';
   const open = unlockedLvl();
   const names = t('bp.chapters');
@@ -918,8 +942,29 @@ function gameOver() {
   $('bp-cont').textContent = t('bp.contBooster', { n: contCost() });
   $('bp-vidcont').classList.toggle('hidden', S.mode === 'chrono' || S.vidCont || !MON.canReward());
   if (!S.counted) { S.counted = true; stat('games'); } saveCar(); $('bp-xpo').innerHTML = xpLine(); paintCarBtn();
+  $('bp-dnext').classList.toggle('hidden', !dl); if (dl) $('bp-dnext').textContent = t('bp.dailyNext', { t: nextDaily() });
+  // classements : le défi seulement pour la graine du jour UTC en cours (une partie commencée avant minuit UTC n'y entre pas)
+  if (S.mode === 'daily') LB.submit('daily', S.score, S.dday); else if (S.mode === 'classic' || S.mode === 'chrono') LB.submit(S.mode, S.score);
+  paintLb();
   $('bp-over').classList.remove('hidden');
 }
+// boutons « Classement » : écran de fin (le classement du mode), carte des modes (défi du jour, tous les classements)
+const lbBoard = () => ({ daily: 'daily', classic: 'classic', chrono: 'chrono' })[S.mode] || null;
+function paintLb() {
+  const ok = LB.ok();
+  $('bp-lbover').classList.toggle('hidden', !ok || !lbBoard());
+  $('bp-lbdaily').classList.toggle('hidden', !ok); $('bp-lball').classList.toggle('hidden', !ok);
+}
+// premier contact avec le service : les records déjà faits avant (ou hors ligne) partent aussi, la plateforme garde le meilleur
+let lbSynced = false;
+function lbSync() {
+  paintLb();
+  if (lbSynced || !LB.ok()) return;
+  lbSynced = true;
+  LB.submit('classic', S.best); if (TOP[0]) LB.submit('chrono', TOP[0].s);
+  if (DAILY.day === uKey() && DAILY.best) LB.submit('daily', DAILY.best, DAILY.day);
+}
+window.addEventListener('pt-scores', lbSync);
 function countUp(el, v) {
   const t0 = performance.now(), D = 800;
   const step = () => { const k = Math.min(1, (performance.now() - t0) / D), e = 1 - Math.pow(1 - k, 3); el.textContent = num(Math.round(v * e)); if (k < 1) requestAnimationFrame(step); };
@@ -1135,7 +1180,7 @@ function shatter(c, k) {
   }
 }
 // une fenêtre ouverte (carte, thèmes, profil, confirmation…) met le Chrono en pause
-const overlayOpen = () => !!document.querySelector('#tab-blocks .overlay:not(.hidden), #pt-profile:not(.hidden), #pt-modal:not(.hidden), #bq-settings:not(.hidden)');   // bq-settings : réglages de l'appli (le Chrono continuait de tourner dessous)
+const overlayOpen = () => !!document.querySelector('#tab-blocks .overlay:not(.hidden), #pt-profile:not(.hidden), #pt-modal:not(.hidden), #bq-settings:not(.hidden), #pt-lb:not(.hidden)');   // pt-lb : classement Steam (version PC)   // bq-settings : réglages de l'appli (le Chrono continuait de tourner dessous)
 function draw(dt) {
   if (S.hit > 0) { S.hit -= dt; dt *= 0.12; }
   if (S.mode === 'chrono' && !S.over && !overlayOpen()) {
@@ -1613,6 +1658,9 @@ const sel = document.getElementById('pt-langsel'); if (sel) import('./i18n.js').
 window.addEventListener('pt-lang', () => { updateHUD(); if (!$('bp-themes').classList.contains('hidden')) openThemes(); if (!$('bp-map').classList.contains('hidden')) openMap(); if (!$('bp-career').classList.contains('hidden')) openCareer(); });
 $('bp-mapclose').onclick = () => { $('bp-map').classList.add('hidden'); if (S.over && S.mode !== 'adv') $('bp-over').classList.remove('hidden'); };   // fermer la carte après une fin de partie ramène à l'écran de fin
 $('bp-daily').onclick = () => startDaily();
+$('bp-lbover').onclick = () => LB.show(lbBoard());
+$('bp-lbdaily').onclick = () => LB.show('daily');
+$('bp-lball').onclick = () => LB.show(null);
 $('bp-classic').onclick = () => { clearTimeout(overTimer); clearTimeout(resTimer); $('bp-map').classList.add('hidden'); if (S.mode === 'classic' && S.over) { newGame(); return; } if (S.mode !== 'classic') { S.mode = 'classic'; rnd = Math.random; S.gems.clear(); freshRun(); if (!load() || !S.tray.some(t => t && canPlaceAnywhere(t))) newGame(); S.over = false; updateHUD(); } };
 $('bp-resnext').onclick = () => MON.pause().then(() => startLevel(Math.min(LEVELS, S.lvl + 1)));
 $('bp-resretry').onclick = () => startLevel(S.lvl);
@@ -1639,7 +1687,7 @@ window.GAMES.blocks = {
     loadFonts(); watchModal(); initComfort();
     if (!document.body.dataset.tab) document.body.dataset.tab = 'blocks';   // appli : la coquille (réglages, confirmations, notifications) prend le style de la carrière
     if (!inited) { inited = true; if (!load()) newGame(); else if (!S.tray.some(t => t && canPlaceAnywhere(t))) newGame(); updateHUD(); }
-    loginBonus(); checkMedals(); ensureWeek(); paintCarBtn();
+    loginBonus(); checkMedals(); ensureWeek(); paintCarBtn(); lbSync();
     // une seule boucle de dessin : un second show() sans hide() (reprise de l'appli) en lançait une deuxième, et le
     // Chrono s'écoulait deux fois plus vite (chaque image de la boucle en trop comptait 16 ms)
     const loop = !running; running = true; requestAnimationFrame(() => { resize(); if (loop) { last = performance.now(); requestAnimationFrame(frame); } });

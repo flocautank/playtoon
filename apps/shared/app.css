@@ -16,3 +16,28 @@
 #nb-menu .card { position: relative; }
 #nb-menu #bq-gear { position: absolute; top: 8px; right: 8px; }
 .bq-app [data-i18n="nb.musicNote"] { display: none; }
+/* Version PC : panneau de classement Steam (Block Quarry, Synth Horde) */
+#pt-lb .card{max-width:440px;width:calc(100% - 32px);max-height:calc(100% - 32px);overflow:auto}
+.pt-lbtabs{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;width:100%}
+.pt-lbbody{width:100%;text-align:left}
+.pt-lbbody h4{margin:10px 0 4px;font-size:14px;letter-spacing:.06em;text-transform:uppercase;opacity:.8}
+.pt-lblist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px}
+.pt-lblist li{display:grid;grid-template-columns:2.6em 1fr auto;gap:8px;align-items:center;padding:4px 8px;background:rgba(0,0,0,.22);font-size:15px}
+.pt-lblist li span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pt-lblist li em{font-style:normal;font-weight:700}
+.pt-lblist li.me{outline:2px solid currentColor;background:rgba(255,255,255,.08)}
+body[data-tab=blocks] #pt-lb .card{font-family:'BQ Label',system-ui,sans-serif;background:linear-gradient(170deg,#4a3a2e,#2c2119 70%);color:#f3e3c6;border:none;border-radius:0;box-shadow:inset 0 0 0 3px rgba(20,12,6,.55),inset 0 0 40px rgba(0,0,0,.5)}
+body[data-tab=blocks] #pt-lb h2{font-family:'BQ Display',system-ui,sans-serif;font-weight:400;color:#ffe0a3;text-shadow:0 2px 0 #26140c}
+body[data-tab=blocks] #pt-lb .pt-lblist li.me{color:#ffd27a}
+body[data-tab=bonk] #pt-lb .card{background:#160c22;border:2px solid #27e0ff;border-radius:0;box-shadow:6px 6px 0 #ff3df0;color:#fff4fb}
+body[data-tab=bonk] #pt-lb h2{color:#ffe04d;text-shadow:3px 3px 0 #ff3df0}
+body[data-tab=bonk] #pt-lb .pt-lblist li{background:rgba(39,224,255,.08);border-left:3px solid #27e0ff}
+body[data-tab=bonk] #pt-lb .pt-lblist li.me{color:#7cff8a;outline-color:#7cff8a}
+body[data-tab=bonk] #pt-lb .card{font-family:'SH Label','Arial Narrow',system-ui,sans-serif}
+body[data-tab=bonk] #pt-lb h2{font:400 26px 'SH Display','Arial Black',system-ui,sans-serif;text-transform:uppercase}
+body[data-tab=bonk] #pt-lb .btn{font-family:'SH Display','Arial Black',system-ui,sans-serif;font-weight:400;border-radius:0;transform:skewX(-6deg);box-shadow:3px 3px 0 #ff3df0}
+body[data-tab=bonk] #pt-lb .btn.ghost{background:#0b0612;color:#fff4fb;border:2px solid #27e0ff}
+body[data-tab=bonk] #pt-lb .btn:not(.ghost){background:#27e0ff;color:#0a0612}
+body[data-tab=bonk] #pt-lb .pt-lblist li{font:600 16px 'SH Label','Arial Narrow',system-ui,sans-serif}
+body[data-tab=blocks] #pt-lb .btn{font-family:'BQ Label',system-ui,sans-serif;font-weight:800;text-transform:uppercase;letter-spacing:.06em;border-radius:0;background:linear-gradient(180deg,#4a3828,#2e2219);color:#f3dcb4}
+body[data-tab=blocks] #pt-lb .btn:not(.ghost){background:linear-gradient(180deg,#d07a2c,#9a4c16);color:#fff3df}

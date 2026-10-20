@@ -99,6 +99,7 @@ Application → **Steam Cloud**: byte quota 50 MB, number of files 2000. Enable 
 6. Publish the **Coming soon** page (at least 2 weeks before release), then press **Release** on the day.
 
 ## Not included (possible later)
-- **Steam achievements / cloud via the Steamworks SDK** (e.g. `steamworks.js`): Nova Foundry already has in-game achievements
-  that could be mirrored. Not required to sell on Steam.
+- **Steam achievements** via the Steamworks SDK: Nova Foundry already has in-game achievements that could be mirrored.
+  Not required to sell on Steam. (Steam **leaderboards** are done for Block Quarry and Synth Horde — `steamworks.js`,
+  `electron/steam.cjs` — see `../RELEASE-GUIDE.md` → *Classements*.)
 - **Code signing**: not needed for Steam on Windows; the macOS build is ad-hoc signed (Apple notarization optional).

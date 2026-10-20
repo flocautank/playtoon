@@ -5,7 +5,10 @@
 //   - le jeu est jouable (Block Quarry : grille et pièces dessinées, une pièce se pose ; Nova Foundry : un clic donne de
 //     la poussière d'étoile ; Synth Horde : une run démarre et le joueur bouge) ;
 //   - la coquille s'ouvre (réglages, changement de langue), le pont natif absent (pubs, achats) est toléré ;
-//   - indépendance : le www/app.js ne contient le nom d'aucun autre jeu, ni « Playtoon ».
+//   - indépendance : le www/app.js ne contient le nom d'aucun autre jeu, ni « Playtoon » ;
+//   - classements (Block Quarry, Synth Horde) : boutons masqués sans pont ; faux pont injecté (window.PT_SCORES sur
+//     mobile, window.ptDesktop.scores sur PC) → submit appelé avec le bon tableau et le bon score à la fin du défi,
+//     show appelé au clic (PC : panneau Steam rempli) ; Nova Foundry : aucun classement, même avec un pont.
 // Usage : node tools/apps-smoke.mjs [jeu…]   (sans jeu : les trois ; Playwright installé globalement ; node_modules installés dans apps/<jeu>/ et
 // apps/desktop/ — pour ce dernier, ELECTRON_SKIP_BINARY_DOWNLOAD=1 suffit : seul le paquet electron est lu).
 // Remet à la fin les apps/*/src/config.js réécrits par les constructions.
@@ -56,6 +59,104 @@ for (const p of packs) {
   const js = fs.readFileSync(path.join(p.www, 'app.js'), 'utf8');
   const leaks = [...GAMES.filter(o => o.id !== p.id).map(o => o.name), 'Playtoon'].filter(n => js.includes(n));
   if (leaks.length) fail(`${p.id}/${p.kind}`, `www/app.js contient : ${leaks.join(', ')}`);
+}
+
+// ---------- classements : faux ponts (mobile : window.PT_SCORES, comme apps/shared/scores.js ; PC : le preload Electron)
+const fakeScores = kind => {
+  const L = window.__lb = { calls: [] };
+  const rec = (...a) => { L.calls.push(a); return Promise.resolve(true); };
+  if (kind === 'pc') {
+    const st = window.__ptDesk = { fs: false, quit: 0 };
+    window.ptDesktop = { fullscreen: v => Promise.resolve(st.fs = v === undefined ? !st.fs : !!v), isFullscreen: () => Promise.resolve(st.fs), quit: () => { st.quit++; }, platform: 'linux',
+      scores: { status: () => Promise.resolve({ ok: true }), submit: (b, sc, d) => rec('submit', b, sc, d),
+        entries: b => { L.calls.push(['show', b]); return Promise.resolve({ top: [{ rank: 1, score: 4321, name: 'Ada', me: false }, { rank: 2, score: 1234, name: 'You', me: true }], around: [], day: '', time: b === 'survival' }); } } };
+  } else window.PT_SCORES = { available: () => true, submit: (b, sc, d) => rec('submit', b, sc, d), show: b => rec('show', b) };
+};
+async function scores(pack, base, v, tag) {
+  const touch = v.tag === 'tel';
+  const ctx = await browser.newContext(v.ctx);
+  await ctx.addInitScript(fakeScores, pack.kind);
+  const p = await ctx.newPage(); p.setDefaultTimeout(20000);
+  const errs = []; p.on('pageerror', e => errs.push('exception : ' + e.message)); p.on('console', m => { if (m.type() === 'error') errs.push('console : ' + m.text()); });
+  p.on('dialog', d => d.accept());
+  const calls = () => p.evaluate(() => window.__lb.calls);
+  const shot = n => p.screenshot({ path: path.join(root, 'tools', 'shots', `apps-lb-${pack.id}-${pack.kind}-${v.tag}-${n}.png`) }).catch(() => {});
+  const uday = new Date().toISOString().slice(0, 10);
+  try {
+    await p.goto(base + 'index.html', { waitUntil: 'load' }); await wait(1500);
+    if (pack.key === 'forge') {
+      const r = await p.evaluate(() => ({ scores: 'PT_SCORES' in window, panel: !!document.getElementById('pt-lb'), calls: window.__lb.calls.length }));
+      if (r.panel || r.calls || (pack.kind === 'pc' && r.scores)) fail(tag, 'Nova Foundry : classement présent ' + JSON.stringify(r));
+      else log(`  ${tag} : aucun classement (attendu)`);
+    } else if (pack.key === 'blocks') {
+      if (!await until(p, () => !!window.__bp && !!window.PT_SCORES)) return fail(tag, 'classements : pont non installé');
+      await press(p, touch, '#bp-mapbtn'); await wait(300);
+      if (!await p.isVisible('#bp-lbdaily') || !await p.isVisible('#bp-lball')) fail(tag, 'carte des modes : boutons « Classement » absents avec le pont');
+      await shot('map');
+      await press(p, touch, '#bp-lball'); await wait(300);
+      if (pack.kind === 'pc') {   // « Classements » (tous) : le panneau Steam s'ouvre sur le premier tableau
+        if (!await p.isVisible('#pt-lb')) fail(tag, 'panneau Steam : « Classements » ne l’ouvre pas');
+        await press(p, touch, '#pt-lbclose'); await wait(200);
+      }
+      await press(p, touch, '#bp-daily'); await wait(400);
+      const r = await p.evaluate(async () => {
+        const { S, place, fits, N } = window.__bp;
+        for (let k = 0; k < 6 && !S.over; k++) { let done = false; S.tray.forEach((pc, i) => { if (done || !pc) return; for (let y = 0; y < N && !done; y++) for (let x = 0; x < N && !done; x++) if (fits(pc, x, y)) { place(i, x, y); done = true; } }); }
+        if (!(S.score > 0)) S.score = 77;
+        window.__bp.gameOver(); await new Promise(res => setTimeout(res, 400));
+        return { score: S.score, mode: S.mode };
+      });
+      const sub = (await calls()).filter(c => c[0] === 'submit' && c[1] === 'daily');
+      const want = uday.replace(/-/g, '');
+      if (!sub.some(c => c[2] === r.score && String(c[3]) === want)) fail(tag, `défi : submit attendu (daily, ${r.score}, ${want}), reçu ${JSON.stringify(sub)}`);
+      if (!await p.isVisible('#bp-lbover')) fail(tag, 'écran de fin du défi : bouton « Classement » absent');
+      await shot('over');
+      await press(p, touch, '#bp-lbover'); await wait(400);
+      const shows = (await calls()).filter(c => c[0] === 'show').map(c => c[1]);
+      if (!shows.includes('daily')) fail(tag, `clic « Classement » : show('daily') attendu, reçu ${JSON.stringify(shows)}`);
+      if (pack.kind === 'pc') {
+        const rows = await p.$$eval('#pt-lb .pt-lblist li', l => l.length).catch(() => 0);
+        if (!await p.isVisible('#pt-lb') || rows < 2) fail(tag, `panneau Steam : non affiché ou vide (${rows} lignes)`);
+        await shot('panel');
+        await p.keyboard.press('Escape'); await wait(200);
+        if (await p.isVisible('#pt-lb')) fail(tag, 'panneau Steam : Échap ne le ferme pas');
+      }
+      log(`  ${tag} : classements — submit(daily, ${r.score}, ${want}) · show(${shows.join(', ')})`);
+    } else {
+      if (!await until(p, () => !!window.__nb && !!window.PT_SCORES && !!document.querySelector('#nb-start'))) return fail(tag, 'classements : pont non installé');
+      if (!await until(p, () => { const e = document.getElementById('nb-lbdaily'); return e && !e.classList.contains('hidden'); }, null, 5000)) fail(tag, 'carte du défi : bouton « Classement » absent avec le pont');
+      if (!await p.isVisible('#nb-lbmenu')) fail(tag, 'menu : accès « Classements » absent avec le pont');
+      await p.evaluate(() => document.getElementById('nb-daily').scrollIntoView({ block: 'center' })); await wait(200); await shot('menu');
+      await p.evaluate(() => document.getElementById('nb-lbmenu').scrollIntoView({ block: 'center' })); await wait(200); await shot('menu2');
+      await press(p, touch, '#nb-dplay');
+      if (!await until(p, () => window.__nb.S && window.__nb.S.state === 'play', null, 20000)) return fail(tag, 'défi : la run ne démarre pas');
+      const r = await p.evaluate(async () => {
+        const nb = window.__nb, S = nb.S; S.t = 125; S.kills = 40; S.level = 6;
+        document.getElementById('nb-pausebtn').click(); await new Promise(res => setTimeout(res, 200));
+        document.getElementById('nb-quit').click(); await new Promise(res => setTimeout(res, 400));
+        return { key: S.daily.key, state: nb.S.state, score: Math.round(S.kills + S.level * 25 + Math.floor(S.t) * 2 + (S.stage + (S.bossDead || S.won ? 1 : 0)) * 1500) };
+      });
+      const c = await calls(), d = c.filter(x => x[0] === 'submit' && x[1] === 'daily'), sv = c.filter(x => x[0] === 'submit' && x[1] === 'survival');
+      if (!d.some(x => x[2] === r.score && x[3] === uday)) fail(tag, `défi : submit attendu (daily, ${r.score}, ${uday}), reçu ${JSON.stringify(d)}`);
+      if (!sv.some(x => x[2] === 125)) fail(tag, `survie : submit attendu (survival, 125), reçu ${JSON.stringify(sv)}`);
+      if (!await until(p, () => { const e = document.getElementById('nb-lbend'); return e && e.offsetParent; }, null, 3000)) fail(tag, 'écran de fin du défi : bouton « Classement » absent');
+      await shot('end');
+      await press(p, touch, '#nb-lbend'); await wait(400);
+      const shows = (await calls()).filter(x => x[0] === 'show').map(x => x[1]);
+      if (!shows.includes('daily')) fail(tag, `clic « Classement » : show('daily') attendu, reçu ${JSON.stringify(shows)}`);
+      if (pack.kind === 'pc') {
+        const rows = await p.$$eval('#pt-lb .pt-lblist li', l => l.length).catch(() => 0);
+        if (!await p.isVisible('#pt-lb') || rows < 2) fail(tag, `panneau Steam : non affiché ou vide (${rows} lignes)`);
+        await shot('panel');
+        await p.click('#pt-lbtabs [data-lb=survival]'); await wait(300);
+        if (!(await calls()).some(x => x[0] === 'show' && x[1] === 'survival')) fail(tag, 'panneau Steam : onglet « survie » sans effet');
+        await p.click('#pt-lbclose'); await wait(200);
+      }
+      log(`  ${tag} : classements — submit(daily, ${r.score}, ${uday}) · submit(survival, 125) · show(${shows.join(', ')})`);
+    }
+  } catch (e) { fail(tag, 'classements : scénario interrompu : ' + e.message.split('\n')[0]); }
+  for (const e of [...new Set(errs)]) fail(tag, 'classements : ' + e);
+  await ctx.close();
 }
 
 // ---------- serveurs : un par paquet (origine propre, comme dans l'appli : localStorage vierge)
@@ -196,11 +297,16 @@ for (const pack of packs) {
         await play(p, pack, touch, tag);
         await shell(p, pack, touch, tag);
         await bridge(p, pack);
+        // sans pont de classement (web, identifiants absents) : aucun bouton « Classement » visible, rien de défini
+        const lbVis = await p.evaluate(() => [...document.querySelectorAll('#bp-lbover, #bp-lbdaily, #bp-lball, #nb-lbdaily, #nb-lbmenu, #nb-lbend, #pt-lb')].filter(e => !e.classList.contains('hidden')).map(e => e.id));
+        if (lbVis.length) fail(tag, 'classement visible sans pont : ' + lbVis.join(', '));
+        if (await p.evaluate(() => 'PT_SCORES' in window)) fail(tag, 'window.PT_SCORES défini sans pont');
       }
     } catch (e) { fail(tag, 'scénario interrompu : ' + e.message.split('\n')[0]); }
     await wait(300);
     for (const e of [...new Set(errs)]) fail(tag, e);
     await ctx.close();
+    await scores(pack, base, v, tag + '/lb');
   }
   srv.close();
 }

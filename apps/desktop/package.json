@@ -8,6 +8,7 @@
     "start": "node build.mjs --stage-only && electron games/block-quarry/stage"
   },
   "devDependencies": {
+    "@pipelab/steamworks.js": "0.12.2",
     "electron": "44.5.1",
     "electron-builder": "26.15.3",
     "esbuild": "^0.28.2"

@@ -8,7 +8,7 @@ Synthwave, Retro, Singleplayer, Fast-Paced, Score Attack, Replay Value, Colorful
 playable with A / B / Start / D-pad; the shop and settings still need the mouse or touch → declare **"Partial"** for now).
 **Steam Deck**: gamepad + touchscreen; submit for Deck verification after testing (`../../STEAM.md`).
 **Content survey**: "Some violence or gore" → **fantasy violence only**: cartoon enemies made of living audio gear (speakers, cassettes, TVs), no blood, no humans.
-No nudity, no mature content, no purchases, no ads. **Steam Cloud**: yes.
+No nudity, no mature content, no purchases, no ads. **Steam Cloud**: yes. **Steam Leaderboards**: yes — daily challenge (one per UTC day) and best survival (tick *Steam Leaderboards* in the store page features).
 
 Graphics: `art/` · Screenshots: `screenshots/en/` + `screenshots/fr/` (1920×1080).
 

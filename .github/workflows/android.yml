@@ -5,6 +5,8 @@
 # - envoi sur la piste « internal » de Google Play si le secret PLAY_SERVICE_ACCOUNT_JSON existe.
 # Identifiants AdMob par application : variables du dépôt <PRÉFIXE>_ADMOB_APP_ID, _REWARDED_ID, _INTERSTITIAL_ID
 # (BQ = Block Quarry, NF = Nova Foundry ; Synth Horde est payante, sans pub) ; à défaut, publicités de TEST de Google.
+# Classements Google Play Jeux (Block Quarry, Synth Horde ; jamais Nova Foundry) : variables <PRÉFIXE>_PLAY_GAMES_APP_ID
+# et <PRÉFIXE>_PLAY_LB_<NOM> (voir apps/shared/leaderboards.mjs) ; absentes → l'appli est construite sans Play Jeux.
 name: Android
 
 on:
@@ -31,9 +33,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { app: block-quarry, prefix: BQ, version: blocks, pkg: io.github.flocautank.blockquarry }
-          - { app: nova-foundry, prefix: NF, version: forge, pkg: io.github.flocautank.novafoundry }
-          - { app: synth-horde, prefix: SH, version: bonk, pkg: io.github.flocautank.synthhorde }
+          - { app: block-quarry, prefix: BQ, version: blocks, pkg: io.github.flocautank.blockquarry, scores: true }
+          - { app: nova-foundry, prefix: NF, version: forge, pkg: io.github.flocautank.novafoundry, scores: false }
+          - { app: synth-horde, prefix: SH, version: bonk, pkg: io.github.flocautank.synthhorde, scores: true }
     defaults:
       run:
         working-directory: apps/${{ matrix.app }}
@@ -41,6 +43,11 @@ jobs:
       ADMOB_APP_ID: ${{ vars[format('{0}_ADMOB_APP_ID', matrix.prefix)] }}
       ADMOB_REWARDED_ID: ${{ vars[format('{0}_ADMOB_REWARDED_ID', matrix.prefix)] }}
       ADMOB_INTERSTITIAL_ID: ${{ vars[format('{0}_ADMOB_INTERSTITIAL_ID', matrix.prefix)] }}
+      PLAY_GAMES_APP_ID: ${{ vars[format('{0}_PLAY_GAMES_APP_ID', matrix.prefix)] }}
+      PLAY_LB_DAILY: ${{ vars[format('{0}_PLAY_LB_DAILY', matrix.prefix)] }}
+      PLAY_LB_CLASSIC: ${{ vars[format('{0}_PLAY_LB_CLASSIC', matrix.prefix)] }}
+      PLAY_LB_CHRONO: ${{ vars[format('{0}_PLAY_LB_CHRONO', matrix.prefix)] }}
+      PLAY_LB_SURVIVAL: ${{ vars[format('{0}_PLAY_LB_SURVIVAL', matrix.prefix)] }}
       VERSION_CODE: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
@@ -98,6 +105,19 @@ jobs:
           name: ${{ matrix.app }}-${{ env.VERSION_NAME }}-${{ github.run_number }}-release-aab
           path: apps/${{ matrix.app }}/android/app/build/outputs/bundle/release/*.aab
           retention-days: 90
+
+      # le chemin « Play Jeux déclaré » n'est pris que quand le propriétaire a créé ses classements : on le vérifie
+      # dès maintenant avec un identifiant FACTICE (fusion du manifeste et compilation seulement, rien n'est publié)
+      - name: Vérification — manifeste avec Play Jeux (identifiant factice)
+        if: matrix.scores
+        working-directory: apps/${{ matrix.app }}/android
+        env:
+          PLAY_GAMES_APP_ID: '123456789012'
+        run: |
+          ./gradlew --no-daemon processDebugMainManifest compileDebugJavaWithJavac
+          m=$(find app/build/intermediates -path '*debug*' -name AndroidManifest.xml | xargs grep -l 'com.google.android.gms.games.APP_ID' | head -1)
+          if [ -z "$m" ]; then echo "::error::meta-data Play Jeux absente du manifeste fusionné"; exit 1; fi
+          echo "manifeste fusionné avec Play Jeux : $m"
 
       - name: Google Play — piste interne (si le compte de service est configuré)
         if: env.UPLOAD_KEYSTORE_PATH != '' && github.ref == 'refs/heads/main'

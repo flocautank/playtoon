@@ -354,8 +354,21 @@ const DMODS = {
 };
 const dmod = k => !!(S && S.daily && S.daily.mods.includes(k));
 const DAILY_MIN = 90;   // tenir 1:30 pour valider la journée (sinon abandonner tout de suite rapporterait la prime)
-const dayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-const dayBefore = k => { const [y, m, d] = k.split('-').map(Number); return dayKey(new Date(y, m - 1, d - 1)); };
+// défi du jour : graine = date UTC (1.21.0 : c'est la journée des classements Play Jeux / Game Center / Steam ; avant, la date locale)
+const dayKey = (d = new Date()) => d.toISOString().slice(0, 10);
+const dayBefore = k => new Date(Date.parse(k + 'T00:00:00Z') - 864e5).toISOString().slice(0, 10);
+// passage à la date UTC, sans perdre la série ni primer deux fois la même journée : à l'ouest de Greenwich, le soir, la
+// journée UTC a un jour d'avance → la journée locale déjà jouée devient la journée UTC ; à l'est, après minuit, la journée
+// locale est en avance → la série la compte déjà (comparaisons « ≥ » dans dailyState / dailyEnd).
+if (!META.dUtc) {
+  const n = new Date(), Lk = `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`, Uk = dayKey(n);
+  if (Uk > Lk) {
+    if (META.daily && META.daily.key === Lk) META.daily.key = Uk;
+    if (META.dLast === Lk) META.dLast = Uk;
+    if (META.dHist && META.dHist[Lk] !== undefined) { META.dHist[Uk] = Math.max(META.dHist[Uk] || 0, META.dHist[Lk]); delete META.dHist[Lk]; }
+  }
+  META.dUtc = 1; saveMeta();
+}
 function hashStr(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
 function seeded(a) { return () => { a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 function dailyOf(key = dayKey()) {
@@ -372,7 +385,7 @@ function dailyState() {   // état du jour (remis à zéro au changement de date
     const was = META.dHist && META.dHist[k];
     META.daily = { key: k, best: was || 0, tries: 0, done: was !== undefined && was !== null };
   }
-  const streakAlive = META.dLast === k || META.dLast === dayBefore(k);
+  const streakAlive = !!META.dLast && META.dLast >= dayBefore(k);   // ≥ : journée déjà comptée (migration UTC)
   return { ...META.daily, streak: streakAlive ? META.dStreak || 0 : 0 };
 }
 // fin d'une run du jour : record, validation (série, prime), historique des 30 derniers jours
@@ -384,13 +397,14 @@ function dailyEnd() {
   d.tries++; d.best = out.best;
   if (!d.done && S.t >= DAILY_MIN) {
     d.done = true;
-    META.dStreak = META.dLast === dayBefore(d.key) ? (META.dStreak || 0) + 1 : META.dLast === d.key ? META.dStreak || 1 : 1;
-    META.dLast = d.key; META.dDays = (META.dDays || 0) + 1; META.dBestStreak = Math.max(META.dBestStreak || 0, META.dStreak);
+    META.dStreak = META.dLast && META.dLast >= d.key ? META.dStreak || 1 : META.dLast === dayBefore(d.key) ? (META.dStreak || 0) + 1 : 1;
+    if (!(META.dLast && META.dLast > d.key)) META.dLast = d.key; META.dDays = (META.dDays || 0) + 1; META.dBestStreak = Math.max(META.dBestStreak || 0, META.dStreak);
     out.prize = dailyPrize(META.dStreak); out.streak = META.dStreak; META.credits = (META.credits || 0) + out.prize;
   } else if (!d.done) out.short = true;
   META.dHist = META.dHist || {}; if (d.done) META.dHist[d.key] = d.best;
   for (const k of Object.keys(META.dHist).sort().slice(0, -30)) delete META.dHist[k];
   META.dBestScore = Math.max(META.dBestScore || 0, d.best);
+  LB.submit('daily', score, d.key);   // classement du défi : seulement le défi du jour UTC en cours (run « stale » exclue plus haut)
   return out;
 }
 
@@ -1630,6 +1644,24 @@ const MON = {
   reward: kind => window.PT_MON ? window.PT_MON.reward(kind) : Promise.resolve(false),
   pause: () => window.PT_MON ? window.PT_MON.pause() : Promise.resolve(),
 };
+// Classements natifs (1.21.0) : fournis par l'appli — Google Play Jeux, Game Center (apps/shared/scores.js), Steam
+// (apps/desktop). Sur le web, pas de window.PT_SCORES : boutons masqués, rien n'est envoyé. Tableaux : daily (score du
+// défi), survival (meilleure survie, en secondes) — noms, bornes, identifiants : apps/shared/leaderboards.mjs.
+const LB = {
+  ok: () => { try { return !!(window.PT_SCORES && window.PT_SCORES.available()); } catch (e) { return false; } },
+  submit: (board, score, day) => { if (!LB.ok() || !(score > 0)) return; try { Promise.resolve(window.PT_SCORES.submit(board, Math.floor(score), day)).catch(() => {}); } catch (e) {} },
+  show: board => { if (!LB.ok()) return; try { Promise.resolve(window.PT_SCORES.show(board)).catch(() => {}); } catch (e) {} },
+};
+let lbSynced = false;
+function paintLb() {
+  const ok = LB.ok();
+  for (const id of ['nb-lbdaily', 'nb-lbmenu', 'nb-lbend']) { const e = $(id); if (e) e.classList.toggle('hidden', !ok); }
+  if (!ok || lbSynced) return;
+  lbSynced = true;   // premier contact : les records déjà faits partent aussi (la plateforme garde le meilleur)
+  if (META.bestTime) LB.submit('survival', META.bestTime);
+  if (META.daily && META.daily.key === dayKey() && META.daily.best) LB.submit('daily', META.daily.best, META.daily.key);
+}
+window.addEventListener('pt-scores', paintLb);
 function offerSecondChance() {
   S.p.hp = 0; S.adRevived = true; S.state = 'offer';
   music.stop(0.5);
@@ -3348,13 +3380,13 @@ function pollPad(dt) {
   PAD.prev = gp.buttons.map(x => x.pressed);
 }
 // ---- navigation des menus à la manette (focus spatial dans l'écran ouvert)
-const PAD_OV = ['nb-second', 'nb-quests', 'nb-pause', 'nb-end', 'nb-menu'];
-const PAD_DEF = { 'nb-second': 'nb-secondyes', 'nb-quests': 'nb-qclose', 'nb-pause': 'nb-resume', 'nb-end': 'nb-replay', 'nb-menu': 'nb-start' };
+const PAD_OV = ['pt-lb', 'nb-second', 'nb-quests', 'nb-pause', 'nb-end', 'nb-menu'];   // pt-lb : classement Steam (version PC)
+const PAD_DEF = { 'pt-lb': 'pt-lbclose', 'nb-second': 'nb-secondyes', 'nb-quests': 'nb-qclose', 'nb-pause': 'nb-resume', 'nb-end': 'nb-replay', 'nb-menu': 'nb-start' };
 function padOverlay() { for (const id of PAD_OV) { const o = $(id); if (o && !o.classList.contains('hidden')) return o; } return null; }
 function padItems(ov) { return [...ov.querySelectorAll('button, input')].filter(e => !e.disabled && e.offsetParent !== null && e.getClientRects().length); }
 const rc = e => { const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
 function padFocus(e) {
-  document.querySelectorAll('#nb-root .nb-pf').forEach(x => x.classList.remove('nb-pf'));
+  document.querySelectorAll('#nb-root .nb-pf, #pt-lb .nb-pf').forEach(x => x.classList.remove('nb-pf'));
   PAD.foc = e; if (!e) return;
   e.classList.add('nb-pf');
   try { e.focus({ preventScroll: true }); } catch (x) {}
@@ -3495,6 +3527,7 @@ function endRun(win) {
   if (win && !E && !S.daily) { META.heatWon = META.heatWon || {}; if ((S.heat || 0) > heatWon(S.ch.id)) { META.heatWon[S.ch.id] = S.heat || 0; heatRec = (S.heat || 0) > 0; } }
   const cr = Math.max(0, runCredits(S) - (E ? E.cr0 : 0)); META.credits = (META.credits || 0) + cr;
   S.dailyRes = S.daily ? dailyEnd() : null;
+  LB.submit('survival', surv);   // meilleure survie : toutes les runs, comme le record du menu (META.bestTime)
   window.ptEvent && window.ptEvent('nb_time', surv);
   saveMeta();
   let killedBy = !win && S.p.hp <= 0 && S.lastHurt ? S.lastHurt : null;
@@ -3533,6 +3566,7 @@ function statsHTML() {
   return `<div class="nb-stats"><h4>${tr('nb.statsT')}</h4>${L.map(([k, v]) => `<span title="${TOMES[k].name}">${TOMES[k].ic} <small>${tr('nb.sl.' + k)}</small> ${v}</span>`).join('')}</div>`;
 }
 function renderEnd() {
+  paintLb();
   const { surv, cr, newly, killedBy, best, heatRec, firstWin, ot, otRec } = S.endInfo;
   $('nb-endless').classList.toggle('hidden', !(S.won && !S.endless && !S.daily));
   // bandeau-affiche : portrait du héros et verdict sur une dalle inclinée (jaune pour une victoire, encre et rose sinon)
@@ -3643,10 +3677,10 @@ function ransomTitle() {
 const DM_IC = { glass: 'dm_glass', horde: 'h_kills', rich: 'h_gold', swift: 'st_speed', crit: 'st_crit', echo: 'm_elite', giants: 'dm_giants', float: 'dm_float' };
 function renderDaily() {
   const D = dailyOf(), st = dailyState(), c = CHARS.find(x => x.id === D.ch), face = (portraits() || {})[c.id];
-  const now = new Date(), mid = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1), left = Math.max(60, (mid - now) / 1000);
+  const now = new Date(), left = Math.max(60, (864e5 - now.getTime() % 864e5) / 1000);   // jusqu'à minuit UTC : le prochain défi
   const days = []; for (let i = 6, k = D.key; i >= 0; i--) { days[i] = k; k = dayBefore(k); }
   const week = days.map(k => { const v = META.dHist && META.dHist[k]; return `<i class="${v ? 'on' : ''}${k === D.key ? ' today' : ''}" title="${k}${v ? ' · ' + num(v) : ''}"></i>`; }).join('');
-  $('nb-dinfo').innerHTML = `<div class="nb-dhead">${icon('m_daily')}<b>${tr('nb.dTitle')}</b><span class="nb-ddate">${date(now, { day: 'numeric', month: 'short' })}</span>`
+  $('nb-dinfo').innerHTML = `<div class="nb-dhead">${icon('m_daily')}<b>${tr('nb.dTitle')}</b><span class="nb-ddate">${date(now, { day: 'numeric', month: 'short', timeZone: 'UTC' })}</span>`
     + `<span class="nb-dstreak${st.streak ? ' on' : ''}" title="${tr('nb.dStreakTip')}">${icon('m_streak')}${tr('nb.dStreak', { n: st.streak })}</span></div>`
     + `<div class="nb-dbody"><span class="nb-dhero" style="--c:${c.col}">${face ? `<img class="nb-face" alt="" src="${face}">` : ''}<b>${c.name}</b>${unlocked(c) ? '' : `<small>${tr('nb.dLent')}</small>`}</span>`
     + D.mods.map(k => `<span class="nb-dmod">${icon(DM_IC[k])}<span><b>${tr('nb.dm.' + k)}</b><small>${tr('nb.dmd.' + k)}</small></span></span>`).join('') + '</div>'
@@ -3677,7 +3711,7 @@ function renderMenu() {
     box.appendChild(b);
   });
   $('nb-meta').textContent = META.runs ? tr('nb.metaLine', { runs: num(META.runs), wins: num(META.wins), best: `${Math.floor(META.bestTime / 60)}:${String(META.bestTime % 60).padStart(2, '0')}`, lvl: META.maxLevel, kills: num(META.totalKills) }) : '';
-  renderDaily();
+  renderDaily(); paintLb();
   $('nb-sens').value = META.sens;
   $('nb-credits').textContent = num(META.credits || 0);
   $('nb-credits2').textContent = num(META.credits || 0);
@@ -3707,6 +3741,10 @@ function renderMenu() {
 
 $('nb-start').onclick = () => { S = null; newRun(); clock.getDelta(); };
 $('nb-dplay').onclick = () => { S = null; newRun(true); clock.getDelta(); };
+document.querySelectorAll('#tab-bonk .nb-lbi').forEach(e => { e.outerHTML = icon('m_rank'); });
+$('nb-lbdaily').onclick = () => LB.show('daily');
+$('nb-lbmenu').onclick = () => LB.show(null);
+$('nb-lbend').onclick = () => LB.show(S && S.daily ? 'daily' : 'survival');
 $('nb-shopjump').onclick = () => { const c = $('nb-menu').querySelector('.card'), h = document.querySelector('#nb-menu .nb-shop-h'); c.scrollTo({ top: c.scrollTop + h.getBoundingClientRect().top - c.getBoundingClientRect().top - 8, behavior: 'smooth' }); };
 // entre deux runs : l'application peut placer une pause publicitaire (plafonnée, voir apps/synth-horde)
 $('nb-again').onclick = () => MON.pause().then(toMenu);

@@ -1,0 +1,15 @@
+{
+  "name": "@playtoon/scores",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Playtoon — native leaderboards for the Capacitor apps: Google Play Games Services v2 (Android) and Game Center (iOS). Local plugin, used by Block Quarry and Synth Horde only.",
+  "license": "UNLICENSED",
+  "files": ["android/src/main/", "android/build.gradle", "ios/Sources", "Package.swift"],
+  "capacitor": {
+    "android": { "src": "android" },
+    "ios": { "src": "ios" }
+  },
+  "peerDependencies": {
+    "@capacitor/core": ">=8.0.0"
+  }
+}

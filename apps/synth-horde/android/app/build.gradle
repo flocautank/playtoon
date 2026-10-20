@@ -59,6 +59,21 @@ dependencies {
 
 apply from: 'capacitor.build.gradle'
 
+// Google Play Jeux (classements) : déclaré SEULEMENT si la CI fournit PLAY_GAMES_APP_ID (variable GitHub
+// <PRÉFIXE>_PLAY_GAMES_APP_ID). Sans lui : ni ressource ni meta-data, l'appli démarre exactement comme avant et le
+// plugin PtScores (apps/shared/pt-scores) reste inactif.
+def playGamesAppId = (System.getenv("PLAY_GAMES_APP_ID") ?: "").trim()
+if (playGamesAppId) {
+    android {
+        buildFeatures { resValues = true }
+        defaultConfig { resValue "string", "games_app_id", playGamesAppId }
+        sourceSets {
+            debug { manifest.srcFile 'src/playgames/AndroidManifest.xml' }
+            release { manifest.srcFile 'src/playgames/AndroidManifest.xml' }
+        }
+    }
+}
+
 try {
     def servicesJSON = file('google-services.json')
     if (servicesJSON.text) {

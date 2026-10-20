@@ -2,10 +2,11 @@
 // orientation, iPhone seulement, conformité export (pas de chiffrement propre), et pour les applis avec publicité :
 // identifiant AdMob (variable de build ADMOB_APP_ID, test par défaut, réel passé par la CI), SKAdNetwork de Google,
 // texte de la demande App Tracking Transparency.
-// Usage (depuis le dossier de l'application) : node ../shared/setup-ios.mjs portrait|landscape [noads]
+// « scores » : classements Game Center (Block Quarry, Synth Horde) — capacité Game Center (App/App.entitlements).
+// Usage (depuis le dossier de l'application) : node ../shared/setup-ios.mjs portrait|landscape [noads] [scores]
 import { readFileSync, writeFileSync } from 'fs';
 
-const orient = process.argv[2] || 'portrait', noAds = process.argv[3] === 'noads';
+const orient = process.argv[2] || 'portrait', noAds = process.argv.includes('noads'), scores = process.argv.includes('scores');
 const plistPath = 'ios/App/App/Info.plist', pbxPath = 'ios/App/App.xcodeproj/project.pbxproj';
 let p = readFileSync(plistPath, 'utf8');
 const setKey = (key, xml) => {
@@ -37,5 +38,18 @@ if (!noAds && !x.includes('ADMOB_APP_ID')) {
   // identifiant d'application AdMob iOS de TEST par défaut ; la CI le remplace (xcodebuild ADMOB_APP_ID=…)
   x = x.replace(/(\t+)(PRODUCT_BUNDLE_IDENTIFIER = [^;]+;)/g, '$1ADMOB_APP_ID = "ca-app-pub-3940256099942544~1458002511";\n$1$2');
 }
+if (scores) {
+  // capacité Game Center : droit com.apple.developer.game-center (la signature automatique l'ajoute à l'App ID)
+  writeFileSync('ios/App/App/App.entitlements', `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+\t<key>com.apple.developer.game-center</key>
+\t<true/>
+</dict>
+</plist>
+`);
+  if (!x.includes('CODE_SIGN_ENTITLEMENTS')) x = x.replace(/(\t+)(INFOPLIST_FILE = App\/Info\.plist;)/g, '$1CODE_SIGN_ENTITLEMENTS = App/App.entitlements;\n$1$2');
+}
 writeFileSync(pbxPath, x);
-console.log('ios/ prêt :', orient, noAds ? '· sans pub' : '· AdMob + ATT', '· iPhone seulement');
+console.log('ios/ prêt :', orient, noAds ? '· sans pub' : '· AdMob + ATT', '· iPhone seulement', scores ? (x.split('CODE_SIGN_ENTITLEMENTS').length === 3 ? '· Game Center' : '· ÉCHEC Game Center') : '');

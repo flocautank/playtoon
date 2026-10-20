@@ -1,7 +1,8 @@
 # Block Quarry — Play Console "App content" answers
 
-These answers match what the app actually does (see `../src/mon.js` and `privacy.html`). The only SDKs that
-process data are **Google Mobile Ads (AdMob) + UMP consent** and **Google Play Billing**.
+These answers match what the app actually does (see `../../shared/mon.js`, `../../shared/scores.js` and `privacy.html`).
+The only SDKs that process data are **Google Mobile Ads (AdMob) + UMP consent**, **Google Play Billing** and, once
+configured, **Google Play Games Services** (leaderboards).
 
 ## Privacy policy
 `https://flocautank.github.io/playtoon/privacy.html`
@@ -41,7 +42,7 @@ device only. (Answer "No" — ad data is handled by Google; players can reset th
 | App activity → App interactions (ad views/taps) | Yes | Yes | No | Advertising or marketing, Analytics |
 | App info and performance → Diagnostics (AdMob SDK) | Yes | No | No | Analytics, Fraud prevention |
 
-Not collected: name, email, user IDs, contacts, photos, files, messages, health, precise location, web history,
+Not collected by us: name, email, user IDs (except the Play Games player ID handled by Google for leaderboards, below), contacts, photos, files, messages, health, precise location, web history,
 financial info (payments are processed by Google Play, which the app never sees).
 
 "Is this data processed ephemerally?" — No. "Is collection required?" — Required (ads fund the free version),
@@ -52,3 +53,22 @@ No / None / No.
 
 ## News app, COVID-19, Data deletion URL
 Not applicable.
+
+## Leaderboards (Google Play Games Services) — added in 1.13.0
+The app uses **Google Play Games Services v2** for its leaderboards (daily challenge, Classic record, Time Attack record). Only the score and the leaderboard
+it belongs to are sent, by Google's SDK, to Google's servers, under the player's Play Games profile (gamer tag) —
+we run no server and receive nothing. Not signed in / offline: nothing is sent. Play Games is only active when the
+GitHub variable `BQ_PLAY_GAMES_APP_ID` is set (see `apps/RELEASE-GUIDE.md` → *Leaderboards*); before that, the app
+does not include the Play Games app ID and these lines do not apply.
+
+Add to the Data safety form (Google acts as the service provider; check Google's own list for the Play Games SDK:
+https://developer.android.com/games/pgs/data-safety):
+
+| Data type | Collected | Shared | Optional? | Purposes |
+|---|---|---|---|---|
+| App activity → Other actions (leaderboard scores) | Yes | No | Yes (only when signed in to Play Games) | App functionality |
+| Personal info → User IDs (Play Games player ID, by Google) | Yes | No | Yes | App functionality, Account management |
+
+The store listing may say "Google Play Games leaderboards". Game Center (iOS) and Steam (PC) handle their leaderboards the
+same way: App Store Connect privacy label → *Gameplay content* / *User ID* "Not linked to you / used for app functionality"
+only if Apple asks for it (Game Center data is Apple's, not collected by the developer).

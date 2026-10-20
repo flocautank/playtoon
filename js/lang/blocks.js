@@ -1,6 +1,6 @@
 // Block Quarry — textes du jeu dans les six langues (clés bp.*), chargés par js/blocks.js.
 const s = (n, one, many) => (n === 1 ? one : many);
-export default {
+const TXT = {
   en: {
     'bp.name': 'Block Quarry',
     'bp.modes': 'Modes', 'bp.modesTip': 'Game modes: Adventure, daily challenge, Time Attack',
@@ -314,3 +314,26 @@ export default {
     'bp.more': '+3 jogadas · 🪙 25', 'bp.cont': '💥 Continuar · 🪙 {n}', 'bp.next': 'Próximo', 'bp.retry': 'Tentar de novo', 'bp.map': 'Mapa', 'bp.cleared': 'Nível concluído!',
   },
 };
+// classements natifs (1.13.0, applis seulement) et prochain défi
+const LB = {
+  en: { 'bp.lbBtn': 'Leaderboard', 'bp.lbAll': 'Leaderboards', 'bp.lbDailyTip': 'Daily challenge leaderboard', 'bp.dailyNext': 'New challenge in {t}',
+    'bp.lb.daily': 'Daily challenge', 'bp.lb.classic': 'Classic record', 'bp.lb.chrono': 'Time Attack record', 'bp.lb.title': 'Leaderboards', 'bp.lb.top': 'Top 10',
+    'bp.lb.around': 'Around you', 'bp.lb.empty': 'No score yet: be the first!', 'bp.lb.offline': 'Leaderboard unavailable right now.', 'bp.lb.loading': 'Loading…', 'bp.lb.today': 'Today (UTC)' },
+  fr: { 'bp.lbBtn': 'Classement', 'bp.lbAll': 'Classements', 'bp.lbDailyTip': 'Classement du défi du jour', 'bp.dailyNext': 'Nouveau défi dans {t}',
+    'bp.lb.daily': 'Défi du jour', 'bp.lb.classic': 'Record Classique', 'bp.lb.chrono': 'Record Chrono', 'bp.lb.title': 'Classements', 'bp.lb.top': 'Top 10',
+    'bp.lb.around': 'Autour de toi', 'bp.lb.empty': 'Aucun score pour l’instant : sois le premier !', 'bp.lb.offline': 'Classement indisponible pour le moment.', 'bp.lb.loading': 'Chargement…', 'bp.lb.today': 'Aujourd’hui (UTC)' },
+  es: { 'bp.lbBtn': 'Clasificación', 'bp.lbAll': 'Clasificaciones', 'bp.lbDailyTip': 'Clasificación del reto diario', 'bp.dailyNext': 'Nuevo reto en {t}',
+    'bp.lb.daily': 'Reto diario', 'bp.lb.classic': 'Récord clásico', 'bp.lb.chrono': 'Récord contrarreloj', 'bp.lb.title': 'Clasificaciones', 'bp.lb.top': 'Top 10',
+    'bp.lb.around': 'A tu alrededor', 'bp.lb.empty': 'Aún no hay puntuaciones: ¡sé el primero!', 'bp.lb.offline': 'Clasificación no disponible ahora mismo.', 'bp.lb.loading': 'Cargando…', 'bp.lb.today': 'Hoy (UTC)' },
+  de: { 'bp.lbBtn': 'Bestenliste', 'bp.lbAll': 'Bestenlisten', 'bp.lbDailyTip': 'Bestenliste der Tagesaufgabe', 'bp.dailyNext': 'Neue Aufgabe in {t}',
+    'bp.lb.daily': 'Tagesaufgabe', 'bp.lb.classic': 'Klassik-Rekord', 'bp.lb.chrono': 'Zeitrennen-Rekord', 'bp.lb.title': 'Bestenlisten', 'bp.lb.top': 'Top 10',
+    'bp.lb.around': 'Um dich herum', 'bp.lb.empty': 'Noch kein Ergebnis: sei der Erste!', 'bp.lb.offline': 'Bestenliste gerade nicht verfügbar.', 'bp.lb.loading': 'Lädt…', 'bp.lb.today': 'Heute (UTC)' },
+  it: { 'bp.lbBtn': 'Classifica', 'bp.lbAll': 'Classifiche', 'bp.lbDailyTip': 'Classifica della sfida del giorno', 'bp.dailyNext': 'Nuova sfida tra {t}',
+    'bp.lb.daily': 'Sfida del giorno', 'bp.lb.classic': 'Record classico', 'bp.lb.chrono': 'Record a tempo', 'bp.lb.title': 'Classifiche', 'bp.lb.top': 'Top 10',
+    'bp.lb.around': 'Intorno a te', 'bp.lb.empty': 'Ancora nessun punteggio: sii il primo!', 'bp.lb.offline': 'Classifica non disponibile al momento.', 'bp.lb.loading': 'Caricamento…', 'bp.lb.today': 'Oggi (UTC)' },
+  pt: { 'bp.lbBtn': 'Classificação', 'bp.lbAll': 'Classificações', 'bp.lbDailyTip': 'Classificação do desafio diário', 'bp.dailyNext': 'Novo desafio em {t}',
+    'bp.lb.daily': 'Desafio diário', 'bp.lb.classic': 'Recorde clássico', 'bp.lb.chrono': 'Recorde contra o tempo', 'bp.lb.title': 'Classificações', 'bp.lb.top': 'Top 10',
+    'bp.lb.around': 'Perto de você', 'bp.lb.empty': 'Ainda sem pontuação: seja o primeiro!', 'bp.lb.offline': 'Classificação indisponível no momento.', 'bp.lb.loading': 'Carregando…', 'bp.lb.today': 'Hoje (UTC)' },
+};
+for (const l of Object.keys(LB)) Object.assign(TXT[l], LB[l]);
+export default TXT;

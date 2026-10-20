@@ -8,6 +8,7 @@ Everything that can be prepared without an Apple account is done:
 | Info.plist: orientation, iPhone only, export compliance (no encryption), AdMob app ID, SKAdNetwork, tracking prompt text | `apps/shared/setup-ios.mjs` (re-run after `npx cap add ios`) |
 | Ads on iOS: Google consent form, then the App Tracking Transparency prompt; separate iOS ad units | `apps/shared/mon.js`, `apps/shared/build-app.mjs` |
 | In-app purchases on iOS (StoreKit) through the same plugin as Google Play | `@capgo/native-purchases` |
+| Game Center leaderboards (Block Quarry, Synth Horde): capability `App/App.entitlements`, local plugin, leaderboard IDs | `apps/shared/pt-scores/`, `apps/shared/leaderboards.mjs`, `setup-ios.mjs … scores` — what to create: `RELEASE-GUIDE.md` → *Classements* |
 | Icons and launch screens | `apps/<game>/ios/App/App/Assets.xcassets` (from `assets/`) |
 | CI: compile check on every change, signed upload to TestFlight on demand | `.github/workflows/ios.yml` |
 | iPhone screenshots 1290×2796 (Synth Horde: 2796×1290), EN + FR | `apps/<game>/store/ios-screenshots/` |

@@ -92,6 +92,10 @@ iOS doivent être verts ; si un job échoue à cause du lot, corriger et repouss
 Ne jamais toucher : secrets, clés de signature, identifiants AdMob, comptes de boutique, prix, `apps/RELEASE-GUIDE.md`
 (sauf pour le corriger s'il est faux).
 
+Classements : ils existent pour **Block Quarry et Synth Horde seulement** (jamais Nova Foundry ni le site) ; toute
+modification du calcul de score ou du défi du jour doit garder les bornes et la date UTC cohérentes avec le guide
+(`apps/shared/leaderboards.mjs` ↔ `apps/RELEASE-GUIDE.md` → *Classements*).
+
 ## Consigner
 
 1. `BACKLOG.md`, section « Routine nocturne — journal » : une ligne par jeu et par nuit —
