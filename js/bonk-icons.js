@@ -260,6 +260,9 @@ const A = {
     + `<path d="M6.6 9.6L4.4 11.8M10.2 9.6L5.4 14.4M13.8 9.6L9 14.4M17.4 9.6L12.6 14.4M19.6 11L16.2 14.4" stroke="${D}" stroke-width="1.4" fill="none"/>`
     + tl('M4.4 5.4H19.6M4.4 18.6H19.6', D, 1.2) + hi('M7 15.6V17.4'),
   i_siphon: path('M12 1.8C15.2 7 19.2 10.4 19.2 15C19.2 19 16 22 12 22C8 22 4.8 19 4.8 15C4.8 10.4 8.8 7 12 1.8Z', R) + hi('M8.2 15.4C8.2 13.4 9 12 10.2 10.8'),
+  i_chime: path('M12 2.6C8.2 2.6 6.4 5.6 6.4 9.6C6.4 13.4 5 15 3.8 16.6H20.2C19 15 17.6 13.4 17.6 9.6C17.6 5.6 15.8 2.6 12 2.6Z', Y) + circ(12, 19.4, 2.4, M) + hi('M9 6.6C8.2 8 8 9.6 8 11'),
+  i_spite: star(12, 12, 10.2, 5.2, 8, R) + circ(12, 12, 3.4, Y) + hi('M8 8.4L10 6.8'),
+  i_bounty: circ(12, 12, 10, C) + circ(12, 12, 6.4, D) + circ(12, 12, 4.8, Y) + circ(12, 12, 1.8, R) + hi('M5.4 8.2C6.2 6.6 7.4 5.6 8.8 5'),
   i_midas: path('M9 2.4H15V4.6C15 5.6 17.6 6.8 18.4 9.8C19.4 13.6 17.6 18.4 15 20H9C6.4 18.4 4.6 13.6 5.6 9.8C6.4 6.8 9 5.6 9 4.6Z', Y)
     + ln('M6.4 7.4C3.6 7 3 10.6 5.4 11.6M17.6 7.4C20.4 7 21 10.6 18.6 11.6', Y, 1.4) + rect(5.6, 11, 12.8, 2.6, M) + rect(8.4, 20, 7.2, 2, '#ffb52e', 0.6) + hi('M8 14.6C8 16.2 8.6 17.4 9.4 18.2'),
   i_key: circ(6.4, 7.6, 4.6, Y) + circ(6.4, 7.6, 1.8, K) + ln('M9.6 10.8L20.6 21.8', Y, 2.6) + ln('M16.2 17.4L18.6 15M19 20.2L21.2 18', Y, 2),
@@ -410,7 +413,7 @@ const E = {
   // objets
   '🥾': 'i_boots', '☘️': 'i_clover', '🔋': 'i_battery', '🔍': 'i_lens', '💗': 'i_heart', '🪙': 'i_coin', '🦷': 'i_fang', '🔰': 'i_shield',
   '🌵': 'i_thorns', '🧥': 'i_cloak', '☢️': 'i_reactor', '👑': 'i_crown', '🪽': 'i_wings', '🔥': 'h_heat', '🪁': 'i_kite', '💉': 'i_adren',
-  '🌟': 'i_star', '🪞': 'i_mirror', '🪓': 'i_axe', '⏳': 'i_chrono', '🛢️': 'i_keg', '🩸': 'i_siphon', '🏺': 'i_midas', '🗝️': 'i_key',
+  '🌟': 'i_star', '🪞': 'i_mirror', '🪓': 'i_axe', '⏳': 'i_chrono', '🛢️': 'i_keg', '🩸': 'i_siphon', '🏺': 'i_midas', '🗝️': 'i_key', '🔔': 'i_chime', '💢': 'i_spite', '🧿': 'i_bounty',
   // HUD / quêtes / boutique / textes
   '◆': 'h_gold', '◈': 'h_credits', '☠': 'h_kills', '☠️': 'h_kills', '🔑': 'h_keys', '⏱': 'h_time', '⏱️': 'h_time', '▲': 'h_level', '❚❚': 'h_pause',
   '⭐': 'm_star', '📦': 'q_chests', '✨': 'q_gold', '🛒': 'q_vendor', '🎒': 'q_itemdmg', '∞': 'q_ot', '🐇': 'q_hops', '🏁': 'q_wins',

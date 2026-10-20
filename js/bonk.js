@@ -143,6 +143,10 @@ const ITEMS = [
   { id: 'midas', r: 1, ic: '🏺', fx: s => s.midas += 0.05 },
   { id: 'key', r: 1, ic: '🗝️', fx: s => s.chestDisc *= 0.85 },
   { id: 'clock', r: 2, ic: '⚡', fx: s => s.rush++ },
+  // lot « contenu » 1.22.0 : trois objets à déclencheur de plus (gemmes ramassées, coup reçu, élite abattue)
+  { id: 'chime', r: 1, ic: '🔔', fx: s => s.gemNova++ },
+  { id: 'spite', r: 2, ic: '💢', fx: s => s.hurtBlast++ },
+  { id: 'bounty', r: 1, ic: '🧿', fx: s => s.eliteGems++ },
 ];
 
 // Quêtes : objectifs permanents qui débloquent des objets (absents des coffres tant que la quête n'est pas faite),
@@ -1039,7 +1043,7 @@ function pushOut(o, p, r) {
 // ============================================================ nouvelle run
 function baseStats(ch) {
   const s = { slideCut: 0, hp: 100, regen: 0.3, armor: 0, speed: 1, dmg: 1, cd: 1, area: 1, proj: 0, magnet: 1.25, luck: 0, xp: 1, crit: 0.05, critMul: 2, jumps: 2, jumpV: 11, gold: 1, vamp: 0, shield: 0, thorns: 0, dodge: 0, boom: 0,
-    landShock: 0, jumpBurst: 0, speedDmg: 0, airDmg: 0, lowHpDmg: 0, killNova: 0, slideFire: 0, critChain: 0, execute: 0, frost: 0, hurtFreeze: 0, boomPow: 0, gemHeal: 0, midas: 0, chestDisc: 1, rush: 0 };
+    landShock: 0, jumpBurst: 0, speedDmg: 0, airDmg: 0, lowHpDmg: 0, killNova: 0, slideFire: 0, critChain: 0, execute: 0, frost: 0, hurtFreeze: 0, boomPow: 0, gemHeal: 0, midas: 0, chestDisc: 1, rush: 0, gemNova: 0, hurtBlast: 0, eliteGems: 0 };
   ch.bonus(s); s.hp = Math.max(40, s.hp); return s;
 }
 function newRun(daily) {
@@ -1047,7 +1051,7 @@ function newRun(daily) {
   const ch = D ? CHARS.find(c => c.id === D.ch) : CHARS.find(c => c.id === META.sel && unlocked(c)) || CHARS[0];
   S = {
     daily: D, state: 'play', stage: 0, stageT: 0, ch, heat: D ? 0 : Math.min(META.heatSel || 0, heatAvail()), t: 0, time: RUN_TIME, kills: 0, gold: 0, level: 1, xp: 0, need: xpNeed(1), pending: 0, rerolls: 2,
-    stats: null, weapons: [], tomes: [], items: {}, enemies: [], pickups: [], bolts: [], bullets: [], discs: [], rockets: [], mines: [], rings: [], dmgNums: [], pops: [], dmgBy: {}, keys: [], vents: [], rifts: [], twisters: [], puddles: [], drops: [], grooves: [], banned: new Set(), banishes: 2, banishOn: false, landT: -9, landHs: 0, jumpBuf: -9, hops: 0, pads: [], trauma: 0, hitstop: 0, fovKick: 0, fires: [], novaK: 0, rushT: 0, fireT: 0,
+    stats: null, weapons: [], tomes: [], items: {}, enemies: [], pickups: [], bolts: [], bullets: [], discs: [], rockets: [], mines: [], rings: [], dmgNums: [], pops: [], dmgBy: {}, keys: [], vents: [], rifts: [], twisters: [], puddles: [], drops: [], grooves: [], banned: new Set(), banishes: 2, banishOn: false, landT: -9, landHs: 0, jumpBuf: -9, hops: 0, pads: [], trauma: 0, hitstop: 0, fovKick: 0, fires: [], novaK: 0, gemK: 0, rushT: 0, fireT: 0,
     spawnAcc: 0, nextSwarm: 90, eliteAt: [420, 240], wardenAt: [300], boss: null, portal: null, won: false, dmgDealt: 0, chestsOpened: 0,
     iframe: 0, shieldT: 0, hurtFlash: 0, msgT: 0, chestCost: 12, orbPos: [], orbCount: 0, magnetAll: 0, bossDead: false,
     p: { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, onGround: true, jumps: 1, slide: 0, slideCd: 0, face: Math.PI, hp: 100 },
@@ -1561,6 +1565,7 @@ function kill(e) {
   if (e.elite) { for (let i = 0; i < 8; i++) addPickup('coin', e.x + rand(-1.5, 1.5), e.y + 0.5, e.z + rand(-1.5, 1.5), Math.ceil(3 * g)); addPickup('heart', e.x, e.y + 0.5, e.z, 30); }
   else if (Math.random() < 0.07 + S.stats.midas) addPickup('coin', e.x, e.y + 0.4, e.z, Math.max(1, Math.round(rand(1, 3) * g)));
   if (e.elite && S.stats.midas) for (let i = 0; i < 8; i++) addPickup('coin', e.x + rand(-1.5, 1.5), e.y + 0.5, e.z + rand(-1.5, 1.5), Math.ceil(3 * g));
+  if (e.elite && S.stats.eliteGems) for (let i = 0; i < 6; i++) addPickup('gem', e.x + rand(-1.5, 1.5), e.y + 0.5, e.z + rand(-1.5, 1.5), Math.ceil((3 + S.t / 40) * S.stats.eliteGems));
   if (S.stats.killNova && ++S.novaK >= Math.max(12, 34 - 6 * S.stats.killNova)) { S.novaK = 0; asItem(() => explode(S.p.x, S.p.y, S.p.z, 5 * S.stats.area, itemDmg(30), [1, 0.9, 0.4])); }
   if (Math.random() < 0.006) addPickup('heart', e.x, e.y + 0.4, e.z, 20);
   if (Math.random() < 0.0015) addPickup('magnetp', e.x, e.y + 0.4, e.z, 0);
@@ -1614,6 +1619,7 @@ function hurt(d, src = '?', from = null) {   // from : {x, z} d'où vient le cou
   if (s.dodge && Math.random() < s.dodge) { S.iframe = 0.3; addNum(S.p.x, S.p.y + 2.2, S.p.z, tr('nb.dodge'), false); return false; }
   d *= 1 - Math.min(0.75, s.armor);
   if (s.hurtFreeze) { near(S.p.x, S.p.z, 7, e => { e.slowT = 1.5 + s.hurtFreeze; }); addRing(S.p.x, S.p.y + 0.3, S.p.z, 7, [0.5, 0.8, 1], 0.4); }
+  if (s.hurtBlast) asItem(() => explode(S.p.x, S.p.y, S.p.z, 4 * s.area + s.hurtBlast, itemDmg(34 * s.hurtBlast), [1, 0.3, 0.4]));
   S.p.hp -= d; S.iframe = 0.7; S.hurtFlash = 1; sfx('hurt'); if (from) { (S.hitDirs = S.hitDirs || []).push({ x: from.x, z: from.z, t: 0 }); if (S.hitDirs.length > 4) S.hitDirs.shift(); } S.flinch = 1; S.hitT = 0.28; S.hurtAt = S.t; shake(0.3 + Math.min(0.3, d / S.stats.hp)); hitstop(0.04);
   (S.hurtBy = S.hurtBy || {})[src] = (S.hurtBy[src] || 0) + d;   // statistiques d'équilibrage
   S.lastHurt = src;   // « tué par … » sur l'écran de fin
@@ -2164,7 +2170,8 @@ function updatePickups(dt) {
       const g = groundAt(k.x, k.z, k.y) + 0.4; if (k.y < g) { k.y = g; k.vy = 0; }
     }
     if (d < 0.9) {
-      if (k.type === 'gem') { S.xp += k.v * S.stats.xp; sfx('xp'); if (S.stats.gemHeal) S.p.hp = Math.min(S.stats.hp, S.p.hp + S.stats.gemHeal); }
+      if (k.type === 'gem') { S.xp += k.v * S.stats.xp; sfx('xp'); if (S.stats.gemHeal) S.p.hp = Math.min(S.stats.hp, S.p.hp + S.stats.gemHeal);
+        if (S.stats.gemNova && ++S.gemK >= Math.max(14, 40 - 8 * S.stats.gemNova)) { S.gemK = 0; asItem(() => explode(S.p.x, S.p.y, S.p.z, 4.5 * S.stats.area, itemDmg(26), [0.4, 0.9, 1])); } }
       else if (k.type === 'coin') { S.gold += k.v; }
       else if (k.type === 'heart') { S.p.hp = Math.min(S.stats.hp, S.p.hp + k.v); addNum(p.x, p.y + 2, p.z, tr('nb.hpGain', { n: k.v }), false, '#7cff8a'); }
       else if (k.type === 'magnetp') { S.magnetAll = 1.5; msg(tr('nb.magnet'), 1.2); }

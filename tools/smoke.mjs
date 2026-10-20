@@ -319,6 +319,27 @@ log('objets à déclencheur :', await page.evaluate(() => {
   if (S.p.hp > 0) S.p.hp = hp0;
   return `objets=${Object.keys(S.items).length} · onde à l'atterrissage=${(S.dmgBy.item || 0) > item0} · braises=${fires} · guillotine=${e2.hp <= 0} · sources=${Object.keys(S.dmgBy).join('/')}`;
 }));
+log('objets 1.22.0 (carillon, rancune, prime) :', await page.evaluate(() => {
+  const nb = window.__nb, S = nb.S;
+  S.state = 'play'; S.enemies.length = 0; S.pending = 0; S.stats.hp = S.p.hp = 1e6; S.iframe = 0; S.shieldT = 1e9;
+  nb.giveItem('chime'); nb.giveItem('spite'); nb.giveItem('bounty');
+  const out = [];
+  // rancune : un coup reçu déclenche une explosion d'objet autour du joueur
+  const e = nb.spawnEnemy('brute', S.p.x + 2, S.p.z); e.speed = 0; e.hp = e.max = 1e9;
+  S.state = 'play'; S.pending = 0; nb.update(1 / 30); const i0 = S.dmgBy.item || 0; S.shieldT = 0; S.stats.shield = 0; S.stats.dodge = 0; nb.hurt(5, 'test'); for (let i = 0; i < 6; i++) { S.state = 'play'; S.pending = 0; nb.update(1 / 30); } out.push('rancune=' + ((S.dmgBy.item || 0) > i0));
+  // prime : une élite abattue laisse des gemmes en plus
+  S.enemies.length = 0; S.pickups.length = 0;
+  const el = nb.spawnEnemy('brute', S.p.x + 25, S.p.z + 25); el.elite = true; nb.damage(el, 1e12, false);
+  out.push('gemmes de prime=' + S.pickups.filter(k => k.type === 'gem').length);
+  // carillon : 30 gemmes ramassées → onde de choc
+  S.enemies.length = 0; const f = nb.spawnEnemy('brute', S.p.x + 1.5, S.p.z); f.speed = 0; f.hp = f.max = 1e9; S.iframe = 0.5;
+  const i1 = S.dmgBy.item || 0; S.gemK = 0;
+  for (let i = 0; i < 40; i++) S.pickups.push({ type: 'gem', x: S.p.x, y: S.p.y, z: S.p.z, v: 1, vy: 0, vx: 0, vz: 0, pull: true, t: 1 });
+  for (let i = 0; i < 20; i++) { S.state = 'play'; S.pending = 0; S.iframe = 0.5; nb.update(1 / 30); }
+  out.push('carillon=' + ((S.dmgBy.item || 0) > i1));
+  S.p.hp = S.stats.hp;
+  return out.join(' ');
+}));
 log('marchand / duplicateur / maudit / bannir / rebond :', await page.evaluate(() => {
   const nb = window.__nb, S = nb.S, r = [];
   S.state = 'play'; S.enemies.length = 0; S.pending = 0; S.gold = 400;
