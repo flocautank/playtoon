@@ -58,6 +58,7 @@ bugs → contenu → durée de vie → identité graphique → enrichissement. P
 - 2026-10-20 · Nova Foundry · enrichissement · 1.11.1 · réglage **effets calmes** dans l'onglet Options (suit « réduire les animations » du système par défaut) : plus d'éclairs plein écran (Supernova, défis, Big Bang…) ; six langues. L'écart relevé : aucun réglage d'accessibilité dans ce jeu.
 - 2026-10-20 · Synth Horde · contenu · 1.22.0 · 3 objets à déclencheur (30 → 33) : **Carillon de gemmes** (onde de choc toutes les 30 gemmes, moins avec les exemplaires), **Rancune** (un coup reçu fait exploser tout autour), **Prime de chasse** (les élites lâchent une gerbe de gemmes) ; 3 icônes dessinées, six langues, test ajouté au smoke.
 - 2026-10-21 · Nova Foundry · enrichissement · 1.12.0 · **toucher long** dans Options : maintenir sur l'étoile répète les clics (~6/s, comme un joueur qui tapote ; aucun gain automatique, désactivable) — mesuré : 13 clics en 2,35 s maintenu, 1 pour un clic simple, 420×860 et 1280×720 ; la pulsation de l'étoile s'adoucit en mode « effets calmes » (réglage poussé en parallèle par une autre session, 1.11.1) ; six langues.
+- 2026-10-21 · Block Quarry · identité graphique · 1.15.1 · revue sur captures 420×860 et 1280×720 : l'étiquette « Bonus du jour » (notifications) recouvrait le score et l'objectif du HUD → placée sous le HUD (96 px, 124 px sur PC) ; les trois pièces flottaient sur le fond → trois berceaux creusés dans la roche (thèmes Carrière). Reste : « LEVEL 45 · MOV… » tronqué dans le HUD PC.
 
 ## Synth Horde vs Megabonk
 

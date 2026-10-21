@@ -1330,7 +1330,16 @@ function draw(dt) {
     }
   }
 
-  // plateau de pièces
+  // plateau de pièces : trois berceaux creusés dans la roche (carrière), pour que les pièces ne flottent pas
+  if (stone) for (let i = 0; i < 3; i++) {
+    const r = slotRect(i), gw = r.w - L.cs * 0.28, gh = Math.min(L.trayH - 4, r.h + L.cs * 0.3), gx = r.x + (r.w - gw) / 2, gy = r.y + (r.h - gh) / 2;
+    ctx.save();
+    rr(gx, gy, gw, gh, L.cs * 0.22); ctx.fillStyle = 'rgba(12,8,6,.34)'; ctx.fill();
+    ctx.lineWidth = Math.max(1, L.cs * 0.05); ctx.strokeStyle = 'rgba(0,0,0,.45)'; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(gx + L.cs * 0.2, gy + gh + 1); ctx.lineTo(gx + gw - L.cs * 0.2, gy + gh + 1);
+    ctx.strokeStyle = 'rgba(214,176,120,.22)'; ctx.stroke();
+    ctx.restore();
+  }
   for (let i = 0; i < 3; i++) {
     const p = S.tray[i]; if (!p || (S.drag && S.drag.idx === i) || (S.back && S.back.idx === i)) continue;
     const r = slotRect(i), s = pieceScale(p, r);
