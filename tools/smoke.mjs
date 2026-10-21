@@ -747,6 +747,24 @@ await shot(m, 'm-bonk-pause');
   if (bad.length) errs.push('[classements] ' + bad.join(' | '));
 }
 
+// ---------- Nova Foundry : sauvegarde corrompue ou importée (mauvais types) → jamais de plantage
+{
+  log('étape : Nova Foundry, sauvegardes corrompues');
+  const ctx = await browser.newContext({ viewport: { width: 420, height: 860 } });
+  const bad = [];
+  for (const mut of [{ upg: null }, { gens: {} }, { gens: null }, { st: null }, { st: 'a' }, { chal: 'zzz' }, { meta: null }, { ord: { list: 5 } }, { dust: 'abc' }, { dust: -5 }]) {
+    const p = await guard(await ctx.newPage()); watch(p, 'nf-corrompu'); const e0 = errs.length;
+    await p.addInitScript(m => { try { localStorage.setItem('starforge.intro', '1'); localStorage.setItem('starforge.save.v1', JSON.stringify({ dust: 5, gens: [1, 0], ...m })); } catch (e) {} }, mut);
+    await p.goto(base + '#forge'); await p.waitForTimeout(700);
+    const r = await p.evaluate(() => { try { window.__sf.tick(1); return /NaN|undefined|\[object/.test(document.body.innerText) ? 'texte invalide' : 'ok'; } catch (e) { return 'ERR ' + e.message; } });
+    if (r !== 'ok' || errs.length > e0) bad.push(JSON.stringify(mut) + ' → ' + r);
+    await p.close();
+  }
+  log(`Nova Foundry : 10 sauvegardes corrompues ${bad.length ? 'ÉCHEC ' + bad.join('; ') : 'OK'}`);
+  if (bad.length) errs.push('[nf-corrompu] ' + bad.join(' | '));
+  await ctx.close();
+}
+
 await browser.close(); srv.close();
 if (errs.length) { console.error('ERREURS :\n' + errs.join('\n')); process.exit(1); }
 log('OK — aucune erreur console');

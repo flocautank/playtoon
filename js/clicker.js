@@ -474,6 +474,22 @@ function fresh() {
     novaTotal: 0, novaBank: 0, meta: {}, ach: {}, prestiges: 0, chal: null, chalT: 0, chalDone: {}, sing: 0, singBank: 0, gal: {}, ast: {}, bigbangs: 0, buffs: [], last: Date.now(), started: Date.now(), st: {}, stage: 0, runT: 0, ord: { list: [], done: 0, swapAt: 0 }, log: [],
   };
 }
+// Sauvegarde éditée à la main, tronquée ou importée d'ailleurs : tout champ du mauvais type (ou non fini) retombe sur sa valeur neuve.
+function sane(d) {
+  const f = fresh(), o = Object.assign(f, d && typeof d === 'object' && !Array.isArray(d) ? d : {}), n = fresh();
+  const kind = v => v === null ? 'null' : Array.isArray(v) ? 'array' : typeof v;
+  for (const k of Object.keys(n)) {
+    if (k === 'chal') continue;
+    if (kind(o[k]) !== kind(n[k]) || (typeof n[k] === 'number' && !Number.isFinite(o[k]))) o[k] = n[k];
+  }
+  if (o.chal !== null && !CHALS.some(c => c.id === o.chal)) { o.chal = null; o.chalT = 0; }
+  if (!Array.isArray(o.ord.list)) o.ord = n.ord;
+  if (!Number.isFinite(o.ord.done)) o.ord.done = 0;
+  if (!Number.isFinite(o.ord.swapAt)) o.ord.swapAt = 0;
+  o.gens = o.gens.map(v => Number.isFinite(v) && v > 0 ? v : 0); while (o.gens.length < GENS.length) o.gens.push(0);
+  o.dust = Math.max(0, o.dust);
+  return o;
+}
 let S = fresh();
 let idleT = 0, streak = 0, lastClk = 0;   // secondes sans clic manuel (Contemplation), série de clics en cours
 
@@ -1301,7 +1317,7 @@ function build() {
     $('sf-hold').onchange = e => { HOLD = e.target.checked; try { localStorage.setItem('starforge.hold', HOLD ? '1' : '0'); } catch (x) {} };
     $('sf-calm').onchange = e => { CALM = e.target.checked; try { localStorage.setItem('starforge.calm', CALM ? '1' : '0'); } catch (x) {} };
     $('sf-exp').onclick = () => { save(); $('sf-io').value = btoa(unescape(encodeURIComponent(JSON.stringify(S)))); };
-    $('sf-imp').onclick = () => { try { const d = JSON.parse(decodeURIComponent(escape(atob($('sf-io').value.trim())))); S = Object.assign(fresh(), d); save(); toast(t('sf.imported')); refresh(true); } catch (e) { toast(t('sf.invalid')); } };
+    $('sf-imp').onclick = () => { try { const d = JSON.parse(decodeURIComponent(escape(atob($('sf-io').value.trim())))); S = sane(d); save(); toast(t('sf.imported')); refresh(true); } catch (e) { toast(t('sf.invalid')); } };
     $('sf-wipe').onclick = async () => { if (await ptConfirm(noEmoji(t('sf.wipeQ')), t('sf.wipe'))) { S = fresh(); save(); refresh(true); } };
   }
   refresh();
@@ -1651,7 +1667,7 @@ function load() {
   try {
     const d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
     if (!d) return;
-    S = Object.assign(fresh(), d);
+    S = sane(d);
     if (S.chal) S.chalT += Math.min(8 * 3600, (Date.now() - (d.last || Date.now())) / 1000);   // le chrono tourne aussi hors-ligne
     while (S.gens.length < GENS.length) S.gens.push(0);
     S.buffs = [];
