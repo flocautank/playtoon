@@ -314,7 +314,7 @@ try { Object.assign(META, JSON.parse(localStorage.getItem(META_KEY) || '{}')); }
 // sauvegarde éditée à la main : les tables doivent être des objets, les compteurs des nombres finis
 {
   const plain = v => v && typeof v === 'object' && !Array.isArray(v);
-  for (const k of ['shop', 'quests', 'dHist', 'heatWon']) if (META[k] !== undefined && !plain(META[k])) META[k] = {};
+  for (const k of ['shop', 'quests', 'dHist', 'heatWon', 'hr']) if (META[k] !== undefined && !plain(META[k])) META[k] = {};
   for (const k of ['credits', 'bestTime', 'bestKills', 'totalKills', 'bossKills', 'maxLevel', 'runs', 'wins']) if (META[k] !== undefined && !(Number.isFinite(META[k]) && META[k] >= 0)) META[k] = 0;
 }
 // Boutique permanente : crédits gagnés à chaque run, améliorations conservées d'une run à l'autre.
@@ -340,6 +340,12 @@ const HEAT_MAX = 5;
 const heatWon = id => { const h = META.heatWon && META.heatWon[id]; return typeof h === 'number' ? h : -1; };
 const heatAvail = () => META.wins >= 1 ? Math.min(HEAT_MAX, 1 + Math.max(0, ...CHARS.map(c => heatWon(c.id)))) : 0;
 const heatHp = () => 1 + 0.25 * (S.heat || 0), heatDmg = () => 1 + 0.15 * (S.heat || 0), heatRate = () => 1 + 0.12 * (S.heat || 0);
+// Rang de héros (durée de vie) : chaque héros gagne de l'expérience à chaque run ; chaque rang (10 au plus) rejoue une fois le bonus
+// de montée de niveau du héros (`lv`) au départ. Jamais en défi du jour : la carte et le héros y sont les mêmes pour tous.
+const HR_MAX = 10, hrNeed = r => 60 * r * (r + 1);
+const hrXp = id => { const v = META.hr && META.hr[id]; return Number.isFinite(v) && v > 0 ? v : 0; };
+const hrRank = xp => { let r = 0; while (r < HR_MAX && xp >= hrNeed(r + 1)) r++; return r; };
+const hrGain = (surv, kills, stage, win) => Math.round(surv / 6 + 2 * Math.sqrt(Math.max(0, kills)) + 30 * stage + (win ? 50 : 0));
 const saveMeta = () => { if (window.PT_NOSAVE) return; try { localStorage.setItem(META_KEY, JSON.stringify(META)); } catch (e) {} };
 const unlocked = c => !c.unlock || c.unlock.test(META);
 
@@ -1065,6 +1071,7 @@ function newRun(daily) {
   S.rerolls += shopLvl('reroll') + (questDone('vendor5') ? 1 : 0); S.revives = shopLvl('revive');
   S.banishes += (questDone('evo10') ? 1 : 0) + (questDone('itemdmg500000') ? 1 : 0) + (questDone('dstreak7') ? 1 : 0); S.rerolls += questDone('lvl60') ? 1 : 0;
   if (D) { for (const k of D.mods) DMODS[k].fx(S.stats); if (D.mods.includes('echo')) S.pd = { echo: 1 }; S.stats.hp = Math.max(40, S.stats.hp); }
+  if (!D) for (let i = hrRank(hrXp(ch.id)); i > 0; i--) ch.lv(S.stats, S.p);   // rang de héros
   S.p.hp = S.stats.hp;
   buildLevel();
   S.p.y = terrainH(0, 0);
@@ -3532,6 +3539,11 @@ function endRun(win) {
   if (win && !E) { META.wins++; META.winsBy = META.winsBy || {}; META.winsBy[S.ch.id] = (META.winsBy[S.ch.id] || 0) + 1; }
   let heatRec = false;
   if (win && !E && !S.daily) { META.heatWon = META.heatWon || {}; if ((S.heat || 0) > heatWon(S.ch.id)) { META.heatWon[S.ch.id] = S.heat || 0; heatRec = (S.heat || 0) > 0; } }
+  let hr = null;
+  if (unlocked(S.ch)) {   // expérience du héros ; la prolongation ne compte que ce qui s'y est passé
+    const id = S.ch.id, g = hrGain(S.t - (E ? E.t0 : 0), S.kills - (E ? E.k0 : 0), E ? 0 : S.stage, win && !E), x0 = hrXp(id);
+    META.hr = META.hr || {}; META.hr[id] = x0 + g; hr = { g, r0: hrRank(x0), r1: hrRank(x0 + g), x: x0 + g };
+  }
   const cr = Math.max(0, runCredits(S) - (E ? E.cr0 : 0)); META.credits = (META.credits || 0) + cr;
   S.dailyRes = S.daily ? dailyEnd() : null;
   LB.submit('survival', surv);   // meilleure survie : toutes les runs, comme le record du menu (META.bestTime)
@@ -3545,7 +3557,7 @@ function endRun(win) {
   let ot = 0, otRec = false;
   if (E) { ot = Math.floor(S.t - E.t0); otRec = ot > (META.bestOT || 0); META.bestOT = Math.max(META.bestOT || 0, ot); saveMeta(); }
   checkQuests();
-  S.endInfo = { ot, otRec, surv, cr, newly: CHARS.filter(c => unlocked(c) && !before.includes(c.id)), killedBy, best: S.bestBefore > 0 && surv > S.bestBefore, heatRec, firstWin: win && !E && META.wins === 1 };
+  S.endInfo = { hr, ot, otRec, surv, cr, newly: CHARS.filter(c => unlocked(c) && !before.includes(c.id)), killedBy, best: S.bestBefore > 0 && surv > S.bestBefore, heatRec, firstWin: win && !E && META.wins === 1 };
   renderEnd();
   $('nb-pause').classList.add('hidden');   // « Abandonner » depuis la pause : l'écran de fin la remplace
   $('nb-end').classList.remove('hidden');
@@ -3574,7 +3586,7 @@ function statsHTML() {
 }
 function renderEnd() {
   paintLb();
-  const { surv, cr, newly, killedBy, best, heatRec, firstWin, ot, otRec } = S.endInfo;
+  const { surv, cr, newly, killedBy, best, heatRec, firstWin, ot, otRec, hr } = S.endInfo;
   $('nb-endless').classList.toggle('hidden', !(S.won && !S.endless && !S.daily));
   // bandeau-affiche : portrait du héros et verdict sur une dalle inclinée (jaune pour une victoire, encre et rose sinon)
   const face = (portraits() || {})[S.ch.id];
@@ -3593,6 +3605,7 @@ function renderEnd() {
     + (S.dailyRes ? dailyEndHTML(S.dailyRes, row, full) : '')
     + (S.endless ? full(tr(otRec ? 'nb.otRec' : 'nb.otDone', { n: `${Math.floor(ot / 60)}:${String(ot % 60).padStart(2, '0')}` }), '#ff8a4d') : '')
     + notes + full(tr('nb.eCredits', { n: num(cr) }), '#7ff6ff')
+    + (hr ? full(hr.r1 > hr.r0 ? tr('nb.hrUp', { name: S.ch.name, r: hr.r1 }) : tr('nb.hrGain', { n: num(hr.g), name: S.ch.name, r: hr.r1, next: hr.r1 >= HR_MAX ? '—' : num(hrNeed(hr.r1 + 1) - hr.x) }), S.ch.col) : '')
     + (S.questsNew || []).slice(0, 3).map(q => full(`🏆 ${questText(q)} — ${questReward(q)}`, '#ffc94d')).join('')
     + ((S.questsNew || []).length > 3 ? full(tr('nb.qMore', { n: S.questsNew.length - 3 }), '#ffc94d') : '')
     + (newly.length ? full(tr('nb.eUnlocked', { list: newly.map(c => c.name).join(', ') }), '#ffc94d') : '')
@@ -3713,7 +3726,7 @@ function renderMenu() {
     const b = document.createElement('button'); b.className = 'nb-char' + (c.id === META.sel ? ' on' : '') + (u ? '' : ' lock');
     const hw = heatWon(c.id);
     const face = (portraits() || {})[c.id];
-    b.innerHTML = `<b>${face ? `<img class="nb-face" alt="" src="${face}" style="--c:${c.col}">` : `<span class="sw" style="background:${c.col};box-shadow:0 0 10px ${c.col}"></span>`}${c.name}${hw >= 1 ? `<span class="nb-heatb" title="${tr('nb.heatBest', { n: hw })}">🔥${hw}</span>` : hw === 0 ? '<span class="nb-heatb">✓</span>' : ''}</b><p>${u ? c.desc : '🔒 ' + c.unlock.txt}</p>`;
+    b.innerHTML = `<b>${face ? `<img class="nb-face" alt="" src="${face}" style="--c:${c.col}">` : `<span class="sw" style="background:${c.col};box-shadow:0 0 10px ${c.col}"></span>`}${c.name}${u && hrRank(hrXp(c.id)) ? `<span class="nb-hrb" title="${tr('nb.hrTip', { r: hrRank(hrXp(c.id)) })}">★${hrRank(hrXp(c.id))}</span>` : ''}${hw >= 1 ? `<span class="nb-heatb" title="${tr('nb.heatBest', { n: hw })}">🔥${hw}</span>` : hw === 0 ? '<span class="nb-heatb">✓</span>' : ''}</b><p>${u ? c.desc : '🔒 ' + c.unlock.txt}</p>`;
     b.onclick = () => { if (!u) return; META.sel = c.id; saveMeta(); renderMenu(); };
     box.appendChild(b);
   });

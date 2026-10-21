@@ -711,5 +711,11 @@ const LB = {
     'lb.title': 'Classificações', 'lb.top': 'Top 10', 'lb.around': 'Perto de você', 'lb.empty': 'Ainda sem pontuação: seja o primeiro!', 'lb.offline': 'Classificação indisponível no momento.', 'lb.loading': 'Carregando…', 'lb.today': 'Hoje (UTC)' },
 };
 for (const [l, o] of Object.entries({ en, fr, es, de, it, pt })) for (const [k, v] of Object.entries(LB[l])) o['nb.' + k] = v;
+Object.assign(en, {"nb.hrGain": "+{n} hero XP — {name} rank {r}, next at {next} more", "nb.hrUp": "★ {name} reaches rank {r}! Their bonus grows", "nb.hrTip": "Hero rank {r}: one extra level-up bonus per rank (not in the daily challenge)"});
+Object.assign(fr, {"nb.hrGain": "+{n} XP de héros — {name} rang {r}, prochain rang dans {next}", "nb.hrUp": "★ {name} passe au rang {r} ! Son bonus grandit", "nb.hrTip": "Rang de héros {r} : un bonus de niveau de plus par rang (pas en défi du jour)"});
+Object.assign(es, {"nb.hrGain": "+{n} XP de héroe — {name} rango {r}, siguiente en {next}", "nb.hrUp": "★ ¡{name} sube al rango {r}! Su bonificación crece", "nb.hrTip": "Rango de héroe {r}: una bonificación de nivel más por rango (no en el desafío diario)"});
+Object.assign(de, {"nb.hrGain": "+{n} Helden-EP — {name} Rang {r}, nächster in {next}", "nb.hrUp": "★ {name} erreicht Rang {r}! Der Bonus wächst", "nb.hrTip": "Heldenrang {r}: ein zusätzlicher Stufenbonus pro Rang (nicht in der Tagesherausforderung)"});
+Object.assign(it, {"nb.hrGain": "+{n} PE eroe — {name} rango {r}, prossimo tra {next}", "nb.hrUp": "★ {name} sale al rango {r}! Il suo bonus cresce", "nb.hrTip": "Rango eroe {r}: un bonus di livello in più per rango (non nella sfida del giorno)"});
+Object.assign(pt, {"nb.hrGain": "+{n} XP de herói — {name} nível {r}, próximo em {next}", "nb.hrUp": "★ {name} chega ao nível {r}! O bônus cresce", "nb.hrTip": "Nível de herói {r}: um bônus de nível extra por nível (não no desafio diário)"});
 
 export default { en, fr, es, de, it, pt };

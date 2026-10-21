@@ -465,6 +465,14 @@ await page.evaluate(() => { const S = window.__nb.S; if (S.state !== 'end') { S.
 await page.click('#nb-quit').catch(() => {});
 await page.evaluate(() => { const S = window.__nb.S; if (S.state !== 'end') { document.getElementById('nb-quit').click(); } });
 await page.waitForTimeout(400); await shot(page, 'bonk-end');
+{
+  const r = await page.evaluate(() => { const nb = window.__nb, id = nb.S.ch.id, txt = document.getElementById('nb-endstats').innerText, xp = nb.META.hr && nb.META.hr[id];
+    const dmg = () => { nb.newRun(); return nb.S.stats.dmg; }; const keep = nb.META.hr; nb.META.hr = { glitch: 0 }; nb.META.sel = 'glitch'; const d0 = dmg(); nb.META.hr = { glitch: 99999 }; const d1 = dmg(); nb.newRun(true); const dd = nb.S.stats.dmg; nb.META.hr = keep; return { xp, line: /XP/.test(txt), d0, d1, dd }; });
+  const ok = r.xp > 0 && r.line && Math.abs(r.d1 - r.d0 - 0.10) < 1e-6;
+  log(`rang de héros : XP=${r.xp} ligne de fin=${r.line} · dégâts rang 0 → 10 : ${r.d0.toFixed(2)} → ${r.d1.toFixed(2)} · défi du jour sans bonus de rang`, ok ? 'OK' : 'ÉCHEC');
+  if (!ok) errs.push('[rang de héros] ' + JSON.stringify(r));
+  await page.evaluate(() => { window.__nb.S.daily = null; window.__nb.newRun(); document.getElementById('nb-quit').click(); }); await page.waitForTimeout(300);   // retour à l'écran de fin
+}
 await page.click('#nb-again').catch(() => {}); await page.waitForTimeout(400); await shot(page, 'bonk-menu2');
 log('crédits après run :', await page.$eval('#nb-credits', e => e.textContent));
 // défi du jour : héros et modificateurs imposés, carte identique d'un essai à l'autre, score et record à la fin
