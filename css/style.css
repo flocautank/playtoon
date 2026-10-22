@@ -970,8 +970,9 @@ body[data-tab=blocks] #bq-settings .card h2{font-family:'BQ Display',system-ui,s
 .bp-comfort #bp-tipsagain{align-self:flex-start;min-height:44px}
 .bp-comfort.in-app{margin:2px 0}
 @media (max-width:380px){body[data-tab=blocks] .pt-toasts div{font-size:13px;padding:8px 12px 9px}}
-@media (max-width:600px){#tab-blocks .bp-top .bp-stat small{letter-spacing:.09em}}
+@media (max-width:600px){#tab-blocks .bp-top .bp-stat small{letter-spacing:.05em}}
 @media (max-width:390px){#tab-blocks .bp-top{gap:3px;padding-left:4px;padding-right:4px}#tab-blocks .bp-top .bp-stat{padding:4px 2px}#tab-blocks .bp-top .bp-stat small{letter-spacing:.02em}#tab-blocks .bp-top .btn{padding-left:3px;padding-right:3px}}
+@media (min-width:601px){#tab-blocks .bp-top .bp-stat{min-width:132px;padding-left:10px;padding-right:10px}#tab-blocks .bp-top .bp-stat small{letter-spacing:.1em}}
 
 /* Nova Foundry : Veille du jour (onglet Succès) */
 .sf-dq{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:12px;display:flex;flex-direction:column;gap:8px}
