@@ -65,6 +65,7 @@ export default {
       ['Lamparilla', 'Ganancias sin conexión ×1,5.'], ['Sueños de estrellas', 'Ganancias sin conexión ×2.'], ['Gabinete de curiosidades', '+0,5 % de producción por logro.'], ['Museo celeste', '+0,5 % de producción por logro.'],
     ],
     'sf.showerT': '✦ Lluvia de estrellas fugaces: ¡atrápalas ({s} s)!', 'sf.conjT': '✦ Conjunción: {a} y {b} ×{m} durante {s} s', 'sf.flareT': '✦ Erupción solar: clics ×{m} durante {s} s', 'sf.auroraT': '✦ Aurora: producción ×{m} y más cometas durante {s} s',
+    'sf.periT': '✦ Perihelio: las forjas cuestan un {m} % menos durante {s} s', 'sf.bPeri': 'Perihelio −{m} % de coste',
     'sf.bShower': 'Estrellas fugaces', 'sf.bConj': '{a} y {b} ×{m}', 'sf.bFlare': 'Erupción: clics ×{m}', 'sf.bAurora': 'Aurora ×{m}',
     'sf.adBoost': '▶ Vídeo: producción ×2 · 4 h', 'sf.adBoostMore': '▶ Vídeo: +4 h de ×2', 'sf.boostBuff': '📺 ×2 · {t}', 'sf.eternalBuff': '♾️ ×2 eterno', 'sf.offDouble': '▶ Vídeo: duplica tus ganancias sin conexión (+{v})', 'sf.boostOn': '📺 ¡Producción ×2 durante 4 horas!', 'sf.offDoubled': '🌙 Ganancias sin conexión duplicadas: +{v}', 'sfapp.eternal': 'Motor eterno: ×2 para siempre', 'sfapp.eternalDesc': 'Compra única. Producción ×2 permanente: el impulso de los vídeos, sin vídeos. Los vídeos de bonificación siguen siendo opcionales.', 'sfapp.eternalOwned': '✓ Motor eterno activo — ¡gracias!',
     'sf.gens': [
@@ -236,6 +237,7 @@ export default {
       ['Nachtlicht', 'Offline-Gewinne ×1,5.'], ['Sternenträume', 'Offline-Gewinne ×2.'], ['Wunderkammer', '+0,5 % Produktion pro Erfolg.'], ['Himmelsmuseum', '+0,5 % Produktion pro Erfolg.'],
     ],
     'sf.showerT': '✦ Sternschnuppenregen: Fang sie ({s} s)!', 'sf.conjT': '✦ Konjunktion: {a} und {b} ×{m} für {s} s', 'sf.flareT': '✦ Sonneneruption: Klicks ×{m} für {s} s', 'sf.auroraT': '✦ Polarlicht: Produktion ×{m} und mehr Kometen für {s} s',
+    'sf.periT': '✦ Perihel: Schmieden kosten {m} % weniger für {s} s', 'sf.bPeri': 'Perihel −{m} % Kosten',
     'sf.bShower': 'Sternschnuppen', 'sf.bConj': '{a} & {b} ×{m}', 'sf.bFlare': 'Eruption: Klicks ×{m}', 'sf.bAurora': 'Polarlicht ×{m}',
     'sf.adBoost': '▶ Video: Produktion ×2 · 4 Std.', 'sf.adBoostMore': '▶ Video: +4 Std. ×2', 'sf.boostBuff': '📺 ×2 · {t}', 'sf.eternalBuff': '♾️ Ewig ×2', 'sf.offDouble': '▶ Video: Offline-Gewinne verdoppeln (+{v})', 'sf.boostOn': '📺 Produktion ×2 für 4 Stunden!', 'sf.offDoubled': '🌙 Offline-Gewinne verdoppelt: +{v}', 'sfapp.eternal': 'Ewiger Motor: ×2 für immer', 'sfapp.eternalDesc': 'Einmaliger Kauf. Dauerhafte Produktion ×2 — der Video-Boost ohne Videos. Bonus-Videos bleiben freiwillig.', 'sfapp.eternalOwned': '✓ Ewiger Motor aktiv — danke!',
     'sf.gens': [
@@ -407,6 +409,7 @@ export default {
       ['Lumino', 'Guadagni offline ×1,5.'], ['Sogni di stelle', 'Guadagni offline ×2.'], ['Gabinetto delle curiosità', '+0,5 % di produzione per obiettivo.'], ['Museo celeste', '+0,5 % di produzione per obiettivo.'],
     ],
     'sf.showerT': '✦ Pioggia di stelle cadenti: acchiappale ({s} s)!', 'sf.conjT': '✦ Congiunzione: {a} e {b} ×{m} per {s} s', 'sf.flareT': '✦ Brillamento solare: clic ×{m} per {s} s', 'sf.auroraT': '✦ Aurora: produzione ×{m} e più comete per {s} s',
+    'sf.periT': '✦ Perielio: le fucine costano il {m}% in meno per {s} s', 'sf.bPeri': 'Perielio −{m}% di costo',
     'sf.bShower': 'Stelle cadenti', 'sf.bConj': '{a} e {b} ×{m}', 'sf.bFlare': 'Brillamento: clic ×{m}', 'sf.bAurora': 'Aurora ×{m}',
     'sf.adBoost': '▶ Video: produzione ×2 · 4 h', 'sf.adBoostMore': '▶ Video: +4 h di ×2', 'sf.boostBuff': '📺 ×2 · {t}', 'sf.eternalBuff': '♾️ ×2 eterno', 'sf.offDouble': '▶ Video: raddoppia i guadagni offline (+{v})', 'sf.boostOn': '📺 Produzione ×2 per 4 ore!', 'sf.offDoubled': '🌙 Guadagni offline raddoppiati: +{v}', 'sfapp.eternal': 'Motore eterno: ×2 per sempre', 'sfapp.eternalDesc': 'Acquisto una tantum. Produzione ×2 permanente: il boost dei video, senza i video. I video bonus restano facoltativi.', 'sfapp.eternalOwned': '✓ Motore eterno attivo — grazie!',
     'sf.gens': [
@@ -578,6 +581,7 @@ export default {
       ['Luz de presença', 'Ganhos offline ×1,5.'], ['Sonhos de estrelas', 'Ganhos offline ×2.'], ['Gabinete de curiosidades', '+0,5 % de produção por conquista.'], ['Museu celeste', '+0,5 % de produção por conquista.'],
     ],
     'sf.showerT': '✦ Chuva de estrelas cadentes: pegue-as ({s} s)!', 'sf.conjT': '✦ Conjunção: {a} e {b} ×{m} por {s} s', 'sf.flareT': '✦ Erupção solar: cliques ×{m} por {s} s', 'sf.auroraT': '✦ Aurora: produção ×{m} e mais cometas por {s} s',
+    'sf.periT': '✦ Periélio: as forjas custam {m}% menos por {s} s', 'sf.bPeri': 'Periélio −{m}% de custo',
     'sf.bShower': 'Estrelas cadentes', 'sf.bConj': '{a} e {b} ×{m}', 'sf.bFlare': 'Erupção: cliques ×{m}', 'sf.bAurora': 'Aurora ×{m}',
     'sf.adBoost': '▶ Vídeo: produção ×2 · 4 h', 'sf.adBoostMore': '▶ Vídeo: +4 h de ×2', 'sf.boostBuff': '📺 ×2 · {t}', 'sf.eternalBuff': '♾️ ×2 eterno', 'sf.offDouble': '▶ Vídeo: dobre seus ganhos offline (+{v})', 'sf.boostOn': '📺 Produção ×2 por 4 horas!', 'sf.offDoubled': '🌙 Ganhos offline dobrados: +{v}', 'sfapp.eternal': 'Motor eterno: ×2 para sempre', 'sfapp.eternalDesc': 'Compra única. Produção ×2 permanente — o impulso dos vídeos, sem os vídeos. Os vídeos bônus continuam opcionais.', 'sfapp.eternalOwned': '✓ Motor eterno ativo — obrigado!',
     'sf.gens': [

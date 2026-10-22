@@ -23,7 +23,7 @@ Tap the star. Collect stardust. Build forges that keep working while you are awa
 • Your star evolves through 10 stages, from a red dwarf to a blue hypergiant, a pulsar and a quasar
 • 12 cosmic forges, from a humble Spark to the Star Anvil
 • 138 upgrades, forge synergies and doubling milestones
-• Golden comets, dark comets, shooting stars and five sky events: eclipse, shooting-star shower, conjunction, solar flare, aurora
+• Golden comets, dark comets, shooting stars and six sky events: eclipse, shooting-star shower, conjunction, solar flare, aurora, perihelion
 • Offline progress: your foundry keeps producing while you sleep
 
 ★ LAYERS OF PROGRESSION
@@ -69,7 +69,7 @@ Touche l'étoile. Récolte la poussière d'étoile. Bâtis des forges qui travai
 • Ton étoile évolue en 10 stades, de la naine rouge à l'hypergéante bleue, au pulsar et au quasar
 • 12 forges cosmiques, de l'humble Étincelle à l'Enclume stellaire
 • 138 améliorations, des synergies entre forges et des paliers qui doublent la production
-• Comètes dorées, comètes sombres, étoiles filantes et cinq évènements du ciel : éclipse, pluie d’étoiles filantes, conjonction, éruption solaire, aurore
+• Comètes dorées, comètes sombres, étoiles filantes et six évènements du ciel : éclipse, pluie d’étoiles filantes, conjonction, éruption solaire, aurore, périhélie
 • Progression hors-ligne : ta fonderie produit pendant que tu dors
 
 ★ DES COUCHES DE PROGRESSION

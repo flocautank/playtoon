@@ -773,6 +773,26 @@ await shot(m, 'm-bonk-pause');
   await ctx.close();
 }
 
+// ---------- Nova Foundry : Périhélie (6e évènement du ciel) → forges 30 % moins chères pendant l'évènement
+{
+  log('étape : Nova Foundry, Périhélie');
+  const ctx = await browser.newContext({ viewport: { width: 420, height: 860 } });
+  const p = await guard(await ctx.newPage()); watch(p, 'nf-peri');
+  await p.addInitScript(() => { try { localStorage.setItem('starforge.intro', '1'); } catch (e) {} });
+  await p.goto(base + '#forge'); await p.waitForTimeout(700);
+  const r = await p.evaluate(async () => {
+    const F = window.__sf; F.S.dust = 1e6; F.S.gens[0] = 40; await new Promise(r => setTimeout(r, 1200));
+    const num = () => document.querySelector('.sf-item .c').textContent;
+    const a = num(); F.startSky('peri'); await new Promise(r => setTimeout(r, 1500)); const b = num();
+    const k = +b.replace(/\D/g, '') / +a.replace(/\D/g, '');
+    return { a, b, k, all: F.SKY.length, banner: /−30/.test(document.getElementById('sf-buffs').textContent) };
+  });
+  const ok = r.k > 0.69 && r.k < 0.71 && r.all === 6 && r.banner;
+  log(`Nova Foundry : Périhélie ${ok ? 'OK' : 'ÉCHEC ' + JSON.stringify(r)}`);
+  if (!ok) errs.push('[nf-peri] ' + JSON.stringify(r));
+  await ctx.close();
+}
+
 await browser.close(); srv.close();
 if (errs.length) { console.error('ERREURS :\n' + errs.join('\n')); process.exit(1); }
 log('OK — aucune erreur console');

@@ -69,6 +69,7 @@ const ENG = {
   shower: '<path d="M3.5 4.5l7 7M8.5 2.5l8 8M14 3.5l6 6"/><circle cx="11.5" cy="12.5" r="1.3" class="f"/><circle cx="17.5" cy="11.5" r="1" class="f"/><circle cx="20.8" cy="10.3" r=".8" class="f"/><path d="M4 15l3 3M9 17.5l2 2" class="h"/>',
   conj: '<circle cx="12" cy="12" r="3"/><circle cx="4.5" cy="15.8" r="1.6"/><circle cx="19.4" cy="8.2" r="2"/><path d="M2 17l20-10" class="h"/>',
   flare: '<circle cx="10.5" cy="13.5" r="5.5"/><path d="M14 9.2c1.5-4 6-4.5 6.5-1.2.4 2.8-2.6 3.8-4.6 3.4"/><path d="M14.8 10.3c1-2 3.2-2.3 3.6-.8" class="h"/>',
+  peri: '<ellipse cx="11" cy="12" rx="9.5" ry="5" transform="rotate(-20 11 12)"/><circle cx="18.2" cy="9.4" r="2.2" class="f"/><circle cx="8" cy="13.2" r="1.4" class="h"/>',
   aurora: '<path d="M3 14c3-6 5 2 9-4s6 1 9-5"/><path d="M3 19c3-5 5 1 9-3s6 0 9-4" class="h"/><path d="M6 12.5v6M10 11v6M14 9v6M18 6.5v6" class="h"/>',
   scroll: '<path d="M6 4.5h11.5c1.4 0 2 1 2 2.2S18.9 9 17.5 9H17v9.5c0 1.4-1 2.2-2.3 2.2H5.5c1.3 0 2-.9 2-2.2V6.7C7.5 5.4 6.9 4.5 6 4.5zM6 4.5c-1.2 0-2 .9-2 2.1S4.8 9 6 9h1.5"/><path d="M10 11.5h4.5M10 14h4.5M10 16.5h3" class="h"/><circle cx="15.5" cy="18" r="1.6" class="f"/>',
   star: '<path d="M12 2.5l2.2 7.3 7.3 2.2-7.3 2.2L12 21.5l-2.2-7.3L2.5 12l7.3-2.2z"/><circle cx="12" cy="12" r="2.2" class="h"/>',
@@ -288,7 +289,7 @@ const STAGES = [
   { at: 1e34, h: 290, s: 55, k: 1.14 },   // quasar
 ];
 const stageOf = (life = S.lifeTotal) => { let k = 0; while (k + 1 < STAGES.length && life >= STAGES[k + 1].at) k++; return k; };
-const SKY = ['eclipse', 'shower', 'conj', 'flare', 'aurora'];   // évènements du ciel (ordre des améliorations sky0…sky4)
+const SKY = ['eclipse', 'shower', 'conj', 'flare', 'aurora', 'peri'];   // évènements du ciel (ordre des améliorations sky0…sky4)
 
 const ACH = [];
 [1e3, 1e6, 1e9, 1e12, 1e15, 1e18, 1e21].forEach((n, i) =>
@@ -316,7 +317,7 @@ const ACH_X = [
   ['mast5', 5, s => (s.mast || 0) >= 5], ['upg50', 50, s => Object.keys(s.upg).length >= 50], ['noUpg', 100, s => nG(s) >= 100 && !Object.keys(s.upg).length], ['bonfire', 250, s => s.gens[0] >= 250 && s.gens[0] > nG(s) - s.gens[0]],
   ['answer', 42, s => s.gens[2] === 42], ['sevens', 77, s => [0, 1, 2, 3].every(i => s.gens[i] === 77)], ['sym', 25, s => s.gens[0] >= 25 && s.gens.slice(0, 10).every(n => n === s.gens[0])], ['skyEcl', 1, () => st('sky_eclipse') >= 1],
   ['shoot10', 10, () => st('shoot') >= 10], ['shoot100', 100, () => st('shoot') >= 100], ['skyConj', 1, () => st('sky_conj') >= 1], ['flareClk', 50, () => st('flareClk') >= 50],
-  ['skyAur', 1, () => st('sky_aurora') >= 1], ['skyAll', 5, () => SKY.every(k => st('sky_' + k) >= 1)], ['eng10', 10, s => (s.eng || 0) >= 10], ['chal1', 1, s => Object.keys(s.chalDone || {}).length >= 1],
+  ['skyAur', 1, () => st('sky_aurora') >= 1], ['skyAll', 6, () => SKY.every(k => st('sky_' + k) >= 1)], ['eng10', 10, s => (s.eng || 0) >= 10], ['chal1', 1, s => Object.keys(s.chalDone || {}).length >= 1],
   ['back8h', 8, () => st('away') >= 8 * 3600], ['hoard', 1, s => s.dust >= 1e6 && s.dust >= dps() * 3600 && dps() > 0], ['night', 0, () => st('night') >= 1], ['clickBig', 1e12, () => st('clickMax') >= 1e12],
 ];
 ACH_X.forEach(([id, n, test], k) => ACH.push({ id, test, get name() { return t('sf.achX')[k][0]; }, get desc() { return t('sf.achX')[k][1].replace('{n}', n >= 1e6 ? fmt(n) : num(n)); } }));
@@ -567,7 +568,8 @@ function clickValue() {
 }
 const flareK = () => (has('m_flare') ? 30 : 10) * (upgOn('sky3') ? 2 : 1);
 const growth = () => inChal('c_infl') ? 1.25 : (has('m_econ') ? 1.14 : 1.15) - (chalDone('c_infl') ? 0.005 : 0);
-const genBase = i => GENS[i].cost * (has('m_cheap') ? 0.9 : 1) * (has('m_cheap2') ? 0.9 : 1);
+const periK = () => S.buffs.some(b => b.type === 'peri') ? 0.7 : 1;   // périhélie : forges 30 % moins chères
+const genBase = i => GENS[i].cost * periK() * (has('m_cheap') ? 0.9 : 1) * (has('m_cheap2') ? 0.9 : 1);
 function costN(i, n) { const r = growth(), b = genBase(i) * Math.pow(r, S.gens[i]); return b * (Math.pow(r, n) - 1) / (r - 1); }
 function maxAffordable(i) {
   const r = growth(), b = genBase(i) * Math.pow(r, S.gens[i]);
@@ -1085,7 +1087,7 @@ function checkStage() {
 }
 
 // ---------- évènements du ciel ----------
-const SKY_T = { eclipse: 45, shower: 30, conj: 60, flare: 20, aurora: 60 };
+const SKY_T = { eclipse: 45, shower: 30, conj: 60, flare: 20, aurora: 60, peri: 40 };
 const skyGap = () => (360 + Math.random() * 360) * (has('m_sky') ? 0.5 : 1) / (1 + 0.04 * astK('a_sextant'));   // un évènement toutes les 6 à 12 min : chacun ne revient que toutes les ~45 min
 function startSky(type) {
   const own = S.gens.map((n, i) => [n, i]).filter(([n]) => n > 0);
@@ -1095,8 +1097,8 @@ function startSky(type) {
   if (type === 'conj') { const a = own.splice((Math.random() * own.length) | 0, 1)[0][1], z = own[(Math.random() * own.length) | 0][1]; b.g = [a, z].sort((p, q) => p - q); b.m = conjK(); }
   S.buffs = S.buffs.filter(x => x.type !== type); S.buffs.push(b);
   S.st['sky_' + type] = st('sky_' + type) + 1; S.st.sky = st('sky') + 1; dqAdd('sky');
-  const v = { s: Math.round(d), m: fmt(type === 'flare' ? flareK() : type === 'aurora' ? auroraK() : b.m || 0), a: b.g ? GENS[b.g[0]].name : '', b: b.g ? GENS[b.g[1]].name : '' };
-  toast(t({ eclipse: 'sf.eclipseT', shower: 'sf.showerT', conj: 'sf.conjT', flare: 'sf.flareT', aurora: 'sf.auroraT' }[type], v));
+  const v = { s: Math.round(d), m: type === 'peri' ? 30 : fmt(type === 'flare' ? flareK() : type === 'aurora' ? auroraK() : b.m || 0), a: b.g ? GENS[b.g[0]].name : '', b: b.g ? GENS[b.g[1]].name : '' };
+  toast(t({ eclipse: 'sf.eclipseT', shower: 'sf.showerT', conj: 'sf.conjT', flare: 'sf.flareT', aurora: 'sf.auroraT', peri: 'sf.periT' }[type], v));
   sfx(type === 'eclipse' ? 90 : 440, 1, 'sine', 0.06); if (type !== 'eclipse') sfx(660, 1.2, 'sine', 0.04, 0.2);
 }
 // pluie d'étoiles filantes : elles traversent le ciel pendant l'évènement, chacune attrapée rapporte quelques secondes de production
@@ -1138,6 +1140,13 @@ function drawSky(c, X, Y, R, time) {
         c.restore();
       });
       c.restore();
+    } else if (b.type === 'peri') {   // périhélie : l'étoile se rapproche, un anneau d'orbite serré et une comète qui la frôle
+      c.save(); c.translate(X, Y); c.rotate(-0.35); c.globalCompositeOperation = 'lighter';
+      const rx = R * 1.9, ry = R * 1.05, an = time * 0.9;
+      c.strokeStyle = `rgba(255,214,140,${0.45 * f})`; c.lineWidth = 2; c.shadowColor = '#ffb85a'; c.shadowBlur = 12;
+      c.beginPath(); c.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2); c.stroke();
+      c.fillStyle = `rgba(255,236,190,${0.95 * f})`; c.beginPath(); c.arc(Math.cos(an) * rx, Math.sin(an) * ry, 4.5, 0, 7); c.fill();
+      c.shadowBlur = 0; c.restore();
     } else if (b.type === 'flare') {   // éruption : boucles de plasma qui jaillissent du bord
       const q = 1 - b.t / b.max, a0 = -0.8;
       c.save(); c.translate(X, Y); c.globalCompositeOperation = 'lighter'; c.lineCap = 'round';
@@ -1445,7 +1454,7 @@ function refresh(structural) {
   $('sf-dust').textContent = fmt(S.dust);
   $('sf-rate').textContent = fmt(totalDps());
   const BN = { frenzy: [t('sf.bFrenzy', { m: has('m_comet3') ? 10 : 7 }), ''], click: [t('sf.bClick'), ''], meteor: [t('sf.bMeteor'), 'met'], eclipse: [t('sf.bEclipse'), 'ecl'], echo: [t('sf.bEcho', { m: has('m_echo') ? 30 : 15 }), 'ecl'], void: [t('sf.bVoid'), 'ecl'], surge: [null, ''],
-    shower: [engSvg('shower') + ' ' + t('sf.bShower'), 'sky'], conj: [null, 'sky'], flare: [engSvg('flare') + ' ' + t('sf.bFlare', { m: fmt(flareK()) }), 'sky'], aurora: [engSvg('aurora') + ' ' + t('sf.bAurora', { m: fmt(auroraK()) }), 'sky'] };
+    shower: [engSvg('shower') + ' ' + t('sf.bShower'), 'sky'], conj: [null, 'sky'], flare: [engSvg('flare') + ' ' + t('sf.bFlare', { m: fmt(flareK()) }), 'sky'], aurora: [engSvg('aurora') + ' ' + t('sf.bAurora', { m: fmt(auroraK()) }), 'sky'], peri: [engSvg('peri') + ' ' + t('sf.bPeri', { m: 30 }), 'sky'] };
   const bname = b => b.type === 'surge' ? t('sf.bSurge', { gen: GENS[b.g].name, m: fmt(b.m) }) : b.type === 'conj' ? engSvg('conj') + ' ' + t('sf.bConj', { a: GENS[b.g[0]].name, b: GENS[b.g[1]].name, m: fmt(b.m) }) : BN[b.type][0], stack = S.buffs.reduce((m, b) => m * buffMult(b), 1);
   $('sf-buffs').innerHTML = (eternal() ? `<span class="met">${t('sf.eternalBuff')}</span>` : boostLeft() > 0 ? `<span class="met">${t('sf.boostBuff', { t: hm(boostLeft()) })}</span>` : '') + S.buffs.map(b => `<span class="${BN[b.type][1]}">${bname(b)} · ${Math.ceil(b.t)} s</span>`).join('') + (S.buffs.filter(b => buffMult(b) > 1).length >= 2 ? `<span class="met">${t('sf.stack', { m: fmt(stack) })}</span>` : '');
   { const bb = $('sf-buffs'); if (/\p{Extended_Pictographic}/u.test(bb.innerHTML)) bb.innerHTML = noEmoji(bb.innerHTML); }
