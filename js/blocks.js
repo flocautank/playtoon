@@ -52,7 +52,7 @@ const ICE_LVL = 41;
 const VEIN_LVL = 61;
 const CHAPTER = 10;
 // Générateur déterministe : un niveau d'aventure a toujours la même grille et les mêmes pièces.
-function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function mulberry32(a) { const f = () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; f.state = () => a | 0; f.seed = v => { a = v | 0; }; return f; }   // state/seed : reprendre une partie semée là où elle en était
 let rnd = Math.random;
 // Monétisation : fournie par l'application Android (apps/block-quarry) ; sur le web, rien (pas de pub).
 const MON = {
@@ -269,9 +269,45 @@ function load() {
   } catch (e) {}
   return false;
 }
+// Reprise d'une partie d'Aventure, de défi du jour ou de Chrono après un rechargement (le hasard y est semé : on garde
+// l'état du tirage avec le reste). Une partie finie, un niveau gagné, un défi d'un autre jour : rien à reprendre.
+const RUNKEY = 'blocparty.save2';
+const dropRun = () => { try { localStorage.removeItem(RUNKEY); } catch (e) {} };
+function saveRun() {
+  try {
+    if (S.over || (S.mode === 'adv' && S.goal && goalWon()) || (S.mode === 'chrono' && S.clock <= 0)) { dropRun(); return; }
+    const d = { mode: S.mode, board: S.board, tray: S.tray, score: S.score, combo: S.combo, contN: S.contN || 0, placed: S.placed || 0, miss: S.miss || 0, lines: S.lines || 0, maxCombo: S.maxCombo || 0, xpRun: S.xpRun || 0, rs: rnd.state ? rnd.state() : null };
+    if (S.mode === 'adv') Object.assign(d, { lvl: S.lvl, goal: S.goal, moves: S.moves, got: S.got, vein: S.vein || 0, rescue: S.rescue, moreBought: !!S.moreBought, toolsUsed: S.toolsUsed || 0, used: S.used || 0, gain: S.gain || 0, gems: [...S.gems], ice: [...S.ice], broke: S.broke || 0 });
+    else if (S.mode === 'daily') d.dday = S.dday;
+    else if (S.mode === 'chrono') Object.assign(d, { clock: S.clock, chronoT: S.chronoT || 0 });
+    else return;
+    localStorage.setItem(RUNKEY, JSON.stringify(d));
+  } catch (e) {}
+}
+function loadRun() {
+  try {
+    const d = JSON.parse(localStorage.getItem(RUNKEY) || 'null');
+    if (!d || !Array.isArray(d.board) || d.board.length !== N || !Array.isArray(d.tray) || !(d.score >= 0)) return false;
+    if (d.mode === 'adv') { if (!(d.lvl >= 1 && d.lvl <= LEVELS) || !d.goal || !(d.moves > 0)) return false; }
+    else if (d.mode === 'daily') { if (d.dday !== uKey()) return false; }
+    else if (d.mode === 'chrono') { if (!(d.clock > 0)) return false; }
+    else return false;
+    S.mode = d.mode; S.board = d.board; S.tray = d.tray; S.score = d.score; S.shown = d.score; S.combo = d.combo || 0; S.contN = d.contN || 0; S.placed = d.placed || 0;
+    S.miss = d.miss || 0; S.lines = d.lines || 0; S.maxCombo = d.maxCombo || 0; S.vidCont = false; S.over = false; S.fx = []; S.pops = []; S.clearing = [];
+    freshRun(); S.xpRun = d.xpRun || 0; S.gems = new Set(); S.ice = new Set();
+    if (d.mode === 'adv') { Object.assign(S, { lvl: d.lvl, goal: d.goal, moves: d.moves, got: d.got || 0, vein: d.vein || 0, rescue: d.rescue || 0, moreBought: !!d.moreBought, toolsUsed: d.toolsUsed || 0, used: d.used || 0, gain: d.gain || 0, broke: d.broke || 0 }); S.gems = new Set(d.gems || []); S.ice = new Set(d.ice || []); S.lines = d.lines || 0; }
+    else if (d.mode === 'daily') S.dday = d.dday;
+    else { S.clock = d.clock; S.chronoT = d.chronoT || 0; S.myRank = -1; }
+    rnd = d.mode === 'chrono' ? Math.random : mulberry32(0);
+    if (d.mode === 'adv') rnd = mulberry32(d.lvl * 104729 + 7); else if (d.mode === 'daily') rnd = mulberry32(d.dday * 31 + 7);
+    if (rnd.seed && d.rs !== null && d.rs !== undefined) rnd.seed(d.rs);
+    ['bp-over', 'bp-map', 'bp-res'].forEach(id => $(id).classList.add('hidden'));
+    return S.tray.some(t => t && canPlaceAnywhere(t));
+  } catch (e) { return false; }
+}
 function save() {
   if (window.PT_NOSAVE) return;
-  if (S.mode !== 'classic') return;   // aventure et défi du jour ne touchent pas à la partie classique en cours
+  if (S.mode !== 'classic') { saveRun(); return; }   // aventure, défi du jour et chrono ont leur propre sauvegarde : la partie classique en cours n'est pas touchée
   try {
     localStorage.setItem('blocparty.best', S.best);
     if (S.over) localStorage.removeItem('blocparty.save');
@@ -371,7 +407,7 @@ function clearSpace() {
 // état visuel et statistiques d'une partie neuve (toutes les modes)
 function freshRun() { S.counted = false; S.tips = []; S.xpRun = 0; S.ice = new Set(); S.broke = 0; S.miss = 0; S.lines = 0; S.maxCombo = 0; S.pieces = 0; S.endAnim = null; S.beams = []; S.rings = []; S.flyers = []; S.flash = 0; S.glow = 0; S.hit = 0; }
 function newGame() {
-  clearTimeout(overTimer); clearTimeout(resTimer); S.contN = 0; S.placed = 0;
+  dropRun(); clearTimeout(overTimer); clearTimeout(resTimer); S.contN = 0; S.placed = 0;
   S.mode = 'classic'; rnd = Math.random; S.gems.clear();
   S.board = Array.from({ length: N }, () => Array(N).fill(null));
   S.score = 0; S.shown = 0; S.combo = 0; S.over = false; S.fx = []; S.pops = []; S.clearing = []; S.vidCont = false;
@@ -470,7 +506,7 @@ function genLevel(n) {
   return { board, gems: type === 'gems' ? gems : new Set(), ice: new Set(), goal: { type, gems: type === 'gems' ? gemsN : 0, target, moves } };
 }
 function startLevel(n) {
-  clearTimeout(overTimer); clearTimeout(resTimer); S.contN = 0; S.vidCont = false;
+  dropRun(); clearTimeout(overTimer); clearTimeout(resTimer); S.contN = 0; S.vidCont = false;
   const L0 = genLevel(n);
   S.mode = 'adv'; S.lvl = n; S.goal = L0.goal; S.moves = L0.goal.moves; S.gems = L0.gems; S.got = 0; S.lines = 0; S.rescue = n >= 9 ? 2 : 1; S.moreBought = false; S.toolsUsed = 0; S.gain = 0;
   S.vein = 0; S.used = 0; S.board = L0.board; S.score = 0; S.shown = 0; S.combo = 0; S.over = false; S.fx = []; S.pops = []; S.clearing = []; freshRun();
@@ -729,7 +765,7 @@ function openCareer() {
   paintCarBtn();
 }
 function startDaily(seedDay) {
-  clearTimeout(overTimer); clearTimeout(resTimer); S.contN = 0;
+  dropRun(); clearTimeout(overTimer); clearTimeout(resTimer); S.contN = 0;
   const today = typeof seedDay === 'number' ? seedDay : uKey();   // seedDay : outils de mesure seulement
   S.placed = 0;
   if (DAILY.day !== today) { DAILY.day = today; DAILY.best = 0; saveDaily(); }
@@ -774,7 +810,7 @@ const CHRONO_T = 120;
 let TOP = [];
 try { TOP = JSON.parse(localStorage.getItem('blocparty.chrono') || '[]'); } catch (e) {}
 function startChrono() {
-  clearTimeout(overTimer); clearTimeout(resTimer);
+  dropRun(); clearTimeout(overTimer); clearTimeout(resTimer);
   S.mode = 'chrono'; rnd = Math.random; S.gems = new Set(); S.clock = CHRONO_T; S.chronoT = 0; S.myRank = -1;
   S.board = Array.from({ length: N }, () => Array(N).fill(null));
   S.score = 0; S.shown = 0; S.combo = 0; S.over = false; S.fx = []; S.pops = []; S.clearing = []; freshRun();
@@ -931,7 +967,7 @@ function place(idx, gx, gy) {
       if (S.rescue > 0) { S.rescue--; rescueTray(); S.pops.push({ text: t('bp.newPieces'), sub: t('bp.newPiecesSub'), t: n ? -1.1 : 0 }); beep(880, 0.15, 'triangle', 0.05); }
       if (!S.tray.some(t => t && canPlaceAnywhere(t))) advResult(false);
     }
-    updateHUD(); return;
+    save(); updateHUD(); return;
   }
   if (S.mode === 'chrono') {
     if (!S.tray.some(t => t && canPlaceAnywhere(t))) {   // bloqué : nouvelles pièces contre 5 s
@@ -939,7 +975,7 @@ function place(idx, gx, gy) {
       S.pops.length = 0; S.pops.push({ text: t('bp.newPiecesChrono'), sub: '−5 s', t: 0 }); beep(300, 0.2, 'square', 0.04);
       if (!S.tray.some(t => t && canPlaceAnywhere(t))) chronoEnd();
     }
-    updateHUD(); return;
+    save(); updateHUD(); return;
   }
   if (S.mode === 'daily') { if (S.score > DAILY.best) { const st0 = dailyStars(DAILY.best); DAILY.best = S.score; dailyRecord(); const st = dailyStars(DAILY.best); if (st > st0) { S.pops.push({ text: '★'.repeat(st) + '☆'.repeat(3 - st), sub: t('bp.starGot', { n: st }), t: n ? -1.0 : 0, big: true }); setTimeout(SFX.best, n ? 900 : 0); } } }
   else if (S.score > S.best) {
@@ -1701,11 +1737,15 @@ $('bp-daily').onclick = () => startDaily();
 $('bp-lbover').onclick = () => LB.show(lbBoard());
 $('bp-lbdaily').onclick = () => LB.show('daily');
 $('bp-lball').onclick = () => LB.show(null);
-$('bp-classic').onclick = () => { clearTimeout(overTimer); clearTimeout(resTimer); $('bp-map').classList.add('hidden'); if (S.mode === 'classic' && S.over) { newGame(); return; } if (S.mode !== 'classic') { S.mode = 'classic'; rnd = Math.random; S.gems.clear(); freshRun(); if (!load() || !S.tray.some(t => t && canPlaceAnywhere(t))) newGame(); S.over = false; updateHUD(); } };
+$('bp-classic').onclick = () => { clearTimeout(overTimer); clearTimeout(resTimer); $('bp-map').classList.add('hidden'); if (S.mode === 'classic' && S.over) { newGame(); return; } if (S.mode !== 'classic') { dropRun(); S.mode = 'classic'; rnd = Math.random; S.gems.clear(); freshRun(); if (!load() || !S.tray.some(t => t && canPlaceAnywhere(t))) newGame(); S.over = false; updateHUD(); } };
 $('bp-resnext').onclick = () => MON.pause().then(() => startLevel(Math.min(LEVELS, S.lvl + 1)));
 $('bp-resretry').onclick = () => startLevel(S.lvl);
 $('bp-resmap').onclick = () => { $('bp-res').classList.add('hidden'); openMap(); };
 window.addEventListener('resize', () => running && resize());
+// l'horloge du Chrono avance entre deux pièces : la garder à jour quand la page part en arrière-plan ou se ferme
+const keepRun = () => { if (S.mode !== 'classic' && !S.over) save(); };
+document.addEventListener('visibilitychange', () => { if (document.hidden) keepRun(); });
+window.addEventListener('pagehide', keepRun);
 
 // bonus de connexion : une fois par jour, qui grandit avec la série de jours (10 → 40 🪙)
 function loginBonus() {
@@ -1726,7 +1766,7 @@ window.GAMES.blocks = {
   show() {
     loadFonts(); watchModal(); initComfort();
     if (!document.body.dataset.tab) document.body.dataset.tab = 'blocks';   // appli : la coquille (réglages, confirmations, notifications) prend le style de la carrière
-    if (!inited) { inited = true; if (!load()) newGame(); else if (!S.tray.some(t => t && canPlaceAnywhere(t))) newGame(); updateHUD(); }
+    if (!inited) { inited = true; if (loadRun()) { try { S.best = +(localStorage.getItem('blocparty.best') || 0); } catch (e) {} } else { S.mode = 'classic'; rnd = Math.random; S.gems = new Set(); S.ice = new Set(); dropRun(); if (!load()) newGame(); else if (!S.tray.some(t => t && canPlaceAnywhere(t))) newGame(); } updateHUD(); }
     loginBonus(); checkMedals(); checkMilestones(); ensureWeek(); paintCarBtn(); lbSync();
     // une seule boucle de dessin : un second show() sans hide() (reprise de l'appli) en lançait une deuxième, et le
     // Chrono s'écoulait deux fois plus vite (chaque image de la boucle en trop comptait 16 ms)

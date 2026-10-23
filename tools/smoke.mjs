@@ -215,6 +215,16 @@ await page.click('[data-tool=shuffle]'); await page.waitForTimeout(200); await s
   log('parties comptées pour une fin, une reprise et une seconde fin :', gm); if (gm !== 1) errs.push('[desktop] Carnet : partie comptée deux fois');
   await page.evaluate(() => { document.getElementById('bp-over').classList.add('hidden'); window.__bp.newGame(); });
 }
+// 1.15.3 : une partie d'Aventure, de défi du jour ou de Chrono est reprise après un rechargement (état du tirage compris)
+for (const [name, start] of [['aventure', 'startLevel(45)'], ['défi', 'startDaily()'], ['chrono', 'startChrono()']]) {
+  await page.evaluate(`window.__bp.${start}`);
+  await page.evaluate(() => { const B = window.__bp, S = B.S; let k = 0; for (let i = 0; i < 3 && k < 2; i++) { const t = S.tray[i]; if (!t) continue; let done = false; for (let y = 0; y < B.N && !done; y++) for (let x = 0; x < B.N; x++) if (B.fits(t, x, y)) { B.place(i, x, y); k++; done = true; break; } } });
+  const before = await page.evaluate(() => { const S = window.__bp.S; return JSON.stringify([S.mode, S.score, S.tray.map(t => t && t.cells.length + t.color), S.board.flat().filter(Boolean).length]); });
+  await page.reload(); await page.waitForTimeout(900);
+  const after = await page.evaluate(() => { const S = window.__bp.S; return JSON.stringify([S.mode, S.score, S.tray.map(t => t && t.cells.length + t.color), S.board.flat().filter(Boolean).length]); });
+  log(`reprise (${name}) après rechargement :`, before === after); if (before !== after) errs.push(`[desktop] partie de ${name} non reprise après rechargement : ${before} → ${after}`);
+}
+await page.evaluate(() => window.__bp.newGame());
 log('étape : Star Forge'); await page.goto(base + '#forge'); await page.waitForTimeout(700);
 const intro = await page.$eval('#sf-intro', e => !e.classList.contains('hidden')); await shot(page, 'forge-intro'); if (intro) await page.click('#sf-intro-ok');
 log('intro Star Forge affichée au 1er lancement :', intro);
