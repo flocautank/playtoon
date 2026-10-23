@@ -1111,3 +1111,5 @@ body[data-tab=forge] .pt-toasts div{background:rgba(11,16,40,.96);border:1px sol
 .bp-mi small{font-size:11px;color:#b9a080}.bp-mi b{font:400 13px 'BQ Display',system-ui,sans-serif;color:#fff1d6;text-align:right}
 .bp-mi .bp-bar{grid-column:1/3}.bp-mi em{grid-column:1/3;font-style:normal;font-size:10px;letter-spacing:2px;color:#f0b23a}
 .bp-mi.done b{color:#f0b23a}
+/* Synth Horde 1.23.1 : noms de tomes sur deux lignes au lieu d'être coupés par « … » (pause, 360 px, six langues) */
+#nb-root .nb-build .nb-bt.t b{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;line-height:1.05;font-size:13px}
