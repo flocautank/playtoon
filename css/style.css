@@ -1042,7 +1042,9 @@ body[data-tab=blocks] #bq-settings .card h2{font-family:'BQ Display',system-ui,s
 .bp-sw{display:inline-block;width:.8em;height:.8em;margin-right:.3em;border-radius:2px;transform:rotate(45deg) scale(.82);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.55),0 0 0 1.5px rgba(0,0,0,.55);vertical-align:-.05em}
 .bp-lv small .bp-sw{width:9px;height:9px;margin:0}
 .bp-chap.vein b{color:#ffc27a}
+.bp-chap.geode b{color:#ffe27a}
 #tab-blocks .bp-lv.vein:not(.lock):not(.cur){box-shadow:inset 0 0 0 2px rgba(255,170,90,.5),inset 0 -3px 0 rgba(0,0,0,.4)}
+#tab-blocks .bp-lv.geode:not(.lock):not(.cur){box-shadow:inset 0 0 0 2px rgba(255,226,122,.55),inset 0 -3px 0 rgba(0,0,0,.4)}
 /* Nova Foundry 1.10.1 — la Veille du jour et les réglages passent à l'atlas (ils restaient en panneau arrondi, texte sans empattement) */
 #tab-forge .sf-dq{background:radial-gradient(circle at 10% 0%,rgba(70,58,24,.4),transparent 55%),var(--deep);border:1px solid rgba(184,151,85,.6);outline:1px solid rgba(184,151,85,.2);outline-offset:3px;border-radius:0;margin:4px 3px 14px;padding:10px 12px 11px;gap:2px;font-family:var(--txt)}
 #tab-forge .sf-dqh{padding-bottom:5px;border-bottom:1px solid rgba(184,151,85,.35)}
@@ -1113,3 +1115,8 @@ body[data-tab=forge] .pt-toasts div{background:rgba(11,16,40,.96);border:1px sol
 .bp-mi.done b{color:#f0b23a}
 /* Synth Horde 1.23.1 : noms de tomes sur deux lignes au lieu d'être coupés par « … » (pause, 360 px, six langues) */
 #nb-root .nb-build .nb-bt.t b{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;line-height:1.05;font-size:13px}
+
+/* 1.16.0 : objectif mixte de la géode (gemmes + givre) sur une seule ligne dans la tuile d'objectif */
+#tab-blocks .bp-stat b.mix{font-size:15px;white-space:nowrap;letter-spacing:0}
+@media (max-width:600px){#tab-blocks .bp-stat b.mix{font-size:12.5px}}
+@media (max-width:390px){#tab-blocks .bp-stat b.mix{font-size:11px;word-spacing:-.1em}}

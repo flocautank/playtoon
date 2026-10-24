@@ -146,6 +146,14 @@ await page.click('[data-tool=shuffle]'); await page.waitForTimeout(200); await s
   });
   log(`veine de couleur : niveau 61 « ${vn.type} », ${vn.got} cases comptées sur 3 attendues`);
   if (vn.type !== 'color' || vn.got !== 3) errs.push('[desktop] veine de couleur : décompte faux (' + JSON.stringify(vn) + ')');
+  // 1.16.0 : géode (niveau 81) — gemmes ET givre : la victoire exige les deux ; la carte compte 10 chapitres
+  const gd = await page.evaluate(() => {
+    const B = window.__bp, S = B.S; B.startLevel(81); const g = S.goal, n0 = S.gems.size, i0 = S.ice.size;
+    S.gems.clear(); const mid = S.ice.size > 0 && g.type === 'mix' && !B.goalWon();
+    S.ice.clear(); return { type: g.type, n0, i0, mid, end: B.goalWon() };
+  });
+  log(`géode : niveau 81 « ${gd.type} », ${gd.n0} gemmes + ${gd.i0} givre ; gemmes seules → pas gagné ${gd.mid}, tout → gagné ${gd.end}`);
+  if (gd.type !== 'mix' || !gd.n0 || !gd.i0 || !gd.mid || !gd.end) errs.push('[desktop] géode : victoire ou génération fausse (' + JSON.stringify(gd) + ')');
   // horloge qui recule d'une semaine : la semaine en cours (et sa progression) est gardée
   const wk = await page.evaluate(() => {
     const B = window.__bp, w = B.ensureWeek(), id = w.ids[0]; w.p[id] = 3; const R = Date;

@@ -16,7 +16,7 @@ Graphics in this folder: `../assets/play-icon-512.png` (512×512 icon), `../asse
 **App name** (≤ 30): `Block Quarry: Gem Block Puzzle`
 
 **Short description** (≤ 80):
-`Drop blocks, clear lines, free the gems. 80 levels, weekly missions, no timer.`
+`Drop blocks, clear lines, free the gems. 100 levels, weekly missions, no timer.`
 
 **Full description** (≤ 4000):
 
@@ -25,7 +25,7 @@ Block Quarry is a relaxing block puzzle with a twist: some rows are made of ston
 
 ★ FOUR WAYS TO PLAY
 • Classic — the endless, calm mode. No timer, no pressure: beat your best score one line at a time.
-• Adventure — 80 handcrafted levels in 8 chapters. Free every gem or clear the lines you need before you run out of moves, and earn up to 3 stars. Hard stones need two clears, and from level 41 frost covers the floor: clear a line over the ice to break it. From level 61, colour veins: clear the blocks of the marked colour.
+• Adventure — 100 handcrafted levels in 10 chapters. Free every gem or clear the lines you need before you run out of moves, and earn up to 3 stars. Hard stones need two clears, and from level 41 frost covers the floor: clear a line over the ice to break it. From level 61, colour veins: clear the blocks of the marked colour. From level 81, geodes: free the gems and break the frost in the same level.
 • Daily challenge — the same grid and the same pieces for everyone, every day. Keep your streak alive and climb the daily leaderboard!
 • Time Attack — 2 minutes on the clock, every line gives time back, and points grow as the timer runs.
 
@@ -60,7 +60,7 @@ Take a break, clear some lines, and dig out every gem of the quarry!
 **Nom** (≤ 30) : `Block Quarry : puzzle de blocs`
 
 **Description courte** (≤ 80) :
-`Pose les blocs, efface les lignes, libère les gemmes. 80 niveaux, missions.`
+`Pose les blocs, efface les lignes, libère les gemmes. 100 niveaux, missions.`
 
 **Description complète** :
 
@@ -69,7 +69,7 @@ Block Quarry est un puzzle de blocs détendant, avec une particularité : certai
 
 ★ QUATRE FAÇONS DE JOUER
 • Classique — le mode sans fin, tout en calme. Pas de chrono, pas de pression : bats ton record ligne après ligne.
-• Aventure — 80 niveaux en 8 chapitres. Libère toutes les gemmes ou efface les lignes demandées avant la fin des coups, et décroche jusqu'à 3 étoiles. Les pierres dures s'effacent en deux fois, et dès le niveau 41 le givre couvre le sol : efface une ligne sur la glace pour la briser. Dès le niveau 61, les filons de couleur : dégage les blocs de la couleur indiquée.
+• Aventure — 100 niveaux en 10 chapitres. Libère toutes les gemmes ou efface les lignes demandées avant la fin des coups, et décroche jusqu'à 3 étoiles. Les pierres dures s'effacent en deux fois, et dès le niveau 41 le givre couvre le sol : efface une ligne sur la glace pour la briser. Dès le niveau 61, les filons de couleur : dégage les blocs de la couleur indiquée. Dès le niveau 81, les géodes : libère les gemmes et brise le givre dans le même niveau.
 • Défi du jour — la même grille et les mêmes pièces pour tout le monde, chaque jour. Entretiens ta série et grimpe au classement du jour !
 • Chrono — 2 minutes au compteur, chaque ligne rend du temps et les points grimpent au fil des secondes.
 

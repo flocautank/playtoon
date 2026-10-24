@@ -1,4 +1,4 @@
-// Fait jouer un solveur glouton sur chaque niveau d'aventure de Block Quarry (80 depuis 1.12.0 : givre dès le 41, veines de couleur dès le 61) et rapporte
+// Fait jouer un solveur glouton sur chaque niveau d'aventure de Block Quarry (100 depuis 1.16.0 : givre dès le 41, veines de couleur dès le 61, géodes dès le 81) et rapporte
 // la réussite et les étoiles : sert à calibrer le nombre de coups par niveau.
 import { createRequire } from 'module'; import { execSync } from 'child_process';
 import http from 'http'; import fs from 'fs'; import path from 'path'; import url from 'url';
@@ -10,7 +10,7 @@ const b = await chromium.launch(); const p = await b.newPage();
 await p.goto(`http://localhost:${srv.address().port}/#blocks`); await p.waitForTimeout(500);
 const res = await p.evaluate(() => {
   const { S, place, fits, startLevel, linesToClear, N } = window.__bp, out = [];
-  for (let n = 1; n <= 80; n++) {
+  for (let n = 1; n <= 100; n++) {
     startLevel(n);
     while (!S.over) {
       let best = null;
@@ -26,11 +26,11 @@ const res = await p.evaluate(() => {
       if (!best) break;
       place(best.i, best.x, best.y);
     }
-    const win = S.goal.type === 'color' ? S.vein >= S.goal.need : S.goal.type === 'gems' ? S.gems.size === 0 : S.goal.type === 'ice' ? S.ice.size === 0 : S.lines >= S.goal.target;
+    const win = S.goal.type === 'color' ? S.vein >= S.goal.need : S.goal.type === 'mix' ? S.gems.size === 0 && S.ice.size === 0 : S.goal.type === 'gems' ? S.gems.size === 0 : S.goal.type === 'ice' ? S.ice.size === 0 : S.lines >= S.goal.target;
     const st = win ? ((S.goal.moves - S.moves) / S.goal.moves <= 0.6 ? 3 : (S.goal.moves - S.moves) / S.goal.moves <= 0.8 ? 2 : 1) : 0;
-    out.push(`${n}${S.goal.type === 'gems' ? '💎' : S.goal.type === 'ice' ? '❄' : S.goal.type === 'color' ? '◆' : '▤'}:${win ? '★' + st : '✗'}(${S.goal.moves - S.moves}/${S.goal.moves})`);
+    out.push(`${n}${S.goal.type === 'mix' ? '💎❄' : S.goal.type === 'gems' ? '💎' : S.goal.type === 'ice' ? '❄' : S.goal.type === 'color' ? '◆' : '▤'}:${win ? '★' + st : '✗'}(${S.goal.moves - S.moves}/${S.goal.moves})`);
   }
   return out.join(' ');
 });
-console.log(res); const w = (res.match(/★/g) || []).length; console.log(`réussis ${w}/80`);
+console.log(res); const w = (res.match(/★/g) || []).length; console.log(`réussis ${w}/100`);
 await b.close(); srv.close();

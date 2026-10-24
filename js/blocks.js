@@ -47,9 +47,10 @@ if (!THEME.owned.includes('quarry')) { THEME.owned.unshift('quarry'); if (THEME.
 const saveTheme = () => { try { localStorage.setItem('blocparty.themes', JSON.stringify(THEME)); } catch (e) {} };
 const curTheme = () => THEMES.find(t => t.id === THEME.cur) || THEMES[0];
 const tc = c => { const i = COLORS.indexOf(c); return i >= 0 ? curTheme().pal[i] : c; };
-const LEVELS = 80;   // 8 chapitres de 10 ; le givre arrive au chapitre 5 (niveau 41), les veines de couleur au chapitre 7 (niveau 61)
+const LEVELS = 100;   // 10 chapitres de 10 ; la géode (gemmes + givre dans un même niveau) arrive au chapitre 9 (niveau 81) ; le givre arrive au chapitre 5 (niveau 41), les veines de couleur au chapitre 7 (niveau 61)
 const ICE_LVL = 41;
 const VEIN_LVL = 61;
+const GEODE_LVL = 81;
 const CHAPTER = 10;
 // Générateur déterministe : un niveau d'aventure a toujours la même grille et les mêmes pièces.
 function mulberry32(a) { const f = () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; f.state = () => a | 0; f.seed = v => { a = v | 0; }; return f; }   // state/seed : reprendre une partie semée là où elle en était
@@ -138,12 +139,14 @@ const MEDAL_MOTIF = [
   '<path d="M15 31V17l3-4 3 4v14zM21.5 31V12.5l3.2-4.2 3.3 4.2V31zM10.8 31v-8.6l2.4-3 2.2 3V31z"/>',   // veine glaciaire : cristaux
   '<path d="M20 9.5 29.5 17 20 31 10.5 17z" fill="none" stroke-width="2.2" stroke-linejoin="round"/><path d="M10.5 17h19M15.2 17 20 9.5l4.8 7.5M15.2 17 20 31l4.8-14" fill="none" stroke-width="1.5" stroke-linejoin="round"/>',   // filons colorés : gemme taillée
   '<path d="M20 9c4.6 4.4 8 8.6 8 12.6a8 8 0 0 1-16 0C12 17.600 15.400 13.400 20 9z"/><path d="M16.200 22.600a4 4 0 0 0 3.800 4" fill="none" stroke-width="1.6" stroke-linecap="round" stroke="#fff" stroke-opacity=".5"/>',   // cœur de la montagne : goutte de lave
+  '<path d="M20 9.5c6.200 0 10.500 4.800 10.500 10.500S26.200 30.500 20 30.500 9.500 25.700 9.500 20 13.800 9.500 20 9.500z" fill="none" stroke-width="2.2"/><path d="M20 14.500l4 5.500-4 5.500-4-5.500z"/>',   // cavité des géodes : géode ouverte, cœur taillé
+  '<path d="M20 8.500l2.400 7.100h7.100l-5.800 4.300 2.300 7.200-6-4.500-6 4.500 2.300-7.200-5.800-4.300h7.100z"/>',   // cœur de cristal : étoile à facettes
 ];
 function medalSVG(c, on, cls = 'bp-mdi') {
   const id = 'bqm' + c + (on ? 'a' : 'b'), m = MEDAL_MOTIF[c % MEDAL_MOTIF.length];
   let teeth = ''; for (let i = 0; i < 28; i++) { const a = i / 28 * Math.PI * 2; teeth += `M${(20 + Math.cos(a) * 16.4).toFixed(2)} ${(20 + Math.sin(a) * 16.4).toFixed(2)}L${(20 + Math.cos(a) * 18.6).toFixed(2)} ${(20 + Math.sin(a) * 18.6).toFixed(2)}`; }
   if (!on) return `<svg class="${cls}" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18.5" fill="rgba(0,0,0,.38)"/><circle cx="20" cy="20.8" r="18" fill="none" stroke="rgba(255,235,200,.12)" stroke-width="1.2"/><circle cx="20" cy="20" r="13.6" fill="none" stroke="rgba(0,0,0,.45)" stroke-width="1.2"/><g fill="rgba(255,235,200,.16)" stroke="rgba(255,235,200,.16)">${m}</g></svg>`;
-  const [hi, mid, lo] = c >= 6 ? ['#ffe6c0', '#e8923a', '#5c2a0e'] : c >= 4 ? ['#f2fbff', '#9fc6d6', '#2c4a5a'] : METAL[3];   // chapitres du givre : argent bleui ; des veines : cuivre
+  const [hi, mid, lo] = c >= 8 ? ['#fff3b0', '#e9c03f', '#6b4a05'] : c >= 6 ? ['#ffe6c0', '#e8923a', '#5c2a0e'] : c >= 4 ? ['#f2fbff', '#9fc6d6', '#2c4a5a'] : METAL[3];   // chapitres du givre : argent bleui ; des veines : cuivre
   return `<svg class="${cls}" viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" y1="0" x2=".4" y2="1"><stop offset="0" stop-color="${hi}"/><stop offset=".55" stop-color="${mid}"/><stop offset="1" stop-color="${lo}"/></linearGradient></defs>`
     + `<circle cx="20" cy="21.2" r="18.6" fill="${lo}"/><circle cx="20" cy="20" r="18.6" fill="url(#${id})"/><path d="${teeth}" stroke="${lo}" stroke-opacity=".55" stroke-width="1.1"/>`
     + `<circle cx="20" cy="20" r="13.8" fill="${lo}" fill-opacity=".22"/><circle cx="20" cy="20" r="13.8" fill="none" stroke="${lo}" stroke-opacity=".6" stroke-width="1.2"/><circle cx="20" cy="20.7" r="13.8" fill="none" stroke="#fff" stroke-opacity=".3" stroke-width=".7"/>`
@@ -419,6 +422,7 @@ function newGame() {
 
 // Objectif d'un niveau : 1–40 comme avant ; 41–60 : givre surtout, gemmes et lignes en rappel
 function levelType(n) {
+  if (n >= GEODE_LVL) { const k = n - 80; return k % 5 === 0 ? 'lines' : k % 2 ? 'mix' : k % 4 === 0 ? 'color' : 'ice'; }
   if (n >= VEIN_LVL) { const k = n - 60; return k % 5 === 0 ? 'lines' : k % 4 === 0 ? 'gems' : k % 2 ? 'color' : 'ice'; }
   if (n < ICE_LVL) return n % 4 === 0 ? 'lines' : 'gems';
   const k = n - 40;
@@ -471,7 +475,17 @@ function genColor(n) {
   const moves = Math.round(7 + need * 0.95 + hard * 0.5 + (n === VEIN_LVL ? 4 : 0));
   return { board, gems: new Set(), ice: new Set(), goal: { type: 'color', color, need, ice: 0, gems: 0, target: 0, moves } };
 }
+// Géode (niveau 81+) : du givre à briser ET des gemmes enfouies dans la pierre à libérer, dans le même niveau.
+function genMix(n) {
+  const L0 = genIce(n), k = n - 80, r = mulberry32(n * 3571 + 41), cells = [];
+  L0.board.forEach((row, y) => row.forEach((c, x) => { if (c) cells.push([x, y]); }));
+  const gemsN = Math.min(2 + Math.floor(k / 5), 6, cells.length), gems = new Set();
+  while (gems.size < gemsN) { const [x, y] = cells[(r() * cells.length) | 0]; gems.add(y * N + x); }
+  const moves = L0.goal.moves + Math.round(gemsN * 1.6) + 2;
+  return { board: L0.board, gems, ice: L0.ice, goal: { type: 'mix', gems: gemsN, ice: L0.ice.size, target: 0, moves } };
+}
 function genLevel(n) {
+  if (levelType(n) === 'mix') return genMix(n);
   if (levelType(n) === 'ice') return genIce(n);
   if (levelType(n) === 'color') return genColor(n);
   // Les pierres forment des lignes / colonnes à trous : on les complète pour libérer les gemmes.
@@ -516,12 +530,13 @@ function startLevel(n) {
   ['bp-over', 'bp-map', 'bp-res'].forEach(id => $(id).classList.add('hidden'));
   S.pops.push({ text: t('bp.level', { n }), sub: goalText(), t: 0 });
   if (S.goal.type === 'ice' && (n === ICE_LVL || !ADV.stars[ICE_LVL])) tip(t('bp.iceTitle'), t('bp.iceSub'), 1.3, 4.5, true);   // présentation du givre
+  if (S.goal.type === 'mix' && (n === GEODE_LVL || !ADV.stars[GEODE_LVL])) tip(t('bp.mixTitle'), t('bp.mixSub'), 1.3, 4.5, true);   // présentation de la géode
   if (S.goal.type === 'color' && (n === VEIN_LVL || !ADV.stars[VEIN_LVL])) tip(t('bp.veinTitle'), t('bp.veinSub'), 1.3, 4.5, true);   // présentation des veines de couleur
   if (n === 9 || (n > 9 && !ADV.stars[9])) tip(t('bp.hardTitle'), t('bp.hardSub'), 1.3, 4.5, true);   // présentation des pierres dures
   updateHUD();
 }
-const goalText = () => S.goal.type === 'color' ? t('bp.getVein', { n: S.goal.need }) : S.goal.type === 'gems' ? t('bp.getGems', { n: S.goal.gems }) : S.goal.type === 'ice' ? t('bp.breakIce', { n: S.goal.ice }) : t('bp.clearLines', { n: S.goal.target });
-const goalWon = () => S.goal.type === 'color' ? S.vein >= S.goal.need : S.goal.type === 'gems' ? S.gems.size === 0 : S.goal.type === 'ice' ? S.ice.size === 0 : S.lines >= S.goal.target;
+const goalText = () => S.goal.type === 'mix' ? t('bp.getMix', { g: S.goal.gems, i: S.goal.ice }) : S.goal.type === 'color' ? t('bp.getVein', { n: S.goal.need }) : S.goal.type === 'gems' ? t('bp.getGems', { n: S.goal.gems }) : S.goal.type === 'ice' ? t('bp.breakIce', { n: S.goal.ice }) : t('bp.clearLines', { n: S.goal.target });
+const goalWon = () => S.goal.type === 'mix' ? S.gems.size === 0 && S.ice.size === 0 : S.goal.type === 'color' ? S.vein >= S.goal.need : S.goal.type === 'gems' ? S.gems.size === 0 : S.goal.type === 'ice' ? S.ice.size === 0 : S.lines >= S.goal.target;
 // une plaque de givre brisée (effacement ou booster)
 function breakIce(x, y) {
   if (!S.ice.delete(y * N + x)) return false;
@@ -549,7 +564,7 @@ function advResult(win) {
   }
   if (!S.counted) { S.counted = true; stat('games'); } saveCar(); checkMilestones();   // une reprise suivie d'une seconde fin ne recompte pas la partie
   clearTimeout(resTimer); resTimer = setTimeout(() => {
-    const close = S.goal.type === 'color' ? S.vein >= S.goal.need - 2 : S.goal.type === 'gems' ? S.got >= S.goal.gems - 1 : S.goal.type === 'ice' ? S.ice.size <= 2 : S.lines >= S.goal.target - 1;
+    const close = S.goal.type === 'mix' ? S.gems.size + S.ice.size <= 2 : S.goal.type === 'color' ? S.vein >= S.goal.need - 2 : S.goal.type === 'gems' ? S.got >= S.goal.gems - 1 : S.goal.type === 'ice' ? S.ice.size <= 2 : S.lines >= S.goal.target - 1;
     $('bp-restitle').textContent = win ? t('bp.levelWon', { n: S.lvl }) : close ? t('bp.failClose') : t('bp.fail');
     $('bp-resstars').innerHTML = [1, 2, 3].map(k => k <= stars ? '★' : '<i>★</i>').join('');
     $('bp-restext').textContent = win ? t('bp.resWin', { used: S.used, total: S.goal.moves, coins: COINS }) + (S.gain ? `  ·  +${S.gain} 🪙` : '') : (S.moves <= 0 ? t('bp.noMoves') : t('bp.noRoom'));
@@ -841,7 +856,7 @@ function openMap() {
   for (let n = 1; n <= LEVELS; n++) {
     if (n % CHAPTER === 1) {   // en-tête de chapitre : nom, étoiles gagnées sur 30
       const c = (n - 1) / CHAPTER, got = Array.from({ length: CHAPTER }, (_, i) => ADV.stars[n + i] || 0).reduce((a, b) => a + b, 0);
-      const h = document.createElement('div'); h.className = 'bp-chap' + (n > open ? ' lock' : '') + (n === ICE_LVL ? ' ice' : n === VEIN_LVL ? ' vein' : '');
+      const h = document.createElement('div'); h.className = 'bp-chap' + (n > open ? ' lock' : '') + (n === ICE_LVL ? ' ice' : n === VEIN_LVL ? ' vein' : n === GEODE_LVL ? ' geode' : '');
       h.innerHTML = `<b>${t('bp.chapter', { n: c + 1 })} · ${(Array.isArray(names) && names[c]) || ''}</b><small>${CAR.medals[c] ? medalSVG(c, true, 'bp-mdi sm') : ''}★ ${got}/${CHAPTER * 3}</small>`;
       box.appendChild(h);
     }
@@ -849,8 +864,8 @@ function openMap() {
     const b = document.createElement('button');
     b.className = 'bp-lv' + (lock ? ' lock' : '') + (n === open && !st ? ' cur' : '');
     const ty = levelType(n);
-    b.dataset.n = n; if (ty === 'ice') b.classList.add('ice'); if (n >= VEIN_LVL) b.classList.add('vein');
-    b.innerHTML = `${lock ? '🔒' : n}<small>${st ? '★'.repeat(st) : ty === 'lines' ? t('bp.mapLines') : ty === 'ice' ? '❄' : ty === 'color' ? `<i class="bp-sw" style="background:${tc(genColor(n).goal.color)}"></i>` : '💎'}</small>`;
+    b.dataset.n = n; if (ty === 'ice') b.classList.add('ice'); if (n >= VEIN_LVL) b.classList.add('vein'); if (ty === 'mix') b.classList.add('geode');
+    b.innerHTML = `${lock ? '🔒' : n}<small>${st ? '★'.repeat(st) : ty === 'lines' ? t('bp.mapLines') : ty === 'ice' ? '❄' : ty === 'mix' ? '💎❄' : ty === 'color' ? `<i class="bp-sw" style="background:${tc(genColor(n).goal.color)}"></i>` : '💎'}</small>`;
     if (!lock) b.onclick = () => startLevel(n);
     box.appendChild(b);
   }
@@ -1049,6 +1064,7 @@ function burst(gx, gy, color) {
 
 function updateHUD() {
   const adv = S.mode === 'adv', daily = S.mode === 'daily';
+  $('bp-best').classList.toggle('mix', adv && !!S.goal && S.goal.type === 'mix');
   $('bp-l1').textContent = adv ? t('bp.hudLevel', { n: S.lvl }) : daily ? t('bp.hudDaily') : t('bp.score');
   $('bp-l2').textContent = adv ? t('bp.hudGoal') : daily ? t('bp.hudDailyBest') : t('bp.best');
   if (daily) { $('bp-best').textContent = num(DAILY.best); return; }
@@ -1062,7 +1078,7 @@ function updateHUD() {
   }
   if (adv) {
     $('bp-score').textContent = S.moves;
-    $('bp-best')[S.goal.type === 'color' ? 'innerHTML' : 'textContent'] = S.goal.type === 'color' ? `<i class="bp-sw" style="background:${tc(S.goal.color)}"></i>${Math.min(S.vein, S.goal.need)}/${S.goal.need}` : S.goal.type === 'gems' ? `💎 ${S.got}/${S.goal.gems}` : S.goal.type === 'ice' ? `❄ ${S.broke}/${S.goal.ice}` : `▤ ${Math.min(S.lines, S.goal.target)}/${S.goal.target}`;
+    $('bp-best')[S.goal.type === 'color' ? 'innerHTML' : 'textContent'] = S.goal.type === 'color' ? `<i class="bp-sw" style="background:${tc(S.goal.color)}"></i>${Math.min(S.vein, S.goal.need)}/${S.goal.need}` : S.goal.type === 'mix' ? `💎${S.got}/${S.goal.gems} ❄${S.broke}/${S.goal.ice}` : S.goal.type === 'gems' ? `💎 ${S.got}/${S.goal.gems}` : S.goal.type === 'ice' ? `❄ ${S.broke}/${S.goal.ice}` : `▤ ${Math.min(S.lines, S.goal.target)}/${S.goal.target}`;
   } else $('bp-best').textContent = num(Math.max(S.bestStart || 0, Math.round(S.shown)));
 }
 
@@ -1775,4 +1791,4 @@ window.GAMES.blocks = {
   hide() { running = false; S.drag = null; },
 };
 // Accès de test (tools/smoke.mjs, console).
-window.__bp = { CAR, MISSIONS, openCareer, ensureWeek, track, gainXP, S, L, newGame, refill: fillTray, place, fits, startLevel, startDaily, startChrono, linesToClear, canPlaceAnywhere, N, gameOver, endNow: () => { S.over = true; armOver(600); } };
+window.__bp = { CAR, MISSIONS, openCareer, ensureWeek, track, gainXP, S, L, newGame, refill: fillTray, place, fits, startLevel, goalWon, startDaily, startChrono, linesToClear, canPlaceAnywhere, N, gameOver, endNow: () => { S.over = true; armOver(600); } };
