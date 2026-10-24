@@ -31,7 +31,7 @@ Tap the star. Collect stardust. Build forges that keep working while you are awa
 • Constellation: a permanent tree of 66 nodes, then Stellar Mastery
 • Asterisms: chart eight figures star by star — the Crucible, the Lyre, the Sextant… — each strengthening one mechanic
 • Big Bang: the second prestige — trade Novae for Singularities and automate your Galaxy
-• 6 challenges with permanent rewards and 102 achievements
+• 6 challenges with permanent rewards and 108 achievements
 
 ★ ALWAYS SOMETHING TO DO
 • Forge Orders: three goals cut to your current run, each paying Novae and a seal
@@ -77,7 +77,7 @@ Touche l'étoile. Récolte la poussière d'étoile. Bâtis des forges qui travai
 • Constellation : un arbre permanent de 66 nœuds, puis la Maîtrise stellaire
 • Astérismes : trace huit figures étoile par étoile — le Creuset, la Lyre, le Sextant… — chacune renforce un mécanisme
 • Big Bang : le deuxième prestige — échange tes Novae contre des Singularités et automatise ta Galaxie
-• 6 défis à récompense permanente et 102 succès
+• 6 défis à récompense permanente et 108 succès
 
 ★ TOUJOURS QUELQUE CHOSE À FAIRE
 • Commandes de la forge : trois objectifs taillés sur ta partie, payés en Novae et en sceaux

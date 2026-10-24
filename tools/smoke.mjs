@@ -791,6 +791,25 @@ await shot(m, 'm-bonk-pause');
   await ctx.close();
 }
 
+// ---------- Nova Foundry 1.14.0 : succès de long cours (Supernovae 50/100, Big Bang ×10, 500 commandes, rangs 12 et 16)
+{
+  log('étape : Nova Foundry, succès de long cours');
+  const ctx = await browser.newContext({ viewport: { width: 420, height: 860 } });
+  const p = await guard(await ctx.newPage()); watch(p, 'nf-long');
+  await p.addInitScript(() => { try { localStorage.setItem('starforge.intro', '1'); } catch (e) {} });
+  await p.goto(base + '#forge'); await p.waitForTimeout(700);
+  const r = await p.evaluate(async () => {
+    const F = window.__sf, ids = ['pre50', 'pre100', 'bb10', 'ord500', 'rank12', 'rank16'];
+    const before = ids.filter(i => F.S.ach[i]).length;
+    F.S.prestiges = 100; F.S.bigbangs = 10; F.S.ord = Object.assign(F.S.ord || {}, { done: 5000 });
+    await new Promise(r => setTimeout(r, 2500));
+    return { before, got: ids.filter(i => F.S.ach[i]).length };
+  });
+  const ok = r.before === 0 && r.got === 6;
+  log(`Nova Foundry : succès de long cours ${ok ? 'OK' : 'ÉCHEC ' + JSON.stringify(r)}`);
+  if (!ok) errs.push('[nf-long] ' + JSON.stringify(r));
+  await ctx.close();
+}
 // ---------- Nova Foundry : Périhélie (6e évènement du ciel) → forges 30 % moins chères pendant l'évènement
 {
   log('étape : Nova Foundry, Périhélie');

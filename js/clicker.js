@@ -333,6 +333,13 @@ const ordDone = s => (s.ord && s.ord.done) || 0;
 [['ord1', 1, s => ordDone(s) >= 1], ['ord100', 100, s => ordDone(s) >= 100], ['rank4', 4, s => rankAt(ordDone(s)) >= 4], ['rank8', 8, s => rankAt(ordDone(s)) >= 8]]
   .forEach(([id, n, test], k) => ACH.push({ id, test, get name() { return t('sf.achO')[k][0]; }, get desc() { return t('sf.achO')[k][1].replace('{n}', num(n)); } }));
 
+// 1.14 : succès de long cours (l'outil sf-long montrait 3 à 4 h sans rien après la 20e heure) : Supernovae 50/100,
+// Big Bang ×10, 500 commandes, rangs 12 et 16 ; textes réutilisés (sf.aPre, sf.aBBn, sf.achO), seuil en {n}
+[[50, '🎇'], [100, '🎇']].forEach(([n, ic]) => ACH.push({ id: 'pre' + n, ic, get name() { return t('sf.aPre', { n }); }, get desc() { return t('sf.aPreDesc', { n }); }, test: s => s.prestiges >= n }));
+ACH.push({ id: 'bb10', ic: '🌌', get name() { return t('sf.aBBn', { n: 10 }); }, get desc() { return t('sf.aBBnDesc', { n: 10 }); }, test: s => (s.bigbangs || 0) >= 10 });
+ACH.push({ id: 'ord500', get name() { return t('sf.achO')[1][0] + ' ' + num(500); }, get desc() { return t('sf.achO')[1][1].replace('{n}', num(500)); }, test: s => ordDone(s) >= 500 });
+[12, 16].forEach(n => ACH.push({ id: 'rank' + n, get name() { return rankName(n); }, get desc() { return t('sf.achO')[3][1].replace('{n}', num(n)); }, test: s => rankAt(ordDone(s)) >= n }));
+
 // Défis : une run sous contrainte (entrer = repartir de zéro, sans Novae), objectif en poussière
 // produite ; la réussite débloque une récompense permanente et lève la contrainte.
 const CHALS = [
