@@ -1,0 +1,112 @@
+# Managed by Vibeship — https://github.com/flocautank/vibeship (schema vibeship/v1)
+schema: vibeship/v1
+updated: '2026-10-25'
+products:
+- id: block-quarry
+  name: Block Quarry
+  repo: flocautank/playtoon
+  kind: game
+  platforms:
+  - android
+  - ios
+  - steam
+  - web
+  version: 1.16.0
+  stage: ready-to-ship
+  summary: Block puzzle on an 8x8 grid with adventure levels, daily challenge, timed mode and boosters.
+  monetization:
+    model:
+    - ads
+    - iap
+    state: implemented
+    price: Supprimer les pubs 2,99 € ; Steam 2,99 US$
+    notes: 'Mobile : vidéos récompensées facultatives, pub plein écran plafonnée entre deux parties, achat « Supprimer les pubs ». Steam : payant, sans pub.'
+  publishing:
+  - channel: google-play
+    state: blocked
+    blocker: Compte Play Console (25 $), AdMob, secrets de signature, puis test fermé 12 testeurs × 14 jours
+  - channel: app-store
+    state: not-started
+    blocker: Apple Developer Program (99 $/an), plus tard
+  - channel: steam
+    state: blocked
+    blocker: Compte Steamworks (100 $ pour ce jeu), 30 jours après le premier paiement, 2 semaines « à venir »
+  - channel: web
+    state: live
+    url: https://flocautank.github.io/playtoon/
+  todo:
+  - 'Triche à l''horloge sur bonus et missions : parade hors serveur à concevoir'
+  next_human_action: Créer le compte Google Play Console (25 $, vérification d'identité), puis AdMob et les secrets de signature
+  last_activity: '2026-10-25'
+- id: nova-foundry
+  name: Nova Foundry
+  repo: flocautank/playtoon
+  kind: game
+  platforms:
+  - android
+  - ios
+  - steam
+  - web
+  version: 1.14.0
+  stage: ready-to-ship
+  summary: Prestige clicker with forges, upgrades, Supernova and Constellation meta-progression.
+  monetization:
+    model:
+    - ads
+    - iap
+    state: implemented
+    price: Eternal Engine 3,99 € ; Steam 3,99 US$
+    notes: 'Mobile : pubs récompensées seulement, aucune pub plein écran. Steam : payant, sans pub.'
+  publishing:
+  - channel: google-play
+    state: blocked
+    blocker: Compte Play Console, appli AdMob, secrets de signature, test fermé 12 testeurs × 14 jours
+  - channel: app-store
+    state: not-started
+    blocker: Apple Developer Program (99 $/an), plus tard
+  - channel: steam
+    state: blocked
+    blocker: Compte Steamworks (100 $ pour ce jeu)
+  - channel: web
+    state: live
+    url: https://flocautank.github.io/playtoon/
+  todo:
+  - Mesurer le rythme de la progression longue (20 à 40 h) avec tools/sf-long.mjs
+  - 'Identité graphique : chasser ce qui reste générique'
+  next_human_action: Créer le compte Google Play Console, puis l'appli AdMob et le test fermé
+  last_activity: '2026-10-25'
+- id: synth-horde
+  name: Synth Horde
+  repo: flocautank/playtoon
+  kind: game
+  platforms:
+  - android
+  - ios
+  - steam
+  - web
+  version: 1.24.0
+  stage: ready-to-ship
+  summary: Synthwave 3D survivor-like with 9 heroes, 15 weapons, three stages, bosses and procedural music.
+  monetization:
+    model:
+    - premium
+    state: implemented
+    price: Mobile 2,99 € ; Steam 4,99 US$
+    notes: 'Payant, sans pub ni achat. Version web gratuite : décision en attente (apps/PRICING.md).'
+  publishing:
+  - channel: google-play
+    state: blocked
+    blocker: Compte Play Console, prix 2,99 € à fixer, test fermé 12 testeurs × 14 jours
+  - channel: app-store
+    state: not-started
+    blocker: Apple Developer Program (99 $/an), plus tard
+  - channel: steam
+    state: blocked
+    blocker: Compte Steamworks (100 $ pour ce jeu)
+  - channel: web
+    state: live
+    url: https://flocautank.github.io/playtoon/
+  todo:
+  - Mesurer les performances sur Android d'entrée de gamme et Steam Deck (appareil réel)
+  next_human_action: Créer le compte Google Play Console et trancher le sort de la version web gratuite
+  last_activity: '2026-10-25'
