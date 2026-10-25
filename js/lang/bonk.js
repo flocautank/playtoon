@@ -695,6 +695,14 @@ Object.assign(de, {"nb.big": "Größerer Text", "nb.subs": "Gefahren-Untertitel"
 Object.assign(it, {"nb.big": "Testo più grande", "nb.subs": "Sottotitoli dei pericoli", "nb.setJump": "Impostazioni", "nb.cap.boss": "Attacco del boss in arrivo", "nb.cap.vent": "Eruzione di lava", "nb.cap.fuse": "Kamikaze sta per esplodere", "nb.cap.charge": "Un caricatore prende la rincorsa", "nb.keysPadMenu": "menu: <b>croce</b> o <b>stick</b>, <b>A</b> scegli, <b>B</b> indietro"});
 Object.assign(pt, {"nb.big": "Texto maior", "nb.subs": "Legendas de perigo", "nb.setJump": "Ajustes", "nb.cap.boss": "Ataque do chefe iminente", "nb.cap.vent": "Erupção de lava", "nb.cap.fuse": "Kamikaze prestes a explodir", "nb.cap.charge": "Um investidor toma impulso", "nb.keysPadMenu": "menus: <b>direcional</b> ou <b>analógico</b>, <b>A</b> escolher, <b>B</b> voltar"});
 
+// pause automatique en arrière-plan (1.24.0)
+Object.assign(en, {"nb.autoPause": "Auto-pause when the app loses focus"});
+Object.assign(fr, {"nb.autoPause": "Pause automatique quand l’appli passe en arrière-plan"});
+Object.assign(es, {"nb.autoPause": "Pausa automática al salir de la app"});
+Object.assign(de, {"nb.autoPause": "Automatische Pause beim Verlassen der App"});
+Object.assign(it, {"nb.autoPause": "Pausa automatica quando l’app va in secondo piano"});
+Object.assign(pt, {"nb.autoPause": "Pausa automática ao sair do app"});
+
 // classements natifs (1.21.0, applis seulement)
 const LB = {
   en: { lbBtn: 'Leaderboard', lbAll: 'Leaderboards', lbDailyTip: 'Daily challenge leaderboard', 'lb.daily': 'Daily challenge', 'lb.survival': 'Best survival',

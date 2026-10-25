@@ -3502,7 +3502,7 @@ function pause() {
   $('nb-autolvl').value = META.autoLvl ? '1' : '';
   $('nb-shake').checked = META.shake !== false;
   $('nb-glow').checked = META.glow !== false;
-  $('nb-calm').checked = calm(); $('nb-vib').checked = META.vib !== false; $('nb-invy').checked = !!META.invY; $('nb-big').checked = !!META.big; $('nb-subs').checked = !!META.subs;
+  $('nb-calm').checked = calm(); $('nb-vib').checked = META.vib !== false; $('nb-invy').checked = !!META.invY; $('nb-big').checked = !!META.big; $('nb-subs').checked = !!META.subs; $('nb-autopause').checked = META.autoPause !== false;
   $('nb-quality').value = qual();
   segSelects();
   music.stop(0.3);
@@ -3793,6 +3793,13 @@ if (!TOUCH || !navigator.vibrate) $('nb-vib').parentElement.classList.add('hidde
 // accessibilité : (effets calmes plus haut, qui réduisent aussi les flashs) texte plus grand, sous-titres des dangers (mémorisés dans META)
 const a11y = () => { const r = $('nb-root'); r.classList.toggle('nb-big', !!META.big); r.classList.toggle('nb-calm', calm()); };
 $('nb-big').onchange = e => { META.big = e.target.checked; saveMeta(); a11y(); };
+$('nb-autopause').onchange = e => { META.autoPause = e.target.checked; saveMeta(); };
+// pause automatique (1.24.0) : l'appli passe en arrière-plan (appel, notification, changement d'appli) ou la fenêtre perd le
+// focus (Alt-Tab, overlay Steam) en pleine partie → la pause s'ouvre, la partie ne continue pas sans le joueur
+const autoPause = () => { if (META.autoPause !== false && S && S.state === 'play' && !$('nb-root').classList.contains('hidden')) pause(); };
+document.addEventListener('visibilitychange', () => { if (document.hidden) autoPause(); });
+addEventListener('pagehide', autoPause);
+addEventListener('blur', () => { if (!TOUCH) autoPause(); });
 $('nb-subs').onchange = e => { META.subs = e.target.checked; saveMeta(); if (!META.subs && S) S.caps = []; };
 a11y();
 $('nb-setjump').onclick = () => { const c = $('nb-pause').querySelector('.card'), h = c.querySelector('.nb-pset'); c.scrollTo({ top: c.scrollTop + h.getBoundingClientRect().top - c.getBoundingClientRect().top - 8, behavior: 'smooth' }); };

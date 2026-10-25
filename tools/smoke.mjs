@@ -791,6 +791,30 @@ await shot(m, 'm-bonk-pause');
   await ctx.close();
 }
 
+// ---------- Synth Horde 1.24.0 : pause automatique (appli en arrière-plan, fenêtre qui perd le focus), désactivable
+{
+  log('étape : Synth Horde, pause automatique');
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+  const p = await guard(await ctx.newPage()); watch(p, 'sh-autopause');
+  await p.addInitScript(() => { try { localStorage.setItem('playtoon.welcomed', '1'); } catch (e) {} });
+  await p.goto(base + '#bonk'); await p.waitForTimeout(2500);
+  await p.evaluate(() => document.getElementById('nb-start').click()); await p.waitForTimeout(2500);
+  const r = await p.evaluate(async () => {
+    const N = window.__nb, out = { start: N.S.state };
+    window.dispatchEvent(new Event('blur')); out.blur = N.S.state;
+    document.getElementById('nb-resume').click(); await new Promise(r => setTimeout(r, 600)); out.resumed = N.S.state;
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+    document.dispatchEvent(new Event('visibilitychange')); out.hidden = N.S.state;
+    document.getElementById('nb-resume').click(); await new Promise(r => setTimeout(r, 600));
+    const cb = document.getElementById('nb-autopause'); cb.checked = false; cb.dispatchEvent(new Event('change'));
+    document.dispatchEvent(new Event('visibilitychange')); out.off = N.S.state;
+    return out;
+  });
+  const ok = r.start === 'play' && r.blur === 'pause' && r.hidden === 'pause' && r.off === 'play';
+  log(`Synth Horde : pause automatique ${ok ? 'OK' : 'ÉCHEC ' + JSON.stringify(r)}`);
+  if (!ok) errs.push('[sh-autopause] ' + JSON.stringify(r));
+  await ctx.close();
+}
 // ---------- Nova Foundry 1.14.0 : succès de long cours (Supernovae 50/100, Big Bang ×10, 500 commandes, rangs 12 et 16)
 {
   log('étape : Nova Foundry, succès de long cours');
