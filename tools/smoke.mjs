@@ -697,6 +697,16 @@ await shot(m, 'm-bonk-pause');
 
 // téléphone en paysage (application Android) : pause, annonces et écran de fin tiennent dans l'écran
 {
+  {   // Synth Horde 1.24.1 : boutique permanente d'une sauvegarde éditée (niveaux −3, 99, « x ») → l'écran s'affiche, niveaux bornés
+    const ctxS = await browser.newContext({ viewport: { width: 420, height: 860 }, isMobile: true, hasTouch: true });
+    await ctxS.addInitScript(() => { try { localStorage.setItem('neonbonk.meta.v1', JSON.stringify({ shop: { hp: -3, dmg: 99, speed: 'x' } })); } catch (e) {} });
+    const Sp = await guard(await ctxS.newPage()); watch(Sp, 'sauvegarde éditée');
+    await Sp.goto(base + '#bonk'); await Sp.waitForTimeout(900);
+    const lv = await Sp.evaluate(() => { const nb = window.__nb; nb.newRun(); return nb.S.stats.dmg < 2; });
+    log(`sauvegarde de boutique éditée : jeu démarré, dégâts bornés=${lv}`);
+    if (!lv) errs.push('[mobile] boutique : niveau non borné');
+    await ctxS.close();
+  }
   const ctxL = await browser.newContext({ viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
   const L = await guard(await ctxL.newPage()); watch(L, 'paysage');
   await L.goto(base + '#bonk'); await L.waitForTimeout(900);
@@ -852,9 +862,11 @@ await shot(m, 'm-bonk-pause');
   await p.addInitScript(() => { try { localStorage.setItem('starforge.intro', '1'); } catch (e) {} });
   await p.goto(base + '#forge'); await p.waitForTimeout(700);
   const r = await p.evaluate(async () => {
-    const F = window.__sf; F.S.dust = 1e6; F.S.gens[0] = 40; await new Promise(r => setTimeout(r, 1200));
-    const num = () => document.querySelector('.sf-item .c').textContent;
-    const a = num(); F.startSky('peri'); await new Promise(r => setTimeout(r, 1500)); const b = num();
+    const F = window.__sf, num = () => document.querySelector('.sf-item .c').textContent;
+    // on attend que le prix affiché change (le rendu peut traîner sur une machine chargée) au lieu d'un délai fixe
+    const until = async (from, max = 15000) => { for (let t = 0; t < max && num() === from; t += 100) await new Promise(r => setTimeout(r, 100)); await new Promise(r => setTimeout(r, 300)); return num(); };
+    F.S.dust = 1e6; const a0 = num(); F.S.gens[0] = 40; const a = await until(a0);
+    F.startSky('peri'); const b = await until(a);
     const k = +b.replace(/\D/g, '') / +a.replace(/\D/g, '');
     return { a, b, k, all: F.SKY.length, banner: /−30/.test(document.getElementById('sf-buffs').textContent) };
   });

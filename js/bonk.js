@@ -329,7 +329,8 @@ const SHOP = [
   { id: 'reroll', ic: '🎲', max: 3, base: 60, desc: l => tr('nb.shd.reroll', { n: l }), fx: () => {} },
   { id: 'revive', ic: '✚', max: 1, base: 200, desc: () => tr('nb.shd.revive'), fx: () => {} },
 ];
-const shopLvl = id => (META.shop && META.shop[id]) || 0;
+// borné au niveau maximum de l'amélioration : une sauvegarde éditée (−3, 99, « x ») faisait lever `repeat` à l'affichage de la boutique
+const shopLvl = id => { const it = SHOP.find(i => i.id === id), l = Math.floor(Number(META.shop && META.shop[id])); return it && l > 0 ? Math.min(l, it.max) : 0; };
 // progression permanente étalée (retour de partie, 2026-10-05 : « j'ai presque tout acheté en une run ») : prix ×2, doublés à
 // chaque niveau, crédits des runs −40 %, récompenses en crédits des quêtes ÷2 → tout acheter demande ~15–20 runs
 const shopCost = it => Math.round(it.base * 2 * Math.pow(2, shopLvl(it.id)));
