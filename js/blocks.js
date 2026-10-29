@@ -548,7 +548,7 @@ function breakIce(x, y) {
 // une case de la couleur désignée dégagée (veine de couleur)
 function veinCell(color) {
   if (S.mode !== 'adv' || !S.goal || S.goal.type !== 'color' || color !== S.goal.color) return;
-  S.vein++;
+  S.vein++; track('vein');
 }
 function advResult(win) {
   S.over = true;
@@ -560,7 +560,7 @@ function advResult(win) {
     ADV.stars[S.lvl] = Math.max(prev, stars); saveAdv();
     S.gain = stars > prev ? (stars - prev) * 10 : 0;
     if (S.gain) { COINS += S.gain; saveCoins(); }
-    track('adv'); if (stars === 3) track('adv3'); gainXP(stars * 3); checkMedals();
+    track('adv'); if (stars === 3) track('adv3'); if (S.goal.type === 'mix') track('geode'); gainXP(stars * 3); checkMedals();
   }
   if (!S.counted) { S.counted = true; stat('games'); } saveCar(); checkMilestones();   // une reprise suivie d'une seconde fin ne recompte pas la partie
   clearTimeout(resTimer); resTimer = setTimeout(() => {
@@ -644,9 +644,9 @@ const legendOf = xp => Math.max(0, Math.floor((xp - TOP_XP) / LEGEND_XP));
 // missions : [objectif, pièces] ; « combo » et « score » retiennent le meilleur de la semaine, les autres cumulent
 const MISSIONS = {
   lines: [120, 40], pieces: [400, 40], multi: [8, 50], combo: [6, 50], score: [1500, 60], chrono: [3, 40], clear: [1, 70],
-  adv: [6, 50], adv3: [3, 60], gems: [30, 40], ice: [40, 50], daily: [4, 60], dstar: [3, 60],
+  adv: [6, 50], adv3: [3, 60], gems: [30, 40], ice: [40, 50], vein: [25, 50], geode: [2, 60], daily: [4, 60], dstar: [3, 60],
 };
-const M_GENERAL = ['lines', 'pieces', 'multi', 'combo', 'score', 'chrono', 'clear'], M_MODE = ['adv', 'adv3', 'gems', 'ice', 'daily', 'dstar'];
+const M_GENERAL = ['lines', 'pieces', 'multi', 'combo', 'score', 'chrono', 'clear'], M_MODE = ['adv', 'adv3', 'gems', 'ice', 'vein', 'geode', 'daily', 'dstar'];
 const BEST_OF = new Set(['combo', 'score']);
 const WEEK_CHEST = 100, MISSION_XP = 30, MEDAL_COINS = 60;
 let CAR = { xp: 0, rank: 0, st: {}, week: null, medals: {}, ms: {} }, carFresh = true;
@@ -668,7 +668,7 @@ function ensureWeek() {
   if (CAR.week && k < CAR.week.k && keyDate(CAR.week.k) - keyDate(k) <= 14 * 864e5) return CAR.week;
   // trois missions par semaine, les mêmes pour tout le monde : deux générales, une liée à un mode (Aventure ou défi)
   const r = mulberry32(k * 17 + 3), mix = a => a.map(id => [r(), id]).sort((a, b) => a[0] - b[0]).map(x => x[1]);
-  const mode = mix(M_MODE.filter(id => id !== 'ice' || unlockedLvl() > ICE_LVL));
+  const open = unlockedLvl(), mode = mix(M_MODE.filter(id => (id !== 'ice' || open > ICE_LVL) && (id !== 'vein' || open > VEIN_LVL) && (id !== 'geode' || open > GEODE_LVL)));   // une mission d'un chapitre que le joueur n'a pas encore atteint serait impossible
   CAR.week = { k, ids: [...mix(M_GENERAL).slice(0, 2), mode[0]], p: {}, got: {}, chest: 0 };
   saveCar(); return CAR.week;
 }

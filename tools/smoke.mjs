@@ -26,7 +26,7 @@ const log = (...a) => { lastStep = a.join(' ').slice(0, 60); console.log(`[${((D
 // chien de garde : un gel de page (évaluation qui ne rend jamais la main) devient un échec lisible
 let cdpDesk = null;   // session de débogage de la page principale, pour lire la pile en cas de gel
 setTimeout(async () => {
-  console.error(`GEL : plus de 900 s, dernière étape « ${lastStep} »`);
+  console.error(`GEL : plus de ${process.env.SMOKE_MAX_S || 900} s, dernière étape « ${lastStep} »`);
   if (cdpDesk) try {
     await cdpDesk.send('Debugger.enable');
     const paused = new Promise(r => cdpDesk.once('Debugger.paused', r));
@@ -36,7 +36,7 @@ setTimeout(async () => {
     else console.error('  (la page ne répond pas au débogueur)');
   } catch (e) { console.error('  diagnostic impossible :', e.message); }
   process.exit(2);
-}, 900000).unref();   // durée totale ; chaque action a en plus son propre délai de 20 s
+}, (+process.env.SMOKE_MAX_S || 900) * 1000).unref();   // durée totale ; chaque action a en plus son propre délai de 20 s
 // chaque action échoue en 20 s avec un message lisible, plutôt que de bloquer tout le test
 const guard = async (p, welcome = false) => { p.setDefaultTimeout(20000); if (!welcome) await p.addInitScript(() => { try { localStorage.setItem('playtoon.welcomed', '1'); } catch (e) {} }); return p; };   // attendu : sinon la page peut charger avant le script
 
@@ -125,6 +125,16 @@ await page.click('[data-tool=shuffle]'); await page.waitForTimeout(200); await s
   log(`carnet : ${r.n} missions, « ${r.id} » récupérée ${c0} → ${c1} pièces, 2e récupération possible : ${!!again}`);
   if (r.n !== 3 || c1 - c0 < 40 || again) errs.push('[desktop] Carnet : mission mal récupérée');
   await page.click('#bp-carclose');
+}
+// missions de filon et de géode (1.17.0) : elles progressent, et le tirage n'en propose pas avant le chapitre concerné
+{
+  const r = await page.evaluate(() => {
+    const B = window.__bp, w = B.ensureWeek(); w.ids = ['vein', 'geode', 'lines']; w.p = {}; B.track('vein', 25); B.track('geode', 2);
+    return { vein: w.p.vein, geode: w.p.geode, def: !!B.MISSIONS.vein && !!B.MISSIONS.geode };
+  });
+  log(`missions filon/géode : ${JSON.stringify(r)}`);
+  if (!r.def || r.vein !== 25 || r.geode !== 2) errs.push('[desktop] missions filon/géode ne progressent pas');
+  await page.evaluate(() => { const w = window.__bp.ensureWeek(); w.ids = w.ids.filter(i => i !== 'vein' && i !== 'geode'); while (w.ids.length < 3) w.ids.push('pieces'); w.p = {}; w.got = {}; });
 }
 // 1.11.2 : défauts corrigés (un test chacun)
 {
