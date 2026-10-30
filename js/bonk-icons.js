@@ -369,7 +369,7 @@ const A = {
 // mêmes dessins sous plusieurs noms (tomes = stats, boutique, quêtes)
 const ALIAS = {
   t_power: 'st_dmg', t_haste: 'st_cd', t_agile: 'st_speed', t_vital: 'st_hp', t_regen: 'st_regen', t_magnet: 'st_magnet',
-  t_area: 'st_area', t_multi: 'st_proj', t_luck: 'st_luck', t_wisdom: 'st_xp', t_crit: 'st_crit', t_armor: 'st_armor',
+  t_area: 'st_area', t_multi: 'st_proj', t_luck: 'st_luck', t_wisdom: 'st_xp', t_crit: 'st_crit', t_armor: 'st_armor', t_greed: 'i_coin', t_ruin: 'i_lens', t_shade: 'i_cloak',
   sh_hp: 'st_hp', sh_dmg: 'st_dmg', sh_speed: 'st_speed', sh_magnet: 'st_magnet', sh_xp: 'st_xp', sh_luck: 'st_luck',
   sh_gold: 'i_coin', sh_reroll: 'm_dice', sh_revive: 'm_revive',
   q_kills: 'h_kills', q_bosses: 'i_crown', q_evos: 'm_star', q_wardens: 'st_armor', q_bombers: 'i_bomb', q_vendor: 's_shop_cart',

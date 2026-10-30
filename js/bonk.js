@@ -109,6 +109,10 @@ const TOMES = {
   wisdom: { ic: '📘', stat: 'xp', v: [0.1, 0.15, 0.22, 0.32], txt: v => tr('nb.tt.wisdom', { n: Math.round(v * 100) }) },
   crit:   { ic: '🎯', stat: 'crit', v: [0.04, 0.06, 0.09, 0.13], txt: v => tr('nb.tt.crit', { n: Math.round(v * 100) }) },
   armor:  { ic: '🛡️', stat: 'armor', v: [0.04, 0.06, 0.09, 0.12], txt: v => tr('nb.tt.armor', { n: Math.round(v * 100) }) },
+  // lot « contenu » 1.25.0 : trois tomes de plus (12 → 15) pour des builds qui ne se ressemblent pas — l'or, les coups critiques, l'esquive
+  greed:  { ic: '💰', stat: 'gold', v: [0.08, 0.12, 0.18, 0.26], txt: v => tr('nb.tt.greed', { n: Math.round(v * 100) }) },
+  ruin:   { ic: '🎯', stat: 'critmul', v: [0.15, 0.22, 0.32, 0.45], txt: v => tr('nb.tt.ruin', { n: Math.round(v * 100) }) },
+  shade:  { ic: '👻', stat: 'dodge', v: [0.02, 0.03, 0.045, 0.06], txt: v => tr('nb.tt.shade', { n: dec(v * 100) }) },
 };
 
 const ITEMS = [
@@ -2384,6 +2388,7 @@ function applyStat(key, v) {
     case 'hp': s.hp += v; S.p.hp += v; break; case 'regen': s.regen += v; break; case 'magnet': s.magnet += v; break;
     case 'area': s.area += v; break; case 'proj': s.proj += v; break; case 'luck': s.luck += v; break;
     case 'xp': s.xp += v; break; case 'crit': s.crit += v; break; case 'armor': s.armor += v; break;
+    case 'gold': s.gold += v; break; case 'critmul': s.critMul += v; break; case 'dodge': s.dodge = Math.min(0.6, s.dodge + v); break;
   }
 }
 function pick(i) {
@@ -3582,7 +3587,7 @@ function dmgByHTML() {
 function statsHTML() {
   const s = S.stats, pc = v => Math.round(v * 100);
   const L = [['power', `+${pc(s.dmg - 1)}%`], ['haste', pc(1 - s.cd) ? `−${pc(1 - s.cd)}%` : '0%'], ['crit', `${pc(s.crit)}% ×${dec(s.critMul)}`], ['area', `+${pc(s.area - 1)}%`], ['multi', `+${s.proj}`],
-    ['agile', `+${pc(s.speed - 1)}%`], ['vital', Math.round(s.hp)], ['regen', `${dec(s.regen)}/s`], ['armor', `${pc(Math.min(0.75, s.armor))}%`], ['magnet', `+${pc(s.magnet - 1)}%`], ['luck', Math.round(s.luck)], ['wisdom', `+${pc(s.xp - 1)}%`]];
+    ['agile', `+${pc(s.speed - 1)}%`], ['vital', Math.round(s.hp)], ['regen', `${dec(s.regen)}/s`], ['armor', `${pc(Math.min(0.75, s.armor))}%`], ['magnet', `+${pc(s.magnet - 1)}%`], ['luck', Math.round(s.luck)], ['wisdom', `+${pc(s.xp - 1)}%`], ['greed', `+${pc(s.gold)}%`], ['ruin', `+${pc(s.critMul - 2)}%`], ['shade', `${pc(s.dodge)}%`]];
   return `<div class="nb-stats"><h4>${tr('nb.statsT')}</h4>${L.map(([k, v]) => `<span title="${TOMES[k].name}">${TOMES[k].ic} <small>${tr('nb.sl.' + k)}</small> ${v}</span>`).join('')}</div>`;
 }
 function renderEnd() {
@@ -3848,7 +3853,7 @@ function nbIcons(root) {
 }
 { const root = document.getElementById('nb-root'); if (root) { nbIcons(root); new MutationObserver(ms => { for (const m of ms) { if (m.type === 'characterData') nbIcons(m.target.parentNode); else m.addedNodes.forEach(n => n.nodeType === 3 ? nbIcons(n.parentNode) : n.nodeType === 1 && nbIcons(n)); } }).observe(root, { subtree: true, childList: true, characterData: true }); } }
 window.__nbT = { terrainH, flowField, ETYPES, NAV, groundE };
-window.__nb = { get S() { return S; }, get camDist() { return camDist; }, update, pick, keys, interact, jump, damage, hurt, spawnEnemy, spawnBoss, nextStage, music, newRun, addWeapon, openLevelUp, buildChoices, bossDeath, slide, giveItem: id => giveItem(ITEMS.find(i => i.id === id)), goldChest, banish, get vendor() { return S.vendor; }, get META() { return META; }, get hero() { return player && player.userData.hero; }, get scene() { return scene; } };
+window.__nb = { TOMES, applyStat, get S() { return S; }, get camDist() { return camDist; }, update, pick, keys, interact, jump, damage, hurt, spawnEnemy, spawnBoss, nextStage, music, newRun, addWeapon, openLevelUp, buildChoices, bossDeath, slide, giveItem: id => giveItem(ITEMS.find(i => i.id === id)), goldChest, banish, get vendor() { return S.vendor; }, get META() { return META; }, get hero() { return player && player.userData.hero; }, get scene() { return scene; } };
 
 window.GAMES.bonk = {
   reward() { META.credits = (META.credits || 0) + 40; saveMeta(); if (!S || S.state === 'menu') try { renderMenu(); } catch (e) {} },   // objectif du jour

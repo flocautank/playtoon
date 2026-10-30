@@ -368,6 +368,18 @@ log('objets 1.22.0 (carillon, rancune, prime) :', await page.evaluate(() => {
   S.p.hp = S.stats.hp;
   return out.join(' ');
 }));
+{ const tomesRes = await page.evaluate(() => {
+  const nb = window.__nb, S = nb.S, T = nb.TOMES;
+  S.state = 'play'; S.pending = 0; S.tomes.length = 0; S.banned = new Set();   // pool de tomes libre (des tests précédents l'ont rempli)
+  const g0 = S.stats.gold, c0 = S.stats.critMul, d0 = S.stats.dodge;
+  nb.applyStat('greed', T.greed.v[3]); nb.applyStat('ruin', T.ruin.v[3]); for (let i = 0; i < 30; i++) nb.applyStat('shade', T.shade.v[3]);
+  const seen = new Set(); for (let i = 0; i < 400; i++) nb.buildChoices('level').forEach(c => { if (['greed', 'ruin', 'shade'].includes(c.id || c.key)) seen.add(c.id || c.key); });
+  const names = ['greed', 'ruin', 'shade'].map(k => T[k].name + ' / ' + T[k].txt(T[k].v[1]));
+  const bad = names.some(n => /nb\./.test(n));
+  const ok = S.stats.gold > g0 && S.stats.critMul > c0 && S.stats.dodge > d0 && S.stats.dodge <= 0.6 + 1e-9 && seen.size === 3 && !bad && Object.keys(T).length === 15;
+  S.stats.gold = g0; S.stats.critMul = c0; S.stats.dodge = d0;
+  return `${ok ? 'OK' : 'ÉCHEC'} · ${names.join(' · ')} · proposés=${[...seen].join('/')}`;
+}); log('tomes 1.25.0 (cupidité, ruine, ombres) :', tomesRes); if (!tomesRes.startsWith('OK')) errs.push('[sh-tomes] ' + tomesRes); }
 log('marchand / duplicateur / maudit / bannir / rebond :', await page.evaluate(() => {
   const nb = window.__nb, S = nb.S, r = [];
   S.state = 'play'; S.enemies.length = 0; S.pending = 0; S.gold = 400;
