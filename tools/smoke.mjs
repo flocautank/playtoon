@@ -876,6 +876,23 @@ await shot(m, 'm-bonk-pause');
   await ctx.close();
 }
 
+// ---------- Nova Foundry : clavier (Espace / Entrée = étoile, 1–n = onglets, rien dans un autre jeu ni sur un bouton)
+{
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+  const p = await guard(await ctx.newPage()); watch(p, 'nf-clavier');
+  await p.addInitScript(() => { try { localStorage.setItem('starforge.intro', '1'); } catch (e) {} });
+  await p.goto(base + '#forge'); await p.waitForTimeout(700);
+  const n = () => p.evaluate(() => window.__sf.S.clicks), c0 = await n();
+  await p.keyboard.press('Space'); await p.keyboard.press('Enter'); const k1 = (await n()) - c0;
+  await p.keyboard.press('2'); await p.waitForTimeout(200); const tab = await p.$eval('.sf-tabs button.on', e => e.dataset.sf);
+  await p.focus('[data-sf=gen]'); const c1 = await n(); await p.keyboard.press('Space'); const k2 = (await n()) - c1;
+  await p.goto(base + '#blocks'); await p.waitForTimeout(400); const c2 = await n(); await p.keyboard.press('Space'); const k3 = (await n()) - c2;
+  const ok = k1 === 2 && tab === 'upg' && k2 === 0 && k3 === 0;
+  log(`Nova Foundry : clavier ${ok ? 'OK' : 'ÉCHEC ' + JSON.stringify({ k1, tab, k2, k3 })}`);
+  if (!ok) errs.push('[nf-clavier] ' + JSON.stringify({ k1, tab, k2, k3 }));
+  await ctx.close();
+}
+
 await browser.close(); srv.close();
 if (errs.length) { console.error('ERREURS :\n' + errs.join('\n')); process.exit(1); }
 log('OK — aucune erreur console');

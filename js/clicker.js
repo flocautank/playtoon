@@ -1223,6 +1223,21 @@ cv.addEventListener('pointerdown', e => {
   cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end); cv.addEventListener('pointerleave', end);
 });
 document.addEventListener('visibilitychange', holdStop);
+// clavier (PC, Steam) : Espace / Entrée touchent l'étoile (maintenir répète comme le toucher long), 1–7 les onglets visibles, B tout acheter
+let keyClk = 0;
+window.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey || (document.body.dataset.tab && document.body.dataset.tab !== 'forge')) return;
+  const tg = e.target, tag = tg && tg.tagName; if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+  const intro = $('sf-intro'); if (intro && !intro.classList.contains('hidden')) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('sf-intro-ok').click(); } return; }
+  if (e.key === ' ' || e.key === 'Enter') {
+    if (tag === 'BUTTON' || tag === 'A' || document.querySelector('#tab-forge .overlay:not(.hidden), #pt-modal:not(.hidden)')) return;   // le bouton ou la fenêtre ouverte garde la touche
+    e.preventDefault();
+    const now = performance.now(); if (e.repeat && (!HOLD || now - keyClk < 160)) return; keyClk = now;
+    clickStar(cw / 2, ch / 2);
+  } else if (e.key >= '1' && e.key <= '7') {
+    const b = [...document.querySelectorAll('.sf-tabs button')].filter(x => !x.classList.contains('hidden') && x.id !== 'bq-gear')[+e.key - 1]; if (b) b.click();
+  } else if (e.key === 'b' || e.key === 'B') buyAllUpg();
+});
 
 // ---------- UI ----------
 let tab = 'gen', built = null;
@@ -1326,7 +1341,8 @@ function build() {
       <label class="small" style="display:block;margin-top:6px"><input type="checkbox" id="sf-calm"> ${t('sf.optCalm')}</label>
       <label class="small" style="display:block;margin-top:6px"><input type="checkbox" id="sf-hold"> ${t('sf.optHold')}</label>
       <div class="sf-h">${t('sf.optHow')}</div>
-      <p class="small muted">${t('sf.optHowTxt')}</p>`;
+      <p class="small muted">${t('sf.optHowTxt')}</p>
+      <p class="small muted">${t('sf.optKeys')}</p>`;
     $('sf-sci').checked = SCI;
     $('sf-sci').onchange = e => { SCI = e.target.checked; try { localStorage.setItem('starforge.sci', SCI ? '1' : '0'); } catch (x) {} refresh(true); };
     $('sf-calm').checked = calm(); $('sf-hold').checked = HOLD;
