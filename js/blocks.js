@@ -886,7 +886,7 @@ function smash(cells) {
     S.board[y][x] = null;
     breakIce(x, y);   // le givre sous le bloc se brise avec lui, comme sous une ligne effacée (il restait sous la masse et la dynamite)
     for (let k = 0; k < 5; k++) burst(x, y, color);
-    if (S.gems.delete(y * N + x)) { S.got++; track('gems'); for (let k = 0; k < 10; k++) burst(x, y, '#7ff6ff'); }
+    if (S.gems.delete(y * N + x)) { S.got++; track('gems'); for (let k = 0; k < 10; k++) burst(x, y, gemPal()[4]); }
   }
   S.shake = 8; beep(120, 0.25, 'sawtooth', 0.05);
   if (S.mode === 'adv' && !S.over && S.goal.type !== 'lines' && goalWon()) advResult(true);
@@ -946,7 +946,7 @@ function place(idx, gx, gy) {
       S.board[y][x] = null;
       breakIce(x, y);
       for (let k = 0, nb = curTheme().style === 'stone' ? 1 + Math.min(3, S.combo >> 1) : 4 + Math.min(6, S.combo); k < nb; k++) burst(x, y, color);
-      if (S.gems.delete(y * N + x)) { S.got++; track('gems'); for (let k = 0; k < 10; k++) burst(x, y, '#7ff6ff'); setTimeout(() => SFX.gem(S.got), 80); }
+      if (S.gems.delete(y * N + x)) { S.got++; track('gems'); for (let k = 0; k < 10; k++) burst(x, y, gemPal()[4]); setTimeout(() => SFX.gem(S.got), 80); }
     }
     const allClear = S.board.every(r => r.every(c => !c));
     if (allClear) gained += 300;
@@ -1186,13 +1186,23 @@ function cell(x, y, s, color, alpha = 1, c2 = ctx) {
   X.globalAlpha = 1;
 }
 
+// gemme taillée : table, couronne et pavillon à facettes (1.18.0) ; les géodes (chapitres 9–10) ont des améthystes
+const GEM_CYAN = ['#d9fcff', '#27e0ff', '#0a9fc0', '#0a6f8f', '#7ff6ff'], GEM_AMETHYST = ['#f1d9ff', '#b56bff', '#7a35c4', '#4c1f86', '#d9a8ff'];
+const gemPal = () => S.mode === 'adv' && S.goal && S.goal.type === 'mix' ? GEM_AMETHYST : GEM_CYAN;
 function gem(cx, cy, r) {
-  const k = 1 + Math.sin(performance.now() / 260 + cx) * 0.06;
+  const k = 1 + Math.sin(performance.now() / 260 + cx) * 0.06, [hi, mid, lo, dk, glow] = gemPal();
+  const poly = (pts, f) => { ctx.fillStyle = f; ctx.beginPath(); pts.forEach(([x, y], i) => i ? ctx.lineTo(x * r, y * r) : ctx.moveTo(x * r, y * r)); ctx.closePath(); ctx.fill(); };
   ctx.save(); ctx.translate(cx, cy); ctx.scale(k, k);
-  ctx.fillStyle = '#27e0ff'; ctx.shadowColor = '#7ff6ff'; ctx.shadowBlur = 10;
-  ctx.beginPath(); ctx.moveTo(0, -r); ctx.lineTo(r * 0.85, -r * 0.2); ctx.lineTo(0, r); ctx.lineTo(-r * 0.85, -r * 0.2); ctx.closePath(); ctx.fill();
-  ctx.shadowBlur = 0; ctx.fillStyle = 'rgba(255,255,255,.7)';
-  ctx.beginPath(); ctx.moveTo(0, -r); ctx.lineTo(r * 0.35, -r * 0.2); ctx.lineTo(-r * 0.35, -r * 0.2); ctx.closePath(); ctx.fill();
+  ctx.shadowColor = glow; ctx.shadowBlur = 10;
+  poly([[-0.5, -0.88], [0.5, -0.88], [0.95, -0.22], [0, 1], [-0.95, -0.22]], mid);
+  ctx.shadowBlur = 0;
+  poly([[-0.5, -0.88], [0.5, -0.88], [0.3, -0.22], [-0.3, -0.22]], hi);            // table
+  poly([[-0.5, -0.88], [-0.3, -0.22], [-0.95, -0.22]], mid);                        // couronne gauche
+  poly([[0.5, -0.88], [0.95, -0.22], [0.3, -0.22]], lo);                            // couronne droite
+  poly([[-0.95, -0.22], [-0.3, -0.22], [0, 1]], lo);                                // pavillon gauche
+  poly([[0.3, -0.22], [0.95, -0.22], [0, 1]], dk);                                  // pavillon droit
+  poly([[-0.3, -0.22], [0.3, -0.22], [0, 1]], mid);                                 // pavillon central
+  ctx.fillStyle = 'rgba(255,255,255,.75)'; ctx.beginPath(); ctx.arc(-0.22 * r, -0.62 * r, r * 0.1, 0, 6.3); ctx.fill();   // éclat
   ctx.restore();
 }
 
