@@ -623,7 +623,7 @@ Object.assign(en, {
   'nb.dm.glass': 'Glass Cannon', 'nb.dm.horde': 'Tidal Wave', 'nb.dm.rich': 'Gold Rush', 'nb.dm.swift': 'Double Time', 'nb.dm.crit': 'Razor Edge', 'nb.dm.echo': 'Feedback', 'nb.dm.giants': 'Colossi', 'nb.dm.float': 'Zero-G',
   'nb.dmd.glass': '−40% max HP, +40% damage', 'nb.dmd.horde': '+35% enemies, +20% XP', 'nb.dmd.rich': 'double gold, chests 50% pricier', 'nb.dmd.swift': 'you and the enemies +15% speed',
   'nb.dmd.crit': '+15% crit, +50% crit damage, no regen', 'nb.dmd.echo': 'an extra elite every ~40 s, +1 luck', 'nb.dmd.giants': 'enemies +30% HP and +30% XP', 'nb.dmd.float': 'gravity −35%, +1 jump',
-  'nb.qt.daily': v => v.n === '1' || v.n === 1 ? 'Validate a daily challenge' : `Validate ${v.n} daily challenges`, 'nb.qt.dstreak': 'Reach a {n}-day daily streak', 'nb.qt.dscore': 'Score {n} in a daily challenge',
+  'nb.qt.daily': v => v.n === '1' || v.n === 1 ? 'Validate a daily challenge' : `Validate ${v.n} daily challenges`, 'nb.qt.hrank': 'Reach hero rank {n}', 'nb.qt.dstreak': 'Reach a {n}-day daily streak', 'nb.qt.dscore': 'Score {n} in a daily challenge',
 });
 Object.assign(fr, {
   'nb.dTitle': 'Défi du jour', 'nb.dStreak': v => `${v.n} ${s(v.n, 'jour', 'jours')}`, 'nb.dStreakTip': 'Série : jours d’affilée avec un défi du jour validé',
@@ -634,7 +634,7 @@ Object.assign(fr, {
   'nb.dm.glass': 'Canon de verre', 'nb.dm.horde': 'Marée', 'nb.dm.rich': 'Ruée vers l’or', 'nb.dm.swift': 'Tempo double', 'nb.dm.crit': 'Fil du rasoir', 'nb.dm.echo': 'Larsen', 'nb.dm.giants': 'Colosses', 'nb.dm.float': 'Apesanteur',
   'nb.dmd.glass': 'PV max −40 %, dégâts +40 %', 'nb.dmd.horde': '+35 % d’ennemis, +20 % d’XP', 'nb.dmd.rich': 'or doublé, coffres 50 % plus chers', 'nb.dmd.swift': 'toi et les ennemis +15 % de vitesse',
   'nb.dmd.crit': '+15 % de crit, +50 % de dégâts critiques, pas de régénération', 'nb.dmd.echo': 'une élite de plus toutes les ~40 s, +1 chance', 'nb.dmd.giants': 'ennemis +30 % de PV et +30 % d’XP', 'nb.dmd.float': 'gravité −35 %, +1 saut',
-  'nb.qt.daily': v => v.n === '1' || v.n === 1 ? 'Valide un défi du jour' : `Valide ${v.n} défis du jour`, 'nb.qt.dstreak': 'Atteins une série de {n} jours', 'nb.qt.dscore': 'Marque {n} points dans un défi du jour',
+  'nb.qt.daily': v => v.n === '1' || v.n === 1 ? 'Valide un défi du jour' : `Valide ${v.n} défis du jour`, 'nb.qt.hrank': 'Atteins le rang {n} avec un héros', 'nb.qt.dstreak': 'Atteins une série de {n} jours', 'nb.qt.dscore': 'Marque {n} points dans un défi du jour',
 });
 Object.assign(es, {
   'nb.dTitle': 'Desafío diario', 'nb.dStreak': v => `${v.n} ${s(v.n, 'día', 'días')}`, 'nb.dStreakTip': 'Racha: días seguidos con un desafío diario validado',
@@ -645,7 +645,7 @@ Object.assign(es, {
   'nb.dm.glass': 'Cañón de cristal', 'nb.dm.horde': 'Marea', 'nb.dm.rich': 'Fiebre del oro', 'nb.dm.swift': 'Doble tempo', 'nb.dm.crit': 'Filo de navaja', 'nb.dm.echo': 'Acople', 'nb.dm.giants': 'Colosos', 'nb.dm.float': 'Ingravidez',
   'nb.dmd.glass': '−40 % de PV máx., +40 % de daño', 'nb.dmd.horde': '+35 % de enemigos, +20 % de XP', 'nb.dmd.rich': 'oro doble, cofres un 50 % más caros', 'nb.dmd.swift': 'tú y los enemigos +15 % de velocidad',
   'nb.dmd.crit': '+15 % de crítico, +50 % de daño crítico, sin regeneración', 'nb.dmd.echo': 'una élite más cada ~40 s, +1 suerte', 'nb.dmd.giants': 'enemigos +30 % de PV y +30 % de XP', 'nb.dmd.float': 'gravedad −35 %, +1 salto',
-  'nb.qt.daily': v => v.n === '1' || v.n === 1 ? 'Valida un desafío diario' : `Valida ${v.n} desafíos diarios`, 'nb.qt.dstreak': 'Consigue una racha de {n} días', 'nb.qt.dscore': 'Logra {n} puntos en un desafío diario',
+  'nb.qt.daily': v => v.n === '1' || v.n === 1 ? 'Valida un desafío diario' : `Valida ${v.n} desafíos diarios`, 'nb.qt.hrank': 'Alcanza el rango {n} con un héroe', 'nb.qt.dstreak': 'Consigue una racha de {n} días', 'nb.qt.dscore': 'Logra {n} puntos en un desafío diario',
 });
 Object.assign(de, {
   'nb.dTitle': 'Tagesherausforderung', 'nb.dStreak': v => `${v.n} ${s(v.n, 'Tag', 'Tage')}`, 'nb.dStreakTip': 'Serie: Tage in Folge mit bestandener Tagesherausforderung',
@@ -656,7 +656,7 @@ Object.assign(de, {
   'nb.dm.glass': 'Glaskanone', 'nb.dm.horde': 'Flutwelle', 'nb.dm.rich': 'Goldrausch', 'nb.dm.swift': 'Doppeltempo', 'nb.dm.crit': 'Rasierklinge', 'nb.dm.echo': 'Rückkopplung', 'nb.dm.giants': 'Kolosse', 'nb.dm.float': 'Schwerelos',
   'nb.dmd.glass': '−40 % max. LP, +40 % Schaden', 'nb.dmd.horde': '+35 % Gegner, +20 % EP', 'nb.dmd.rich': 'doppeltes Gold, Kisten 50 % teurer', 'nb.dmd.swift': 'du und die Gegner +15 % Tempo',
   'nb.dmd.crit': '+15 % Krit, +50 % Kritschaden, keine Regeneration', 'nb.dmd.echo': 'alle ~40 s eine Elite mehr, +1 Glück', 'nb.dmd.giants': 'Gegner +30 % LP und +30 % EP', 'nb.dmd.float': 'Schwerkraft −35 %, +1 Sprung',
-  'nb.qt.daily': v => v.n === '1' || v.n === 1 ? 'Bestehe eine Tagesherausforderung' : `Bestehe ${v.n} Tagesherausforderungen`, 'nb.qt.dstreak': 'Erreiche eine Serie von {n} Tagen', 'nb.qt.dscore': 'Erziele {n} Punkte in einer Tagesherausforderung',
+  'nb.qt.daily': v => v.n === '1' || v.n === 1 ? 'Bestehe eine Tagesherausforderung' : `Bestehe ${v.n} Tagesherausforderungen`, 'nb.qt.hrank': 'Erreiche mit einem Helden Rang {n}', 'nb.qt.dstreak': 'Erreiche eine Serie von {n} Tagen', 'nb.qt.dscore': 'Erziele {n} Punkte in einer Tagesherausforderung',
 });
 Object.assign(it, {
   'nb.dTitle': 'Sfida del giorno', 'nb.dStreak': v => `${v.n} ${s(v.n, 'giorno', 'giorni')}`, 'nb.dStreakTip': 'Serie: giorni di fila con una sfida del giorno convalidata',
@@ -667,7 +667,7 @@ Object.assign(it, {
   'nb.dm.glass': 'Cannone di vetro', 'nb.dm.horde': 'Marea', 'nb.dm.rich': 'Febbre dell’oro', 'nb.dm.swift': 'Tempo doppio', 'nb.dm.crit': 'Filo del rasoio', 'nb.dm.echo': 'Larsen', 'nb.dm.giants': 'Colossi', 'nb.dm.float': 'Gravità zero',
   'nb.dmd.glass': '−40% PV max, +40% danni', 'nb.dmd.horde': '+35% nemici, +20% XP', 'nb.dmd.rich': 'oro doppio, forzieri più cari del 50%', 'nb.dmd.swift': 'tu e i nemici +15% di velocità',
   'nb.dmd.crit': '+15% critico, +50% danni critici, niente rigenerazione', 'nb.dmd.echo': 'un’élite in più ogni ~40 s, +1 fortuna', 'nb.dmd.giants': 'nemici +30% PV e +30% XP', 'nb.dmd.float': 'gravità −35%, +1 salto',
-  'nb.qt.daily': v => v.n === '1' || v.n === 1 ? 'Convalida una sfida del giorno' : `Convalida ${v.n} sfide del giorno`, 'nb.qt.dstreak': 'Raggiungi una serie di {n} giorni', 'nb.qt.dscore': 'Fai {n} punti in una sfida del giorno',
+  'nb.qt.daily': v => v.n === '1' || v.n === 1 ? 'Convalida una sfida del giorno' : `Convalida ${v.n} sfide del giorno`, 'nb.qt.hrank': 'Raggiungi il rango {n} con un eroe', 'nb.qt.dstreak': 'Raggiungi una serie di {n} giorni', 'nb.qt.dscore': 'Fai {n} punti in una sfida del giorno',
 });
 Object.assign(pt, {
   'nb.dTitle': 'Desafio do dia', 'nb.dStreak': v => `${v.n} ${s(v.n, 'dia', 'dias')}`, 'nb.dStreakTip': 'Sequência: dias seguidos com um desafio do dia validado',
@@ -678,7 +678,7 @@ Object.assign(pt, {
   'nb.dm.glass': 'Canhão de vidro', 'nb.dm.horde': 'Maré', 'nb.dm.rich': 'Corrida do ouro', 'nb.dm.swift': 'Tempo dobrado', 'nb.dm.crit': 'Fio da navalha', 'nb.dm.echo': 'Microfonia', 'nb.dm.giants': 'Colossos', 'nb.dm.float': 'Gravidade zero',
   'nb.dmd.glass': '−40% de PV máx., +40% de dano', 'nb.dmd.horde': '+35% de inimigos, +20% de XP', 'nb.dmd.rich': 'ouro em dobro, baús 50% mais caros', 'nb.dmd.swift': 'você e os inimigos +15% de velocidade',
   'nb.dmd.crit': '+15% de crítico, +50% de dano crítico, sem regeneração', 'nb.dmd.echo': 'uma elite a mais a cada ~40 s, +1 sorte', 'nb.dmd.giants': 'inimigos +30% de PV e +30% de XP', 'nb.dmd.float': 'gravidade −35%, +1 pulo',
-  'nb.qt.daily': v => v.n === '1' || v.n === 1 ? 'Valide um desafio do dia' : `Valide ${v.n} desafios do dia`, 'nb.qt.dstreak': 'Alcance uma sequência de {n} dias', 'nb.qt.dscore': 'Faça {n} pontos em um desafio do dia',
+  'nb.qt.daily': v => v.n === '1' || v.n === 1 ? 'Valide um desafio do dia' : `Valide ${v.n} desafios do dia`, 'nb.qt.hrank': 'Alcance o posto {n} com um herói', 'nb.qt.dstreak': 'Alcance uma sequência de {n} dias', 'nb.qt.dscore': 'Faça {n} pontos em um desafio do dia',
 });
 
 Object.assign(en, {"nb.calm": "Calm effects", "nb.calmNote": "(no freeze-frames, zoom kicks, white flashes or pulsing red edge)", "nb.vib": "Vibration", "nb.invY": "Invert vertical look"});

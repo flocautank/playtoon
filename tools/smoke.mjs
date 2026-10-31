@@ -202,12 +202,12 @@ await page.click('[data-tool=shuffle]'); await page.waitForTimeout(200); await s
   // repères de forme (daltonisme) : le réglage se retient et pose du blanc sur les blocs
   const marks = await page.evaluate(async () => {
     const cv = document.getElementById('bp-canvas'), cb = document.getElementById('bp-optmarks'), wait = ms => new Promise(r => setTimeout(r, ms));
-    const white = () => { const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i] > 250 && d[i + 1] > 250 && d[i + 2] > 250) n++; return n; };
+    const white = () => { const y0 = Math.floor(cv.height * 0.62), d = cv.getContext('2d').getImageData(0, y0, cv.width, cv.height - y0).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i] > 225 && d[i + 1] > 225 && d[i + 2] > 225) n++; return n; };   // zone des pièces : fixe, sans éclat animé
     const was = cb.checked; cb.checked = false; cb.dispatchEvent(new Event('change')); await wait(300); const off = white();
     cb.checked = true; cb.dispatchEvent(new Event('change')); await wait(300); const on = white(); const saved = JSON.parse(localStorage.getItem('blocparty.opt') || '{}').marks;
     cb.checked = was; cb.dispatchEvent(new Event('change')); return { off, on, saved };
   });
-  log(`repères de forme : pixels blancs ${marks.off} → ${marks.on}, retenu=${marks.saved}`); if (!(marks.on > marks.off) || marks.saved !== true) errs.push('[desktop] repères de forme sans effet ou non retenus');
+  log(`repères de forme : pixels blancs ${marks.off} → ${marks.on}, retenu=${marks.saved}`); if (!(marks.on > marks.off + 20) || marks.saved !== true) errs.push('[desktop] repères de forme sans effet ou non retenus');
   // un second show() sans hide() ne lance pas une deuxième boucle de dessin (le Chrono allait deux fois plus vite)
   // (compte des rappels requestAnimationFrame par image : indépendant de la charge de la machine)
   const speed = await page.evaluate(async () => {
@@ -434,6 +434,14 @@ log('autel / dîme / quêtes à paliers :', await page.evaluate(() => {
   S.state = 'play';
   return r.join(' · ');
 }));
+// quêtes de rang de héros (1.26.0) : rang 3 = 720 XP, rang 6 = 2 520 XP ; un rang qui n'est pas atteint ne paie rien
+log('quêtes de rang de héros :', await page.evaluate(() => {
+  const nb = window.__nb, M = nb.META, saved = [M.hr, M.quests, M.credits]; M.quests = {}; M.credits = 0;
+  M.hr = { glitch: 719 }; nb.checkQuests(); const a = nb.questDone('hrank3');
+  M.hr = { glitch: 720, ronin: 100 }; nb.checkQuests(); const b = nb.questDone('hrank3'), c = nb.questDone('hrank6');
+  M.hr = { glitch: 2520 }; nb.checkQuests(); const d = nb.questDone('hrank6'), txt = nb.questText(nb.QUESTS.find(q => q.id === 'hrank10'));
+  [M.hr, M.quests, M.credits] = saved; return `rang3 à 719 XP=${a} · à 720=${b} · rang6 prématuré=${c} · à 2520=${d} · « ${txt} »`;
+}).then(r => { if (!/rang3 à 719 XP=false · à 720=true · rang6 prématuré=false · à 2520=true/.test(r) || /nb\.qt|undefined/.test(r)) errs.push('[desktop] quêtes de rang de héros : ' + r); return r; }));
 log('laser + mines :', await page.evaluate(() => {
   const nb = window.__nb, S = nb.S, out = [];
   S.state = 'play'; S.enemies.length = 0; S.weapons = S.weapons.filter(w => w.id === 'blaster'); S.weapons[0].t = 999;   // blaster muet

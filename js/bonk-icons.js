@@ -376,7 +376,7 @@ const ALIAS = {
   q_lvl: 'h_level', q_wins_flag: 'q_wins', q_heat: 'h_heat', q_keys: 'h_keys', q_time: 'h_time', q_stage2: 'evo_flame', q_win_char: 'q_trophy',
   m_check: 'q_done', m_trophy: 'q_trophy', m_heat: 'h_heat', m_key: 'h_keys', m_skull: 'h_kills', m_gold: 'h_gold', m_credits: 'h_credits',
   m_magnet: 'st_magnet', m_level: 'h_level', m_ot: 'q_ot', m_sparkle: 'q_gold', m_coin: 'i_coin', m_pause: 'h_pause',
-  q_daily: 'm_daily', q_dstreak: 'm_streak', q_dscore: 'm_medal',
+  q_daily: 'm_daily', q_dstreak: 'm_streak', q_dscore: 'm_medal', q_hrank: 'm_star',
 };
 A.s_shop_cart = CART;
 delete ALIAS.q_wins_flag;

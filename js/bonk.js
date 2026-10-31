@@ -203,6 +203,8 @@ const heatMax = m => Math.max(0, ...Object.values(m.heatWon || {}));
  ['daily', '📅', m => m.dDays || 0, [[1, { credits: 300 }], [7, { credits: 1200 }], [30, { credits: 4000 }]]],
  ['dstreak', '🔗', m => m.dBestStreak || 0, [[3, { credits: 800 }], [7, { banish: 1 }]]],
  ['dscore', '🏅', m => m.dBestScore || 0, [[5000, { credits: 600 }], [25000, { credits: 2000 }]]],
+ // 1.26.0 : rang de héros (1.23.0) — un but de long cours ; le rang 10 d'un héros demande ~50 runs
+ ['hrank', '🎖', m => Math.max(0, ...Object.values(m.hr || {}).map(x => hrRank(x))), [[3, { credits: 600 }], [6, { credits: 1500 }], [10, { credits: 4000 }]]],
 ].forEach(([tk, ic, val, tiers]) => tiers.forEach(([goal, rw]) => QUESTS.push({ id: `${tk}${goal}`, tk, ic, goal, val, ...rw })));
 ['glitch', 'ronin', 'volt', 'bastion', 'nova', 'orbit', 'blitz', 'miser', 'hex'].forEach(c => QUESTS.push({ id: 'win_' + c, ch: c, ic: '🏆', goal: 1, val: m => (m.winsBy || {})[c] || 0, credits: 500 }));
 const WQUEST_OF = Object.fromEntries(QUESTS.filter(q => q.weapon).map(q => [q.weapon, q.id]));
@@ -3853,7 +3855,7 @@ function nbIcons(root) {
 }
 { const root = document.getElementById('nb-root'); if (root) { nbIcons(root); new MutationObserver(ms => { for (const m of ms) { if (m.type === 'characterData') nbIcons(m.target.parentNode); else m.addedNodes.forEach(n => n.nodeType === 3 ? nbIcons(n.parentNode) : n.nodeType === 1 && nbIcons(n)); } }).observe(root, { subtree: true, childList: true, characterData: true }); } }
 window.__nbT = { terrainH, flowField, ETYPES, NAV, groundE };
-window.__nb = { TOMES, applyStat, get S() { return S; }, get camDist() { return camDist; }, update, pick, keys, interact, jump, damage, hurt, spawnEnemy, spawnBoss, nextStage, music, newRun, addWeapon, openLevelUp, buildChoices, bossDeath, slide, giveItem: id => giveItem(ITEMS.find(i => i.id === id)), goldChest, banish, get vendor() { return S.vendor; }, get META() { return META; }, get hero() { return player && player.userData.hero; }, get scene() { return scene; } };
+window.__nb = { TOMES, applyStat, get S() { return S; }, get camDist() { return camDist; }, update, pick, keys, interact, jump, damage, hurt, spawnEnemy, spawnBoss, nextStage, music, newRun, addWeapon, openLevelUp, buildChoices, bossDeath, slide, giveItem: id => giveItem(ITEMS.find(i => i.id === id)), goldChest, banish, get vendor() { return S.vendor; }, get META() { return META; }, checkQuests, QUESTS, questText, questDone, get hero() { return player && player.userData.hero; }, get scene() { return scene; } };
 
 window.GAMES.bonk = {
   reward() { META.credits = (META.credits || 0) + 40; saveMeta(); if (!S || S.state === 'menu') try { renderMenu(); } catch (e) {} },   // objectif du jour
