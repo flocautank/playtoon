@@ -199,6 +199,15 @@ await page.click('[data-tool=shuffle]'); await page.waitForTimeout(200); await s
   const calmCss = await page.evaluate(() => { const cb = document.getElementById('bp-optcalm'), was = cb.checked; cb.checked = true; cb.dispatchEvent(new Event('change'));
     const el = document.getElementById('bp-score'); el.classList.add('urgent'); const a = getComputedStyle(el).animationName; el.classList.remove('urgent'); cb.checked = was; cb.dispatchEvent(new Event('change')); return a; });
   log('animations réduites → minuteur sans clignotement :', calmCss); if (calmCss !== 'none') errs.push('[desktop] animations réduites ignorées par le CSS');
+  // repères de forme (daltonisme) : le réglage se retient et pose du blanc sur les blocs
+  const marks = await page.evaluate(async () => {
+    const cv = document.getElementById('bp-canvas'), cb = document.getElementById('bp-optmarks'), wait = ms => new Promise(r => setTimeout(r, ms));
+    const white = () => { const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i] > 250 && d[i + 1] > 250 && d[i + 2] > 250) n++; return n; };
+    const was = cb.checked; cb.checked = false; cb.dispatchEvent(new Event('change')); await wait(300); const off = white();
+    cb.checked = true; cb.dispatchEvent(new Event('change')); await wait(300); const on = white(); const saved = JSON.parse(localStorage.getItem('blocparty.opt') || '{}').marks;
+    cb.checked = was; cb.dispatchEvent(new Event('change')); return { off, on, saved };
+  });
+  log(`repères de forme : pixels blancs ${marks.off} → ${marks.on}, retenu=${marks.saved}`); if (!(marks.on > marks.off) || marks.saved !== true) errs.push('[desktop] repères de forme sans effet ou non retenus');
   // un second show() sans hide() ne lance pas une deuxième boucle de dessin (le Chrono allait deux fois plus vite)
   // (compte des rappels requestAnimationFrame par image : indépendant de la charge de la machine)
   const speed = await page.evaluate(async () => {

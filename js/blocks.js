@@ -160,7 +160,7 @@ let TIPS = {};
 try { TIPS = JSON.parse(localStorage.getItem('blocparty.tips') || '{}') || {}; } catch (e) {}
 const saveTips = () => { try { localStorage.setItem('blocparty.tips', JSON.stringify(TIPS)); } catch (e) {} };
 // confort (1.11.0) : vibrations, animations réduites (par défaut : réglage du système), conseils à revoir
-let OPT = { vib: true, calm: null };
+let OPT = { vib: true, calm: null, marks: false };
 try { OPT = Object.assign(OPT, JSON.parse(localStorage.getItem('blocparty.opt') || '{}')); } catch (e) {}
 const saveOpt = () => { try { localStorage.setItem('blocparty.opt', JSON.stringify(OPT)); } catch (e) {} };
 const sysCalm = () => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } };
@@ -1078,7 +1078,7 @@ function updateHUD() {
   }
   if (adv) {
     $('bp-score').textContent = S.moves;
-    $('bp-best')[S.goal.type === 'color' ? 'innerHTML' : 'textContent'] = S.goal.type === 'color' ? `<i class="bp-sw" style="background:${tc(S.goal.color)}"></i>${Math.min(S.vein, S.goal.need)}/${S.goal.need}` : S.goal.type === 'mix' ? `💎${S.got}/${S.goal.gems} ❄${S.broke}/${S.goal.ice}` : S.goal.type === 'gems' ? `💎 ${S.got}/${S.goal.gems}` : S.goal.type === 'ice' ? `❄ ${S.broke}/${S.goal.ice}` : `▤ ${Math.min(S.lines, S.goal.target)}/${S.goal.target}`;
+    $('bp-best')[S.goal.type === 'color' ? 'innerHTML' : 'textContent'] = S.goal.type === 'color' ? `<i class="bp-sw" style="background:${tc(S.goal.color)}"></i>${OPT.marks ? markSvg(S.goal.color) : ''}${Math.min(S.vein, S.goal.need)}/${S.goal.need}` : S.goal.type === 'mix' ? `💎${S.got}/${S.goal.gems} ❄${S.broke}/${S.goal.ice}` : S.goal.type === 'gems' ? `💎 ${S.got}/${S.goal.gems}` : S.goal.type === 'ice' ? `❄ ${S.broke}/${S.goal.ice}` : `▤ ${Math.min(S.lines, S.goal.target)}/${S.goal.target}`;
   } else $('bp-best').textContent = num(Math.max(S.bestStart || 0, Math.round(S.shown)));
 }
 
@@ -1155,7 +1155,19 @@ function stoneSprite(color, s) {
   g.strokeStyle = 'rgba(0,0,0,.45)'; g.lineWidth = 1; box(x0 + 0.5, y0 + 0.5, x1 - x0 - 1, y1 - y0 - 1, r); g.stroke();
   SPR.set(key, c); return c;
 }
+// repères de forme (1.19.0, daltonisme) : un signe par couleur, posé sur chaque bloc ; le filon de couleur ne se jouait qu'à l'œil
+const MARKS = ['M12 5a7 7 0 1 0 0 14a7 7 0 1 0 0-14z', 'M12 5 20 19H4z', 'M12 4 20 12 12 20 4 12z', 'M9.5 4h5v5.5H20v5h-5.5V20h-5v-5.5H4v-5h5.5z',
+  'M7 4l5 5 5-5 3 3-5 5 5 5-3 3-5-5-5 5-3-3 5-5-5-5z', 'M4 6h16v3.5H4zM4 14.5h16V18H4z', 'M12 4a8 8 0 1 0 0 16a8 8 0 1 0 0-16zM12 9a3 3 0 1 1 0 6a3 3 0 1 1 0-6z'];
+let MARKP = null;
+const markSvg = color => { const i = COLORS.indexOf(color); return i < 0 ? '' : `<svg class="bp-mk" viewBox="0 0 24 24" aria-hidden="true"><path d="${MARKS[i]}" fill="#fff" fill-rule="evenodd" stroke="#1b1230" stroke-width="1.6" stroke-linejoin="round" paint-order="stroke"/></svg>`; };
 function cell(x, y, s, color, alpha = 1, c2 = ctx) {
+  cellBase(x, y, s, color, alpha, c2);
+  const i = OPT.marks ? COLORS.indexOf(color) : -1; if (i < 0 || s < 14) return;
+  if (!MARKP) MARKP = MARKS.map(d => new Path2D(d));
+  c2.save(); c2.globalAlpha = Math.min(1, alpha * 0.92); c2.translate(x + s * 0.2, y + s * 0.2); c2.scale(s * 0.6 / 24, s * 0.6 / 24);
+  c2.lineJoin = 'round'; c2.lineWidth = 2.6; c2.strokeStyle = 'rgba(27,18,48,.85)'; c2.stroke(MARKP[i]); c2.fillStyle = '#fff'; c2.fill(MARKP[i], 'evenodd'); c2.restore();
+}
+function cellBase(x, y, s, color, alpha = 1, c2 = ctx) {
   color = tc(color);
   const style = curTheme().style, p = s * 0.06, r = s * 0.18;
   const X = c2 === ctx ? ctx : c2;
@@ -1731,6 +1743,8 @@ function initComfort() {
   $('bp-optvibrow').classList.toggle('hidden', !navigator.vibrate || !coarse || !!window.ptDesktop);   // PC : pas de vibreur
   vib.onchange = () => { OPT.vib = vib.checked; saveOpt(); if (OPT.vib) buzz(30); };
   cm.onchange = () => { OPT.calm = cm.checked; saveOpt(); paintCalm(); };
+  const mk = $('bp-optmarks'); mk.checked = !!OPT.marks;
+  mk.onchange = () => { OPT.marks = mk.checked; saveOpt(); if (typeof updateHUD === 'function') updateHUD(); };
   paintCalm();
   $('bp-tipsagain').onclick = () => { TIPS = {}; saveTips(); TUTO = true; try { localStorage.removeItem('blocparty.tuto'); } catch (e) {} window.ptToast && window.ptToast(t('bp.tipsBack')); };
 }
