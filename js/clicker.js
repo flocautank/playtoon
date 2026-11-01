@@ -299,7 +299,7 @@ GENS.forEach((g, i) => ACH.push({ id: 'own' + i, ic: g.ic, get name() { return t
 ACH.push({ id: 'bigbang', ic: '🌌', name: 'Big Bang', get desc() { return t('sf.aBBDesc'); }, test: s => (s.bigbangs || 0) >= 1 });
 [5, 20].forEach(n => ACH.push({ id: 'bb' + n, ic: '🌌', get name() { return t('sf.aBBn', { n }); }, get desc() { return t('sf.aBBnDesc', { n }); }, test: s => (s.bigbangs || 0) >= n }));
 [3, 6].forEach(n => ACH.push({ id: 'eng' + n, ic: '⚙️', get name() { return t('sf.engName') + ' ' + n; }, get desc() { return t('sf.aEngDesc', { n }); }, test: s => (s.eng || 0) >= n }));
-ACH.push({ id: 'allchal', ic: '🏅', get name() { return t('sf.aAllChal'); }, get desc() { return t('sf.aAllChalDesc'); }, test: s => Object.keys(s.chalDone || {}).length >= 6 });
+ACH.push({ id: 'allchal', ic: '🏅', get name() { return t('sf.aAllChal'); }, get desc() { return t('sf.aAllChalDesc'); }, test: s => Object.keys(s.chalDone || {}).length >= 7 });
 [[1, '💥'], [5, '🌠'], [20, '🌌']].forEach(([n, ic]) => ACH.push({ id: 'pre' + n, ic, get name() { return t('sf.aPre', { n }); }, get desc() { return t('sf.aPreDesc', { n }); }, test: s => s.prestiges >= n }));
 [[1, '⭐'], [10, '🌟'], [50, '🎇']].forEach(([n, ic]) => ACH.push({ id: 'com' + n, ic, get name() { return t('sf.aCom', { n }); }, get desc() { return t('sf.aComDesc', { n }); }, test: s => s.lifeComets >= n }));
 [1e3, 1e6, 1e9].forEach(n => ACH.push({ id: 'dps' + n, ic: '⚡', name: `${fmt(n)} /s`, get desc() { return t('sf.aDpsDesc', { n: fmt(n) }); }, test: s => dps() >= n }));
@@ -349,6 +349,7 @@ const CHALS = [
   { id: 'c_infl', ic: '📈', goal: 1e7, need: 2 },
   { id: 'c_dim', ic: '🌑', goal: 2e6, need: 3 },
   { id: 'c_rush', ic: '⏱️', goal: 5e6, need: 4, time: 900 },
+  { id: 'c_few', ic: '🔒', goal: 4e6, need: 5 },   // 1.16 : au plus FEW_CAP exemplaires de chaque forge
 ];
 // Big Bang : 2e couche de prestige. Réinitialise Novae et Constellation contre des Singularités
 // (gain de Novae +50 % et production +10 % chacune), à dépenser dans la Galaxie (automatisations).
@@ -384,7 +385,9 @@ function buyEngine() {
   S.singBank -= engCost(); S.eng = (S.eng || 0) + 1; return true;
 }
 const singGain = () => Math.floor(soft(Math.sqrt(S.novaTotal / 50), 4));   // plafond doux au-delà de 4 par Big Bang
+const FEW_CAP = 40;
 const inChal = id => S.chal === id;
+const capped = i => inChal('c_few') && S.gens[i] >= FEW_CAP;
 const chalDone = id => !!(S.chalDone && S.chalDone[id]);
 
 // ---------- 1.9 : Commandes de la forge (objectifs de moyen terme) et Carnet de bord ----------
@@ -546,6 +549,7 @@ function globalMult() {
   m *= Math.pow(1.1, astK('a_crucible')) * (1 + na * 0.002 * astK('a_crown'));   // Astérismes : le Creuset, la Couronne
   if (has('m_sing')) m *= 3;
   if (chalDone('c_hands')) m *= 1.5;
+  if (chalDone('c_few')) m *= 1.2;
   m *= 1 + effSing() * (gal('g_big') ? 0.2 : 0.1);
   if (S.eng && !S.chal) m *= Math.pow(1.25, S.eng);
   if (inChal('c_dim')) m *= 0.1;
@@ -645,6 +649,7 @@ function buyGen(i) {
   if (inChal('c_short') && i > 2) return;
   if (GENS[i].meta && !has(GENS[i].meta)) return;
   let n = buyMult === 'max' ? maxAffordable(i) : buyMult;
+  if (inChal('c_few')) n = Math.min(n, FEW_CAP - S.gens[i]);
   if (n <= 0) return;
   const c = costN(i, n);
   if (c > S.dust) return;
@@ -1522,8 +1527,8 @@ function refresh(structural) {
       b.querySelector('.c').textContent = (n > 1 ? `×${n} · ` : '') + fmt(c);
       const next = MILESTONES.find(m => m > S.gens[i]);
       b.querySelector('.d').textContent = known ? t('sf.each', { v: fmt(gen.prod * genMult(i) * globalMult()) }) + (next ? t('sf.nextTier', { n: next }) : '') : '???';
-      const banned = inChal('c_short') && i > 2;
-      if (banned) b.querySelector('.d').textContent = t('sf.banned');
+      const banned = (inChal('c_short') && i > 2) || capped(i);
+      if (banned) b.querySelector('.d').textContent = t(capped(i) ? 'sf.capped' : 'sf.banned');
       b.classList.toggle('can', known && !banned && S.dust >= c);
       b.classList.toggle('no', !known || banned || S.dust < c);
     });
@@ -1679,7 +1684,7 @@ function tick(dt) {
     if (visible) dqAdd('time', 1);
     if (gal('g_auto')) for (let k = 0; k < 10; k++) {   // la forge la moins chère, tant qu'on peut
       let bi = -1, bc = Infinity;
-      GENS.forEach((g, i) => { if (inChal('c_short') && i > 2) return; if (g.meta && !has(g.meta)) return; const c = costN(i, 1); if (c < bc) { bc = c; bi = i; } });
+      GENS.forEach((g, i) => { if (inChal('c_short') && i > 2) return; if (capped(i)) return; if (g.meta && !has(g.meta)) return; const c = costN(i, 1); if (c < bc) { bc = c; bi = i; } });
       if (bi < 0 || bc > S.dust) break;
       S.dust -= bc; S.gens[bi]++;
     }
