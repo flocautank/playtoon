@@ -105,10 +105,11 @@ modification du calcul de score ou du défi du jour doit garder les bornes et la
    `updated` et `last_activity` à la date du jour, avec `next_human_action` si elle a évolué. Ne modifie que des champs qui existent déjà et garde le YAML valide (entoure de guillemets tout texte contenant « : »). Commite-la avec le jeu, message se terminant par `[skip ci]`.
    La fiche est la seule source des versions : ne les recopie ni dans le second-brain ni ailleurs (ADR-020, complément
    du 2026-11-01).
-3. Second-brain (`flocautank/second-brain`, si accessible) : mettre à jour `personal/playtoon/SUMMARY.md` (une ligne
-   datée, sans numéro de version ; 60 lignes au plus, le détail daté va dans `HISTORY-NIGHTLY.md`), pousser
-   **directement sur `main`** et vérifier avec `git log --oneline -1 origin/main`. Ne touche pas à `system/INDEX.md`
-   (une ligne par projet, sans état). Si rien n'a changé dans les jeux, ne rien commiter.
+3. Second-brain (`flocautank/second-brain`, si accessible ; ADR-024 : tu ne touches pas à son arborescence, tu déposes une
+   note dans `inbox/`) : **une seule note** `inbox/AAAA-MM-JJ-playtoon-nuit.md` (gabarit `shared/templates/inbox-note.md`,
+   type `journal`, dix lignes au plus, sans numéro de version) ; la maintenance de 03:00 met à jour `SUMMARY.md`. Ne modifie
+   ni `PROJECT.md`, ni `SUMMARY.md`, ni `system/INDEX.md`. Pousse **directement sur `main`** du second-brain et vérifie avec
+   `git log --oneline -1 origin/main`. Si rien n'a changé dans les jeux, ne rien commiter.
 
 ## Résumé final (c'est ce que le propriétaire reçoit)
 
