@@ -100,9 +100,15 @@ modification du calcul de score ou du défi du jour doit garder les bornes et la
 
 1. `BACKLOG.md`, section « Routine nocturne — journal » : une ligne par jeu et par nuit —
    `AAAA-MM-JJ · Jeu · axe · version · ce qui a changé (ou « no-op : raison » / « sauté : raison »)`.
-2. Second-brain (`flocautank/second-brain`, si accessible) : mettre à jour `personal/playtoon/SUMMARY.md` (une ligne
-   datée) et les versions dans la ligne Playtoon de `system/INDEX.md`, pousser **directement sur `main`** et vérifier
-   avec `git log --oneline -1 origin/main`. Si rien n'a changé dans les jeux, ne rien commiter.
+2. **Fiche d'état** : `.vibeship/project.yml` de ce dépôt (un produit par jeu : `block-quarry`, `nova-foundry`,
+   `synth-horde`). Si une version a changé, reporte-la depuis `js/version.js` (`blocks`, `forge`, `bonk`) et mets
+   `updated` et `last_activity` à la date du jour, avec `next_human_action` si elle a évolué. Ne modifie que des champs qui existent déjà et garde le YAML valide (entoure de guillemets tout texte contenant « : »). Commite-la avec le jeu, message se terminant par `[skip ci]`.
+   La fiche est la seule source des versions : ne les recopie ni dans le second-brain ni ailleurs (ADR-020, complément
+   du 2026-11-01).
+3. Second-brain (`flocautank/second-brain`, si accessible) : mettre à jour `personal/playtoon/SUMMARY.md` (une ligne
+   datée, sans numéro de version ; 60 lignes au plus, le détail daté va dans `HISTORY-NIGHTLY.md`), pousser
+   **directement sur `main`** et vérifier avec `git log --oneline -1 origin/main`. Ne touche pas à `system/INDEX.md`
+   (une ligne par projet, sans état). Si rien n'a changé dans les jeux, ne rien commiter.
 
 ## Résumé final (c'est ce que le propriétaire reçoit)
 
