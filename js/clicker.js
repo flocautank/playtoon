@@ -338,7 +338,11 @@ const ordDone = s => (s.ord && s.ord.done) || 0;
 [[50, '🎇'], [100, '🎇']].forEach(([n, ic]) => ACH.push({ id: 'pre' + n, ic, get name() { return t('sf.aPre', { n }); }, get desc() { return t('sf.aPreDesc', { n }); }, test: s => s.prestiges >= n }));
 ACH.push({ id: 'bb10', ic: '🌌', get name() { return t('sf.aBBn', { n: 10 }); }, get desc() { return t('sf.aBBnDesc', { n: 10 }); }, test: s => (s.bigbangs || 0) >= 10 });
 ACH.push({ id: 'ord500', get name() { return t('sf.achO')[1][0] + ' ' + num(500); }, get desc() { return t('sf.achO')[1][1].replace('{n}', num(500)); }, test: s => ordDone(s) >= 500 });
-[12, 16].forEach(n => ACH.push({ id: 'rank' + n, get name() { return rankName(n); }, get desc() { return t('sf.achO')[3][1].replace('{n}', num(n)); }, test: s => rankAt(ordDone(s)) >= n }));
+// 1.17 : encore 7 succès dans les creux mesurés par sf-long (20–40 h : 7 nouveautés seulement, 3 h d'écart médian) :
+// Supernovae 75 et 150, 250 commandes, rangs 13, 14 et 20 ; mêmes textes, seuil en {n}
+[75, 150].forEach(n => ACH.push({ id: 'pre' + n, ic: '🎇', get name() { return t('sf.aPre', { n }); }, get desc() { return t('sf.aPreDesc', { n }); }, test: s => s.prestiges >= n }));
+ACH.push({ id: 'ord250', get name() { return t('sf.achO')[1][0] + ' ' + num(250); }, get desc() { return t('sf.achO')[1][1].replace('{n}', num(250)); }, test: s => ordDone(s) >= 250 });
+[12, 13, 14, 16, 20].forEach(n => ACH.push({ id: 'rank' + n, get name() { return rankName(n); }, get desc() { return t('sf.achO')[3][1].replace('{n}', num(n)); }, test: s => rankAt(ordDone(s)) >= n }));
 
 // Défis : une run sous contrainte (entrer = repartir de zéro, sans Novae), objectif en poussière
 // produite ; la réussite débloque une récompense permanente et lève la contrainte.
