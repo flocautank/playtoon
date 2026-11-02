@@ -23,6 +23,14 @@ const SHAPES = [
   [[[0, 0], [1, 0], [1, 1], [2, 1]], 2], [[[1, 0], [2, 0], [0, 1], [1, 1]], 2], [[[0, 0], [0, 1], [1, 1], [1, 2]], 2], [[[1, 0], [1, 1], [0, 1], [0, 2]], 2],
   [[[0, 0], [1, 1]], 1], [[[1, 0], [0, 1]], 1], [[[0, 0], [1, 1], [2, 2]], 0.8], [[[2, 0], [1, 1], [0, 2]], 0.8],
 ];
+// Grandes pièces (1.20.0) : équerres 3×3 et grands T de cinq cases, comme dans le genre. Seulement en Classique et en Chrono :
+// l'Aventure et le défi du jour tirent des pièces par graine, leurs niveaux et leur calendrier ne doivent pas bouger.
+const BIG_SHAPES = [
+  [[[0, 0], [0, 1], [0, 2], [1, 2], [2, 2]], 0.8], [[[2, 0], [2, 1], [2, 2], [1, 2], [0, 2]], 0.8],
+  [[[0, 0], [1, 0], [2, 0], [0, 1], [0, 2]], 0.8], [[[0, 0], [1, 0], [2, 0], [2, 1], [2, 2]], 0.8],
+  [[[0, 0], [1, 0], [2, 0], [1, 1], [1, 2]], 0.7], [[[1, 0], [1, 1], [0, 2], [1, 2], [2, 2]], 0.7],
+  [[[0, 0], [0, 1], [0, 2], [1, 1], [2, 1]], 0.7], [[[2, 0], [2, 1], [2, 2], [1, 1], [0, 1]], 0.7],
+];
 let overTimer = 0, resTimer = 0;   // minuteries des écrans de fin (annulées au changement de mode)
 const ADV_TOOLS = 2;   // boosters par tentative de niveau d'Aventure
 const STONE = '#7d7f9c', STONE2 = '#4b4d6e', STONEC = '#7d7f9d';   // STONEC : pierre dure déjà fissurée (un effacement de plus)   // pierre dure (Aventure, niveau 9+) : il faut l'effacer deux fois
@@ -319,9 +327,10 @@ function save() {
 }
 
 function pickShape() {
-  const total = SHAPES.reduce((a, s) => a + s[1], 0);
+  const pool = S.mode === 'classic' || S.mode === 'chrono' ? SHAPES.concat(BIG_SHAPES) : SHAPES;
+  const total = pool.reduce((a, s) => a + s[1], 0);
   let r = rnd() * total;
-  for (const s of SHAPES) { r -= s[1]; if (r <= 0) return s[0]; }
+  for (const s of pool) { r -= s[1]; if (r <= 0) return s[0]; }
   return SHAPES[0][0];
 }
 function makePiece() {
