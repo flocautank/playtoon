@@ -55,7 +55,7 @@ if (!THEME.owned.includes('quarry')) { THEME.owned.unshift('quarry'); if (THEME.
 const saveTheme = () => { try { localStorage.setItem('blocparty.themes', JSON.stringify(THEME)); } catch (e) {} };
 const curTheme = () => THEMES.find(t => t.id === THEME.cur) || THEMES[0];
 const tc = c => { const i = COLORS.indexOf(c); return i >= 0 ? curTheme().pal[i] : c; };
-const LEVELS = 100;   // 10 chapitres de 10 ; la géode (gemmes + givre dans un même niveau) arrive au chapitre 9 (niveau 81) ; le givre arrive au chapitre 5 (niveau 41), les veines de couleur au chapitre 7 (niveau 61)
+const LEVELS = 110;   // 10 chapitres de 10 ; la géode (gemmes + givre dans un même niveau) arrive au chapitre 9 (niveau 81) ; le givre arrive au chapitre 5 (niveau 41), les veines de couleur au chapitre 7 (niveau 61)
 const ICE_LVL = 41;
 const VEIN_LVL = 61;
 const GEODE_LVL = 81;
@@ -149,6 +149,7 @@ const MEDAL_MOTIF = [
   '<path d="M20 9c4.6 4.4 8 8.6 8 12.6a8 8 0 0 1-16 0C12 17.600 15.400 13.400 20 9z"/><path d="M16.200 22.600a4 4 0 0 0 3.800 4" fill="none" stroke-width="1.6" stroke-linecap="round" stroke="#fff" stroke-opacity=".5"/>',   // cœur de la montagne : goutte de lave
   '<path d="M20 9.5c6.200 0 10.500 4.800 10.500 10.500S26.200 30.500 20 30.500 9.500 25.700 9.500 20 13.800 9.500 20 9.500z" fill="none" stroke-width="2.2"/><path d="M20 14.500l4 5.500-4 5.500-4-5.500z"/>',   // cavité des géodes : géode ouverte, cœur taillé
   '<path d="M20 8.500l2.400 7.100h7.100l-5.800 4.300 2.300 7.200-6-4.500-6 4.500 2.300-7.200-5.800-4.300h7.100z"/>',   // cœur de cristal : étoile à facettes
+  '<path d="M12 29l-2-7 5-3 2-6 5 2 6 4-1 7-5 3z" fill="none" stroke-width="2.2" stroke-linejoin="round"/><path d="M15 19l5 3 6-3M20 22v7" fill="none" stroke-width="1.6" stroke-linecap="round"/>',   // filon d'or : pépite
 ];
 function medalSVG(c, on, cls = 'bp-mdi') {
   const id = 'bqm' + c + (on ? 'a' : 'b'), m = MEDAL_MOTIF[c % MEDAL_MOTIF.length];
@@ -493,7 +494,9 @@ function genMix(n) {
   const moves = L0.goal.moves + Math.round(gemsN * 1.6) + 2;
   return { board: L0.board, gems, ice: L0.ice, goal: { type: 'mix', gems: gemsN, ice: L0.ice.size, target: 0, moves } };
 }
-function genLevel(n) {
+// chapitre 11 (niveaux 101+) : mêmes mécaniques que la fin du jeu, 7 % de coups en moins
+function genLevel(n) { const L0 = genLevel0(n); if (n > 100) L0.goal.moves = Math.round(L0.goal.moves * 0.93); return L0; }
+function genLevel0(n) {
   if (levelType(n) === 'mix') return genMix(n);
   if (levelType(n) === 'ice') return genIce(n);
   if (levelType(n) === 'color') return genColor(n);

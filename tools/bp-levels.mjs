@@ -10,7 +10,7 @@ const b = await chromium.launch(); const p = await b.newPage();
 await p.goto(`http://localhost:${srv.address().port}/#blocks`); await p.waitForTimeout(500);
 const res = await p.evaluate(() => {
   const { S, place, fits, startLevel, linesToClear, N } = window.__bp, out = [];
-  for (let n = 1; n <= 100; n++) {
+  for (let n = 1; n <= 110; n++) {
     startLevel(n);
     while (!S.over) {
       let best = null;
@@ -32,5 +32,5 @@ const res = await p.evaluate(() => {
   }
   return out.join(' ');
 });
-console.log(res); const w = (res.match(/★/g) || []).length; console.log(`réussis ${w}/100`);
+console.log(res); const w = (res.match(/★/g) || []).length; console.log(`réussis ${w}/110`);
 await b.close(); srv.close();
