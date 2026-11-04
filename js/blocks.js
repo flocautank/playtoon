@@ -59,6 +59,7 @@ const LEVELS = 110;   // 10 chapitres de 10 ; la géode (gemmes + givre dans un 
 const ICE_LVL = 41;
 const VEIN_LVL = 61;
 const GEODE_LVL = 81;
+const GOLD_LVL = 101;   // chapitre 11 « Filon d'or » : liseré et veine d'or sur la carte
 const CHAPTER = 10;
 // Générateur déterministe : un niveau d'aventure a toujours la même grille et les mêmes pièces.
 function mulberry32(a) { const f = () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; f.state = () => a | 0; f.seed = v => { a = v | 0; }; return f; }   // state/seed : reprendre une partie semée là où elle en était
@@ -868,7 +869,7 @@ function openMap() {
   for (let n = 1; n <= LEVELS; n++) {
     if (n % CHAPTER === 1) {   // en-tête de chapitre : nom, étoiles gagnées sur 30
       const c = (n - 1) / CHAPTER, got = Array.from({ length: CHAPTER }, (_, i) => ADV.stars[n + i] || 0).reduce((a, b) => a + b, 0);
-      const h = document.createElement('div'); h.className = 'bp-chap' + (n > open ? ' lock' : '') + (n === ICE_LVL ? ' ice' : n === VEIN_LVL ? ' vein' : n === GEODE_LVL ? ' geode' : '');
+      const h = document.createElement('div'); h.className = 'bp-chap' + (n > open ? ' lock' : '') + (n === ICE_LVL ? ' ice' : n === VEIN_LVL ? ' vein' : n === GEODE_LVL ? ' geode' : n === GOLD_LVL ? ' gold' : '');
       h.innerHTML = `<b>${t('bp.chapter', { n: c + 1 })} · ${(Array.isArray(names) && names[c]) || ''}</b><small>${CAR.medals[c] ? medalSVG(c, true, 'bp-mdi sm') : ''}★ ${got}/${CHAPTER * 3}</small>`;
       box.appendChild(h);
     }
@@ -876,7 +877,7 @@ function openMap() {
     const b = document.createElement('button');
     b.className = 'bp-lv' + (lock ? ' lock' : '') + (n === open && !st ? ' cur' : '');
     const ty = levelType(n);
-    b.dataset.n = n; if (ty === 'ice') b.classList.add('ice'); if (n >= VEIN_LVL) b.classList.add('vein'); if (ty === 'mix') b.classList.add('geode');
+    b.dataset.n = n; if (ty === 'ice') b.classList.add('ice'); if (n >= VEIN_LVL) b.classList.add('vein'); if (ty === 'mix') b.classList.add('geode'); if (n >= GOLD_LVL) b.classList.add('gold');
     b.innerHTML = `${lock ? '🔒' : n}<small>${st ? '★'.repeat(st) : ty === 'lines' ? t('bp.mapLines') : ty === 'ice' ? '❄' : ty === 'mix' ? '💎❄' : ty === 'color' ? `<i class="bp-sw" style="background:${tc(genColor(n).goal.color)}"></i>` : '💎'}</small>`;
     if (!lock) b.onclick = () => startLevel(n);
     box.appendChild(b);
