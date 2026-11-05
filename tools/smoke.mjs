@@ -922,6 +922,24 @@ await shot(m, 'm-bonk-pause');
   await ctx.close();
 }
 
+// ---------- Nova Foundry : vibration (réglage Options ; un court buzz par clic, aucun une fois désactivée)
+{
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+  const p = await guard(await ctx.newPage()); watch(p, 'nf-vib');
+  await p.addInitScript(() => { window.__v = []; navigator.vibrate = x => { window.__v.push(x); return true; }; try { localStorage.setItem('starforge.intro', '1'); } catch (e) {} });
+  await p.goto(base + '#forge'); await p.waitForTimeout(700);
+  await p.keyboard.press('Space'); await p.waitForTimeout(100); await p.keyboard.press('Space'); await p.waitForTimeout(100);
+  const on = await p.evaluate(() => window.__v.length);
+  await p.click('.sf-tabs button[data-sf=opt]'); const box = await p.$('#sf-vib'); if (box) await box.uncheck();
+  await p.click('.sf-tabs button[data-sf=gen]'); const n0 = await p.evaluate(() => window.__v.length);
+  await p.keyboard.press('Space'); await p.waitForTimeout(100);
+  const off = (await p.evaluate(() => window.__v.length)) - n0;
+  const ok = on >= 2 && !!box && off === 0;
+  log(`Nova Foundry : vibration ${ok ? 'OK' : 'ÉCHEC ' + JSON.stringify({ on, box: !!box, off })}`);
+  if (!ok) errs.push('[nf-vib] ' + JSON.stringify({ on, box: !!box, off }));
+  await ctx.close();
+}
+
 await browser.close(); srv.close();
 if (errs.length) { console.error('ERREURS :\n' + errs.join('\n')); process.exit(1); }
 log('OK — aucune erreur console');

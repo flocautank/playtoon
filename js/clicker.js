@@ -14,6 +14,8 @@ let SCI = false;
 let HOLD = true;   // toucher long (1.12.0) : maintenir sur l'étoile répète les clics
 try { HOLD = localStorage.getItem('starforge.hold') !== '0'; } catch (e) {}
 // effets calmes : réglage du joueur, sinon réglage système « réduire les animations » ; supprime les éclairs plein écran
+let VIB = true; try { VIB = localStorage.getItem('starforge.vib') !== '0'; } catch (e) {}
+const buzz = pat => { if (VIB && navigator.vibrate) try { navigator.vibrate(pat); } catch (e) {} };   // retour tactile (téléphone seulement)
 let CALM = null; try { const c = localStorage.getItem('starforge.calm'); if (c !== null) CALM = c === '1'; } catch (e) {}
 const calm = () => CALM !== null ? CALM : !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
 try { SCI = localStorage.getItem('starforge.sci') === '1'; } catch (e) {}
@@ -657,7 +659,7 @@ function buyGen(i) {
   if (n <= 0) return;
   const c = costN(i, n);
   if (c > S.dust) return;
-  S.dust -= c; S.gens[i] += n; window.ptEvent && window.ptEvent('sf_forges', n); dqAdd('forges', n);
+  buzz(10); S.dust -= c; S.gens[i] += n; window.ptEvent && window.ptEvent('sf_forges', n); dqAdd('forges', n);
   anvil(660 + i * 40, 0.045);
   refresh(true);
 }
@@ -679,7 +681,7 @@ function buyUpg(u) {
   const c = upgCost(u);
   if (inChal('c_noupg')) { toast(t('sf.ascetic')); return; }
   if (S.upg[u.id] || c > S.dust || !u.req(S)) return;
-  S.dust -= c; S.upg[u.id] = 1; S.st.nUpg = st('nUpg') + 1;
+  buzz(10); S.dust -= c; S.upg[u.id] = 1; S.st.nUpg = st('nUpg') + 1;
   bell(880, 0.6, 0.04); bell(1320, 0.6, 0.03, 0.06);
   refresh(true);
 }
@@ -764,7 +766,7 @@ async function prestige() {
   if (g < 1) return;
   const warn = g <= 3 ? t('sf.snWarn', { n: novaGainAt(S.runTotal * 4) }) : '';
   if (!await ptConfirm(noEmoji(t('sf.snConfirm', { g: fmt(g), n: g, pct: Math.round((soft(S.novaTotal + g, NOVA.cap) - effNova()) * novaPct() * 100), warn })), t('sf.snOk'))) return;
-  snNow();
+  buzz([40, 40, 90]); snNow();
   snAnim = 1.8; snBoom = false;
   sfx(110, 1.2, 'sawtooth', 0.08);
   toast(t('sf.snToast', { n: g })); dqAdd('snova');
@@ -792,6 +794,7 @@ function spawnComet() {
   comet = { meteor, dark, x: fromLeft ? -0.1 : 1.1, y: 0.15 + Math.random() * 0.5, vx: (fromLeft ? 1 : -1) * (0.05 + Math.random() * 0.03) / (0.8 + luck() * 0.2) / (has('m_comet3') ? 2 : 1), vy: 0.01 * (Math.random() - 0.5), t: 0 };
 }
 function catchComet() {
+  buzz([12, 30, 12]);
   window.ptEvent && window.ptEvent('sf_comets', 1); dqAdd('comets');
   S.cometsTotal++; S.lifeComets++;
   const r = Math.random();
@@ -1204,7 +1207,7 @@ function clickStar(x, y) {
   const sh = shoots.find(o => Math.hypot(x - o.x * cw, y - o.y * ch) < 30); if (sh) { catchShoot(sh); return; }
   const X = cw / 2, Y = ch / 2, R = starR();
   if (Math.hypot(x - X, y - Y) > R * 1.3) return;
-  manualClick();
+  manualClick(); buzz(6);
   const crit = Math.random() < critP(false), v = clickValue() * (crit ? critX() : 1);
   earn(v); S.clicks++; S.lifeClicks++; dqAdd('clicks'); pulse = 1; window.ptEvent && window.ptEvent('sf_clicks', 1);
   if (crit) S.st.crit = st('crit') + 1;
@@ -1349,6 +1352,7 @@ function build() {
       <label class="small"><input type="checkbox" id="sf-sci"> ${t('sf.optSci')}</label>
       <label class="small" style="display:block;margin-top:6px"><input type="checkbox" id="sf-calm"> ${t('sf.optCalm')}</label>
       <label class="small" style="display:block;margin-top:6px"><input type="checkbox" id="sf-hold"> ${t('sf.optHold')}</label>
+      ${navigator.vibrate ? `<label class="small" style="display:block;margin-top:6px"><input type="checkbox" id="sf-vib"> ${t('sf.optVib')}</label>` : ''}
       <div class="sf-h">${t('sf.optHow')}</div>
       <p class="small muted">${t('sf.optHowTxt')}</p>
       <p class="small muted">${t('sf.optKeys')}</p>`;
@@ -1356,6 +1360,7 @@ function build() {
     $('sf-sci').onchange = e => { SCI = e.target.checked; try { localStorage.setItem('starforge.sci', SCI ? '1' : '0'); } catch (x) {} refresh(true); };
     $('sf-calm').checked = calm(); $('sf-hold').checked = HOLD;
     $('sf-hold').onchange = e => { HOLD = e.target.checked; try { localStorage.setItem('starforge.hold', HOLD ? '1' : '0'); } catch (x) {} };
+    if ($('sf-vib')) { $('sf-vib').checked = VIB; $('sf-vib').onchange = e => { VIB = e.target.checked; try { localStorage.setItem('starforge.vib', VIB ? '1' : '0'); } catch (x) {} if (VIB) buzz(20); }; }
     $('sf-calm').onchange = e => { CALM = e.target.checked; try { localStorage.setItem('starforge.calm', CALM ? '1' : '0'); } catch (x) {} };
     $('sf-exp').onclick = () => { save(); $('sf-io').value = btoa(unescape(encodeURIComponent(JSON.stringify(S)))); };
     $('sf-imp').onclick = () => { try { const d = JSON.parse(decodeURIComponent(escape(atob($('sf-io').value.trim())))); S = sane(d); save(); toast(t('sf.imported')); refresh(true); } catch (e) { toast(t('sf.invalid')); } };
