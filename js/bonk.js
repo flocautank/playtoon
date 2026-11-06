@@ -151,6 +151,10 @@ const ITEMS = [
   { id: 'chime', r: 1, ic: '🔔', fx: s => s.gemNova++ },
   { id: 'spite', r: 2, ic: '💢', fx: s => s.hurtBlast++ },
   { id: 'bounty', r: 1, ic: '🧿', fx: s => s.eliteGems++ },
+  // lot « contenu » 1.27.0 : trois déclencheurs de plus (coffre ouvert, niveau gagné, coup esquivé ou paré)
+  { id: 'reliquary', r: 1, ic: '🧰', fx: s => s.chestBlast++ },
+  { id: 'crescendo', r: 2, ic: '🎼', fx: s => s.lvlBlast++ },
+  { id: 'riposte', r: 2, ic: '🎭', fx: s => s.counter++ },
 ];
 
 // Quêtes : objectifs permanents qui débloquent des objets (absents des coffres tant que la quête n'est pas faite),
@@ -1056,7 +1060,7 @@ function pushOut(o, p, r) {
 // ============================================================ nouvelle run
 function baseStats(ch) {
   const s = { slideCut: 0, hp: 100, regen: 0.3, armor: 0, speed: 1, dmg: 1, cd: 1, area: 1, proj: 0, magnet: 1.25, luck: 0, xp: 1, crit: 0.05, critMul: 2, jumps: 2, jumpV: 11, gold: 1, vamp: 0, shield: 0, thorns: 0, dodge: 0, boom: 0,
-    landShock: 0, jumpBurst: 0, speedDmg: 0, airDmg: 0, lowHpDmg: 0, killNova: 0, slideFire: 0, critChain: 0, execute: 0, frost: 0, hurtFreeze: 0, boomPow: 0, gemHeal: 0, midas: 0, chestDisc: 1, rush: 0, gemNova: 0, hurtBlast: 0, eliteGems: 0 };
+    landShock: 0, jumpBurst: 0, speedDmg: 0, airDmg: 0, lowHpDmg: 0, killNova: 0, slideFire: 0, critChain: 0, execute: 0, frost: 0, hurtFreeze: 0, boomPow: 0, gemHeal: 0, midas: 0, chestDisc: 1, rush: 0, gemNova: 0, hurtBlast: 0, eliteGems: 0, chestBlast: 0, lvlBlast: 0, counter: 0 };
   ch.bonus(s); s.hp = Math.max(40, s.hp); return s;
 }
 function newRun(daily) {
@@ -1626,11 +1630,13 @@ function explode(x, y, z, r, dmg, col) {
   if (r >= 3.5 && (x - S.p.x) ** 2 + (z - S.p.z) ** 2 < 144) shake(0.08);
   sfx('boom');
 }
+// Riposte : esquiver ou parer un coup fait exploser tout autour du joueur
+function counterBlast() { const c = S.stats.counter; if (c) asItem(() => explode(S.p.x, S.p.y, S.p.z, 4.5 * S.stats.area + c, itemDmg(40 * c), [0.4, 1, 0.8])); }
 function hurt(d, src = '?', from = null) {   // from : {x, z} d'où vient le coup (indicateur de direction, rien d'autre)
   if (S.iframe > 0 || S.state !== 'play') return false;
   const s = S.stats;
-  if (s.shield && S.shieldT <= 0) { S.shieldT = s.shield; S.iframe = 0.5; addNum(S.p.x, S.p.y + 2.2, S.p.z, tr('nb.blocked'), true); return true; }
-  if (s.dodge && Math.random() < s.dodge) { S.iframe = 0.3; addNum(S.p.x, S.p.y + 2.2, S.p.z, tr('nb.dodge'), false); return false; }
+  if (s.shield && S.shieldT <= 0) { S.shieldT = s.shield; S.iframe = 0.5; addNum(S.p.x, S.p.y + 2.2, S.p.z, tr('nb.blocked'), true); counterBlast(); return true; }
+  if (s.dodge && Math.random() < s.dodge) { S.iframe = 0.3; addNum(S.p.x, S.p.y + 2.2, S.p.z, tr('nb.dodge'), false); counterBlast(); return false; }
   d *= 1 - Math.min(0.75, s.armor);
   if (s.hurtFreeze) { near(S.p.x, S.p.z, 7, e => { e.slowT = 1.5 + s.hurtFreeze; }); addRing(S.p.x, S.p.y + 0.3, S.p.z, 7, [0.5, 0.8, 1], 0.4); }
   if (s.hurtBlast) asItem(() => explode(S.p.x, S.p.y, S.p.z, 4 * s.area + s.hurtBlast, itemDmg(34 * s.hurtBlast), [1, 0.3, 0.4]));
@@ -2193,7 +2199,7 @@ function updatePickups(dt) {
     }
   }
   if (S.magnetAll) { S.magnetAll -= dt; if (S.magnetAll <= 0) S.magnetAll = 0; }
-  while (S.xp >= S.need) { S.xp -= S.need; S.level++; S.need = xpNeed(S.level); S.pending++; if (S.ch.lv) S.ch.lv(S.stats, S.p); }
+  while (S.xp >= S.need) { S.xp -= S.need; S.level++; S.need = xpNeed(S.level); S.pending++; if (S.stats.lvlBlast) asItem(() => explode(S.p.x, S.p.y, S.p.z, 6 * S.stats.area + S.stats.lvlBlast, itemDmg(45 * S.stats.lvlBlast), [0.7, 0.5, 1])); if (S.ch.lv) S.ch.lv(S.stats, S.p); }
   if (S.pending > 0 && S.state === 'play' && !(S.lvlDelay > 0)) openLevelUp();
 }
 
@@ -2520,6 +2526,7 @@ function interact() {
   }
   if (!t.free && S.gold < chestPrice()) { msg(tr('nb.noGold'), 1); return; }
   S.chestsOpened++; window.ptEvent && window.ptEvent('nb_chests', 1);
+  if (S.stats.chestBlast) asItem(() => explode(S.p.x, S.p.y, S.p.z, 5.5 * S.stats.area + S.stats.chestBlast, itemDmg(60 * S.stats.chestBlast), [1, 0.8, 0.3]));   // Reliquaire
   if (t.gold) metaAdd('goldChests');
   metaMax('bestRunChests', S.chestsOpened);
   if (!t.free) { S.gold -= chestPrice(); S.chestCost = Math.round(S.chestCost * 1.45 + 4); }

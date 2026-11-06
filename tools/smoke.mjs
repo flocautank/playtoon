@@ -392,6 +392,28 @@ log('objets 1.22.0 (carillon, rancune, prime) :', await page.evaluate(() => {
   S.p.hp = S.stats.hp;
   return out.join(' ');
 }));
+log('objets 1.27.0 (reliquaire, crescendo, riposte) :', await page.evaluate(() => {
+  const nb = window.__nb, S = nb.S, out = [];
+  S.state = 'play'; S.enemies.length = 0; S.pending = 0; S.stats.hp = S.p.hp = 1e6; S.iframe = 0; S.shieldT = 1e9; S.stats.shield = 0; S.stats.dodge = 0;
+  const step = (n = 6) => { for (let i = 0; i < n; i++) { S.state = 'play'; S.pending = 0; S.iframe = 0.5; nb.update(1 / 30); } };
+  const target = () => { S.enemies.length = 0; const e = nb.spawnEnemy('brute', S.p.x + 1.5, S.p.z); e.speed = 0; e.hp = e.max = 1e12; return e; };
+  const hit = (e, f) => { const i0 = S.dmgBy.item || 0; f(); step(); return (S.dmgBy.item || 0) > i0; };   // dégâts d'objets seulement : les armes, elles, tirent toujours
+  step(2);
+  // sans objet : rien ne explose
+  let e = target(); out.push('témoin=' + hit(e, () => { S.stats.dodge = 1; nb.hurt(5, 'test'); S.stats.dodge = 0; }));
+  nb.giveItem('reliquary'); nb.giveItem('crescendo'); nb.giveItem('riposte');
+  // riposte : esquive puis parade
+  e = target(); S.iframe = 0; out.push('riposte(esquive)=' + hit(e, () => { S.stats.dodge = 1; nb.hurt(5, 'test'); S.stats.dodge = 0; }));
+  e = target(); S.iframe = 0; S.shieldT = 0; S.stats.shield = 5; out.push('riposte(parade)=' + hit(e, () => { nb.hurt(5, 'test'); S.stats.shield = 0; S.shieldT = 1e9; }));
+  // crescendo : un niveau gagné
+  e = target(); out.push('crescendo=' + hit(e, () => { const l0 = S.level; S.xp = S.need * 1.01; step(1); out.push('niveau+' + (S.level - l0)); }));
+  // reliquaire : un coffre ouvert
+  e = target(); const c = { x: S.p.x + 0.5, y: S.p.y, z: S.p.z, open: false, free: true }; S.chests.push(c);
+  c.mesh = { children: [null, { material: { uniforms: { uCore: { value: 0 } } } }] }; c.lid = { rotation: {}, position: {} };
+  out.push('reliquaire=' + hit(e, () => { nb.update(1 / 30); nb.interact(); out.push('ouvert=' + c.open); }));
+  S.p.hp = S.stats.hp; S.enemies.length = 0;
+  return out.join(' ');
+}));
 { const tomesRes = await page.evaluate(() => {
   const nb = window.__nb, S = nb.S, T = nb.TOMES;
   S.state = 'play'; S.pending = 0; S.tomes.length = 0; S.banned = new Set();   // pool de tomes libre (des tests précédents l'ont rempli)
