@@ -1,6 +1,6 @@
 # Managed by Vibeship — https://github.com/flocautank/vibeship (schema vibeship/v1)
 schema: vibeship/v1
-updated: '2026-11-05'
+updated: '2026-11-06'
 products:
 - id: block-quarry
   name: Block Quarry
@@ -11,7 +11,7 @@ products:
   - ios
   - steam
   - web
-  version: 1.21.1
+  version: 1.22.0
   stage: ready-to-ship
   summary: Block puzzle on an 8x8 grid with adventure levels, daily challenge, timed mode and boosters.
   monetization:
@@ -37,7 +37,7 @@ products:
   todo:
   - 'Triche à l''horloge sur bonus et missions : parade hors serveur à concevoir'
   next_human_action: Créer le compte Google Play Console (25 $, vérification d'identité), puis AdMob et les secrets de signature
-  last_activity: '2026-11-05'
+  last_activity: '2026-11-06'
 - id: nova-foundry
   name: Nova Foundry
   repo: flocautank/playtoon

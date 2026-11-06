@@ -208,6 +208,21 @@ await page.click('[data-tool=shuffle]'); await page.waitForTimeout(200); await s
     cb.checked = was; cb.dispatchEvent(new Event('change')); return { off, on, saved };
   });
   log(`repères de forme : pixels blancs ${marks.off} → ${marks.on}, retenu=${marks.saved}`); if (!(marks.on > marks.off + 20) || marks.saved !== true) errs.push('[desktop] repères de forme sans effet ou non retenus');
+  // clavier (Block Quarry 1.22.0) : 1 prend une pièce, les flèches la déplacent, Échap la repose, Entrée la pose
+  await page.evaluate(() => { window.__bp.newGame(); });
+  await page.waitForTimeout(400);
+  const cnt = () => page.evaluate(() => window.__bp.S.board.flat().filter(c => c).length);
+  const c0 = await cnt();
+  await page.keyboard.press('1');
+  const held = await page.evaluate(() => { const d = window.__bp.S.drag; return d && d.kb ? d.idx : -1; });
+  await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Escape');
+  const back = await page.evaluate(() => !window.__bp.S.drag && !!window.__bp.S.tray[0]);
+  await page.keyboard.press('1'); await page.keyboard.press('ArrowLeft'); await page.keyboard.press('Enter');
+  await page.waitForTimeout(300);
+  const n1 = await page.evaluate(() => window.__bp.S.board.flat().filter(c => c).length), sc = await page.evaluate(() => window.__bp.S.tray[0] === null || window.__bp.S.tray[0] === undefined);
+  log(`clavier : pièce prise=${held}, reposée par Échap=${back}, cases ${c0} → ${n1}, emplacement vidé=${sc}`);
+  if (held !== 0 || !back || n1 <= c0 || !sc) errs.push('[desktop] commandes clavier de Block Quarry (1 / flèches / Échap / Entrée) sans effet');
   // un second show() sans hide() ne lance pas une deuxième boucle de dessin (le Chrono allait deux fois plus vite)
   // (compte des rappels requestAnimationFrame par image : indépendant de la charge de la machine)
   const speed = await page.evaluate(async () => {

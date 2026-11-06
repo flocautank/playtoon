@@ -1266,6 +1266,7 @@ let last = 0, running = false;
 function frame(t) {
   if (!running) return;
   const dt = Math.min(0.05, (t - last) / 1000 || 0.016); last = t;
+  if (S.drag && S.drag.kb && (!S.tray[S.drag.idx] || S.over)) S.drag = null;   // pièce tenue au clavier pendant une relance
   draw(dt);
   requestAnimationFrame(frame);
 }
@@ -1756,18 +1757,63 @@ function initComfort() {
   $('bp-optvibrow').classList.toggle('hidden', !navigator.vibrate || !coarse || !!window.ptDesktop);   // PC : pas de vibreur
   vib.onchange = () => { OPT.vib = vib.checked; saveOpt(); if (OPT.vib) buzz(30); };
   cm.onchange = () => { OPT.calm = cm.checked; saveOpt(); paintCalm(); };
+  $('bp-keyhint').classList.toggle('hidden', !!(coarse && !window.ptDesktop));   // rappel des touches : PC seulement
   const mk = $('bp-optmarks'); mk.checked = !!OPT.marks;
   mk.onchange = () => { OPT.marks = mk.checked; saveOpt(); if (typeof updateHUD === 'function') updateHUD(); };
   paintCalm();
   $('bp-tipsagain').onclick = () => { TIPS = {}; saveTips(); TUTO = true; try { localStorage.removeItem('blocparty.tuto'); } catch (e) {} window.ptToast && window.ptToast(t('bp.tipsBack')); };
 }
 initComfort();
-// clavier (PC) : Échap pose l'outil en main, sinon ferme la fenêtre du jeu ouverte
+// clavier (PC, 1.22.0) : 1 2 3 prennent une pièce, les flèches la déplacent sur la grille, Entrée ou Espace la posent,
+// Échap la repose ; avec un outil en main, les flèches visent et Entrée frappe ; sans pièce en main, Échap pose l'outil
+// puis ferme la fenêtre du jeu ouverte. Rien ne se passe si une fenêtre est ouverte, ni dans un autre jeu du site.
+const KB = { gx: 3, gy: 3 };
+function kbOpen() { return [...document.querySelectorAll('.overlay:not(.hidden)')].some(o => getComputedStyle(o).display !== 'none' && o.getClientRects().length); }
+function kbSync() {   // aligne la pièce en main (ou la visée de l'outil) sur la case du clavier
+  if (S.drag && S.drag.kb) { const d = S.drag; d.x = L.bx + KB.gx * L.cs + d.ox; d.y = L.by + KB.gy * L.cs + d.oy; }
+  else if (tool) hover = { x: L.bx + (KB.gx + 0.5) * L.cs, y: L.by + (KB.gy + 0.5) * L.cs };
+}
+function kbPick(i) {
+  const p = S.tray[i]; if (!p) return;
+  if (S.drag && S.drag.kb && S.drag.idx === i) { S.drag = null; SFX.back(); return; }   // même touche : on la repose
+  tool = null; S.aim = null; paintBoost(); dropTips();
+  const r = slotRect(i);
+  let best = null;   // première position posable la plus proche du centre : le curseur ne démarre jamais sur du vide
+  for (let gy = 0; gy <= N - p.h; gy++) for (let gx = 0; gx <= N - p.w; gx++) if (fits(p, gx, gy)) {
+    const d = Math.abs(gx + p.w / 2 - N / 2) + Math.abs(gy + p.h / 2 - N / 2); if (!best || d < best.d) best = { gx, gy, d };
+  }
+  if (S.drag && S.drag.kb) { KB.gx = Math.min(KB.gx, N - p.w); KB.gy = Math.min(KB.gy, N - p.h); } else if (best) { KB.gx = best.gx; KB.gy = best.gy; } else { KB.gx = Math.max(0, Math.floor((N - p.w) / 2)); KB.gy = Math.max(0, Math.floor((N - p.h) / 2)); }
+  S.drag = { idx: i, kb: true, x: 0, y: 0, ox: p.w * L.cs / 2, oy: p.h * L.cs / 2, t0: performance.now(), s0: pieceScale(p, r) };
+  SFX.pick(); kbSync();
+  if (!canPlaceAnywhere(p)) { SFX.lost(); if (!S.greyAt || performance.now() - S.greyAt > 6000) { S.greyAt = performance.now(); tip(t('bp.tipGrey'), t('bp.tipGreySub'), 0, 3); } }
+}
 window.addEventListener('keydown', e => {
-  if (e.key !== 'Escape' || (document.body.dataset.tab && document.body.dataset.tab !== 'blocks')) return;
-  if (tool) { tool = null; S.aim = null; dropTips(); paintBoost(); return; }
-  const open = [...document.querySelectorAll('#tab-blocks .overlay:not(.hidden)')].pop();
-  const b = open && open.querySelector('[data-back]'); if (b) b.click();
+  if (document.body.dataset.tab && document.body.dataset.tab !== 'blocks') return;
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const k = e.key;
+  if (k === 'Escape') {
+    if (S.drag && S.drag.kb) { S.drag = null; SFX.back(); return; }
+    if (tool) { tool = null; S.aim = null; dropTips(); paintBoost(); return; }
+    const open = [...document.querySelectorAll('#tab-blocks .overlay:not(.hidden)')].pop();
+    const b = open && open.querySelector('[data-back]'); if (b) b.click();
+    return;
+  }
+  if (!running || S.over || kbOpen() || /^(INPUT|SELECT|TEXTAREA)$/.test((e.target.tagName || ''))) return;
+  if (k === '1' || k === '2' || k === '3') { e.preventDefault(); kbPick(+k - 1); return; }
+  const dir = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[k];
+  const hand = S.drag && S.drag.kb ? S.tray[S.drag.idx] : null;
+  if (dir && (hand || tool)) {
+    e.preventDefault();
+    const w = hand ? hand.w : 1, h = hand ? hand.h : 1;
+    KB.gx = Math.max(0, Math.min(N - w, KB.gx + dir[0])); KB.gy = Math.max(0, Math.min(N - h, KB.gy + dir[1]));
+    kbSync(); SFX.snap(); return;
+  }
+  if ((k === 'Enter' || k === ' ') && (hand || tool)) {
+    if (e.target.tagName === 'BUTTON') return;   // un bouton focalisé garde Entrée / Espace
+    e.preventDefault();
+    if (hand) { const idx = S.drag.idx; if (fits(hand, KB.gx, KB.gy)) { S.drag = null; place(idx, KB.gx, KB.gy); } else { SFX.lost(); beep(180, 0.1, 'square', 0.03); } }
+    else useTool(tool, KB.gx, KB.gy);
+  }
 });
 // langue : le HTML se traduit tout seul, le reste se redessine
 applyI18n();
