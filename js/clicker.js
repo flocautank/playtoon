@@ -501,10 +501,25 @@ function sane(d) {
   }
   if (o.chal !== null && !CHALS.some(c => c.id === o.chal)) { o.chal = null; o.chalT = 0; }
   if (!Array.isArray(o.ord.list)) o.ord = n.ord;
-  if (!Number.isFinite(o.ord.done)) o.ord.done = 0;
+  o.ord.done = Number.isFinite(o.ord.done) ? Math.min(1e6, Math.max(0, o.ord.done)) : 0;   // rankAt() boucle sur le rang : 1e308 gelait l'onglet
   if (!Number.isFinite(o.ord.swapAt)) o.ord.swapAt = 0;
-  o.gens = o.gens.map(v => Number.isFinite(v) && v > 0 ? v : 0); while (o.gens.length < GENS.length) o.gens.push(0);
-  o.dust = Math.max(0, o.dust);
+  o.gens = o.gens.map(v => Number.isFinite(v) && v > 0 ? Math.min(1e5, v) : 0); while (o.gens.length < GENS.length) o.gens.push(0);
+  // 1.18.1 : les valeurs imbriquées aussi (une sauvegarde importée à la main pouvait rendre la poussière infinie ou NaN pour toujours)
+  for (const k of ['dust', 'runTotal', 'lifeTotal', 'clicks', 'lifeClicks', 'cometsTotal', 'lifeComets', 'novaTotal', 'novaBank', 'prestiges', 'sing', 'singBank', 'bigbangs', 'chalT', 'stage', 'runT'])
+    if (typeof o[k] === 'number') o[k] = Math.min(1e300, Math.max(0, o[k]));
+  const plain = v => v && typeof v === 'object' && !Array.isArray(v);
+  const keep = (m, ok) => { const r = {}; if (plain(m)) for (const k of Object.keys(m)) if (ok(m[k])) r[k] = m[k]; return r; };
+  const fin = v => typeof v === 'number' && Number.isFinite(v), flag = v => v === true || fin(v), lvl = v => fin(v) && v >= 0 && v < 1e6;
+  o.upg = keep(o.upg, flag); o.meta = keep(o.meta, flag); o.ach = keep(o.ach, flag); o.chalDone = keep(o.chalDone, flag);
+  o.gal = keep(o.gal, lvl); o.ast = keep(o.ast, lvl); o.st = keep(o.st, fin);
+  if ('mast' in o) o.mast = fin(o.mast) ? Math.min(500, Math.max(0, o.mast)) : 0;   // la Maîtrise coûte ×1,5 par rang : 500 est hors d'atteinte
+  o.ord.list = o.ord.list.filter(e => plain(e) && typeof e.k === 'string' && ORD_CUR[e.k] && fin(e.n) && e.n > 0);
+  o.log = o.log.filter(e => Array.isArray(e) && e.length >= 2 && fin(e[0]) && typeof e[1] === 'string').slice(-80);
+  if ('dq' in o) {   // veille du jour : forme exacte ou on la retire (elle se recrée)
+    const d = o.dq;
+    if (!(plain(d) && fin(d.day) && Array.isArray(d.ids) && d.ids.length === 3 && d.ids.every(i => typeof i === 'string' && i in DQ) && plain(d.p) && plain(d.got))) delete o.dq;
+    else { d.p = keep(d.p, fin); d.got = keep(d.got, flag); d.all = fin(d.all) ? d.all : 0; d.streak = fin(d.streak) ? d.streak : 0; }
+  }
   return o;
 }
 let S = fresh();
@@ -1767,4 +1782,4 @@ window.GAMES.forge = {
 deEmoji($('tab-forge'));
 new MutationObserver(ms => { for (const m of ms) { if (m.type === 'characterData') { EMO_RE.lastIndex = 0; if (EMO_RE.test(m.target.nodeValue)) deEmoji(m.target.parentNode); } else m.addedNodes.forEach(n => n.nodeType === 3 ? deEmoji(n.parentNode) : deEmoji(n)); } }).observe($('tab-forge'), { subtree: true, childList: true, characterData: true });
 // Accès de test (tools/sf-balance.mjs, console).
-window.__sf = { snNow, bbNow, chalNow, CHALS, BIGBANG_MIN, buyGal, totalDps, checkOrders, swapOrder, ord, rank, rankAt, set ordOff(v) { ordOff = v; }, set clock(f) { clock = f; }, get log() { return S.log; }, AST, buyAst, astCost, astOpen, STAGES, stageOf, startSky, SKY, get shoots() { return shoots; }, catchShoot, checkAch, ACH, set idleT(v) { idleT = v; }, NOVA, buyMastery, mastCost, novaCurve, GALAXY, singGain, buyEngine, fmt, boostOn, get offPending() { return offPending; }, set offPending(v) { offPending = v; offUntil = Date.now() + 60000; }, watchBoost, watchOffline, get S() { return S; }, get comet() { return comet; }, spawnComet, catchComet, set S(v) { S = v; }, tick, buyGen, buyUpg, UPGRADES, GENS, costN, upgCost, dps, clickValue, novaGain, earn, fresh, resetRun, META, buyMeta, setMult: m => { buyMult = m; } };
+window.__sf = { sane, snNow, bbNow, chalNow, CHALS, BIGBANG_MIN, buyGal, totalDps, checkOrders, swapOrder, ord, rank, rankAt, set ordOff(v) { ordOff = v; }, set clock(f) { clock = f; }, get log() { return S.log; }, AST, buyAst, astCost, astOpen, STAGES, stageOf, startSky, SKY, get shoots() { return shoots; }, catchShoot, checkAch, ACH, set idleT(v) { idleT = v; }, NOVA, buyMastery, mastCost, novaCurve, GALAXY, singGain, buyEngine, fmt, boostOn, get offPending() { return offPending; }, set offPending(v) { offPending = v; offUntil = Date.now() + 60000; }, watchBoost, watchOffline, get S() { return S; }, get comet() { return comet; }, spawnComet, catchComet, set S(v) { S = v; }, tick, buyGen, buyUpg, UPGRADES, GENS, costN, upgCost, dps, clickValue, novaGain, earn, fresh, resetRun, META, buyMeta, setMult: m => { buyMult = m; } };

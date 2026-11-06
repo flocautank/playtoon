@@ -47,7 +47,7 @@ products:
   - ios
   - steam
   - web
-  version: 1.18.0
+  version: 1.18.1
   stage: ready-to-ship
   summary: Prestige clicker with forges, upgrades, Supernova and Constellation meta-progression.
   monetization:
@@ -74,7 +74,7 @@ products:
   - Mesurer le rythme de la progression longue (20 à 40 h) avec tools/sf-long.mjs
   - 'Identité graphique : chasser ce qui reste générique'
   next_human_action: Créer le compte Google Play Console, puis l'appli AdMob et le test fermé
-  last_activity: '2026-11-05'
+  last_activity: '2026-11-06'
 - id: synth-horde
   name: Synth Horde
   repo: flocautank/playtoon

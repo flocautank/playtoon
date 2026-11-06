@@ -937,6 +937,20 @@ await shot(m, 'm-bonk-pause');
   await ctx.close();
 }
 
+// ---------- Nova Foundry : sauvegarde aux valeurs imbriquées absurdes (1.18.1) : ne gèle pas, ne rend rien infini
+{
+  const ctx = await browser.newContext({ viewport: { width: 420, height: 860 } });
+  const p = await guard(await ctx.newPage()); watch(p, 'nf-sane');
+  const bad = JSON.stringify({ dust: 1e300, gens: [1e308, 5, 'x'], mast: 100000, ord: { list: [null, { k: 'zz', n: 'a' }], done: 1e308, swapAt: 0 }, ach: { a: 'NaN', b: null }, gal: { 0: 'abc' }, st: { play: 'x' }, dq: { day: 1, ids: 'a', p: null }, log: [null, 3] });
+  await p.addInitScript(t => { try { if (!sessionStorage.getItem('sn')) { sessionStorage.setItem('sn', 1); localStorage.setItem('starforge.save.v1', t); localStorage.setItem('starforge.intro', '1'); } } catch (e) {} }, bad);
+  await p.goto(base + '#forge'); await p.waitForTimeout(900);
+  const r = await Promise.race([p.evaluate(() => { const F = window.__sf; for (let i = 0; i < 10; i++) F.tick(0.5); document.querySelector('[data-sf=ord]') && 0; return { dust: Number.isFinite(F.S.dust), dps: Number.isFinite(F.totalDps()), txt: /NaN|undefined|\[object/.test(document.getElementById('tab-forge').innerText) }; }), new Promise(r => setTimeout(() => r('GEL'), 15000))]);
+  const ok = r && r.dust && r.dps && !r.txt;
+  log(`Nova Foundry : sauvegarde absurde ${ok ? 'OK' : 'ÉCHEC ' + JSON.stringify(r)}`);
+  if (!ok) errs.push('[nf-sane] ' + JSON.stringify(r));
+  await ctx.close();
+}
+
 // ---------- Nova Foundry : vibration (réglage Options ; un court buzz par clic, aucun une fois désactivée)
 {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 720 } });
