@@ -771,6 +771,11 @@ await shot(m, 'm-bonk-pause');
     const lv = await Sp.evaluate(() => { const nb = window.__nb; nb.newRun(); return nb.S.stats.dmg < 2; });
     log(`sauvegarde de boutique éditée : jeu démarré, dégâts bornés=${lv}`);
     if (!lv) errs.push('[mobile] boutique : niveau non borné');
+    // 1.28.0 : surcharge (niveaux 6 à 8) — compte en run normale (dmg 99 → 8 niveaux = +40 %), pas en défi du jour (plafonné à 5 = +25 %)
+    const sur = await Sp.evaluate(() => { const nb = window.__nb; nb.META.shop = { dmg: 8, hp: 99 }; nb.newRun(); const a = nb.S.stats.dmg; nb.newRun(true); return [a, nb.S.stats.dmg]; });
+    const surOK = sur[0] > sur[1] + 0.1;
+    log(`surcharge de boutique : dégâts run=${sur[0].toFixed(2)} · défi du jour=${sur[1].toFixed(2)} (doit être plus bas)`, surOK ? 'OK' : 'ÉCHEC');
+    if (!surOK) errs.push('[mobile] boutique : la surcharge compte en défi du jour ou pas en run');
     await ctxS.close();
   }
   const ctxL = await browser.newContext({ viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });

@@ -329,18 +329,22 @@ try { Object.assign(META, JSON.parse(localStorage.getItem(META_KEY) || '{}')); }
 }
 // Boutique permanente : crédits gagnés à chaque run, améliorations conservées d'une run à l'autre.
 const SHOP = [
-  { id: 'hp', ic: '❤️', max: 5, base: 30, desc: l => tr('nb.shd.hp', { n: 10 * l }), fx: (s, l) => s.hp += 10 * l },
-  { id: 'dmg', ic: '💥', max: 5, base: 40, desc: l => tr('nb.shd.dmg', { n: 5 * l }), fx: (s, l) => s.dmg += 0.05 * l },
-  { id: 'speed', ic: '👟', max: 5, base: 30, desc: l => tr('nb.shd.speed', { n: 3 * l }), fx: (s, l) => s.speed += 0.03 * l },
-  { id: 'magnet', ic: '🧲', max: 5, base: 25, desc: l => tr('nb.shd.magnet', { n: 10 * l }), fx: (s, l) => s.magnet += 0.1 * l },
-  { id: 'xp', ic: '📘', max: 5, base: 40, desc: l => tr('nb.shd.xp', { n: 5 * l }), fx: (s, l) => s.xp += 0.05 * l },
-  { id: 'luck', ic: '🍀', max: 5, base: 40, desc: l => tr('nb.shd.luck', { n: 4 * l }), fx: (s, l) => s.luck += 4 * l },
-  { id: 'gold', ic: '🪙', max: 5, base: 35, desc: l => tr('nb.shd.gold', { n: 20 * l }), fx: (s, l) => s.gold += 0.2 * l },
+  { id: 'hp', ic: '❤️', max: 5, ext: 3, base: 30, desc: l => tr('nb.shd.hp', { n: 10 * l }), fx: (s, l) => s.hp += 10 * l },
+  { id: 'dmg', ic: '💥', max: 5, ext: 3, base: 40, desc: l => tr('nb.shd.dmg', { n: 5 * l }), fx: (s, l) => s.dmg += 0.05 * l },
+  { id: 'speed', ic: '👟', max: 5, ext: 3, base: 30, desc: l => tr('nb.shd.speed', { n: 3 * l }), fx: (s, l) => s.speed += 0.03 * l },
+  { id: 'magnet', ic: '🧲', max: 5, ext: 3, base: 25, desc: l => tr('nb.shd.magnet', { n: 10 * l }), fx: (s, l) => s.magnet += 0.1 * l },
+  { id: 'xp', ic: '📘', max: 5, ext: 3, base: 40, desc: l => tr('nb.shd.xp', { n: 5 * l }), fx: (s, l) => s.xp += 0.05 * l },
+  { id: 'luck', ic: '🍀', max: 5, ext: 3, base: 40, desc: l => tr('nb.shd.luck', { n: 4 * l }), fx: (s, l) => s.luck += 4 * l },
+  { id: 'gold', ic: '🪙', max: 5, ext: 3, base: 35, desc: l => tr('nb.shd.gold', { n: 20 * l }), fx: (s, l) => s.gold += 0.2 * l },
   { id: 'reroll', ic: '🎲', max: 3, base: 60, desc: l => tr('nb.shd.reroll', { n: l }), fx: () => {} },
   { id: 'revive', ic: '✚', max: 1, base: 200, desc: () => tr('nb.shd.revive'), fx: () => {} },
 ];
 // borné au niveau maximum de l'amélioration : une sauvegarde éditée (−3, 99, « x ») faisait lever `repeat` à l'affichage de la boutique
-const shopLvl = id => { const it = SHOP.find(i => i.id === id), l = Math.floor(Number(META.shop && META.shop[id])); return it && l > 0 ? Math.min(l, it.max) : 0; };
+const shopLvl = id => { const it = SHOP.find(i => i.id === id), l = Math.floor(Number(META.shop && META.shop[id])); return it && l > 0 ? Math.min(l, shopCap(it)) : 0; };
+// 1.28.0 : « surcharge » — 3 niveaux de plus (6 à 8) sur les sept améliorations de stats, pour les crédits qui ne servaient plus
+// à rien une fois la boutique achetée (~16 000 crédits, les quêtes en versent bien plus). Pas en défi du jour (équité du classement).
+const shopCap = it => it.max + (it.ext || 0);
+const shopRun = (id, D) => D ? Math.min(shopLvl(id), SHOP.find(i => i.id === id).max) : shopLvl(id);
 // progression permanente étalée (retour de partie, 2026-10-05 : « j'ai presque tout acheté en une run ») : prix ×2, doublés à
 // chaque niveau, crédits des runs −40 %, récompenses en crédits des quêtes ÷2 → tout acheter demande ~15–20 runs
 const shopCost = it => Math.round(it.base * 2 * Math.pow(2, shopLvl(it.id)));
@@ -1078,7 +1082,7 @@ function newRun(daily) {
   clearFX(); playerTrail();
   S.unl0 = CHARS.filter(unlocked).map(c => c.id);   // personnages débloqués au départ (les boss tués mettent META à jour en cours de run)
   applyStage(0);
-  for (const it of SHOP) if (shopLvl(it.id)) it.fx(S.stats, shopLvl(it.id));
+  for (const it of SHOP) if (shopRun(it.id, D)) it.fx(S.stats, shopRun(it.id, D));
   S.rerolls += shopLvl('reroll') + (questDone('vendor5') ? 1 : 0); S.revives = shopLvl('revive');
   S.banishes += (questDone('evo10') ? 1 : 0) + (questDone('itemdmg500000') ? 1 : 0) + (questDone('dstreak7') ? 1 : 0); S.rerolls += questDone('lvl60') ? 1 : 0;
   if (D) { for (const k of D.mods) DMODS[k].fx(S.stats); if (D.mods.includes('echo')) S.pd = { echo: 1 }; S.stats.hp = Math.max(40, S.stats.hp); }
@@ -3764,10 +3768,10 @@ function renderMenu() {
   }
   const sh = $('nb-shop'); sh.innerHTML = '';
   for (const it of SHOP) {
-    const l = shopLvl(it.id), c = shopCost(it), max = l >= it.max;
+    const l = shopLvl(it.id), c = shopCost(it), max = l >= shopCap(it);
     const b = document.createElement('button');
     b.className = 'nb-sh ' + (max ? 'max' : (META.credits || 0) >= c ? 'can' : 'no');
-    b.innerHTML = `<b>${it.ic} ${it.name} <span class="pips">${'■'.repeat(l)}${'□'.repeat(it.max - l)}</span></b><span class="cost">${max ? tr('nb.max') : '◈ ' + num(c)}</span>`
+    b.innerHTML = `<b>${it.ic} ${it.name} <span class="pips">${'■'.repeat(Math.min(l, it.max))}${'□'.repeat(Math.max(0, it.max - l))}${l >= it.max ? `<i class="x">${'■'.repeat(l - it.max)}${'□'.repeat(shopCap(it) - l)}</i>` : ''}</span></b><span class="cost">${max ? tr('nb.max') : '◈ ' + num(c)}</span>`
       + `<span class="muted">${max ? it.desc(l) : (l ? it.desc(l) + ' → ' : '') + it.desc(l + 1)}</span>`;
     b.onclick = () => { if (max || (META.credits || 0) < c) return; META.credits -= c; META.shop[it.id] = l + 1; saveMeta(); sfx('chest'); renderMenu(); };
     sh.appendChild(b);

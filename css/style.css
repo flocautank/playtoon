@@ -270,6 +270,7 @@ main{position:fixed;inset:var(--nav-h) 0 0 0}
 .nb-sh .muted{grid-column:1/-1}
 .nb-sh b{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .nb-sh .pips{letter-spacing:1px;color:#7ff6ff;font-size:9px}
+.nb-sh .pips .x{font-style:normal;color:#ffc94d;margin-left:3px}
 .nb-sh .cost{color:#7ff6ff;font-weight:700}
 .nb-sh.can{border-color:#27e0ff}
 .nb-sh.no{opacity:.55;cursor:default}
