@@ -162,6 +162,7 @@ const XUPG = [   // [id, coût, condition, effet] — textes : sf.xupg, dans cet
   ['sky3', 2e12, s => (s.st.sky_flare || 0) >= 1, { sky: 1 }], ['sky4', 2e14, s => (s.st.sky_aurora || 0) >= 1, { sky: 1 }],
   ['off0', 1e6, s => s.runTotal >= 2.5e5, { off: 1.5 }], ['off1', 1e12, s => s.runTotal >= 2.5e11, { off: 2 }],
   ['cab0', 1e9, s => Object.keys(s.ach).length >= 15, { cab: 0.005 }], ['cab1', 1e15, s => Object.keys(s.ach).length >= 40, { cab: 0.005 }],
+  ['sky5', 2e16, s => (s.st.sky_peri || 0) >= 1, { sky: 1 }],   // Périhélie : −40 % au lieu de −30 % (textes en dernier : sf.xupg)
 ];
 XUPG.forEach(([id, cost, req, fx], k) => UPGRADES.push({ id, cost, req, fx, get name() { return t('sf.xupg')[k][0]; }, get desc() { return t('sf.xupg')[k][1]; }, get reqTxt() { return ''; } }));
 const upgOn = id => !!S.upg[id];
@@ -600,7 +601,8 @@ function clickValue() {
 }
 const flareK = () => (has('m_flare') ? 30 : 10) * (upgOn('sky3') ? 2 : 1);
 const growth = () => inChal('c_infl') ? 1.25 : (has('m_econ') ? 1.14 : 1.15) - (chalDone('c_infl') ? 0.005 : 0);
-const periK = () => S.buffs.some(b => b.type === 'peri') ? 0.7 : 1;   // périhélie : forges 30 % moins chères
+const periPct = () => upgOn('sky5') ? 40 : 30;
+const periK = () => S.buffs.some(b => b.type === 'peri') ? 1 - periPct() / 100 : 1;   // périhélie : forges 30 % moins chères
 const genBase = i => GENS[i].cost * periK() * (has('m_cheap') ? 0.9 : 1) * (has('m_cheap2') ? 0.9 : 1);
 function costN(i, n) { const r = growth(), b = genBase(i) * Math.pow(r, S.gens[i]); return b * (Math.pow(r, n) - 1) / (r - 1); }
 function maxAffordable(i) {
@@ -1131,7 +1133,7 @@ function startSky(type) {
   if (type === 'conj') { const a = own.splice((Math.random() * own.length) | 0, 1)[0][1], z = own[(Math.random() * own.length) | 0][1]; b.g = [a, z].sort((p, q) => p - q); b.m = conjK(); }
   S.buffs = S.buffs.filter(x => x.type !== type); S.buffs.push(b);
   S.st['sky_' + type] = st('sky_' + type) + 1; S.st.sky = st('sky') + 1; dqAdd('sky');
-  const v = { s: Math.round(d), m: type === 'peri' ? 30 : fmt(type === 'flare' ? flareK() : type === 'aurora' ? auroraK() : b.m || 0), a: b.g ? GENS[b.g[0]].name : '', b: b.g ? GENS[b.g[1]].name : '' };
+  const v = { s: Math.round(d), m: type === 'peri' ? periPct() : fmt(type === 'flare' ? flareK() : type === 'aurora' ? auroraK() : b.m || 0), a: b.g ? GENS[b.g[0]].name : '', b: b.g ? GENS[b.g[1]].name : '' };
   toast(t({ eclipse: 'sf.eclipseT', shower: 'sf.showerT', conj: 'sf.conjT', flare: 'sf.flareT', aurora: 'sf.auroraT', peri: 'sf.periT' }[type], v));
   sfx(type === 'eclipse' ? 90 : 440, 1, 'sine', 0.06); if (type !== 'eclipse') sfx(660, 1.2, 'sine', 0.04, 0.2);
 }
@@ -1506,7 +1508,7 @@ function refresh(structural) {
   $('sf-dust').textContent = fmt(S.dust);
   $('sf-rate').textContent = fmt(totalDps());
   const BN = { frenzy: [t('sf.bFrenzy', { m: has('m_comet3') ? 10 : 7 }), ''], click: [t('sf.bClick'), ''], meteor: [t('sf.bMeteor'), 'met'], eclipse: [t('sf.bEclipse'), 'ecl'], echo: [t('sf.bEcho', { m: has('m_echo') ? 30 : 15 }), 'ecl'], void: [t('sf.bVoid'), 'ecl'], surge: [null, ''],
-    shower: [engSvg('shower') + ' ' + t('sf.bShower'), 'sky'], conj: [null, 'sky'], flare: [engSvg('flare') + ' ' + t('sf.bFlare', { m: fmt(flareK()) }), 'sky'], aurora: [engSvg('aurora') + ' ' + t('sf.bAurora', { m: fmt(auroraK()) }), 'sky'], peri: [engSvg('peri') + ' ' + t('sf.bPeri', { m: 30 }), 'sky'] };
+    shower: [engSvg('shower') + ' ' + t('sf.bShower'), 'sky'], conj: [null, 'sky'], flare: [engSvg('flare') + ' ' + t('sf.bFlare', { m: fmt(flareK()) }), 'sky'], aurora: [engSvg('aurora') + ' ' + t('sf.bAurora', { m: fmt(auroraK()) }), 'sky'], peri: [engSvg('peri') + ' ' + t('sf.bPeri', { m: periPct() }), 'sky'] };
   const bname = b => b.type === 'surge' ? t('sf.bSurge', { gen: GENS[b.g].name, m: fmt(b.m) }) : b.type === 'conj' ? engSvg('conj') + ' ' + t('sf.bConj', { a: GENS[b.g[0]].name, b: GENS[b.g[1]].name, m: fmt(b.m) }) : BN[b.type][0], stack = S.buffs.reduce((m, b) => m * buffMult(b), 1);
   $('sf-buffs').innerHTML = (eternal() ? `<span class="met">${t('sf.eternalBuff')}</span>` : boostLeft() > 0 ? `<span class="met">${t('sf.boostBuff', { t: hm(boostLeft()) })}</span>` : '') + S.buffs.map(b => `<span class="${BN[b.type][1]}">${bname(b)} · ${Math.ceil(b.t)} s</span>`).join('') + (S.buffs.filter(b => buffMult(b) > 1).length >= 2 ? `<span class="met">${t('sf.stack', { m: fmt(stack) })}</span>` : '');
   { const bb = $('sf-buffs'); if (/\p{Extended_Pictographic}/u.test(bb.innerHTML)) bb.innerHTML = noEmoji(bb.innerHTML); }

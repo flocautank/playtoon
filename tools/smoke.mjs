@@ -936,7 +936,18 @@ await shot(m, 'm-bonk-pause');
     const k = +b.replace(/\D/g, '') / +a.replace(/\D/g, '');
     return { a, b, k, all: F.SKY.length, banner: /−30/.test(document.getElementById('sf-buffs').textContent) };
   });
-  const ok = r.k > 0.69 && r.k < 0.71 && r.all === 6 && r.banner;
+  // Lentille du périhélie (sky5, 1.19.0) : exigée après un premier périhélie, −40 % au lieu de −30 %
+  const lens = await p.evaluate(async () => {
+    const F = window.__sf, u = F.UPGRADES.find(x => x.id === 'sky5');
+    if (!u) return { missing: true };
+    F.S.st.sky_peri = 0; const wanted = !!u.req(F.S); F.S.st.sky_peri = 1; const avail = !!u.req(F.S);
+    F.S.upg.sky5 = 1; F.S.buffs = []; F.startSky('peri');
+    await new Promise(r => setTimeout(r, 800));
+    const txt = document.getElementById('sf-buffs').textContent;
+    return { wanted, avail, name: u.name, banner40: /−40/.test(txt) };
+  });
+  const ok = r.k > 0.69 && r.k < 0.71 && r.all === 6 && r.banner && !lens.missing && !lens.wanted && lens.avail && lens.banner40 && lens.name.length > 3;
+  if (!ok) r.lens = lens;
   log(`Nova Foundry : Périhélie ${ok ? 'OK' : 'ÉCHEC ' + JSON.stringify(r)}`);
   if (!ok) errs.push('[nf-peri] ' + JSON.stringify(r));
   await ctx.close();
