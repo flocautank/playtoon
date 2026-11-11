@@ -35,7 +35,7 @@ THE QUARRY LOG
 FAIR BY DESIGN
 • Fair piece dealing: the game looks for a set of three you can place, and lends a hand when the grid fills up.
 • Hammer, bomb and shuffle boosters, bought with the coins you earn in play — never with real money.
-• Nine themes: Neon, Pastel, Pixel and Gold & Obsidian bought with coins; Marble, Basalt & Lava and Jade earned by rank.
+• Ten themes: Neon, Pastel, Pixel and Gold & Obsidian bought with coins; Marble, Basalt & Lava, Jade and Amber earned by rank.
 • No ads, no energy, no in-game purchases. Buy once, play forever.
 • Six languages: English, Français, Deutsch, Español, Italiano, Português.
 ```
@@ -59,7 +59,7 @@ LE CARNET DU CARRIER
 ÉQUITABLE
 • Tirage juste : le jeu cherche un trio de pièces que tu peux poser, et donne un coup de pouce quand la grille se remplit.
 • Marteau, bombe et mélange, achetés avec les pièces gagnées en jouant — jamais avec de l'argent réel.
-• Neuf thèmes : Néon, Pastel, Pixel et Or & Obsidienne contre des pièces ; Marbre, Basalte & lave et Jade gagnés par grade.
+• Dix thèmes : Néon, Pastel, Pixel et Or & Obsidienne contre des pièces ; Marbre, Basalte & lave, Jade et Ambre gagnés par grade.
 • Ni publicité, ni énergie, ni achat dans le jeu. Achète une fois, joue pour toujours.
 • Six langues : English, Français, Deutsch, Español, Italiano, Português.
 ```

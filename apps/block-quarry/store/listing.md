@@ -40,7 +40,7 @@ Block Quarry is a relaxing block puzzle with a twist: some rows are made of ston
 • A medal for each chapter you master with all 30 stars
 
 ★ MAKE IT YOURS
-• 9 block themes: Quarry and Classic from the start, Neon, Pastel, Pixel and Gold & Obsidian for coins, Marble, Basalt & Lava and Jade earned by rank
+• 10 block themes: Quarry and Classic from the start, Neon, Pastel, Pixel and Gold & Obsidian for coins, Marble, Basalt & Lava, Jade and Amber earned by rank
 • Leaderboards on Google Play Games: daily challenge, Classic and Time Attack records
 • Plays offline, portrait, one hand
 • In 6 languages: English, Français, Español, Deutsch, Italiano, Português
@@ -84,7 +84,7 @@ Block Quarry est un puzzle de blocs détendant, avec une particularité : certai
 • Une médaille pour chaque chapitre maîtrisé avec ses 30 étoiles
 
 ★ À TON STYLE
-• 9 thèmes de blocs : Carrière et Classique d'emblée, Néon, Pastel, Pixel et Or & Obsidienne contre des pièces, Marbre, Basalte & lave et Jade gagnés par grade
+• 10 thèmes de blocs : Carrière et Classique d'emblée, Néon, Pastel, Pixel et Or & Obsidienne contre des pièces, Marbre, Basalte & lave, Jade et Ambre gagnés par grade
 • Classements Google Play Jeux : défi du jour, records Classique et Chrono
 • Jouable hors ligne, en portrait, à une main
 • En 6 langues : English, Français, Español, Deutsch, Italiano, Português

@@ -50,7 +50,7 @@ const TXT = {
     'bp.m.ice': 'Break {n} ice tiles', 'bp.m.vein': 'Clear {n} vein blocks', 'bp.m.geode': 'Win {n} geode levels', 'bp.m.daily': 'Play the daily challenge on {n} days', 'bp.m.dstar': 'Get ★★ in the daily challenge on {n} days',
     'bp.claimVid': '▶ ×2: +{n} 🪙', 'bp.chestGot': 'Weekly chest opened', 'bp.chestOpen': 'Open the weekly chest · +{n} 🪙', 'bp.chestHint': 'Weekly chest (+{n} 🪙): claim all 3 missions · {k}/3', 'bp.medalGot': 'Chapter medal: {c} · +{n} coins',
     'bp.cs.lines': 'Lines', 'bp.cs.pieces': 'Pieces', 'bp.cs.games': 'Games', 'bp.cs.combo': 'Best combo', 'bp.cs.clears': 'All clears', 'bp.cs.best': 'Classic record', 'bp.cs.stars': 'Adventure stars', 'bp.cs.days': 'Daily days',
-    'bp.th.marble': 'Marble', 'bp.th.basalt': 'Basalt & Lava', 'bp.th.jade': 'Jade',
+    'bp.th.marble': 'Marble', 'bp.th.basalt': 'Basalt & Lava', 'bp.th.jade': 'Jade', 'bp.th.amber': 'Amber',
     'bp.more': '+3 moves · 🪙 25', 'bp.cont': '💥 Continue · 🪙 {n}', 'bp.next': 'Next', 'bp.retry': 'Retry', 'bp.map': 'Map', 'bp.cleared': 'Level cleared!',
   },
   fr: {
@@ -102,7 +102,7 @@ const TXT = {
     'bp.m.ice': 'Brise {n} plaques de givre', 'bp.m.vein': 'Dégage {n} blocs de filon', 'bp.m.geode': 'Gagne {n} niveaux de géode', 'bp.m.daily': 'Joue au défi du jour {n} jours', 'bp.m.dstar': 'Décroche ★★ au défi du jour {n} jours',
     'bp.claimVid': '▶ ×2 : +{n} 🪙', 'bp.chestGot': 'Coffre de la semaine ouvert', 'bp.chestOpen': 'Ouvrir le coffre de la semaine · +{n} 🪙', 'bp.chestHint': 'Coffre de la semaine (+{n} 🪙) : récupère les 3 missions · {k}/3', 'bp.medalGot': 'Médaille de chapitre : {c} · +{n} pièces',
     'bp.cs.lines': 'Lignes', 'bp.cs.pieces': 'Pièces posées', 'bp.cs.games': 'Parties', 'bp.cs.combo': 'Meilleur combo', 'bp.cs.clears': 'Tables rases', 'bp.cs.best': 'Record classique', 'bp.cs.stars': 'Étoiles d’Aventure', 'bp.cs.days': 'Jours de défi',
-    'bp.th.marble': 'Marbre', 'bp.th.basalt': 'Basalte & lave', 'bp.th.jade': 'Jade',
+    'bp.th.marble': 'Marbre', 'bp.th.basalt': 'Basalte & lave', 'bp.th.jade': 'Jade', 'bp.th.amber': 'Ambre',
     'bp.more': '+3 coups · 🪙 25', 'bp.cont': '💥 Continuer · 🪙 {n}', 'bp.next': 'Suivant', 'bp.retry': 'Réessayer', 'bp.map': 'Carte', 'bp.cleared': 'Niveau réussi !',
   },
   es: {
@@ -154,7 +154,7 @@ const TXT = {
     'bp.m.ice': 'Rompe {n} placas de escarcha', 'bp.m.vein': 'Despeja {n} bloques de veta', 'bp.m.geode': 'Gana {n} niveles de geoda', 'bp.m.daily': 'Juega el reto diario {n} días', 'bp.m.dstar': 'Consigue ★★ en el reto diario {n} días',
     'bp.claimVid': '▶ ×2: +{n} 🪙', 'bp.chestGot': 'Cofre semanal abierto', 'bp.chestOpen': 'Abrir el cofre semanal · +{n} 🪙', 'bp.chestHint': 'Cofre semanal (+{n} 🪙): recoge las 3 misiones · {k}/3', 'bp.medalGot': 'Medalla de capítulo: {c} · +{n} monedas',
     'bp.cs.lines': 'Líneas', 'bp.cs.pieces': 'Piezas', 'bp.cs.games': 'Partidas', 'bp.cs.combo': 'Mejor combo', 'bp.cs.clears': 'Tableros limpios', 'bp.cs.best': 'Récord clásico', 'bp.cs.stars': 'Estrellas de Aventura', 'bp.cs.days': 'Días de reto',
-    'bp.th.marble': 'Mármol', 'bp.th.basalt': 'Basalto y lava', 'bp.th.jade': 'Jade',
+    'bp.th.marble': 'Mármol', 'bp.th.basalt': 'Basalto y lava', 'bp.th.jade': 'Jade', 'bp.th.amber': 'Ámbar',
     'bp.more': '+3 movimientos · 🪙 25', 'bp.cont': '💥 Seguir · 🪙 {n}', 'bp.next': 'Siguiente', 'bp.retry': 'Reintentar', 'bp.map': 'Mapa', 'bp.cleared': '¡Nivel superado!',
   },
   de: {
@@ -206,7 +206,7 @@ const TXT = {
     'bp.m.ice': 'Brich {n} Frostplatten', 'bp.m.vein': 'Räume {n} Adersteine', 'bp.m.geode': 'Gewinne {n} Geoden-Level', 'bp.m.daily': 'Spiele die Tagesaufgabe an {n} Tagen', 'bp.m.dstar': 'Hol ★★ in der Tagesaufgabe an {n} Tagen',
     'bp.claimVid': '▶ ×2: +{n} 🪙', 'bp.chestGot': 'Wochentruhe geöffnet', 'bp.chestOpen': 'Wochentruhe öffnen · +{n} 🪙', 'bp.chestHint': 'Wochentruhe (+{n} 🪙): hol alle 3 Missionen ab · {k}/3', 'bp.medalGot': 'Kapitelmedaille: {c} · +{n} Münzen',
     'bp.cs.lines': 'Linien', 'bp.cs.pieces': 'Teile', 'bp.cs.games': 'Spiele', 'bp.cs.combo': 'Bestes Kombo', 'bp.cs.clears': 'Alles leer', 'bp.cs.best': 'Klassik-Rekord', 'bp.cs.stars': 'Abenteuer-Sterne', 'bp.cs.days': 'Aufgabentage',
-    'bp.th.marble': 'Marmor', 'bp.th.basalt': 'Basalt & Lava', 'bp.th.jade': 'Jade',
+    'bp.th.marble': 'Marmor', 'bp.th.basalt': 'Basalt & Lava', 'bp.th.jade': 'Jade', 'bp.th.amber': 'Bernstein',
     'bp.more': '+3 Züge · 🪙 25', 'bp.cont': '💥 Fortsetzen · 🪙 {n}', 'bp.next': 'Weiter', 'bp.retry': 'Erneut versuchen', 'bp.map': 'Karte', 'bp.cleared': 'Level geschafft!',
   },
   it: {
@@ -258,7 +258,7 @@ const TXT = {
     'bp.m.ice': 'Rompi {n} lastre di brina', 'bp.m.vein': 'Libera {n} blocchi di filone', 'bp.m.geode': 'Vinci {n} livelli geode', 'bp.m.daily': 'Gioca la sfida del giorno per {n} giorni', 'bp.m.dstar': 'Ottieni ★★ nella sfida del giorno per {n} giorni',
     'bp.claimVid': '▶ ×2: +{n} 🪙', 'bp.chestGot': 'Forziere settimanale aperto', 'bp.chestOpen': 'Apri il forziere settimanale · +{n} 🪙', 'bp.chestHint': 'Forziere settimanale (+{n} 🪙): riscuoti le 3 missioni · {k}/3', 'bp.medalGot': 'Medaglia del capitolo: {c} · +{n} monete',
     'bp.cs.lines': 'Linee', 'bp.cs.pieces': 'Pezzi', 'bp.cs.games': 'Partite', 'bp.cs.combo': 'Combo migliore', 'bp.cs.clears': 'Griglie svuotate', 'bp.cs.best': 'Record classico', 'bp.cs.stars': 'Stelle Avventura', 'bp.cs.days': 'Giorni di sfida',
-    'bp.th.marble': 'Marmo', 'bp.th.basalt': 'Basalto e lava', 'bp.th.jade': 'Giada',
+    'bp.th.marble': 'Marmo', 'bp.th.basalt': 'Basalto e lava', 'bp.th.jade': 'Giada', 'bp.th.amber': 'Ambra',
     'bp.more': '+3 mosse · 🪙 25', 'bp.cont': '💥 Continua · 🪙 {n}', 'bp.next': 'Avanti', 'bp.retry': 'Riprova', 'bp.map': 'Mappa', 'bp.cleared': 'Livello superato!',
   },
   pt: {
@@ -310,7 +310,7 @@ const TXT = {
     'bp.m.ice': 'Quebre {n} placas de gelo', 'bp.m.vein': 'Libere {n} blocos de veio', 'bp.m.geode': 'Vença {n} níveis de geodo', 'bp.m.daily': 'Jogue o desafio diário em {n} dias', 'bp.m.dstar': 'Consiga ★★ no desafio diário em {n} dias',
     'bp.claimVid': '▶ ×2: +{n} 🪙', 'bp.chestGot': 'Baú semanal aberto', 'bp.chestOpen': 'Abrir o baú semanal · +{n} 🪙', 'bp.chestHint': 'Baú semanal (+{n} 🪙): resgate as 3 missões · {k}/3', 'bp.medalGot': 'Medalha de capítulo: {c} · +{n} moedas',
     'bp.cs.lines': 'Linhas', 'bp.cs.pieces': 'Peças', 'bp.cs.games': 'Partidas', 'bp.cs.combo': 'Melhor combo', 'bp.cs.clears': 'Tabuleiros limpos', 'bp.cs.best': 'Recorde clássico', 'bp.cs.stars': 'Estrelas da Aventura', 'bp.cs.days': 'Dias de desafio',
-    'bp.th.marble': 'Mármore', 'bp.th.basalt': 'Basalto e lava', 'bp.th.jade': 'Jade',
+    'bp.th.marble': 'Mármore', 'bp.th.basalt': 'Basalto e lava', 'bp.th.jade': 'Jade', 'bp.th.amber': 'Âmbar',
     'bp.more': '+3 jogadas · 🪙 25', 'bp.cont': '💥 Continuar · 🪙 {n}', 'bp.next': 'Próximo', 'bp.retry': 'Tentar de novo', 'bp.map': 'Mapa', 'bp.cleared': 'Nível concluído!',
   },
 };

@@ -602,6 +602,15 @@ await page.close();
   }
   const st = await t.evaluate(() => [localStorage.getItem('blocparty.themes'), localStorage.getItem('blocparty.coins')]);
   log('thèmes :', st.join(' · pièces='));
+  // Ambre (1.23.0) : thème de grade 15 — équipable au grade
+  const n = await t.$$eval('#bp-thgrid .bp-th', e => e.length);
+  await t.evaluate(() => { window.__bp.CAR.rank = 15; });
+  await t.click('#bp-themeclose').catch(() => {}); await t.click('#bp-themebtn'); await t.waitForTimeout(200);
+  await t.click('#bp-thgrid .bp-th:nth-child(10)'); await t.waitForTimeout(200);
+  const cur = await t.evaluate(() => JSON.parse(localStorage.getItem('blocparty.themes')).cur);
+  await t.click('#bp-themeclose'); await t.waitForTimeout(300); await shot(t, 'blocks-theme-amber');
+  log('thème Ambre :', n, 'tuiles ; équipé =', cur);
+  if (n !== 10 || cur !== 'amber') errs.push('[desktop] thème Ambre : absent ou non équipable (' + n + ' tuiles, thème ' + cur + ')');
   await t.close();
 }
 
