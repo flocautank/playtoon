@@ -643,7 +643,7 @@ function shareDaily() {
 // premier coup du jour dans le défi : c'est lui qui fait avancer la série
 function dailyPlayed() {
   const today = uKey(); if (DAILY.last >= today) return;   // ≥ : journée déjà comptée (migration UTC, horloge revenue en arrière)
-  DAILY.streak = DAILY.last === uKey(new Date(Date.now() - 864e5)) ? DAILY.streak + 1 : 1; DAILY.last = today; saveDaily(); stat('days'); track('daily');
+  DAILY.streak = DAILY.last === uKey(new Date(Date.now() - 864e5)) ? DAILY.streak + 1 : 1; DAILY.last = today; saveDaily(); stat('days'); stat('streak', DAILY.streak, true); track('daily');
 }
 const saveDaily = () => { try { localStorage.setItem('blocparty.daily', JSON.stringify(DAILY)); } catch (e) {} };
 // ---------- Carnet du carrier (1.9.0) : grade de carrière, missions de la semaine, médailles de chapitre, statistiques.
@@ -670,6 +670,10 @@ if (carFresh) {   // joueurs d'avant 1.9.0 : le grade part de la progression dé
   CAR.xp = advSt * 3 + dSt * 10; CAR.rank = rankOf(CAR.xp);
 }
 if (CAR.lg == null) CAR.lg = legendOf(CAR.xp);   // joueurs d'avant 1.14.0 : les étoiles déjà méritées ne rapportent rien rétroactivement
+if (CAR.st.streak == null) {   // joueurs d'avant 1.24.0 : la meilleure série connue part de la série en cours, sans prime rétroactive
+  CAR.st.streak = Math.max(0, +DAILY.streak || 0); CAR.ms = CAR.ms || {};
+  CAR.ms.streak = [3, 7, 14, 30].filter(x => x <= CAR.st.streak).length;
+}
 const saveCar = () => { try { localStorage.setItem('blocparty.career', JSON.stringify(CAR)); } catch (e) {} };
 const toast = m => window.ptToast && window.ptToast(m);
 const rankName = r => { const n = t('bp.ranks'); return `${(Array.isArray(n) && n[r >> 1]) || ''} ${r % 2 ? 'II' : 'I'}`; };
@@ -731,7 +735,7 @@ function checkMedals() {
 // jalons à vie (1.14.0) : des paliers lointains sous chaque statistique du Carnet, payés une fois, sans bouton ni vidéo —
 // de quoi viser au-delà du dernier grade. Pièces et XP seulement, rien qui se règle contre de l'argent.
 const MS_FAM = [['lines', [250, 1500, 6000, 25000], s => s.lines], ['pieces', [800, 5000, 20000, 80000], s => s.pieces], ['games', [10, 60, 250, 1000], s => s.games],
-  ['combo', [6, 9, 12, 15], s => s.combo], ['clears', [1, 10, 50, 200], s => s.clears], ['days', [3, 10, 30, 100], s => s.days], ['best', [2500, 8000, 20000, 50000], s => S.best]];
+  ['combo', [6, 9, 12, 15], s => s.combo], ['clears', [1, 10, 50, 200], s => s.clears], ['days', [3, 10, 30, 100], s => s.days], ['streak', [3, 7, 14, 30], s => s.streak], ['best', [2500, 8000, 20000, 50000], s => S.best]];
 const MS_COINS = [30, 60, 100, 200], MS_XP = [20, 40, 80, 150];
 function checkMilestones() {
   if (!CAR.ms) CAR.ms = {};
@@ -1875,4 +1879,4 @@ window.GAMES.blocks = {
   hide() { running = false; S.drag = null; },
 };
 // Accès de test (tools/smoke.mjs, console).
-window.__bp = { CAR, MISSIONS, openCareer, ensureWeek, track, gainXP, S, L, newGame, refill: fillTray, place, fits, startLevel, goalWon, startDaily, startChrono, linesToClear, canPlaceAnywhere, N, gameOver, endNow: () => { S.over = true; armOver(600); } };
+window.__bp = { CAR, get DAILY() { return DAILY; }, dailyPlayed, checkMilestones, MISSIONS, openCareer, ensureWeek, track, gainXP, S, L, newGame, refill: fillTray, place, fits, startLevel, goalWon, startDaily, startChrono, linesToClear, canPlaceAnywhere, N, gameOver, endNow: () => { S.over = true; armOver(600); } };

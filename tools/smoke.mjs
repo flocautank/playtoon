@@ -126,6 +126,22 @@ await page.click('[data-tool=shuffle]'); await page.waitForTimeout(200); await s
   if (r.n !== 3 || c1 - c0 < 40 || again) errs.push('[desktop] Carnet : mission mal récupérée');
   await page.click('#bp-carclose');
 }
+// jalons de série du défi (1.24.0) : la meilleure série retenue, primes payées une fois, rien de rétroactif
+{
+  const r = await page.evaluate(() => {
+    const B = window.__bp, D = B.DAILY, DAY = 864e5, u = d => { const x = new Date(Date.now() - d * DAY); return x.getUTCFullYear() * 10000 + (x.getUTCMonth() + 1) * 100 + x.getUTCDate(); };
+    D.last = u(1); D.streak = 2; B.CAR.st.streak = 2; B.CAR.ms = B.CAR.ms || {}; B.CAR.ms.streak = 0;
+    const c0 = +localStorage.getItem('blocparty.coins') || 0;
+    B.dailyPlayed(); B.checkMilestones();                    // 2e → 3e jour d'affilée : palier 1
+    const k1 = B.CAR.ms.streak, c1 = +localStorage.getItem('blocparty.coins');
+    B.checkMilestones();                                      // idempotent
+    const c2 = +localStorage.getItem('blocparty.coins');
+    D.last = u(1); D.streak = 0; B.dailyPlayed();            // série brisée puis relancée : la meilleure reste
+    return { k1, gain: c1 - c0, again: c2 - c1, best: B.CAR.st.streak, cur: D.streak };
+  });
+  log('jalons de série :', JSON.stringify(r));
+  if (r.k1 !== 1 || r.gain < 30 || r.again !== 0 || r.best !== 3) errs.push('[desktop] jalons de série du défi : ' + JSON.stringify(r));
+}
 // missions de filon et de géode (1.17.0) : elles progressent, et le tirage n'en propose pas avant le chapitre concerné
 {
   const r = await page.evaluate(() => {
@@ -781,9 +797,10 @@ await shot(m, 'm-bonk-pause');
     log(`sauvegarde de boutique éditée : jeu démarré, dégâts bornés=${lv}`);
     if (!lv) errs.push('[mobile] boutique : niveau non borné');
     // 1.28.0 : surcharge (niveaux 6 à 8) — compte en run normale (dmg 99 → 8 niveaux = +40 %), pas en défi du jour (plafonné à 5 = +25 %)
-    const sur = await Sp.evaluate(() => { const nb = window.__nb; nb.META.shop = { dmg: 8, hp: 99 }; nb.newRun(); const a = nb.S.stats.dmg; nb.newRun(true); return [a, nb.S.stats.dmg]; });
-    const surOK = sur[0] > sur[1] + 0.1;
-    log(`surcharge de boutique : dégâts run=${sur[0].toFixed(2)} · défi du jour=${sur[1].toFixed(2)} (doit être plus bas)`, surOK ? 'OK' : 'ÉCHEC');
+    // le défi du jour impose un héros qui change chaque jour : on compare donc niveau 8 et niveau 5 dans chaque mode
+    const sur = await Sp.evaluate(() => { const nb = window.__nb, g = (lv, daily) => { nb.META.shop = { dmg: lv, hp: 99 }; daily ? nb.newRun(true) : nb.newRun(); return nb.S.stats.dmg; }; return [g(8), g(5), g(8, true), g(5, true)]; });
+    const surOK = sur[0] > sur[1] + 0.05 && Math.abs(sur[2] - sur[3]) < 1e-6;
+    log(`surcharge de boutique : run 8/5 = ${sur[0].toFixed(2)}/${sur[1].toFixed(2)} (doit monter) · défi 8/5 = ${sur[2].toFixed(2)}/${sur[3].toFixed(2)} (doit être égal)`, surOK ? 'OK' : 'ÉCHEC');
     if (!surOK) errs.push('[mobile] boutique : la surcharge compte en défi du jour ou pas en run');
     await ctxS.close();
   }
