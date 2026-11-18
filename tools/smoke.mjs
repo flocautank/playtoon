@@ -430,6 +430,28 @@ log('objets 1.27.0 (reliquaire, crescendo, riposte) :', await page.evaluate(() =
   S.p.hp = S.stats.hp; S.enemies.length = 0;
   return out.join(' ');
 }));
+log('objets 1.29.0 (offrande, trophée) :', await page.evaluate(() => {
+  const nb = window.__nb, S = nb.S, out = [];
+  S.state = 'play'; S.enemies.length = 0; S.pending = 0; S.stats.hp = 1000; S.p.hp = 500; S.iframe = 0; S.shieldT = 1e9; S.stats.shield = 0; S.stats.dodge = 0;
+  const step = (n = 6) => { for (let i = 0; i < n; i++) { S.state = 'play'; S.pending = 0; S.iframe = 0.5; nb.update(1 / 30); } };
+  const target = () => { S.enemies.length = 0; const e = nb.spawnEnemy('brute', S.p.x + 1.5, S.p.z); e.speed = 0; e.hp = e.max = 1e12; return e; };
+  const shrine = () => ({ x: S.p.x, y: S.p.y, z: S.p.z, kind: 'magnet', used: false, crystal: { visible: true, rotation: { y: 0 }, position: { y: 3 } }, ring: { material: { opacity: 1 } } });
+  step(2);
+  // sans objet : un sanctuaire ne soigne pas, ne fait rien exploser
+  let h0 = S.p.hp, i0 = S.dmgBy.item || 0, e = target(); S.shrines.push(shrine()); step(1); nb.interact(); step();
+  out.push('témoin=' + (S.p.hp <= h0 + 1 && (S.dmgBy.item || 0) === i0));
+  nb.giveItem('offering'); nb.giveItem('trophy');
+  S.p.hp = 500; i0 = S.dmgBy.item || 0; e = target(); S.shrines.push(shrine()); step(1); nb.interact();
+  out.push('offrande(soin)=' + (S.p.hp >= 500 + 1000 * 0.12 - 1)); step();
+  out.push('offrande(souffle)=' + ((S.dmgBy.item || 0) > i0));
+  const d0 = S.stats.dmg, keep = { boss: S.boss, bossDead: S.bossDead, early: S.early, portal: S.portal }; S.boss = { x: S.p.x + 5, y: S.p.y, z: S.p.z, max: 1, hp: 0, age: 9, boss: true };
+  try { nb.bossDeath(); } catch (err) { out.push('bossDeath:' + err.message); }
+  out.push('trophée=' + (Math.abs(S.stats.dmg - d0 - 0.08) < 1e-9));
+  if (S.portal && S.portal !== keep.portal && S.scene && S.portal.mesh) { try { S.scene.remove(S.portal.mesh); } catch (err) {} }
+  Object.assign(S, keep); S.stats.dmg = d0;   // la mort du boss factice ne doit pas gêner les tests de boss suivants
+  S.p.hp = S.stats.hp; S.enemies.length = 0;
+  return out.join(' ');
+}));
 { const tomesRes = await page.evaluate(() => {
   const nb = window.__nb, S = nb.S, T = nb.TOMES;
   S.state = 'play'; S.pending = 0; S.tomes.length = 0; S.banned = new Set();   // pool de tomes libre (des tests précédents l'ont rempli)

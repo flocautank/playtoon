@@ -155,6 +155,9 @@ const ITEMS = [
   { id: 'reliquary', r: 1, ic: '🧰', fx: s => s.chestBlast++ },
   { id: 'crescendo', r: 2, ic: '🎼', fx: s => s.lvlBlast++ },
   { id: 'riposte', r: 2, ic: '🎭', fx: s => s.counter++ },
+  // lot « contenu » 1.29.0 : deux déclencheurs de plus (sanctuaire ou marchand utilisé, boss abattu)
+  { id: 'offering', r: 1, ic: '🕯️', fx: s => s.shrineBoon++ },
+  { id: 'trophy', r: 2, ic: '🎖️', fx: s => s.bossDmg++ },
 ];
 
 // Quêtes : objectifs permanents qui débloquent des objets (absents des coffres tant que la quête n'est pas faite),
@@ -1064,7 +1067,7 @@ function pushOut(o, p, r) {
 // ============================================================ nouvelle run
 function baseStats(ch) {
   const s = { slideCut: 0, hp: 100, regen: 0.3, armor: 0, speed: 1, dmg: 1, cd: 1, area: 1, proj: 0, magnet: 1.25, luck: 0, xp: 1, crit: 0.05, critMul: 2, jumps: 2, jumpV: 11, gold: 1, vamp: 0, shield: 0, thorns: 0, dodge: 0, boom: 0,
-    landShock: 0, jumpBurst: 0, speedDmg: 0, airDmg: 0, lowHpDmg: 0, killNova: 0, slideFire: 0, critChain: 0, execute: 0, frost: 0, hurtFreeze: 0, boomPow: 0, gemHeal: 0, midas: 0, chestDisc: 1, rush: 0, gemNova: 0, hurtBlast: 0, eliteGems: 0, chestBlast: 0, lvlBlast: 0, counter: 0 };
+    landShock: 0, jumpBurst: 0, speedDmg: 0, airDmg: 0, lowHpDmg: 0, killNova: 0, slideFire: 0, critChain: 0, execute: 0, frost: 0, hurtFreeze: 0, boomPow: 0, gemHeal: 0, midas: 0, chestDisc: 1, rush: 0, gemNova: 0, hurtBlast: 0, eliteGems: 0, chestBlast: 0, lvlBlast: 0, counter: 0, shrineBoon: 0, bossDmg: 0 };
   ch.bonus(s); s.hp = Math.max(40, s.hp); return s;
 }
 function newRun(daily) {
@@ -1634,6 +1637,8 @@ function explode(x, y, z, r, dmg, col) {
   if (r >= 3.5 && (x - S.p.x) ** 2 + (z - S.p.z) ** 2 < 144) shake(0.08);
   sfx('boom');
 }
+// Offrande : utiliser un sanctuaire, un marchand ou un duplicateur soigne et souffle tout autour
+function offeringBoon() { const c = S.stats.shrineBoon; if (!c) return; S.p.hp = Math.min(S.stats.hp, S.p.hp + S.stats.hp * 0.12 * c); asItem(() => explode(S.p.x, S.p.y, S.p.z, 5 * S.stats.area + c, itemDmg(50 * c), [1, 0.85, 0.45])); }
 // Riposte : esquiver ou parer un coup fait exploser tout autour du joueur
 function counterBlast() { const c = S.stats.counter; if (c) asItem(() => explode(S.p.x, S.p.y, S.p.z, 4.5 * S.stats.area + c, itemDmg(40 * c), [0.4, 1, 0.8])); }
 function hurt(d, src = '?', from = null) {   // from : {x, z} d'où vient le coup (indicateur de direction, rien d'autre)
@@ -2491,7 +2496,7 @@ function interact() {
   if (t.kind === 'shop' || t.kind === 'dup') {   // marchand / duplicateur : une fenêtre de choix, l'achat consomme le sanctuaire
     if (t.kind === 'dup' && !Object.keys(S.items).length) { msg(tr('nb.dupNone'), 1.5); return; }
     if (t.kind === 'dup' && S.gold < dupPrice()) { msg(tr('nb.noGold'), 1); return; }
-    S.vendor = t; openLevelUp(t.kind); return;
+    offeringBoon(); S.vendor = t; openLevelUp(t.kind); return;
   }
   if (t.kind === 'altar') {
     if (S.boss || S.bossDead || S.time <= 1) return;
@@ -2505,7 +2510,7 @@ function interact() {
     burst(t.x, t.y + 2, t.z, 40, [1, 0.95, 0.6], 7, 0.6); openLevelUp('shrine'); return;
   }
   if (t.kind) {   // sanctuaire
-    shrineUsed(t);
+    shrineUsed(t); offeringBoon();
     if (t.kind === 'curse') {
       const a = rand(0, TAU), e = spawnEnemy('brute', clamp(t.x + Math.cos(a) * 10, -HALF + 2, HALF - 2), clamp(t.z + Math.sin(a) * 10, -HALF + 2, HALF - 2), true);
       if (e) { e.curse = true; e.hp *= 3; e.max *= 3; e.size *= 1.3; e.r *= 1.3; msg(tr('nb.curseGo'), 3, '#b98bff'); shake(0.3); }
@@ -2655,6 +2660,7 @@ function updateBoss(dt) {
 }
 function bossDeath() {
   const b = S.boss;
+  if (S.stats.bossDmg) { S.stats.dmg += 0.08 * S.stats.bossDmg; msg(tr('nb.trophy', { n: 8 * S.stats.bossDmg }), 2.5, '#ffd24d'); }   // Trophée : chaque boss abattu rend plus fort pour la run
   burst(b.x, b.y, b.z, 250, [1, 0.3, 0.5], 18, 1.2);
   shake(1); hitstop(0.2); fovKick(10); sfx('elite');
   { const gy = terrainH(b.x, b.z); shock(b.x, gy, b.z, 16, [1, 0.3, 0.5], 0.9, 0.2); shock(b.x, gy, b.z, 9, [1, 1, 1], 0.5, 0.1); decal(b.x, gy, b.z, 7, [1, 0.3, 0.5], 20, 0); }

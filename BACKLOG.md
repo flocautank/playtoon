@@ -81,6 +81,9 @@ bugs → contenu → durée de vie → identité graphique → enrichissement. P
 - 2026-11-15 · Block Quarry · identité graphique · — · no-op : captures niveau 1 en 420×860 et 1280×720 relues, direction « Carrière » tenue (planches de pierre, lettres dorées, boutons gravés), rien de générique ; aucune erreur console.
 - 2026-11-15 · Nova Foundry · identité graphique · — · no-op : captures de l'introduction en 420×860 et 1280×720 relues, astrolabe, petites capitales et or cohérents ; aucune erreur console.
 - 2026-11-15 · Synth Horde · bugs · — · no-op : 8 runs simulées (4 en 420×860, 4 en 1280×720, jusqu'à 150 s, choix de cartes aléatoires) : aucun NaN, aucune exception, aucune erreur console. Smoke et apps-smoke non relancés (aucun fichier de jeu modifié ; machine lente).
+- 2026-11-18 · Block Quarry · enrichissement · — · no-op : confort déjà complet (sons séparés effets/musique, vibration, animations réduites par défaut système, repères de forme, clavier, tutoriel et conseils rejouables, Chrono figé en arrière-plan) ; aucun manque identifiable sans partie sur appareil.
+- 2026-11-18 · Nova Foundry · enrichissement · — · no-op : mêmes constats (clavier, vibration, effets calmes, introduction, gain hors-ligne) ; rien à ajouter sans test sur appareil.
+- 2026-11-18 · Synth Horde · contenu · 1.29.0 · 2 objets à déclencheur de plus (36 → 38) : **Offrande** (utiliser un sanctuaire, un marchand ou un duplicateur : soigne 12 % des PV max et souffle tout autour) et **Trophée** (chaque boss abattu : +8 % de dégâts pour la run, par exemplaire) ; icônes, six langues, test au smoke (témoin sans objet, soin, souffle, trophée) ; captures de la pause 420×860 et 1280×720 relues. Smoke et apps-smoke OK. Constat : le « témoin » du test 1.27.0 affiche `false` (déjà vrai avant ce lot, test non bloquant). À essayer en recette : +8 % par boss est modeste (3 boss par run).
 
 
 ## Synth Horde vs Megabonk
