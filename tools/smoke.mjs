@@ -930,6 +930,33 @@ await shot(m, 'm-bonk-pause');
   await ctx.close();
 }
 
+// ---------- Block Quarry 1.24.1 : sauvegardes corrompues (mauvais types, valeurs absurdes) → jamais de plantage
+{
+  log('étape : Block Quarry, sauvegardes corrompues');
+  const ctx = await browser.newContext({ viewport: { width: 420, height: 860 } });
+  const bad = [];
+  const row = Array(8).fill(null), board = Array.from({ length: 8 }, () => row.slice()), pc = { cells: [[0, 0], [1, 0]], w: 2, h: 1, color: '#fff' };
+  const goodSave = { board, tray: [pc, pc, null], score: 10, combo: 0 };
+  const muts = [
+    { 'blocparty.career': '-1000000000' }, { 'blocparty.login': '"1e999"' }, { 'blocparty.daily': '0.5' }, { 'blocparty.coins': '"x"' },
+    { 'blocparty.career': '{"xp":1e999,"st":5,"medals":null}' }, { 'blocparty.adv': '{"stars":7}' }, { 'blocparty.chrono': '{"a":1}' },
+    { 'blocparty.save': JSON.stringify({ ...goodSave, tray: [{ cells: 3 }, null, null] }) }, { 'blocparty.save': JSON.stringify({ ...goodSave, board: [1, 2, 3, 4, 5, 6, 7, 8] }) },
+    { 'blocparty.save': JSON.stringify({ ...goodSave, tray: [null, pc, pc, pc] }) }, { 'blocparty.save': JSON.stringify({ ...goodSave, score: 'abc' }) },
+  ];
+  for (const mut of muts) {
+    const p = await guard(await ctx.newPage()); watch(p, 'bq-corrompu'); const e0 = errs.length;
+    await p.addInitScript(m => { try { localStorage.setItem('playtoon.welcomed', '1'); for (const k in m) localStorage.setItem(k, m[k]); } catch (e) {} }, mut);
+    await p.goto(base + '#blocks'); await p.waitForTimeout(600);
+    const r = await p.evaluate(() => { try { const { S, place, fits, N } = window.__bp; for (let k = 0; k < 12 && !S.over; k++) { let d = false; S.tray.forEach((q, i) => { if (d || !q) return; for (let y = 0; y < N && !d; y++) for (let x = 0; x < N && !d; x++) if (fits(q, x, y)) { place(i, x, y); d = true; } }); if (!d) break; }
+      return /NaN|undefined|\[object|Infinity/.test(document.body.innerText) ? 'texte invalide' : 'ok'; } catch (e) { return 'ERR ' + e.message; } });
+    if (r !== 'ok' || errs.length > e0) bad.push(JSON.stringify(mut).slice(0, 70) + ' → ' + r);
+    await p.close();
+  }
+  log(`Block Quarry : ${muts.length} sauvegardes corrompues ${bad.length ? 'ÉCHEC ' + bad.join('; ') : 'OK'}`);
+  if (bad.length) errs.push('[bq-corrompu] ' + bad.join(' | '));
+  await ctx.close();
+}
+
 // ---------- Synth Horde 1.24.0 : pause automatique (appli en arrière-plan, fenêtre qui perd le focus), désactivable
 {
   log('étape : Synth Horde, pause automatique');

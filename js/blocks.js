@@ -207,17 +207,43 @@ const S = {
   mode: 'classic', lvl: 1, goal: null, moves: 0, gems: new Set(), got: 0, ice: new Set(), broke: 0,
   miss: 0, tips: [], beams: [], rings: [], flyers: [], flash: 0, glow: 0, hit: 0, endAnim: null, bestStart: 0,
 };
+// Lecture défensive du stockage : une valeur absurde (stockage édité, corrompu) ne doit ni planter le jeu ni afficher NaN.
+const lsJSON = k => { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } };
+const isObj = v => !!v && typeof v === 'object' && !Array.isArray(v);
+const cleanVal = (v, d = 0) => {
+  if (typeof v === 'number') return Number.isFinite(v) ? Math.max(-1e9, Math.min(1e9, v)) : undefined;
+  if (typeof v === 'string' || typeof v === 'boolean') return v;
+  if (d > 4 || !v || typeof v !== 'object') return v === null ? null : undefined;
+  if (Array.isArray(v)) return v.map(x => cleanVal(x, d + 1)).filter(x => x !== undefined);
+  const o = {}; for (const k in v) { const c = cleanVal(v[k], d + 1); if (c !== undefined) o[k] = c; } return o;
+};
+// fusionne src dans def en ne gardant que les champs du même type que la valeur par défaut
+const mergeSane = (def, src) => {
+  if (!isObj(src)) return def;
+  for (const k of Object.keys(src)) {
+    if (k === '__proto__') continue;
+    const c = cleanVal(src[k]); if (c === undefined) continue;
+    if (!(k in def)) { def[k] = c; continue; }   // champ ajouté plus tard (ex. historique) : gardé, nettoyé
+    const dv = def[k];
+    if (dv === null ? (c === null || isObj(c)) : isObj(dv) ? isObj(c) : Array.isArray(dv) ? Array.isArray(c) : typeof dv === typeof c) def[k] = c;
+  }
+  return def;
+};
+const okBoard = b => Array.isArray(b) && b.length === N && b.every(r => Array.isArray(r) && r.length === N && r.every(c => c === null || c === 0 || typeof c === 'string' || typeof c === 'number'));
+const okPiece = p => p === null || (isObj(p) && Array.isArray(p.cells) && p.cells.length > 0 && p.cells.length <= 25 && p.cells.every(c => Array.isArray(c) && Number.isInteger(c[0]) && Number.isInteger(c[1]) && c[0] >= 0 && c[1] >= 0 && c[0] < 6 && c[1] < 6) && Number.isFinite(p.w) && Number.isFinite(p.h));
+const okTray = t => Array.isArray(t) && t.length === 3 && t.every(okPiece);
+const nn = (v, d = 0) => Number.isFinite(+v) ? Math.max(0, Math.min(1e9, +v)) : d;
 let ADV = { stars: {} };
 // Boosters payés en pièces : gagnées à chaque ligne en classique, aux étoiles en Aventure.
 const TOOLS = { hammer: 15, bomb: 30, shuffle: 20 };
 let COINS = 40, tool = null;
-try { const c = localStorage.getItem('blocparty.coins'); if (c !== null) COINS = +c; } catch (e) {}
+try { const c = localStorage.getItem('blocparty.coins'); if (c !== null) COINS = nn(c, 40); } catch (e) {}
 const saveCoins = () => { try { localStorage.setItem('blocparty.coins', COINS); } catch (e) {} paintBoost(); };
 function paintBoost() {
   $('bp-coins').textContent = COINS;
   document.querySelectorAll('#bp-boost button[data-tool]').forEach(b => { b.classList.toggle('on', b.dataset.tool === tool); b.classList.toggle('no', (COINS < TOOLS[b.dataset.tool] && !(S.freeTool && b.dataset.tool === 'hammer')) || (S.mode === 'adv' && (S.toolsUsed || 0) >= ADV_TOOLS) || S.mode === 'daily'); });
 }
-try { ADV = Object.assign(ADV, JSON.parse(localStorage.getItem('blocparty.adv') || '{}')); } catch (e) {}
+ADV = mergeSane(ADV, lsJSON('blocparty.adv'));
 const saveAdv = () => { try { localStorage.setItem('blocparty.adv', JSON.stringify(ADV)); } catch (e) {} };
 const unlockedLvl = () => { let n = 1; while (ADV.stars[n]) n++; return Math.min(n, LEVELS); };
 
@@ -274,8 +300,8 @@ const SFX = {
 function load() {
   try {
     const d = JSON.parse(localStorage.getItem('blocparty.save') || 'null');
-    S.best = +(localStorage.getItem('blocparty.best') || 0);
-    if (d && d.board && d.board.length === N) {
+    S.best = nn(localStorage.getItem('blocparty.best'));
+    if (isObj(d) && okBoard(d.board) && okTray(d.tray) && d.score >= 0 && d.score < 1e9) {
       S.board = d.board; S.tray = d.tray; S.score = d.score; S.shown = d.score; S.combo = d.combo || 0; S.contN = d.contN || 0; S.placed = d.placed || 0;
       S.miss = d.miss || 0; S.lines = d.lines || 0; S.maxCombo = d.maxCombo || 0; S.bestStart = d.bestStart ?? S.best; S.beat = S.score > S.bestStart && S.bestStart > 0;
       return true;
@@ -301,7 +327,7 @@ function saveRun() {
 function loadRun() {
   try {
     const d = JSON.parse(localStorage.getItem(RUNKEY) || 'null');
-    if (!d || !Array.isArray(d.board) || d.board.length !== N || !Array.isArray(d.tray) || !(d.score >= 0)) return false;
+    if (!isObj(d) || !okBoard(d.board) || !okTray(d.tray) || !(d.score >= 0 && d.score < 1e9)) return false;
     if (d.mode === 'adv') { if (!(d.lvl >= 1 && d.lvl <= LEVELS) || !d.goal || !(d.moves > 0)) return false; }
     else if (d.mode === 'daily') { if (d.dday !== uKey()) return false; }
     else if (d.mode === 'chrono') { if (!(d.clock > 0)) return false; }
@@ -600,7 +626,7 @@ const uKey = (d = new Date()) => d.getUTCFullYear() * 10000 + (d.getUTCMonth() +
 const todayLabel = () => date(new Date(), { day: 'numeric', month: 'long', timeZone: 'UTC' });
 const nextDaily = () => { const s = Math.max(60, Math.ceil((864e5 - Date.now() % 864e5) / 1000)); return `${String(Math.floor(s / 3600)).padStart(2, '0')}:${String(Math.floor(s % 3600 / 60)).padStart(2, '0')}`; };   // HH:MM jusqu'à minuit UTC
 let DAILY = { day: 0, best: 0, streak: 0, last: 0 };
-try { DAILY = Object.assign(DAILY, JSON.parse(localStorage.getItem('blocparty.daily') || '{}')); } catch (e) {}
+DAILY = mergeSane(DAILY, lsJSON('blocparty.daily'));
 if (!DAILY.last && DAILY.day && DAILY.streak) DAILY.last = DAILY.day;   // avant 1.4.0, la série comptait les jours ouverts
 // passage à la date UTC (1.13.0), sans perdre la série ni primer deux fois la même journée :
 // - à l'ouest de Greenwich, le soir, la journée UTC a un jour d'avance : la journée locale déjà jouée devient la journée UTC ;
@@ -664,7 +690,7 @@ const M_GENERAL = ['lines', 'pieces', 'multi', 'combo', 'score', 'chrono', 'clea
 const BEST_OF = new Set(['combo', 'score']);
 const WEEK_CHEST = 100, MISSION_XP = 30, MEDAL_COINS = 60;
 let CAR = { xp: 0, rank: 0, st: {}, week: null, medals: {}, ms: {} }, carFresh = true;
-try { const c = localStorage.getItem('blocparty.career'); if (c) { CAR = Object.assign(CAR, JSON.parse(c)); carFresh = false; } } catch (e) {}
+{ const c = lsJSON('blocparty.career'); if (isObj(c)) { CAR = mergeSane(CAR, c); carFresh = false; } }
 if (carFresh) {   // joueurs d'avant 1.9.0 : le grade part de la progression déjà faite (étoiles d'Aventure et du défi), sans récompense rétroactive
   const advSt = Object.values(ADV.stars).reduce((a, b) => a + b, 0), dSt = Object.values(DAILY.hist || {}).reduce((a, b) => a + b, 0);
   CAR.xp = advSt * 3 + dSt * 10; CAR.rank = rankOf(CAR.xp);
@@ -841,7 +867,7 @@ function openThemes() {
 // ---------- Chrono : 2 minutes, +1,5 s par ligne, points qui valent de plus en plus, top 10 local
 const CHRONO_T = 120;
 let TOP = [];
-try { TOP = JSON.parse(localStorage.getItem('blocparty.chrono') || '[]'); } catch (e) {}
+TOP = (Array.isArray(lsJSON('blocparty.chrono')) ? lsJSON('blocparty.chrono') : []).filter(e => isObj(e) && Number.isFinite(e.s)).map(e => ({ s: Math.max(0, Math.min(1e9, e.s)), d: typeof e.d === 'string' ? e.d : '', t: Number.isFinite(e.t) ? e.t : 0 }));
 function startChrono() {
   dropRun(); clearTimeout(overTimer); clearTimeout(resTimer);
   S.mode = 'chrono'; rnd = Math.random; S.gems = new Set(); S.clock = CHRONO_T; S.chronoT = 0; S.myRank = -1;
@@ -1726,7 +1752,7 @@ $('bp-resvid').onclick = () => S.moves > 0 ? MON.reward('continue').then(ok => {
 $('bp-vidcont').onclick = () => MON.reward('continue').then(ok => { if (!ok || !S.over) return; S.vidCont = true; resume('bp-over'); });
 const VID_DAY = 5, VID_COINS = 20;
 let VIDS = { day: 0, n: 0 };
-try { VIDS = Object.assign(VIDS, JSON.parse(localStorage.getItem('blocparty.vids') || '{}')); } catch (e) {}
+VIDS = mergeSane(VIDS, lsJSON('blocparty.vids'));
 const vidsLeft = () => VIDS.day === dayKey() ? Math.max(0, VID_DAY - VIDS.n) : VID_DAY;
 function paintVidCoins() {
   const b = $('bp-vidcoins'), n = vidsLeft();
@@ -1854,7 +1880,7 @@ window.addEventListener('pagehide', keepRun);
 // bonus de connexion : une fois par jour, qui grandit avec la série de jours (10 → 40 🪙)
 function loginBonus() {
   let L0 = { day: 0, streak: 0 };
-  try { L0 = Object.assign(L0, JSON.parse(localStorage.getItem('blocparty.login') || '{}')); } catch (e) {}
+  L0 = mergeSane(L0, lsJSON('blocparty.login'));
   const today = dayKey(); if (L0.day === today) return;
   const y = new Date(); y.setDate(y.getDate() - 1);
   L0.streak = L0.day === dayKey(y) ? L0.streak + 1 : 1; L0.day = today;
@@ -1870,7 +1896,7 @@ window.GAMES.blocks = {
   show() {
     loadFonts(); watchModal(); initComfort();
     if (!document.body.dataset.tab) document.body.dataset.tab = 'blocks';   // appli : la coquille (réglages, confirmations, notifications) prend le style de la carrière
-    if (!inited) { inited = true; if (loadRun()) { try { S.best = +(localStorage.getItem('blocparty.best') || 0); } catch (e) {} } else { S.mode = 'classic'; rnd = Math.random; S.gems = new Set(); S.ice = new Set(); dropRun(); if (!load()) newGame(); else if (!S.tray.some(t => t && canPlaceAnywhere(t))) newGame(); } updateHUD(); }
+    if (!inited) { inited = true; if (loadRun()) { try { S.best = nn(localStorage.getItem('blocparty.best')); } catch (e) {} } else { S.mode = 'classic'; rnd = Math.random; S.gems = new Set(); S.ice = new Set(); dropRun(); if (!load()) newGame(); else if (!S.tray.some(t => t && canPlaceAnywhere(t))) newGame(); } updateHUD(); }
     loginBonus(); checkMedals(); checkMilestones(); ensureWeek(); paintCarBtn(); lbSync();
     // une seule boucle de dessin : un second show() sans hide() (reprise de l'appli) en lançait une deuxième, et le
     // Chrono s'écoulait deux fois plus vite (chaque image de la boucle en trop comptait 16 ms)
