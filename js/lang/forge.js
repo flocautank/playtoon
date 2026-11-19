@@ -123,6 +123,7 @@ export default {
       ['Pale Star', 'All production is divided by 10, and no comets.', 'Supernovae: +25% Novae'],
       ['Against the Clock', 'The timer runs, offline included.', 'Comets 25% more frequent and longer'],
       ['Lean Forge', 'Each forge is capped at 40 copies.', 'Production ×1.2'],
+      ['Lost Foundations', 'The first three forges are sealed: no more Sparks, Lanterns or Mills.', 'Lunar Forges, Solar Reactors and Pulsars ×2'],
     ],
     'sf.gal': [
       ['Foreman', 'Buys the cheapest forge automatically, every second.'], ['Comet Net', 'Golden comets are caught by themselves.'],
@@ -166,7 +167,7 @@ export default {
     'sf.owned': '✓ owned',
     'sf.bbAfter': 'After this Big Bang: Novae +{np}%, production +{pp}%', 'sf.bbHint': '💡 Tip: finish the Constellation first — its nodes are lost in the Big Bang.', 'sf.engName': 'Stellar Engine', 'sf.engDesc': 'Level {n} · production ×{m} (×1.25 per level)',
     'sf.backTitle': 'Welcome back!', 'sf.backTxt': 'You were away for {time}. Your foundry produced <b>+{v}</b> stardust.', 'sf.backOk': 'Collect', 'sf.backHint': 'The Night Watch node (Constellation) raises offline production from 25 % to 100 %.',
-    'sf.optSaveTxtApp': 'Saved automatically on this device every 10 seconds.', 'sf.nextNova': 'Next Nova at {n} produced ({p}%)', 'sf.aBBn': 'Big Bang ×{n}', 'sf.aBBnDesc': 'Trigger {n} Big Bangs', 'sf.aEngDesc': 'Reach level {n} of the Stellar Engine', 'sf.aAllChal': 'Challenger', 'sf.aAllChalDesc': 'Complete all 7 challenges',
+    'sf.optSaveTxtApp': 'Saved automatically on this device every 10 seconds.', 'sf.nextNova': 'Next Nova at {n} produced ({p}%)', 'sf.aBBn': 'Big Bang ×{n}', 'sf.aBBnDesc': 'Trigger {n} Big Bangs', 'sf.aEngDesc': 'Reach level {n} of the Stellar Engine', 'sf.aAllChal': 'Challenger', 'sf.aAllChalDesc': 'Complete all 8 challenges',
     'sf.bbInfo': v => `Novae earned: <b class="nova">${v.nova}</b> → <b>${v.g}</b> ${pl(v.g, 'Singularity', 'Singularities')} ✧ · owned: <b>${v.bank}</b> (${v.sing} in total: Novae +${v.np}%, production +${v.pp}%)`,
     'sf.bbLocked': 'Unlocks at {min} Novae earned (you have {n}). Resets Novae and Constellation in exchange for Singularities.',
     'sf.metaInfo': 'Available Novae: <b class="nova">{bank}</b> · Passive bonus: <b>+{pct}%</b> production. Constellation nodes survive every Supernova.',
@@ -299,6 +300,7 @@ export default {
       ['Étoile pâle', 'Toute la production est divisée par 10, pas de comètes.', 'Supernovae : +25 % de Novae'],
       ['Contre la montre', 'Le chrono tourne, hors-ligne compris.', 'Comètes +25 % plus fréquentes et plus longues'],
       ['Sobriété', 'Chaque forge est limitée à 40 exemplaires.', 'Production ×1,2'],
+      ['Fondations perdues', 'Les trois premières forges sont scellées : plus d’Étincelles, de Lanternes ni de Moulins.', 'Forges lunaires, Réacteurs solaires et Pulsars ×2'],
     ],
     'sf.gal': [
       ['Contremaître', 'Achète automatiquement la forge la moins chère, chaque seconde.'], ['Filet à comètes', 'Les comètes dorées sont attrapées toutes seules.'],
@@ -342,7 +344,7 @@ export default {
     'sf.owned': '✓ acquis',
     'sf.bbAfter': 'Après ce Big Bang : Novae +{np} %, production +{pp} %', 'sf.bbHint': "💡 Conseil : termine d'abord la Constellation — ses nœuds sont perdus au Big Bang.", 'sf.engName': 'Moteur stellaire', 'sf.engDesc': 'Niveau {n} · production ×{m} (×1,25 par niveau)',
     'sf.backTitle': 'Bon retour !', 'sf.backTxt': 'Tu es parti {time}. Ta fonderie a produit <b>+{v}</b> de poussière d’étoile.', 'sf.backOk': 'Récolter', 'sf.backHint': 'Le nœud Veille nocturne (Constellation) fait passer la production hors-ligne de 25 % à 100 %.',
-    'sf.optSaveTxtApp': 'Enregistré automatiquement sur cet appareil toutes les 10 secondes.', 'sf.nextNova': 'Prochaine Nova à {n} produits ({p} %)', 'sf.aBBn': 'Big Bang ×{n}', 'sf.aBBnDesc': 'Déclencher {n} Big Bangs', 'sf.aEngDesc': 'Atteindre le niveau {n} du Moteur stellaire', 'sf.aAllChal': 'Téméraire', 'sf.aAllChalDesc': 'Réussir les 7 défis',
+    'sf.optSaveTxtApp': 'Enregistré automatiquement sur cet appareil toutes les 10 secondes.', 'sf.nextNova': 'Prochaine Nova à {n} produits ({p} %)', 'sf.aBBn': 'Big Bang ×{n}', 'sf.aBBnDesc': 'Déclencher {n} Big Bangs', 'sf.aEngDesc': 'Atteindre le niveau {n} du Moteur stellaire', 'sf.aAllChal': 'Téméraire', 'sf.aAllChalDesc': 'Réussir les 8 défis',
     'sf.bbInfo': v => `Novae gagnées : <b class="nova">${v.nova}</b> → <b>${v.g}</b> ${pl(v.g, 'Singularité', 'Singularités')} ✧ · possédées : <b>${v.bank}</b> (${v.sing} au total : Novae +${v.np} %, production +${v.pp} %)`,
     'sf.bbLocked': 'Se débloque à {min} Novae gagnées (tu en as {n}). Réinitialise Novae et Constellation contre des Singularités.',
     'sf.metaInfo': 'Novae disponibles : <b class="nova">{bank}</b> · Bonus passif : <b>+{pct} %</b> de production. Les nœuds de la Constellation survivent à toutes les Supernovae.',

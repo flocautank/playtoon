@@ -35,7 +35,7 @@ const out = await p.evaluate(({ HRS, CPS, SN, ORD }) => {
     const s = S(), noU = s.chal === 'c_noupg';
     for (let guard = 0; guard < 60; guard++) {
       const base = F.dps() + CPS * F.clickValue(); let best = null;
-      F.GENS.forEach((g, i) => { if (g.meta && !s.meta[g.meta]) return; if (s.chal === 'c_short' && i > 2) return; const c = F.costN(i, 1); if (c > s.dust) return; s.gens[i]++; const gain = F.dps() + CPS * F.clickValue() - base; s.gens[i]--; if (gain > 0) { const r = c / gain; if (!best || r < best.r) best = { r, f: () => { s.dust -= c; s.gens[i]++; } }; } });
+      F.GENS.forEach((g, i) => { if (g.meta && !s.meta[g.meta]) return; if (s.chal === 'c_short' && i > 2 || s.chal === 'c_late' && i < 3) return; const c = F.costN(i, 1); if (c > s.dust) return; s.gens[i]++; const gain = F.dps() + CPS * F.clickValue() - base; s.gens[i]--; if (gain > 0) { const r = c / gain; if (!best || r < best.r) best = { r, f: () => { s.dust -= c; s.gens[i]++; } }; } });
       if (!noU) for (const u of F.UPGRADES) { if (s.upg[u.id] || !u.req(s)) continue; const c = F.upgCost(u); if (c > s.dust) continue; s.upg[u.id] = 1; const gain = F.dps() + CPS * F.clickValue() - base; delete s.upg[u.id]; const r = c / Math.max(gain, 1e-12); if (!best || r < best.r) best = { r, f: () => { s.dust -= c; s.upg[u.id] = 1; s.st.nUpg = (s.st.nUpg || 0) + 1; } }; }
       if (!best) break; best.f();
     }

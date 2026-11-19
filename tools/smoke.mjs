@@ -1064,6 +1064,28 @@ await shot(m, 'm-bonk-pause');
   await ctx.close();
 }
 
+// ---------- Nova Foundry : 8e défi « Fondations perdues » (forges 1–3 scellées, départ offert, forges 4–6 ×2 une fois réussi)
+{
+  const ctx = await browser.newContext({ viewport: { width: 420, height: 860 } });
+  const p = await guard(await ctx.newPage()); watch(p, 'nf-late');
+  await p.addInitScript(() => { try { localStorage.setItem('starforge.intro', '1'); } catch (e) {} });
+  await p.goto(base + '#forge'); await p.waitForTimeout(700);
+  const r = await p.evaluate(() => {
+    const F = window.__sf, c = F.CHALS.find(x => x.id === 'c_late'); if (!c) return { missing: true };
+    F.S = F.fresh(); F.S.prestiges = 6; F.chalNow(c);
+    const g0 = F.S.gens.slice(0, 4); F.S.dust = 1e9;
+    F.buyGen(0); F.buyGen(2); const sealed = F.S.gens[0] === g0[0] && F.S.gens[2] === g0[2];
+    F.buyGen(3); const bought = F.S.gens[3] === g0[3] + 1;
+    const before = F.S.gens.map((n, i) => n * F.GENS[i].prod).slice(3, 6);
+    F.S.chal = null; F.S.gens = F.S.gens.map(() => 0); F.S.gens[3] = 1; F.S.gens[1] = 1; const d0 = F.dps();
+    F.S.chalDone.c_late = 1; const d1 = F.dps();
+    return { start: g0, sealed, bought, ratio: d1 / d0, name: c.name, desc: c.desc.length > 10, reward: c.reward.length > 5 };
+  });
+  const ok = !r.missing && r.start.join() === '30,20,10,0' && r.sealed && r.bought && r.ratio > 1.5 && r.ratio < 2.01 && r.name && r.desc && r.reward;
+  log(`Nova Foundry : défi Fondations perdues ${ok ? 'OK' : 'ÉCHEC ' + JSON.stringify(r)}`);
+  if (!ok) errs.push('[nf-late] ' + JSON.stringify(r));
+  await ctx.close();
+}
 // ---------- Nova Foundry : vibration (réglage Options ; un court buzz par clic, aucun une fois désactivée)
 {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 720 } });
