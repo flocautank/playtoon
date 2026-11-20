@@ -762,7 +762,8 @@ function checkMedals() {
 // jalons à vie (1.14.0) : des paliers lointains sous chaque statistique du Carnet, payés une fois, sans bouton ni vidéo —
 // de quoi viser au-delà du dernier grade. Pièces et XP seulement, rien qui se règle contre de l'argent.
 const MS_FAM = [['lines', [250, 1500, 6000, 25000], s => s.lines], ['pieces', [800, 5000, 20000, 80000], s => s.pieces], ['games', [10, 60, 250, 1000], s => s.games],
-  ['combo', [6, 9, 12, 15], s => s.combo], ['clears', [1, 10, 50, 200], s => s.clears], ['days', [3, 10, 30, 100], s => s.days], ['streak', [3, 7, 14, 30], s => s.streak], ['best', [2500, 8000, 20000, 50000], s => S.best]];
+  ['combo', [6, 9, 12, 15], s => s.combo], ['clears', [1, 10, 50, 200], s => s.clears], ['days', [3, 10, 30, 100], s => s.days], ['streak', [3, 7, 14, 30], s => s.streak], ['best', [2500, 8000, 20000, 50000], s => S.best],
+  ['stars', [30, 100, 200, 330], () => Object.values(ADV.stars).reduce((x, y) => x + y, 0)]];   // étoiles d'Aventure (1.25.1) : 360 au total, le fil des chapitres 9 à 12
 const MS_COINS = [30, 60, 100, 200], MS_XP = [20, 40, 80, 150];
 function checkMilestones() {
   if (!CAR.ms) CAR.ms = {};
@@ -1906,4 +1907,4 @@ window.GAMES.blocks = {
   hide() { running = false; S.drag = null; },
 };
 // Accès de test (tools/smoke.mjs, console).
-window.__bp = { CAR, get DAILY() { return DAILY; }, dailyPlayed, checkMilestones, MISSIONS, openCareer, ensureWeek, track, gainXP, S, L, newGame, refill: fillTray, place, fits, startLevel, goalWon, startDaily, startChrono, linesToClear, canPlaceAnywhere, N, gameOver, endNow: () => { S.over = true; armOver(600); } };
+window.__bp = { CAR, get ADV() { return ADV; }, get DAILY() { return DAILY; }, dailyPlayed, checkMilestones, MISSIONS, openCareer, ensureWeek, track, gainXP, S, L, newGame, refill: fillTray, place, fits, startLevel, goalWon, startDaily, startChrono, linesToClear, canPlaceAnywhere, N, gameOver, endNow: () => { S.over = true; armOver(600); } };

@@ -142,6 +142,19 @@ await page.click('[data-tool=shuffle]'); await page.waitForTimeout(200); await s
   log('jalons de série :', JSON.stringify(r));
   if (r.k1 !== 1 || r.gain < 30 || r.again !== 0 || r.best !== 3) errs.push('[desktop] jalons de série du défi : ' + JSON.stringify(r));
 }
+// jalons d'étoiles d'Aventure (1.25.1) : payés une fois, selon le total d'étoiles
+{
+  const r = await page.evaluate(() => {
+    const B = window.__bp; B.CAR.ms = B.CAR.ms || {}; B.CAR.ms.stars = 0;
+    const saved = JSON.stringify(B.ADV.stars); for (let i = 1; i <= 40; i++) B.ADV.stars[i] = 1;   // 40 étoiles au moins
+    const tot = Object.values(B.ADV.stars).reduce((x, y) => x + y, 0), c0 = +localStorage.getItem('blocparty.coins') || 0;
+    B.checkMilestones(); const k1 = B.CAR.ms.stars, c1 = +localStorage.getItem('blocparty.coins'); B.checkMilestones();
+    const again = +localStorage.getItem('blocparty.coins') - c1;
+    for (const k of Object.keys(B.ADV.stars)) delete B.ADV.stars[k]; Object.assign(B.ADV.stars, JSON.parse(saved)); return { tot, k1, gain: c1 - c0, again };
+  });
+  log('jalons d\'étoiles :', JSON.stringify(r));
+  if (r.tot < 30 || r.k1 < 1 || r.gain < 30 || r.again !== 0) errs.push('[desktop] jalons d\'étoiles : ' + JSON.stringify(r));
+}
 // missions de filon et de géode (1.17.0) : elles progressent, et le tirage n'en propose pas avant le chapitre concerné
 {
   const r = await page.evaluate(() => {
