@@ -350,6 +350,10 @@ ACH.push({ id: 'ord250', get name() { return t('sf.achO')[1][0] + ' ' + num(250)
 // Supernovae 60 et 90, commandes 300, 350 et 400 (mêmes textes, seuil en {n})
 [60, 90].forEach(n => ACH.push({ id: 'pre' + n, ic: '🎇', get name() { return t('sf.aPre', { n }); }, get desc() { return t('sf.aPreDesc', { n }); }, test: s => s.prestiges >= n }));
 [300, 350, 400].forEach(n => ACH.push({ id: 'ord' + n, get name() { return t('sf.achO')[1][0] + ' ' + num(n); }, get desc() { return t('sf.achO')[1][1].replace('{n}', num(n)); }, test: s => ordDone(s) >= n }));
+// 1.22 : sf-long (2026-11-21) : 9 nouveautés seulement entre 20 et 30 h puis entre 30 et 40 h (écart médian ~65 min, creux jusqu'à
+// 264 min) : Supernovae 55, 65, 70, 80 et 85, commandes 275 et 325 (mêmes textes, seuil en {n})
+[55, 65, 70, 80, 85].forEach(n => ACH.push({ id: 'pre' + n, ic: '🎇', get name() { return t('sf.aPre', { n }); }, get desc() { return t('sf.aPreDesc', { n }); }, test: s => s.prestiges >= n }));
+[275, 325].forEach(n => ACH.push({ id: 'ord' + n, get name() { return t('sf.achO')[1][0] + ' ' + num(n); }, get desc() { return t('sf.achO')[1][1].replace('{n}', num(n)); }, test: s => ordDone(s) >= n }));
 
 // Défis : une run sous contrainte (entrer = repartir de zéro, sans Novae), objectif en poussière
 // produite ; la réussite débloque une récompense permanente et lève la contrainte.

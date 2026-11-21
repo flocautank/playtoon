@@ -680,6 +680,12 @@ await page.close();
     await new Promise(r => setTimeout(r, 600));
     return out.join(' · ');
   }));
+  {   // succès de long cours (1.22.0) : 85 Supernovae et 325 commandes les débloquent, 40 Supernovae non
+    const r = await g.evaluate(() => { const F = window.__sf, S = F.S; S.prestiges = 40; S.ord = S.ord || { list: [], done: 0 }; S.ord.done = 0; F.checkAch(); const low = ['pre55', 'pre85', 'ord275'].filter(i => S.ach[i]);
+      S.prestiges = 85; S.ord.done = 325; F.checkAch(); return { low, hi: ['pre55', 'pre65', 'pre70', 'pre80', 'pre85', 'ord275', 'ord325'].filter(i => S.ach[i]).length }; });
+    log('succès de long cours :', JSON.stringify(r));
+    if (r.low.length || r.hi !== 7) errs.push('[big-bang] succès de long cours : ' + JSON.stringify(r));
+  }
   await shot(g, 'forge-eclipse');
   await g.evaluate(() => { window.__sf.S.buffs = []; });
   await g.click('[data-sf=meta]'); await g.waitForTimeout(400); await shot(g, 'forge-bigbang');
