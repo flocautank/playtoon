@@ -465,6 +465,16 @@ log('objets 1.29.0 (offrande, trophée) :', await page.evaluate(() => {
   S.p.hp = S.stats.hp; S.enemies.length = 0;
   return out.join(' ');
 }));
+{ const dieRes = await page.evaluate(() => {
+  const nb = window.__nb, S = nb.S, out = [];
+  S.state = 'play'; S.pending = 0; nb.openLevelUp('level'); S.rerolls = 5;
+  const d0 = S.stats.dmg; nb.reroll(); out.push('témoin=' + (S.stats.dmg === d0));
+  nb.giveItem('loaded'); nb.reroll(); out.push('dé=' + (Math.abs(S.stats.dmg - d0 - 0.03) < 1e-9));
+  nb.giveItem('loaded'); nb.reroll(); out.push('2 exemplaires=' + (Math.abs(S.stats.dmg - d0 - 0.09) < 1e-9));
+  S.rerolls = 0; const d1 = S.stats.dmg; nb.reroll(); out.push('sans relance=' + (S.stats.dmg === d1));
+  S.stats.dmg = d0; document.getElementById('nb-levelup').classList.add('hidden'); S.state = 'play'; S.rerolls = 2;
+  return out.join(' ');
+}); log('objet 1.30.0 (dé pipé) :', dieRes); if (dieRes.includes('=false')) errs.push('[desktop] dé pipé : ' + dieRes); }
 { const tomesRes = await page.evaluate(() => {
   const nb = window.__nb, S = nb.S, T = nb.TOMES;
   S.state = 'play'; S.pending = 0; S.tomes.length = 0; S.banned = new Set();   // pool de tomes libre (des tests précédents l'ont rempli)

@@ -158,6 +158,8 @@ const ITEMS = [
   // lot « contenu » 1.29.0 : deux déclencheurs de plus (sanctuaire ou marchand utilisé, boss abattu)
   { id: 'offering', r: 1, ic: '🕯️', fx: s => s.shrineBoon++ },
   { id: 'trophy', r: 2, ic: '🎖️', fx: s => s.bossDmg++ },
+  // lot « contenu » 1.30.0 : un déclencheur de plus (relancer un choix de niveau)
+  { id: 'loaded', r: 1, ic: '🃏', fx: s => s.rerollDmg++ },
 ];
 
 // Quêtes : objectifs permanents qui débloquent des objets (absents des coffres tant que la quête n'est pas faite),
@@ -1067,7 +1069,7 @@ function pushOut(o, p, r) {
 // ============================================================ nouvelle run
 function baseStats(ch) {
   const s = { slideCut: 0, hp: 100, regen: 0.3, armor: 0, speed: 1, dmg: 1, cd: 1, area: 1, proj: 0, magnet: 1.25, luck: 0, xp: 1, crit: 0.05, critMul: 2, jumps: 2, jumpV: 11, gold: 1, vamp: 0, shield: 0, thorns: 0, dodge: 0, boom: 0,
-    landShock: 0, jumpBurst: 0, speedDmg: 0, airDmg: 0, lowHpDmg: 0, killNova: 0, slideFire: 0, critChain: 0, execute: 0, frost: 0, hurtFreeze: 0, boomPow: 0, gemHeal: 0, midas: 0, chestDisc: 1, rush: 0, gemNova: 0, hurtBlast: 0, eliteGems: 0, chestBlast: 0, lvlBlast: 0, counter: 0, shrineBoon: 0, bossDmg: 0 };
+    landShock: 0, jumpBurst: 0, speedDmg: 0, airDmg: 0, lowHpDmg: 0, killNova: 0, slideFire: 0, critChain: 0, execute: 0, frost: 0, hurtFreeze: 0, boomPow: 0, gemHeal: 0, midas: 0, chestDisc: 1, rush: 0, gemNova: 0, hurtBlast: 0, eliteGems: 0, chestBlast: 0, rerollDmg: 0, lvlBlast: 0, counter: 0, shrineBoon: 0, bossDmg: 0 };
   ch.bonus(s); s.hp = Math.max(40, s.hp); return s;
 }
 function newRun(daily) {
@@ -2377,7 +2379,7 @@ function renderChoices() {
   $('nb-banish').disabled = S.banishes <= 0;
   $('nb-skipg').textContent = 10 + 5 * S.stage;
 }
-function reroll() { if (S.rerolls <= 0 || choiceMode !== 'level') return; S.rerolls--; setBanish(false); curChoices = buildChoices('level'); renderChoices(); }
+function reroll() { if (S.rerolls <= 0 || choiceMode !== 'level') return; S.rerolls--; if (S.stats.rerollDmg) { S.stats.dmg += 0.03 * S.stats.rerollDmg; msg(tr('nb.loaded', { n: 3 * S.stats.rerollDmg }), 1.5, '#ffd24d'); } setBanish(false); curChoices = buildChoices('level'); renderChoices(); }
 // Bannir : retire pour la run une nouvelle arme, un nouveau tome ou une bénédiction ; Passer : un peu d'or au lieu d'un choix
 const banKey = c => c.kind === 'wnew' ? 'w:' + c.id : c.kind === 'tnew' ? 't:' + c.id : c.kind === 'stat' ? 't:' + c.key : null;
 function setBanish(on) { S.banishOn = on && S.banishes > 0 && choiceMode === 'level'; $('nb-choices').classList.toggle('banish', S.banishOn); $('nb-banish').classList.toggle('on', S.banishOn); }
@@ -3872,7 +3874,7 @@ function nbIcons(root) {
 }
 { const root = document.getElementById('nb-root'); if (root) { nbIcons(root); new MutationObserver(ms => { for (const m of ms) { if (m.type === 'characterData') nbIcons(m.target.parentNode); else m.addedNodes.forEach(n => n.nodeType === 3 ? nbIcons(n.parentNode) : n.nodeType === 1 && nbIcons(n)); } }).observe(root, { subtree: true, childList: true, characterData: true }); } }
 window.__nbT = { terrainH, flowField, ETYPES, NAV, groundE };
-window.__nb = { TOMES, applyStat, get S() { return S; }, get camDist() { return camDist; }, update, pick, keys, interact, jump, damage, hurt, spawnEnemy, spawnBoss, nextStage, music, newRun, addWeapon, openLevelUp, buildChoices, bossDeath, slide, giveItem: id => giveItem(ITEMS.find(i => i.id === id)), goldChest, banish, get vendor() { return S.vendor; }, get META() { return META; }, checkQuests, QUESTS, questText, questDone, get hero() { return player && player.userData.hero; }, get scene() { return scene; } };
+window.__nb = { TOMES, applyStat, get S() { return S; }, get camDist() { return camDist; }, update, pick, keys, interact, jump, damage, hurt, spawnEnemy, spawnBoss, nextStage, music, newRun, addWeapon, openLevelUp, buildChoices, bossDeath, slide, giveItem: id => giveItem(ITEMS.find(i => i.id === id)), goldChest, banish, reroll, get vendor() { return S.vendor; }, get META() { return META; }, checkQuests, QUESTS, questText, questDone, get hero() { return player && player.userData.hero; }, get scene() { return scene; } };
 
 window.GAMES.bonk = {
   reward() { META.credits = (META.credits || 0) + 40; saveMeta(); if (!S || S.state === 'menu') try { renderMenu(); } catch (e) {} },   // objectif du jour

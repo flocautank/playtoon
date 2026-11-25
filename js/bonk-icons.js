@@ -264,6 +264,7 @@ const A = {
   i_reliquary: rect(3.4, 10, 17.2, 11, Y, 1.6) + rect(3.4, 4.6, 17.2, 6.4, '#ffb52e', 2.4) + rect(10, 9, 4, 5.6, K, 0.9) + circ(12, 11.8, 1.2, Y) + hi('M6 7.2H11'),
   i_crescendo: rect(2.6, 15.8, 3.8, 5.8, C, 0.9) + rect(7.4, 11.4, 3.8, 10.2, Y, 0.9) + rect(12.2, 7, 3.8, 14.6, M, 0.9) + rect(17, 2.4, 3.8, 19.2, R, 0.9) + hi('M18.6 4.6V9'),
   i_offering: rect(8.6, 9, 6.8, 12.6, Y, 1.2) + path('M12 1.6C14.4 4.6 15.4 6.2 15.4 7.6C15.4 9.6 13.9 10.8 12 10.8C10.1 10.8 8.6 9.6 8.6 7.6C8.6 6.2 9.6 4.6 12 1.6Z', R) + hi('M10.6 12V19'),
+  i_loaded: rect(3.6, 3.6, 16.8, 16.8, W, 3.4) + circ(8.2, 8.2, 0.9, R) + circ(15.8, 8.2, 0.9, R) + circ(12, 12, 0.9, M) + circ(8.2, 15.8, 0.9, R) + circ(15.8, 15.8, 0.9, R) + hi('M6 6.4H9.6'),
   i_trophy: path('M6.4 3.4H17.6V9.6C17.6 12.8 15.2 14.8 12 14.8C8.8 14.8 6.4 12.8 6.4 9.6Z', Y) + ln('M6.4 5.4H3.6C3.6 9 5 10.6 7 11M17.6 5.4H20.4C20.4 9 19 10.6 17 11', M, 1.8) + rect(10.8, 14.6, 2.4, 4, Y, 0.6) + rect(7.4, 18.4, 9.2, 3.2, M, 1) + hi('M8.8 5.8V9.4'),
   i_riposte: path('M12 2.2L20.2 5.4V12C20.2 16.8 16.8 20.2 12 22C7.2 20.2 3.8 16.8 3.8 12V5.4Z', C) + ln('M8 15.4L16 8M8 8L16 15.4', R, 2.2) + hi('M6.8 6.6L6.8 11'),
   i_spite: star(12, 12, 10.2, 5.2, 8, R) + circ(12, 12, 3.4, Y) + hi('M8 8.4L10 6.8'),
@@ -418,7 +419,7 @@ const E = {
   // objets
   '🥾': 'i_boots', '☘️': 'i_clover', '🔋': 'i_battery', '🔍': 'i_lens', '💗': 'i_heart', '🪙': 'i_coin', '🦷': 'i_fang', '🔰': 'i_shield',
   '🌵': 'i_thorns', '🧥': 'i_cloak', '☢️': 'i_reactor', '👑': 'i_crown', '🪽': 'i_wings', '🔥': 'h_heat', '🪁': 'i_kite', '💉': 'i_adren',
-  '🌟': 'i_star', '🪞': 'i_mirror', '🪓': 'i_axe', '⏳': 'i_chrono', '🛢️': 'i_keg', '🩸': 'i_siphon', '🏺': 'i_midas', '🗝️': 'i_key', '🔔': 'i_chime', '💢': 'i_spite', '🧿': 'i_bounty', '🧰': 'i_reliquary', '🕯': 'i_offering', '🎖': 'i_trophy',  '🎼': 'i_crescendo', '🎭': 'i_riposte',
+  '🌟': 'i_star', '🪞': 'i_mirror', '🪓': 'i_axe', '⏳': 'i_chrono', '🛢️': 'i_keg', '🩸': 'i_siphon', '🏺': 'i_midas', '🗝️': 'i_key', '🔔': 'i_chime', '💢': 'i_spite', '🧿': 'i_bounty', '🧰': 'i_reliquary', '🕯': 'i_offering', '🎖': 'i_trophy', '🃏': 'i_loaded',   '🎼': 'i_crescendo', '🎭': 'i_riposte',
   // HUD / quêtes / boutique / textes
   '◆': 'h_gold', '◈': 'h_credits', '☠': 'h_kills', '☠️': 'h_kills', '🔑': 'h_keys', '⏱': 'h_time', '⏱️': 'h_time', '▲': 'h_level', '❚❚': 'h_pause',
   '⭐': 'm_star', '📦': 'q_chests', '✨': 'q_gold', '🛒': 'q_vendor', '🎒': 'q_itemdmg', '∞': 'q_ot', '🐇': 'q_hops', '🏁': 'q_wins',
