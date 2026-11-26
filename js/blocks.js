@@ -56,7 +56,7 @@ if (!THEME.owned.includes('quarry')) { THEME.owned.unshift('quarry'); if (THEME.
 const saveTheme = () => { try { localStorage.setItem('blocparty.themes', JSON.stringify(THEME)); } catch (e) {} };
 const curTheme = () => THEMES.find(t => t.id === THEME.cur) || THEMES[0];
 const tc = c => { const i = COLORS.indexOf(c); return i >= 0 ? curTheme().pal[i] : c; };
-const LEVELS = 120;   // 12 chapitres de 10 ; la géode (gemmes + givre dans un même niveau) arrive au chapitre 9 (niveau 81) ; le givre arrive au chapitre 5 (niveau 41), les veines de couleur au chapitre 7 (niveau 61)
+const LEVELS = 130;   // 13 chapitres de 10 ; la géode (gemmes + givre dans un même niveau) arrive au chapitre 9 (niveau 81) ; le givre arrive au chapitre 5 (niveau 41), les veines de couleur au chapitre 7 (niveau 61)
 const ICE_LVL = 41;
 const VEIN_LVL = 61;
 const GEODE_LVL = 81;
@@ -153,6 +153,7 @@ const MEDAL_MOTIF = [
   '<path d="M20 8.500l2.400 7.100h7.100l-5.800 4.300 2.300 7.200-6-4.500-6 4.500 2.300-7.200-5.800-4.300h7.100z"/>',   // cœur de cristal : étoile à facettes
   '<path d="M12 29l-2-7 5-3 2-6 5 2 6 4-1 7-5 3z" fill="none" stroke-width="2.2" stroke-linejoin="round"/><path d="M15 19l5 3 6-3M20 22v7" fill="none" stroke-width="1.6" stroke-linecap="round"/>',   // filon d'or : pépite
   '<path d="M20 8.500l9 5.500v12L20 31.500 11 26V14z" fill="none" stroke-width="2.2" stroke-linejoin="round"/><path d="M11 14l9 5.500 9-5.500M20 19.500v12" fill="none" stroke-width="1.6" stroke-linejoin="round"/>',   // veine d'argent : lingot taillé
+  '<path d="M20 8l10 12-10 12-10-12z" fill="none" stroke-width="2.2" stroke-linejoin="round"/><path d="M10 20h20M20 8v24M15 14l10 12M25 14L15 26" fill="none" stroke-width="1.4" stroke-linejoin="round"/>',   // veine de platine : diamant taillé
 ];
 function medalSVG(c, on, cls = 'bp-mdi') {
   const id = 'bqm' + c + (on ? 'a' : 'b'), m = MEDAL_MOTIF[c % MEDAL_MOTIF.length];
@@ -523,8 +524,8 @@ function genMix(n) {
   const moves = L0.goal.moves + Math.round(gemsN * 1.6) + 2;
   return { board: L0.board, gems, ice: L0.ice, goal: { type: 'mix', gems: gemsN, ice: L0.ice.size, target: 0, moves } };
 }
-// chapitres 11–12 (niveaux 101+) : mêmes mécaniques que la fin du jeu, 7 % de coups en moins (9 % au chapitre 12)
-function genLevel(n) { const L0 = genLevel0(n); if (n > 100) L0.goal.moves = Math.round(L0.goal.moves * (n > 110 ? 0.91 : 0.93)); return L0; }
+// chapitres 11–13 (niveaux 101+) : mêmes mécaniques que la fin du jeu, 7 % de coups en moins (9 % au chapitre 12, 11 % au chapitre 13)
+function genLevel(n) { const L0 = genLevel0(n); if (n > 100) L0.goal.moves = Math.round(L0.goal.moves * (n > 120 ? 0.89 : n > 110 ? 0.91 : 0.93)); return L0; }
 function genLevel0(n) {
   if (levelType(n) === 'mix') return genMix(n);
   if (levelType(n) === 'ice') return genIce(n);
@@ -763,7 +764,7 @@ function checkMedals() {
 // de quoi viser au-delà du dernier grade. Pièces et XP seulement, rien qui se règle contre de l'argent.
 const MS_FAM = [['lines', [250, 1500, 6000, 25000], s => s.lines], ['pieces', [800, 5000, 20000, 80000], s => s.pieces], ['games', [10, 60, 250, 1000], s => s.games],
   ['combo', [6, 9, 12, 15], s => s.combo], ['clears', [1, 10, 50, 200], s => s.clears], ['days', [3, 10, 30, 100], s => s.days], ['streak', [3, 7, 14, 30], s => s.streak], ['best', [2500, 8000, 20000, 50000], s => S.best],
-  ['stars', [30, 100, 200, 330], () => Object.values(ADV.stars).reduce((x, y) => x + y, 0)]];   // étoiles d'Aventure (1.25.1) : 360 au total, le fil des chapitres 9 à 12
+  ['stars', [30, 100, 200, 330], () => Object.values(ADV.stars).reduce((x, y) => x + y, 0)]];   // étoiles d'Aventure (1.25.1) : 390 au total, le fil des chapitres 9 à 12
 const MS_COINS = [30, 60, 100, 200], MS_XP = [20, 40, 80, 150];
 function checkMilestones() {
   if (!CAR.ms) CAR.ms = {};
